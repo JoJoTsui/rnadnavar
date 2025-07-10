@@ -58,8 +58,6 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         dict,                                     // channel: [mandatory] dict
         known_sites_indels,                       // channel: [optional]  known_sites
         known_sites_indels_tbi,                   // channel: [optional]  known_sites
-        germline_resource,                        // channel: [optional]  germline_resource
-        germline_resource_tbi,                    // channel: [optional]  germline_resource_tbi
         intervals,                                // channel: [mandatory] intervals/target regions
         intervals_for_preprocessing,              // channel: [mandatory] intervals_for_preprocessing/wes
         intervals_and_num_intervals,              // channel: [mandatory] intervals_for_preprocessing/wes

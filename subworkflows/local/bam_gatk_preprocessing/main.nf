@@ -30,8 +30,6 @@ workflow BAM_GATK_PREPROCESSING {
     dict                          // channel: [mandatory] dict
     known_sites_indels            // channel: [optional]  known_sites
     known_sites_indels_tbi        // channel: [optional]  known_sites
-    germline_resource             // channel: [optional]  germline_resource
-    germline_resource_tbi         // channel: [optional]  germline_resource_tbi
     intervals                     // channel: [mandatory] intervals/target regions
     intervals_for_preprocessing   // channel: [mandatory] intervals/wes
     intervals_and_num_intervals   // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
@@ -55,7 +53,7 @@ workflow BAM_GATK_PREPROCESSING {
                                     infoMap }
         // cram_for_markduplicates will contain bam mapped with FASTQ_ALIGN_BWAMEM_MEM2_DRAGMAP when step is mapping
         // Or bams that are specified in the samplesheet.csv when step is prepare_recalibration
-        cram_for_markduplicates = params.step == 'mapping' || realignment ? bam_mapped : input_sample.map{ meta, input, index -> [ meta, input ] }
+        cram_for_markduplicates = params.step == 'mapping' || realignment ? cram_mapped.ifEmpty(bam_mapped) : input_sample.map{ meta, input, index -> [ meta, input ] }
 
         // if no MD is done, then run QC on mapped & converted CRAM files
         // or the input BAM (+converted) or CRAM files
@@ -108,13 +106,17 @@ workflow BAM_GATK_PREPROCESSING {
             // Make sure correct data types are carried through
             .map{ meta, cram, crai -> [ meta + [data_type: "cram"], cram, crai ] }
         // If params.save_output_as_bam, then convert CRAM files to BAM
-        CRAM_TO_BAM(ch_md_cram_for_restart, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
-        versions = versions.mix(CRAM_TO_BAM.out.versions)
-
         // CSV should be written for the file actually out, either CRAM or BAM
         // Create CSV to restart from this step
         csv_subfolder = 'markduplicates'
+        if (params.save_output_as_bam){
+            CRAM_TO_BAM(ch_md_cram_for_restart, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
+            versions = versions.mix(CRAM_TO_BAM.out.versions)
+            cram_to_bam_bai = CRAM_TO_BAM.out.bam.join(CRAM_TO_BAM.out.bai, failOnDuplicate: true, failOnMismatch: true)
+            CHANNEL_MARKDUPLICATES_CREATE_CSV(cram_to_bam_bai, csv_subfolder, params.outdir, params.save_output_as_bam)
+        } else {
         params.save_output_as_bam ? CHANNEL_MARKDUPLICATES_CREATE_CSV(CRAM_TO_BAM.out.alignment_index, csv_subfolder, params.outdir, params.save_output_as_bam) : CHANNEL_MARKDUPLICATES_CREATE_CSV(ch_md_cram_for_restart, csv_subfolder, params.outdir, params.save_output_as_bam)
+        }
     } else {
         ch_md_cram_for_restart   = Channel.empty().mix(input_sample)
         cram_skip_markduplicates = Channel.empty().mix(input_sample)
