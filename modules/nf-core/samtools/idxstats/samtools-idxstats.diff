@@ -1,4 +1,6 @@
-Changes in module 'nf-core/samtools/idxstats'
+Changes in component 'nf-core/samtools/idxstats'
+'modules/nf-core/samtools/idxstats/environment.yml' is unchanged
+Changes in 'samtools/idxstats/meta.yml':
 --- modules/nf-core/samtools/idxstats/meta.yml
 +++ modules/nf-core/samtools/idxstats/meta.yml
 @@ -2,7 +2,7 @@
@@ -11,4 +13,7 @@ Changes in module 'nf-core/samtools/idxstats'
    - chromosome
    - bam
 
+'modules/nf-core/samtools/idxstats/main.nf' is unchanged
+'modules/nf-core/samtools/idxstats/tests/main.nf.test.snap' is unchanged
+'modules/nf-core/samtools/idxstats/tests/main.nf.test' is unchanged
 ************************************************************
