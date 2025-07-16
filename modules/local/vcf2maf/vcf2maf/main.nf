@@ -1,5 +1,3 @@
-def VERSION = '1.6.21' // Version information not provided by tool on CLI
-
 process VCF2MAF {
     tag "$meta.id"
     label 'process_low'
@@ -24,6 +22,7 @@ process VCF2MAF {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     def vcf_decompressed = vcf.baseName.minus(".gz")
+    def VERSION = '1.6.21' // Version information not provided by tool on CLI
     """
     gzip -d $vcf -c > ${vcf_decompressed}
     vcf2maf.pl \\
