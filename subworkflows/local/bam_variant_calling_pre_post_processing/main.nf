@@ -6,8 +6,8 @@
 include { BAM_GATK_PREPROCESSING                          } from '../bam_gatk_preprocessing/main'
 // For now only matched supported
 include { BAM_VARIANT_CALLING                             } from '../bam_variant_calling/main'
-// Normalise VCFs
-include { VCF_NORMALISE                                   } from '../vcf_normalise/main'
+// Normalize VCFs
+include { VCF_NORMALIZE                                   } from '../vcf_normalize/main'
 // Annotation
 include { VCF_ANNOTATE                                    } from '../vcf_annotate/main'
 // Consensus
@@ -58,7 +58,6 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         dict,                                     // channel: [mandatory] dict
         known_sites_indels,                       // channel: [optional]  known_sites
         known_sites_indels_tbi,                   // channel: [optional]  known_sites
-        intervals,                                // channel: [mandatory] intervals/target regions
         intervals_for_preprocessing,              // channel: [mandatory] intervals_for_preprocessing/wes
         intervals_and_num_intervals,              // channel: [mandatory] intervals_for_preprocessing/wes
         realignment
@@ -67,7 +66,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     cram_variant_calling = BAM_GATK_PREPROCESSING.out.cram_variant_calling
     versions             = versions.mix(BAM_GATK_PREPROCESSING.out.versions)
     reports              = reports.mix(BAM_GATK_PREPROCESSING.out.reports)
-
+    cram_variant_calling.dump(tag:"cram_variant_calling1")
     // VARIANT CALLING
     BAM_VARIANT_CALLING(
         params.tools,
@@ -97,15 +96,15 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
 
 
     // NORMALISE
-    VCF_NORMALISE (
+    VCF_NORMALIZE (
                     vcf_to_normalise,
                     // Remap channel to match module/subworkflow
                     fasta,
                     input_sample,
                     realignment
                     )
-    versions                      = versions.mix(VCF_NORMALISE.out.versions)
-    vcf_to_annotate               = VCF_NORMALISE.out.vcf
+    versions                      = versions.mix(VCF_NORMALIZE.out.versions)
+    vcf_to_annotate               = VCF_NORMALIZE.out.vcf
 
     vcf_to_annotate.dump(tag:"vcf_to_annotate")
     // ANNOTATION

@@ -8,11 +8,10 @@ include { BWAMEM2_MEM            } from '../../../modules/nf-core/bwamem2/mem/ma
 include { BWA_MEM as BWAMEM1_MEM } from '../../../modules/nf-core/bwa/mem/main'
 include { DRAGMAP_ALIGN          } from '../../../modules/nf-core/dragmap/align/main'
 
-workflow FASTQ_ALIGN_BWAMEM_MEM2_DRAGMAP {
+workflow FASTQ_ALIGN {
     take:
     reads // channel: [mandatory] meta, reads
-    index // channel: [mandatory] meta, index
-    fasta // channel: [mandatory] meta, fasta
+    index // channel: [mandatory] index
     sort  // boolean: [mandatory] true -> sort, false -> don't sort
 
     main:
@@ -21,9 +20,9 @@ workflow FASTQ_ALIGN_BWAMEM_MEM2_DRAGMAP {
     reports = Channel.empty()
 
     // Only one of the following should be run
-    BWAMEM1_MEM(reads, index.map{ it -> [ [ id:'index' ], it ] }, fasta, sort) // If aligner is bwa-mem
-    BWAMEM2_MEM(reads, index.map{ it -> [ [ id:'index' ], it ] }, fasta, sort) // If aligner is bwa-mem2
-    DRAGMAP_ALIGN(reads, index.map{ it -> [ [ id:'index' ], it ] }, fasta, sort) // If aligner is dragmap
+    BWAMEM1_MEM(reads, index, [[id:'no_fasta'], []], sort) // If aligner is bwa-mem
+    BWAMEM2_MEM(reads, index, [[id:'no_fasta'], []], sort) // If aligner is bwa-mem2
+    DRAGMAP_ALIGN(reads, index, [[id:'no_fasta'], []], sort) // If aligner is dragmap
 
     // Get the bam files from the aligner
     // Only one aligner is run

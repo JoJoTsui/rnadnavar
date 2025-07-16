@@ -10,8 +10,8 @@ include { GATK4_GATHERBQSRREPORTS } from '../../../modules/nf-core/gatk4/gatherb
 workflow BAM_BASERECALIBRATOR {
     take:
     cram            // channel: [mandatory] [ meta, cram_markduplicates, crai ]
-    dict            // channel: [mandatory] [ dict ]
-    fasta           // channel: [mandatory] [ fasta ]
+    dict            // channel: [mandatory] [ meta, dict ]
+    fasta           // channel: [mandatory] [ meta, fasta ]
     fasta_fai       // channel: [mandatory] [ fasta_fai ]
     intervals       // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
     known_sites     // channel: [optional]  [ known_sites ]
@@ -23,10 +23,17 @@ workflow BAM_BASERECALIBRATOR {
     // Combine cram and intervals for spread and gather strategy
     cram_intervals = cram.combine(intervals)
         // Move num_intervals to meta map
-        .map{ meta, cram, crai, intervals, num_intervals -> [ meta + [ num_intervals:num_intervals ], cram, crai, intervals ] }
+        .map{ meta, c, idx, intervls, num_intervals -> [ meta + [ num_intervals:num_intervals ], c, idx, intervls ] }
 
     // RUN BASERECALIBRATOR
-    GATK4_BASERECALIBRATOR(cram_intervals, fasta, fasta_fai, dict.map{ meta, it -> [ it ] }, known_sites, known_sites_tbi)
+    GATK4_BASERECALIBRATOR(
+                            cram_intervals,
+                            fasta,
+                            fasta_fai.map{ it -> [ [id: "fai"], it[0] ] },
+                            dict,
+                            known_sites.map{ it -> [ [id: "sites"], it[0] ] },
+                            known_sites_tbi.map{ it -> [ [id: "sites_tbi"], it[0] ] }
+                            )
 
     // Figuring out if there is one or more table(s) from the same sample
     table_to_merge = GATK4_BASERECALIBRATOR.out.table.map{ meta, table -> [ groupKey(meta, meta.num_intervals), table ] }.groupTuple().branch{

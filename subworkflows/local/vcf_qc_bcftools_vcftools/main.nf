@@ -12,7 +12,7 @@ workflow VCF_QC_BCFTOOLS_VCFTOOLS {
 
     versions = Channel.empty()
 
-    BCFTOOLS_STATS(vcf.map{ meta, vcf -> [ meta, vcf, [] ] }, [[:],[]], [[:],[]], [[:],[]], [[:],[]], [[:],[]])
+    BCFTOOLS_STATS(vcf.map{ meta, vcf_file -> [ meta, vcf_file, [] ] }, [[:],[]], [[:],[]], [[:],[]], [[:],[]], [[:],[]])
     VCFTOOLS_TSTV_COUNT(vcf, target_bed, [])
     VCFTOOLS_TSTV_QUAL(vcf, target_bed, [])
     VCFTOOLS_SUMMARY(vcf, target_bed, [])

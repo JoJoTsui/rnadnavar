@@ -10,8 +10,8 @@ include { MOSDEPTH           } from '../../../modules/nf-core/mosdepth/main'
 workflow CRAM_QC_MOSDEPTH_SAMTOOLS {
     take:
     cram                          // channel: [mandatory] [ meta, cram, crai ]
-    fasta                         // channel: [mandatory] [ fasta ]
-    intervals
+    fasta                         // channel: [mandatory] [ meta, fasta ]
+    intervals                     // channel: [mandatory] [ meta, bed ]
 
     main:
     versions = Channel.empty()

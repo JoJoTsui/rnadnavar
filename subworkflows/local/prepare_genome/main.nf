@@ -11,10 +11,10 @@
 include { BWA_INDEX as BWAMEM1_INDEX             } from '../../../modules/nf-core/bwa/index/main'
 include { BWAMEM2_INDEX                          } from '../../../modules/nf-core/bwamem2/index/main'
 include { DRAGMAP_HASHTABLE                      } from '../../../modules/nf-core/dragmap/hashtable/main'
-include { GTF2BED                                } from '../../../modules/local/gtf2bed'                                       //addParams(options: params.genome_options)
 include { GUNZIP as GUNZIP_GENE_BED              } from '../../../modules/nf-core/gunzip/main'                         //addParams(options: params.genome_options)
 include { GUNZIP as GUNZIP_GTF                   } from '../../../modules/nf-core/gunzip/main'                         //addParams(options: params.genome_options)
-include { GUNZIP as GUNZIP_GFF                   } from '../../../modules/nf-core/gunzip/main'                         //addParams(options: params.genome_options)
+include { GUNZIP as GUNZIP_GFF                   } from '../../../modules/nf-core/gunzip/main'
+include { GFFREAD                                } from '../../../modules/nf-core/gffread/main'
 include { UNTAR as UNTAR_STAR_INDEX              } from '../../../modules/nf-core/untar/main'
 include { TABIX_BGZIP as UNBGZIP_FASTA           } from '../../../modules/nf-core/tabix/bgzip/main'
 include { STAR_GENOMEGENERATE                    } from '../../../modules/nf-core/star/genomegenerate/main'            //addParams(options: params.star_index_options)
@@ -44,11 +44,11 @@ workflow PREPARE_GENOME {
 
     // UNBGZIP genome if applicable
     if (params.fasta.endsWith('.gz')){  // bgzip
-        UNBGZIP_FASTA ( Channel.fromPath(params.fasta).collect().map{ fasta -> [ [ id:fasta.baseName[0] - ~/\.fa(sta)?$/ ], fasta ] } )
+        UNBGZIP_FASTA ( Channel.fromPath(params.fasta).collect().map{ fa -> [ [ id:fa.baseName[0] - ~/\.fa(sta)?$/ ], fa ] } )
         fasta    = UNBGZIP_FASTA.out.output
         versions = versions.mix(UNBGZIP_FASTA.out.versions)
     } else{
-        fasta    = fasta.map{ fasta -> [ [ id:fasta.baseName ], fasta ] }
+        fasta    = fasta.map{ fa -> [ [ id:fa.baseName ], fa ] }
     }
 
     // If aligner is bwa-mem
@@ -74,8 +74,7 @@ workflow PREPARE_GENOME {
     }
 
     GATK4_CREATESEQUENCEDICTIONARY(fasta)
-    fasta.dump(tag:"MYFASTA")
-    SAMTOOLS_FAIDX(fasta, [['id':null], []])
+    SAMTOOLS_FAIDX(fasta, [['id':null], []], false)
 
     // the following are flattened and mapped in case the user supplies more than one value for the param
     // written for KNOWN_INDELS, but preemptively applied to the rest
@@ -91,7 +90,6 @@ workflow PREPARE_GENOME {
     // Uncompress GTF annotation file or create from GFF3 if required
     //
     if (params.rna){
-        ch_gffread_version = Channel.empty()
         if (params.gtf) {
             if (params.gtf.endsWith('.gz')) {
                 GUNZIP_GTF (
@@ -114,30 +112,13 @@ workflow PREPARE_GENOME {
             }
 
             GFFREAD (
-                ch_gff
+                ch_gff,
+                fasta
             )
             .gtf
             .set { ch_gtf }
 
             versions = versions.mix(GFFREAD.out.versions)
-        }
-
-        //
-        // Uncompress exon BED annotation file or create from GTF if required
-        //
-        if (params.exon_bed) {
-            if (params.exon_bed.endsWith('.gz')) {
-                GUNZIP_GENE_BED (
-                    Channel.fromPath(params.exon_bed).map{ it -> [[id:it[0].baseName], it] }
-                )
-                ch_gene_bed = GUNZIP_GENE_BED.out.gunzip.map{ meta, bed -> [bed] }.collect()
-                versions = versions.mix(GUNZIP_GENE_BED.out.versions)
-            } else {
-                ch_exon_bed = Channel.fromPath(params.exon_bed).collect()
-            }
-        } else {
-            ch_exon_bed = GTF2BED ( ch_gtf ).bed.collect()
-            versions = versions.mix(GTF2BED.out.versions)
         }
 
         //
