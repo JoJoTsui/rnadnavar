@@ -4,9 +4,9 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
-include { fromSamplesheet             } from 'plugin/nf-validation'
-include { paramsSummaryMap            } from 'plugin/nf-validation'
+include { MULTIQC                     } from '../modules/nf-core/multiqc'
+include { samplesheetToList           } from 'plugin/nf-schema'
+include { paramsSummaryMap            } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc        } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML      } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText      } from '../subworkflows/local/utils_nfcore_rnadnavar_pipeline'
@@ -26,6 +26,8 @@ include { PREPARE_REFERENCE_AND_INTERVALS                         } from '../sub
 include { PREPARE_INTERVALS as PREPARE_INTERVALS_FOR_REALIGNMENT  } from '../subworkflows/local/prepare_intervals/main'
 // Download annotation cache if needed
 include { ENSEMBLVEP_DOWNLOAD               } from '../modules/nf-core/ensemblvep/download/main'
+include { UNZIP as UNZIP_VEP_CACHE          } from '../modules/nf-core/unzip/main'
+include { ANNOTATION_CACHE_INITIALISATION   } from '../subworkflows/local/annotation_cache_initialisation'
 
 // Alignment
 include { BAM_ALIGN                         } from '../subworkflows/local/bam_align/main'
@@ -39,17 +41,6 @@ include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as REALIGNMENT } from '../subw
 
 // Filter RNA
 include { MAF_FILTERING_RNA } from '../subworkflows/local/maf_rna_filtering/main'
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    CONFIG FILES
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-multiqc_config          = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
-multiqc_custom_config   = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
-multiqc_logo            = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
-ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
 
 
 /*
@@ -65,15 +56,17 @@ workflow RNADNAVAR {
 
     main:
     // To gather all QC reports for MultiQC
-    multiqc_files = Channel.empty()
+    ch_multiqc_files = Channel.empty()
+    multiqc_report   = Channel.empty()
+    reports          = Channel.empty()
     // To gather used softwares versions for MultiQC
     versions = Channel.empty()
 
     // Set input, can either be from --input or from automatic retrieval in utils_nfcore_rnadnavar_pipeline/main
     if (params.input) {
-        ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromSamplesheet("input")
+        ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
     } else {
-        ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromSamplesheet("input_restart")
+        ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
     }
     // Parse samplesheet
     SAMPLESHEET_TO_CHANNEL(ch_from_samplesheet)
@@ -88,23 +81,26 @@ workflow RNADNAVAR {
     ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
 
     // Download cache if needed
-    // Assuming that if the cache is provided, the user has already downloaded it
-    ensemblvep_info = params.vep_cache    ? [] : Channel.of([ [ id:"${params.vep_cache_version}_${params.vep_genome}" ], params.vep_genome, params.vep_species, params.vep_cache_version ])
-
     if (params.download_cache) {
+        ensemblvep_info = Channel.of([ [ id:"${params.vep_cache_version}_${params.vep_genome}" ], params.vep_genome, params.vep_species, params.vep_cache_version ])
         ENSEMBLVEP_DOWNLOAD(ensemblvep_info)
         vep_cache = ENSEMBLVEP_DOWNLOAD.out.cache.collect().map{ meta, cache -> [ cache ] }
         versions  = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions)
-    } else if (!params.vep_cache) {
-        vep_cache = Channel.of([])
-    } else if (params.use_annotation_cache_keys){
-        vep_cache = Channel.fromPath("${params.vep_cache}/${params.vep_cache_version}_${params.vep_genome}").collect()
-    } else if (params.vep_cache.endsWith(".zip")) {
+    } else if (params.vep_cache && params.vep_cache.endsWith(".zip")) {
         UNZIP_VEP_CACHE(Channel.fromPath(params.vep_cache).collect().map{ it -> [ [ id:it[0].baseName ], it ] })
         vep_cache = UNZIP_VEP_CACHE.out.unzipped_archive.map{ it[1] }
         versions = versions.mix(UNZIP_VEP_CACHE.out.versions)
     } else {
-        vep_cache = params.use_annotation_cache_keys ? Channel.fromPath("${params.vep_cache}/${params.vep_cache_version}_${params.vep_genome}").collect() : Channel.fromPath(params.vep_cache).collect()
+        // Assuming that if the cache is provided, the user has already downloaded it
+        ANNOTATION_CACHE_INITIALISATION(
+            (params.vep_cache && params.tools && (params.tools.split(',').contains("vep") || params.tools.split(',').contains('merge'))),
+            params.vep_cache,
+            params.vep_species,
+            params.vep_cache_version,
+            params.vep_genome,
+            params.vep_custom_args,
+            "Please refer to https://nf-co.re/sarek/docs/usage/#how-to-customise-snpeff-and-vep-annotation for more information.")
+            vep_cache = ANNOTATION_CACHE_INITIALISATION.out.ensemblvep_cache.map{ it[1] }
     }
 
     // STEP 0: Build reference and indices if needed
@@ -148,7 +144,7 @@ workflow RNADNAVAR {
         input_sample
         )
 
-    multiqc_files = multiqc_files.mix(BAM_ALIGN.out.reports)
+    reports = reports.mix(BAM_ALIGN.out.reports)
     versions = versions.mix(BAM_ALIGN.out.versions)
     // 5 MAIN STEPS: GATK PREPROCESING - VARIANT CALLING - NORMALIZATION - CONSENSUS - ANNOTATION
     BAM_PROCESSING(
@@ -179,7 +175,7 @@ workflow RNADNAVAR {
         params.no_intervals
     )
     filtered_maf = BAM_PROCESSING.out.maf
-    multiqc_files      = multiqc_files.mix(BAM_PROCESSING.out.reports)
+    reports      = reports.mix(BAM_PROCESSING.out.reports)
     versions     = versions.mix(BAM_PROCESSING.out.versions)
     if (params.tools && params.tools.split(',').contains('realignment')) {
         // fastq will not be split when realignment
@@ -230,7 +226,7 @@ workflow RNADNAVAR {
             true   // no_intervals
             )
 
-        multiqc_files                = multiqc_files.mix(REALIGNMENT.out.reports)
+        reports                = reports.mix(REALIGNMENT.out.reports)
         versions               = versions.mix(REALIGNMENT.out.versions)
         realigned_filtered_maf = REALIGNMENT.out.maf
     } else{
@@ -260,27 +256,27 @@ workflow RNADNAVAR {
     }
 
     if (!(params.skip_tools && params.skip_tools.split(',').contains('multiqc'))) {
-        workflow_summary = paramsSummaryMultiqc(paramsSummaryMap(workflow))
-        workflow_summary = Channel.value(workflow_summary)
+        ch_multiqc_config                     = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
+        ch_multiqc_custom_config              = params.multiqc_config ? Channel.fromPath(params.multiqc_config, checkIfExists: true) : Channel.empty()
+        ch_multiqc_logo                       = params.multiqc_logo ? Channel.fromPath(params.multiqc_logo, checkIfExists: true) : Channel.empty()
+        summary_params                        = paramsSummaryMap(workflow, parameters_schema: "nextflow_schema.json")
+        ch_workflow_summary                   = Channel.value(paramsSummaryMultiqc(summary_params))
+        ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
+        ch_methods_description                = Channel.value(methodsDescriptionText(ch_multiqc_custom_methods_description))
+        ch_multiqc_files                      = ch_multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
+        ch_multiqc_files                      = ch_multiqc_files.mix(version_yaml)
+        ch_multiqc_files                      = ch_multiqc_files.mix(reports)
+        ch_multiqc_files                      = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml', sort: true))
 
-        methods_description = methodsDescriptionText(ch_multiqc_custom_methods_description)
-        methods_description = Channel.value(methods_description)
-
-        multiqc_files = Channel.empty()
-        multiqc_files = multiqc_files.mix(version_yaml)
-        multiqc_files = multiqc_files.mix(workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
-        multiqc_files = multiqc_files.mix(methods_description.collectFile(name: 'methods_description_mqc.yaml'))
-        multiqc_files = multiqc_files.mix(multiqc_files.collect().ifEmpty([]))
-
-    MULTIQC (
-        multiqc_files.collect(),
-        multiqc_config.toList(),
-        multiqc_custom_config.toList(),
-        multiqc_logo.toList()
-    )
-    multiqc_report = MULTIQC.out.report.toList()
-    } else {
-        multiqc_report = Channel.empty()
+        MULTIQC (
+            ch_multiqc_files.collect(),
+            ch_multiqc_config.toList(),
+            ch_multiqc_custom_config.toList(),
+            ch_multiqc_logo.toList(),
+            [],
+            []
+        )
+        multiqc_report = MULTIQC.out.report.toList()
     }
 
     emit:
