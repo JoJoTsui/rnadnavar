@@ -7,7 +7,7 @@ RUN apt-get --allow-releaseinfo-change update  && \
             rm -rf /var/lib/apt/lists/*
 
 # clone CApy repo
-RUN pip install numpy && \ 
+RUN pip install numpy && \
     git clone https://github.com/getzlab/CApy.git && \
     cd CApy && \
     python setup.py install && \

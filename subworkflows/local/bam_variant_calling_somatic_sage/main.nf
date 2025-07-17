@@ -78,7 +78,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_SAGE {
     versions = versions.mix(TABIX_VC_SAGE.out.versions)
 
     emit:
-    
+
     vcf
     versions
 }

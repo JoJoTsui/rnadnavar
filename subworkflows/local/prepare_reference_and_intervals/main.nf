@@ -57,7 +57,7 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
 
 
     emit:
-    fasta                         
+    fasta
     fasta_fai
     dict
     bwa
