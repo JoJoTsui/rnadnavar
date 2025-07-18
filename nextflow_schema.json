@@ -44,18 +44,15 @@
                     "schema": "assets/schema_input.json"
                 },
                 "split_fastq": {
+                    "type": "integer",
                     "oneOf": [
                         {
-                            "type": "integer",
                             "minimum": 250
                         },
                         {
-                            "type": "integer",
-                            "minimum": 0,
-                            "maximum": 0
+                            "const": 0
                         }
                     ],
-                    "type": "integer",
                     "default": 50000000,
                     "fa_icon": "fas fa-clock",
                     "description": "Specify how many reads each split of a FastQ file contains. Set 0 to turn off splitting at all.",
@@ -325,14 +322,6 @@
                     "fa_icon": "fas fa-download",
                     "description": "Download annotation cache.",
                     "help_text": "Set this parameter, if you wish to download annotation cache."
-                },
-                "igenomes_base": {
-                    "type": "string",
-                    "format": "directory-path",
-                    "description": "Directory / URL base for iGenomes references.",
-                    "default": "s3://ngi-igenomes/igenomes/",
-                    "fa_icon": "fas fa-cloud-download-alt",
-                    "hidden": true
                 },
                 "igenomes_ignore": {
                     "type": "boolean",
@@ -988,6 +977,9 @@
             "$ref": "#/$defs/input_output_options"
         },
         {
+            "$ref": "#/$defs/max_job_request_options"
+        },
+        {
             "$ref": "#/$defs/reference_genome_options"
         },
         {
@@ -997,28 +989,13 @@
             "$ref": "#/$defs/fastq_preprocessing"
         },
         {
-            "$ref": "#/$defs/pipeline_stage_options"
-        },
-        {
-            "$ref": "#/$defs/variant_calling"
-        },
-        {
-            "$ref": "#/definitions/annotation"
-        },
-        {
-            "$ref": "#/$defs/alignment_options"
-        },
-        {
-            "$ref": "#/$defs/fastq_preprocessing"
-        },
-        {
-            "$ref": "#/$defs/pipeline_stage_options"
-        },
-        {
             "$ref": "#/$defs/variant_calling"
         },
         {
             "$ref": "#/$defs/annotation"
+        },
+        {
+            "$ref": "#/$defs/pipeline_stage_options"
         },
         {
             "$ref": "#/$defs/institutional_config_options"
