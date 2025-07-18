@@ -1,4 +1,5 @@
 #!/usr/bin/env nextflow
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     nf-core/rnadnavar
@@ -9,16 +10,7 @@
 ----------------------------------------------------------------------------------------
 */
 
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    IMPORT FUNCTIONS / MODULES / SUBWORKFLOWS / WORKFLOWS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-include { RNADNAVAR  } from './workflows/rnadnavar'
-include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_rnadnavar_pipeline'
-include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_rnadnavar_pipeline'
-include { getGenomeAttribute      } from './subworkflows/local/utils_nfcore_rnadnavar_pipeline'
+nextflow.enable.dsl = 2
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -26,14 +18,37 @@ include { getGenomeAttribute      } from './subworkflows/local/utils_nfcore_rnad
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-// TODO nf-core: Remove this line if you don't need a FASTA file
-//   This is an example of how to use getGenomeAttribute() to fetch parameters
-//   from igenomes.config using `--genome`
-params.fasta = getGenomeAttribute('fasta')
+params.bwa                  = getGenomeAttribute('bwa')
+params.bwamem2              = getGenomeAttribute('bwamem2')
+params.fasta                = getGenomeAttribute('fasta')
+params.fasta_fai            = getGenomeAttribute('fasta_fai')
+params.dict                 = getGenomeAttribute('dict')
+params.gtf                  = getGenomeAttribute('gtf')
+params.gff                  = getGenomeAttribute('gff')
+params.exon_bed             = getGenomeAttribute('exon_bed')
+params.star_index           = getGenomeAttribute('star')
+params.dbsnp                = getGenomeAttribute('dbsnp')
+params.dbsnp_tbi            = getGenomeAttribute('dbsnp_tbi')
+params.known_indels         = getGenomeAttribute('known_indels')
+params.known_indels_tbi     = getGenomeAttribute('known_indels_tbi')
+params.vep_cache_version    = getGenomeAttribute('vep_cache_version')
+params.vep_genome           = getGenomeAttribute('vep_genome')
+params.vep_species          = getGenomeAttribute('vep_species')
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    NAMED WORKFLOWS FOR PIPELINE
+    IMPORT FUNCTIONS / MODULES / SUBWORKFLOWS / WORKFLOWS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
+include { RNADNAVAR               } from './workflows/rnadnavar'
+include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_rnadnavar_pipeline'
+include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_rnadnavar_pipeline'
+
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    NAMED WORKFLOW FOR PIPELINE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
@@ -46,7 +61,7 @@ workflow NFCORE_RNADNAVAR {
     samplesheet // channel: samplesheet read in from --input
 
     main:
-
+    versions = Channel.empty()
     //
     // WORKFLOW: Run pipeline
     //
@@ -71,7 +86,6 @@ workflow {
     PIPELINE_INITIALISATION (
         params.version,
         params.validate_params,
-        params.monochrome_logs,
         args,
         params.outdir,
         params.input
@@ -96,6 +110,26 @@ workflow {
         NFCORE_RNADNAVAR.out.multiqc_report
     )
 }
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    FUNCTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
+//
+// Get attribute from genome config file e.g. fasta
+//
+
+def getGenomeAttribute(attribute) {
+    if (params.genomes && params.genome && params.genomes.containsKey(params.genome)) {
+        if (params.genomes[ params.genome ].containsKey(attribute)) {
+            return params.genomes[ params.genome ][ attribute ]
+        }
+    }
+    return null
+}
+
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
