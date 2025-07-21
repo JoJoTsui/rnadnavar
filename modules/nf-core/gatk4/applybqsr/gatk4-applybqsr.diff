@@ -13,6 +13,24 @@ Changes in 'gatk4/applybqsr/main.nf':
      path  fai
      path  dict
  
+@@ -23,7 +23,7 @@
+ 
+     script:
+     def args = task.ext.args ?: ''
+-    def prefix = task.ext.prefix ?: "${meta.id}.cram"
++    def prefix = task.ext.prefix ?: "${meta.id}"
+     def interval_command = intervals ? "--intervals $intervals" : ""
+ 
+     def avail_mem = 3072
+@@ -36,7 +36,7 @@
+     gatk --java-options "-Xmx${avail_mem}M -XX:-UsePerfData" \\
+         ApplyBQSR \\
+         --input $input \\
+-        --output ${prefix} \\
++        --output ${prefix}.${input.getExtension()} \\
+         --reference $fasta \\
+         --bqsr-recal-file $bqsr_table \\
+         $interval_command \\
 
 'modules/nf-core/gatk4/applybqsr/tests/main.nf.test.snap' is unchanged
 'modules/nf-core/gatk4/applybqsr/tests/nextflow_cram.config' is unchanged

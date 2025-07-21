@@ -172,7 +172,6 @@ workflow PREPARE_GENOME {
         ch_gtf          = Channel.empty()
         ch_hisat2_index = Channel.empty()
         ch_splicesites  = Channel.value([])
-        ch_exon_bed     = Channel.empty()
     }
 
 
@@ -199,7 +198,6 @@ workflow PREPARE_GENOME {
         pon_tbi               = TABIX_PON.out.tbi.map{ meta, tbi -> [tbi] }.collect()                 // path: pon.vcf.gz.tbi
         star_index            = ch_star_index                                                         // path: star/index/
         gtf                   = ch_gtf                                                                // path: genome.gtf
-        exon_bed              = ch_exon_bed                                                           // path: exon.bed
         hisat2_index          = ch_hisat2_index                                                       // path: hisat2/index/
         splicesites           = ch_splicesites                                                        // path: genome.splicesites.txt
         versions              = versions                                                              // channel: [ versions.yml ]

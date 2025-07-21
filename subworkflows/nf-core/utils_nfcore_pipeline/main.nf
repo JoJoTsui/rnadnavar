@@ -8,7 +8,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-workflow UTILS_NEXTFLOW_PIPELINE {
+workflow UTILS_NFCORE_PIPELINE {
     take:
     nextflow_cli_args
 
