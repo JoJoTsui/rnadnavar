@@ -14,12 +14,11 @@ lint:
     - conf/modules.config
     - conf/test.config
     - conf/test_full.config
-modules_config: False
-files_unchanged:
+  files_unchanged:
+  - .gitignore
   - LICENSE
   - assets/nf-core-rnadnavar_logo_light.png
   - docs/images/nf-core-rnadnavar_logo_dark.png
-  - docs/images/nf-core-rnadnavar_logo_light.png
-schema_params: False
-template_strings: False
-multiqc_config: False
+  - docs/images/nf-core-rnadnavar_logo_light.png 
+  modules_config: False
+  template_strings: false
