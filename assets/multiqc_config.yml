@@ -28,8 +28,7 @@ run_modules:
   - gatk
   - bcftools
   - vcftools
-#  - snpeff
-#  - vep
+  - vep
 
 module_order:
   - fastqc:

@@ -98,7 +98,7 @@ workflow RNADNAVAR {
             params.vep_cache_version,
             params.vep_genome,
             params.vep_custom_args,
-            "Please refer to https://nf-co.re/sarek/docs/usage/#how-to-customise-snpeff-and-vep-annotation for more information.")
+            "Please refer to https://nf-co.re/sarek/docs/usage/#how-to-customise-vep-annotation for more information.")
             vep_cache = ANNOTATION_CACHE_INITIALISATION.out.ensemblvep_cache.map{ it[1] }
     }
 

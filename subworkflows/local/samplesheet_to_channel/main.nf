@@ -211,7 +211,7 @@ workflow  SAMPLESHEET_TO_CHANNEL{
 
 
     if ((params.download_cache) && (params.vep_cache)) {
-        error("Please specify either `--download_cache` or `--vep_cache`.\nhttps://nf-co.re/rnadnavar/usage#how-to-customise-snpeff-and-vep-annotation")
+        error("Please specify either `--download_cache` or `--vep_cache`.\nhttps://nf-co.re/rnadnavar/usage#how-to-customise-vep-annotation")
     }
 
     emit:
