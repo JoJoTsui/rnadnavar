@@ -14,6 +14,7 @@ workflow VCF_NORMALIZE {
     take:
     vcf_to_normalize
     fasta
+    fasta_fai
     input_sample
     realignment
 
@@ -39,7 +40,7 @@ workflow VCF_NORMALIZE {
         // Normalise variants
         vcf_decomposed = vcf_decomposed.map{meta,vcf -> [meta, vcf, [],[]]} // tbi not necessary, vt accepts intervals, not in use for now
         VT_NORMALIZE(vcf_decomposed,
-                    fasta, [[id:"fai"], []]) // fai not necessary?
+                    fasta, fasta_fai) // fai not necessary?
 
         vcf_to_consensus = VT_NORMALIZE.out.vcf
         version = version.mix(VT_NORMALIZE.out.versions.first())
