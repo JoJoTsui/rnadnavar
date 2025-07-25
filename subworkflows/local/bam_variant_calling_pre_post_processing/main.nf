@@ -98,8 +98,8 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     // NORMALISE
     VCF_NORMALIZE (
                     vcf_to_normalise,
-                    // Remap channel to match module/subworkflow
                     fasta,
+                    fasta_fai.map{fai -> [[id:'fai'], fai]},
                     input_sample,
                     realignment
                     )
@@ -124,7 +124,6 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     vcf_to_consensus.dump(tag:"vcf_to_consensus0")
     // STEP 6: CONSENSUS
     VCF_CONSENSUS (
-            params.tools,
             vcf_to_consensus,
             fasta,
             dna_consensus_maf, // null when first pass
