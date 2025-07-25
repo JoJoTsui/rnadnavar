@@ -57,9 +57,9 @@ workflow PREPARE_GENOME {
         BWAMEM2_INDEX(fasta)     // If aligner is bwa-mem2
         DRAGMAP_HASHTABLE(fasta) // If aligner is dragmap
 
-        bwa         = BWAMEM1_INDEX.out.index.map{ meta, index -> [index] }.collect()       // path: bwa/*
-        bwamem2     = BWAMEM2_INDEX.out.index.map{ meta, index -> [index] }.collect()       // path: bwamem2/*
-        hashtable   = DRAGMAP_HASHTABLE.out.hashmap.map{ meta, index -> [index] }.collect() // path: dragmap/*
+        bwa         = BWAMEM1_INDEX.out.index.collect()        // path: bwa/*
+        bwamem2     = BWAMEM2_INDEX.out.index.collect()        // path: bwamem2/*
+        hashtable   = DRAGMAP_HASHTABLE.out.hashmap.collect()    // path: dragmap/*
 
 
         versions = versions.mix(BWAMEM1_INDEX.out.versions)
