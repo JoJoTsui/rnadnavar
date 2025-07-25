@@ -3,18 +3,18 @@ process RUN_CONSENSUS {
     label 'process_low'
 
     conda "bioconda::bioconductor-rtracklayer bioconda::bioconductor-complexheatmap conda-forge::r-ggrepel conda-forge::r-data.table conda-forge::r-dplyr conda-forge::ggpubr "
-    container 'ghcr.io/raqmanzano/renv:latest'
+    container 'nf-core/rnadnavar_renv_consensus:1.0'
 
     input:
-        tuple val(meta), path(vcf, stageAs: "inputs/*"), val(caller)
+        tuple val(meta), path(vcf, stageAs: "inputs/*")
 
     output:
-        tuple val(meta), path('*.consensus.vcf')                , optional:true , emit: vcf
-        tuple val(meta), path('*.consensus_*.vcf'), val(caller) , optional:true , emit: vcf_separate
-        tuple val(meta), path('*.consensus.maf')                , optional:true , emit: maf
-        tuple val(meta), path('*.consensus_*.maf'), val(caller) , optional:true , emit: maf_separate
-        path("*.pdf")                                           , optional:true , emit: pdf
-        path "versions.yml"                                                     , emit: versions
+        tuple val(meta), path('*.consensus.vcf')   , optional:true , emit: vcf
+        tuple val(meta), path('*.consensus_*.vcf') , optional:true , emit: vcf_separate
+        tuple val(meta), path('*.consensus.maf')   , optional:true , emit: maf
+        tuple val(meta), path('*.consensus_*.maf') , optional:true , emit: maf_separate
+        path("*.pdf")                              , optional:true , emit: pdf
+        path "versions.yml"                                        , emit: versions
 
     when:
         task.ext.when == null || task.ext.when

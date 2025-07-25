@@ -717,16 +717,6 @@
                     "fa_icon": "fas fa-table",
                     "hidden": true
                 },
-                "whitelist": {
-                    "type": "string",
-                    "fa_icon": "fas fa-database",
-                    "description": "Path to BED file with variants to whitelist during filtering"
-                },
-                "blacklist": {
-                    "type": "string",
-                    "fa_icon": "fas fa-database",
-                    "description": "Path to BED file with positions to blacklist during filtering (e.g. regions difficult to map)"
-                },
                 "igenomes_base": {
                     "type": "string",
                     "format": "directory-path",
@@ -734,6 +724,59 @@
                     "fa_icon": "fas fa-ban",
                     "hidden": true,
                     "default": "s3://ngi-igenomes/igenomes/"
+                }
+            }
+        }, "filtering": {
+            "title": "Filtering",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "fa_icon": "fas fa-toolbox",
+            "properties": {
+                "blacklist": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to BED file with positions to blacklist during filtering (e.g. regions difficult to map)"
+                }, 
+                "whitelist": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to BED file with variants to whitelist during filtering"
+                }, 
+                "rnaedits": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to BED files with RNA editing sites, comma separated if more than one"
+                },
+                "chain": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "Chain file to do liftover - only if `rna_pon2` is provided"
+                },
+                "rna_pon": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to  RNA PoN"
+                },
+                "rna_pon2": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to  second RNA PoN"
+                },
+                "fasta2": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to second fasta file - only is `rna_pon2` provided"
+                },
+                "refname2": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "RNA filtering - name of the second reference being used (e.g. HG19) - only if `rna_pon2` is provided"
+                },
+                "refname": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "RNA filtering - name of the reference being used (e.g. HG38)"
                 }
             }
         },
@@ -939,6 +982,9 @@
         },
         {
             "$ref": "#/$defs/annotation"
+        },
+        {
+            "$ref": "#/$defs/filtering"
         },
         {
             "$ref": "#/$defs/pipeline_stage_options"

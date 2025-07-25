@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-# Date: Sun 20 Sep 2020
 # Author: Raquel Manzano - @RaqManzano
 # Script: Find overlaps between vcf
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
