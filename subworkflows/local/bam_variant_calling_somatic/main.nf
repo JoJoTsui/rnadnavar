@@ -47,6 +47,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
         )
 
         vcf_sage   = BAM_VARIANT_CALLING_SOMATIC_SAGE.out.vcf
+        vcf_sage.dump(tag:"vcf_sage")
         versions   = versions.mix(BAM_VARIANT_CALLING_SOMATIC_SAGE.out.versions)
     }
 

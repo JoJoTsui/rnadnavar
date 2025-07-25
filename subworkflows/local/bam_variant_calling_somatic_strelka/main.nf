@@ -52,16 +52,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC_STRELKA {
                     .mix(STRELKA_SOMATIC.out.vcf_snvs)
                     .map{ meta, vcf -> [ groupKey(meta, meta.num_intervals * 2), vcf ]}
                     .groupTuple()
-//    vcf_snvs_to_merge = vcf_snvs.intervals.map{ meta, vcf -> [ groupKey(meta, meta.num_intervals), vcf ]}.groupTuple()
-
-//    MERGE_STRELKA_INDELS(vcf_indels_to_merge, dict)
-//    MERGE_STRELKA_SNVS(vcf_snvs_to_merge, dict)
 
     // Mix intervals and no_intervals channels together
-//    vcf_indels_to_merge.dump(tag:"vcf_indels_to_merge")
-//    vcf_snvs_to_merge.dump(tag:"vcf_snvs_to_merge")
-//    vcf_snvs.no_intervals.dump(tag:"vcf_snvs.no_intervals")
-    vcfs_to_merge.dump(tag:"vcfs_to_merge")
     // Merge SNVs and indels
     MERGE_STRELKA(vcfs_to_merge, dict)
 
