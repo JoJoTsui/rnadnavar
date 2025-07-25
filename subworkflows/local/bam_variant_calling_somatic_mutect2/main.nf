@@ -43,15 +43,13 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     if (joint_mutect2) { // TODO: test this mode
         // Separate normal cram files and remove duplicates
         ch_normal_cram = input.map{ meta, cram, crai ->
-            def new_meta = meta.clone()
-            new_meta.remove('tumor_id')
+            def new_meta = meta.findAll { key, value -> key != 'tumor_id' }
             new_meta.id = meta.patient
             [new_meta, cram[0], crai[0]]
         }.unique()
 
         ch_tumor_cram = input.map{ meta, cram, crai ->
-            def new_meta = meta.clone()
-            new_meta.remove('tumor_id')
+            def new_meta = meta.findAll { key, value -> key != 'tumor_id' }
             new_meta.id = meta.patient
             [new_meta, cram[1], crai[1]]
         }// Merge normal and tumor crams by patient
@@ -96,36 +94,25 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     }
 
     // Only when using intervals
-    vcf_to_merge = vcf_branch.intervals.map{ meta, vcf -> [ groupKey(meta, meta.num_intervals), vcf ] }.groupTuple()
+    vcf_to_merge   = vcf_branch.intervals.map{ meta, vcf ->     [ groupKey(meta, meta.num_intervals), vcf   ] }.groupTuple()
     stats_to_merge = stats_branch.intervals.map{ meta, stats -> [ groupKey(meta, meta.num_intervals), stats ] }.groupTuple()
-    f1r2_to_merge = f1r2_branch.intervals.map{ meta, f1r2 -> [ groupKey(meta, meta.num_intervals), f1r2 ] }.groupTuple()
+    f1r2_to_merge  = f1r2_branch.intervals.map{ meta, f1r2 ->   [ groupKey(meta, meta.num_intervals), f1r2  ] }.groupTuple()
 
     MERGE_MUTECT2(vcf_to_merge, dict)
     MERGEMUTECTSTATS(stats_to_merge)
 
     // Mix intervals and no_intervals channels together and remove no longer necessary field: normal_id, tumor_id, num_intervals
     vcf = Channel.empty().mix(MERGE_MUTECT2.out.vcf, vcf_branch.no_intervals).map{ meta, vcf ->
-        def new_meta = meta.clone()
-        ['normal_id', 'tumor_id', 'num_intervals'].each { new_meta.remove(it) }
-        [new_meta, vcf]
+            [ joint_mutect2 ? meta - meta.subMap('normal_id', 'num_intervals') :  meta - meta.subMap('num_intervals') , vcf ]
     }
-
-    tbi = Channel.empty().mix(MERGE_MUTECT2.out.tbi, tbi_branch.no_intervals).map{ meta, tbi ->
-        def new_meta = meta.clone()
-        ['normal_id', 'tumor_id', 'num_intervals'].each { new_meta.remove(it) }
-        [new_meta, tbi]
+    tbi = Channel.empty().mix(MERGE_MUTECT2.out.tbi, tbi_branch.no_intervals).map{ meta, tbi->
+            [ joint_mutect2 ? meta - meta.subMap('normal_id', 'num_intervals') :  meta - meta.subMap('num_intervals'), tbi ]
     }
-
     stats = Channel.empty().mix(MERGEMUTECTSTATS.out.stats, stats_branch.no_intervals).map{ meta, stats ->
-        def new_meta = meta.clone()
-        ['normal_id', 'tumor_id', 'num_intervals'].each { new_meta.remove(it) }
-        [new_meta, stats]
-    }
-
-    f1r2 = Channel.empty().mix(f1r2_to_merge, f1r2_branch.no_intervals).map{ meta, f1r2 ->
-        def new_meta = meta.clone()
-        ['normal_id', 'tumor_id', 'num_intervals'].each { new_meta.remove(it) }
-        [new_meta, f1r2]
+            [ joint_mutect2 ? meta - meta.subMap('normal_id', 'num_intervals') :  meta - meta.subMap('num_intervals'), stats ]
+            }
+    f1r2 = Channel.empty().mix(f1r2_to_merge, f1r2_branch.no_intervals).map{ meta, f1r2->
+            [ joint_mutect2 ? meta - meta.subMap('normal_id', 'num_intervals') :  meta - meta.subMap('num_intervals') , f1r2 ]
     }
     if (!realignment){
         // Generate artifactpriors using learnreadorientationmodel on the f1r2 output of mutect2
@@ -141,13 +128,14 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         // Prepare input channel for normal pileup summaries.
         // Remember, the input channel contains tumor-normal pairs, so there will be multiple copies of the normal sample for each tumor for a given patient.
         // Therefore, we use unique function to generate normal pileup summaries once for each patient for better efficiency.
+        pileup.normal.dump(tag:" pileup.normal")
+        pileup.tumor.dump(tag:" pileup.tumor")
         pileup_normal = pileup.normal.map{ meta, cram, crai, intervls ->
-            def new_meta = meta.clone()
-            new_meta.remove('tumor_id')
+            def new_meta = meta.findAll { key, value -> key != 'tumor_id' }
             new_meta.id = meta.normal_id
             [new_meta, cram, crai, intervls]
         }.unique()
-
+        
         pileup_tumor = pileup.tumor.map{ meta, cram, crai, intervls ->
             def new_meta = meta.clone()
             new_meta.id = meta.tumor_id
@@ -184,8 +172,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         pileup_table_tumor = Channel.empty()
             .mix(GATHERPILEUPSUMMARIES_TUMOR.out.table, pileup_table_tumor_branch.no_intervals)
             .map{ meta, table ->
-                def new_meta = meta.clone()
-                ['normal_id', 'tumor_id', 'num_intervals'].each { new_meta.remove(it) }
+                def new_meta = meta.findAll { key, value -> !(key in ['normal_id', 'tumor_id', 'num_intervals']) }
                 new_meta.id = meta.patient
                 [new_meta, meta.id, table]
             }
@@ -193,20 +180,19 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         pileup_table_normal = Channel.empty()
             .mix(GATHERPILEUPSUMMARIES_NORMAL.out.table, pileup_table_normal_branch.no_intervals)
             .map{ meta, table ->
-                def new_meta = meta.clone()
-                ['normal_id', 'tumor_id', 'num_intervals'].each { new_meta.remove(it) }
+                def new_meta = meta.findAll { key, value -> !(key in ['normal_id', 'tumor_id', 'num_intervals']) }
                 new_meta.id = meta.patient
-                [new_meta, meta.id, table]
+                [new_meta.clone(), meta.id, table]
             }
 
         ch_calculatecontamination_in_tables = pileup_table_tumor
             .combine(pileup_table_normal, by: 0)
             .map{ meta, tumor_id, tumor_table, normal_id, normal_table ->
                 def combined_meta = meta.clone()
-                combined_meta.id = "${tumor_id}_vs_${normal_id}"
-                [combined_meta, tumor_table, normal_table]
+                combined_meta.id = "${tumor_id}_vs_${normal_id}".toString()
+                [combined_meta.clone(), tumor_table, normal_table]
             }
-
+        ch_calculatecontamination_in_tables.dump(tag:'ch_calculatecontamination_in_tablesMUTECT2')
         CALCULATECONTAMINATION(ch_calculatecontamination_in_tables)
 
         // Initialize empty channel: Contamination calculation is run on pileup table, pileup is not run if germline resource is not provided
@@ -216,24 +202,29 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         if (joint_mutect2) {
             // Reduce the meta to only patient name
             ch_seg_to_filtermutectcalls = CALCULATECONTAMINATION.out.segmentation.map{ meta, seg ->
-                def new_meta = meta.clone()
-                new_meta.remove('tumor_id')
-                new_meta.id = meta.patient
+                def new_meta = meta.findAll { key, value -> key != 'tumor_id' }
                 [new_meta, seg]
             }.groupTuple()
 
             ch_cont_to_filtermutectcalls = CALCULATECONTAMINATION.out.contamination.map{ meta, cont ->
-                def new_meta = meta.clone()
-                new_meta.remove('tumor_id')
+                def new_meta = meta.findAll { key, value -> key != 'tumor_id' }
                 new_meta.id = meta.patient
                 [new_meta, cont]
             }.groupTuple()
         } else {
             // Keep tumor_vs_normal ID
-            ch_seg_to_filtermutectcalls = CALCULATECONTAMINATION.out.segmentation
-            ch_cont_to_filtermutectcalls = CALCULATECONTAMINATION.out.contamination
+            ch_seg_to_filtermutectcalls  = CALCULATECONTAMINATION.out.segmentation.map { meta, file ->
+                                                                                        def normalized_meta = meta.subMap('id', 'patient', 'status')
+                                                                                        [normalized_meta, file]
+                                                                                    }
+            ch_cont_to_filtermutectcalls = CALCULATECONTAMINATION.out.contamination.map { meta, file ->
+                                                                                        def normalized_meta = meta.subMap('id', 'patient', 'status')
+                                                                                        [normalized_meta, file]
+                                                                                    }
         }
-
+        LEARNREADORIENTATIONMODEL.out.artifactprior.dump(tag:"LEARNREADORIENTATIONMODEL.out.artifactpriorMUTECT2")
+        ch_seg_to_filtermutectcalls.dump(tag:"ch_seg_to_filtermutectcallsMUTECT2")
+        ch_cont_to_filtermutectcalls.dump(tag:"ch_cont_to_filtermutectcallsMUTECT2")
         // Mutect2 calls filtered by filtermutectcalls using the artifactpriors, contamination and segmentation tables
         vcf_to_filter = vcf.join(tbi, failOnDuplicate: true, failOnMismatch: true)
                             .join(stats, failOnDuplicate: true, failOnMismatch: true)
@@ -259,7 +250,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         pileup_table_normal          = Channel.empty()
         pileup_table_tumor           = Channel.empty()
     }
-
+    vcf_to_filter.dump(tag:'vcf_to_filterMUTECT2')
     FILTERMUTECTCALLS(vcf_to_filter, fasta, fai, dict)
 
     vcf_filtered = FILTERMUTECTCALLS.out.vcf
