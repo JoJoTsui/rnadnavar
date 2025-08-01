@@ -6,9 +6,9 @@
 
 ## Introduction
 
-RaVEX is an end-to-end workflow designed for detecting somatic mutations in bulk RNA sequencing data, with the option to apply it to whole genome or whole exome sequencing data. It follows
+nf-core/rnadnavar is an end-to-end workflow designed for detecting somatic mutations in bulk RNA sequencing data, with the option to apply it to whole genome or whole exome sequencing data. It follows
 [GATK best practices](https://gatk.broadinstitute.org/hc/en-us/articles/360035531192-RNAseq-short-variant-discovery-SNPs-Indels-) for data cleanup, utilises
-[Mutect2](https://gatk.broadinstitute.org/hc/en-us/articles/360037593851-Mutect2), [Strelka2](https://gatk.broadinstitute.org/hc/en-us/articles/360037593851-Mutect2)
+[Mutect2](https://gatk.broadinstitute.org/hc/en-us/articles/360037593851-Mutect2), [Strelka2](https://github.com/Illumina/strelka)
 and
 [SAGE](https://github.com/hartwigmedical/hmftools/blob/master/sage/README.md)
 for variant calling, and includes post-processing steps
@@ -18,11 +18,17 @@ such as VCF normalization, consensus of called variants
 Originally, this pipeline was developed for human and
 mouse data.
 
+## Requirements
+
+- **Nextflow** `>=24.04.2` (updated from previous versions)
+- **Java** `>=11`
+- **Docker**, **Singularity**, **Podman**, **Shifter**, **Charliecloud**, **Apptainer**, or **Conda** (see [nf-core docs](https://nf-co.re/docs/usage/installation) for installation instructions)
+
 ## Quickstart
 
 The typical command for running the pipeline is as follows:
 
-```
+```bash
 nextflow run nf-core/rnadnavar -r <VERSION> -profile <PROFILE> --input ./samplesheet.csv --outdir ./results --tools <TOOLS>
 ```
 
@@ -30,11 +36,20 @@ nextflow run nf-core/rnadnavar -r <VERSION> -profile <PROFILE> --input ./samples
 
 `-profile <PROFILE>` is mandatory and should reflect either your own institutional profile or any pipeline profile specified in the profile section.
 
-This will launch the pipeline and perform variant
-calling, normalisation, consensus and filtering if specified in
-`--tools`, see the [parameter section](https://nf-co.
-re/rnadnavar/latest/parameters#tools) for details on the
-tools. In the above example the pipeline runs with the docker configuration profile. See below for more information about profiles.
+This will launch the pipeline and perform variant calling, normalisation, consensus and filtering if specified in `--tools`, see the [parameter section](https://nf-co. re/rnadnavar/latest/parameters#tools) for details on the tools. In the above example the pipeline runs with the docker configuration profile. See below for more information about profiles.
+
+## Getting help
+For detailed parameter information, you can use:
+
+```bash
+nextflow run nf-core/rnadnavar --help
+nextflow run nf-core/rnadnavar --help_full    # Show all parameters including hidden ones
+nextflow run nf-core/rnadnavar --show_hidden  # Show hidden parameters
+```
+
+## Testing and Quality Assurance
+This pipeline now includes comprehensive testing using the nf-test framework, ensuring better reliability and stability. All modules and subworkflows are thoroughly tested with automated GitHub Actions for continuous integration.
+
 
 ## Samplesheet input
 
@@ -205,7 +220,7 @@ If `-profile` is not specified, the pipeline will run locally and expect all sof
 - `apptainer`
   - A generic configuration profile to be used with [Apptainer](https://apptainer.org/)
 - `wave`
-  - A generic configuration profile to enable [Wave](https://seqera.io/wave/) containers. Use together with one of the above (requires Nextflow ` 24.03.0-edge` or later).
+  - A generic configuration profile to enable [Wave](https://seqera.io/wave/) containers. Use together with one of the above (requires Nextflow `>=24.04.2`).
 - `conda`
   - A generic configuration profile to be used with [Conda](https://conda.io/docs/). Please only use Conda as a last resort i.e. when it's not possible to run the pipeline with Docker, Singularity, Podman, Shifter, Charliecloud, or Apptainer.
 
@@ -264,3 +279,12 @@ We recommend adding the following line to your environment to limit this (typica
 ```bash
 NXF_OPTS='-Xms1g -Xmx4g'
 ```
+
+### Troubleshooting
+
+**Common Issues:**
+
+- If you get this error `TypeError: '<=' not supported between instances of 'str' and 'int'` in the `FILTERING` process it might be that `vcf2maf` failed to pass the information from vcf to maf because the id in the vcf differs from sample id provided in samplesheet. Please make sure they both match.
+
+- **Java ConcurrentModificationException**: This critical error has been resolved in recent updates. If you encounter this issue, please ensure you're using the latest version of the pipeline.
+
