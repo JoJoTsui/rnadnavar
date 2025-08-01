@@ -51,7 +51,6 @@ workflow BAM_VARIANT_CALLING_SOMATIC_SAGE {
         fasta_fai,
         dict)
 
-
     // Figuring out if there is one or more vcf(s) from the same sample
     sage_vcf_out = SAGE.out.vcf.branch{
         // Use meta.num_intervals to asses number of intervals

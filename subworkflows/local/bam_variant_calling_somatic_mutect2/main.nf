@@ -128,8 +128,6 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         // Prepare input channel for normal pileup summaries.
         // Remember, the input channel contains tumor-normal pairs, so there will be multiple copies of the normal sample for each tumor for a given patient.
         // Therefore, we use unique function to generate normal pileup summaries once for each patient for better efficiency.
-        pileup.normal.dump(tag:" pileup.normal")
-        pileup.tumor.dump(tag:" pileup.tumor")
         pileup_normal = pileup.normal.map{ meta, cram, crai, intervls ->
             def new_meta = meta.findAll { key, value -> key != 'tumor_id' }
             new_meta.id = meta.normal_id
@@ -174,7 +172,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
             .map{ meta, table ->
                 def new_meta = meta.findAll { key, value -> !(key in ['normal_id', 'tumor_id', 'num_intervals']) }
                 new_meta.id = meta.patient
-                [new_meta, meta.id, table]
+                [ groupKey(new_meta, new_meta.id), meta.id, table ]  
             }
 
         pileup_table_normal = Channel.empty()
@@ -182,7 +180,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
             .map{ meta, table ->
                 def new_meta = meta.findAll { key, value -> !(key in ['normal_id', 'tumor_id', 'num_intervals']) }
                 new_meta.id = meta.patient
-                [new_meta.clone(), meta.id, table]
+                [ groupKey(new_meta, new_meta.id), meta.id, table ]
             }
 
         ch_calculatecontamination_in_tables = pileup_table_tumor
@@ -203,13 +201,13 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
             // Reduce the meta to only patient name
             ch_seg_to_filtermutectcalls = CALCULATECONTAMINATION.out.segmentation.map{ meta, seg ->
                 def new_meta = meta.findAll { key, value -> key != 'tumor_id' }
-                [new_meta, seg]
+                [ groupKey(new_meta, new_meta.id), seg ]
             }.groupTuple()
 
             ch_cont_to_filtermutectcalls = CALCULATECONTAMINATION.out.contamination.map{ meta, cont ->
                 def new_meta = meta.findAll { key, value -> key != 'tumor_id' }
                 new_meta.id = meta.patient
-                [new_meta, cont]
+                [ groupKey(new_meta, new_meta.id), cont ]
             }.groupTuple()
         } else {
             // Keep tumor_vs_normal ID
