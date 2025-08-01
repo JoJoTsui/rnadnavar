@@ -2,7 +2,7 @@ process RUN_CONSENSUS {
     tag "$meta.id"
     label 'process_low'
 
-    conda "bioconda::bioconductor-rtracklayer bioconda::bioconductor-complexheatmap conda-forge::r-ggrepel conda-forge::r-data.table conda-forge::r-dplyr conda-forge::ggpubr "
+    conda "bioconda::bioconductor-rtracklayer bioconda::bioconductor-complexheatmap conda-forge::r-ggrepel conda-forge::r-data.table conda-forge::r-dplyr conda-forge::r-ggpubr "
     container 'nf-core/rnadnavar_renv_consensus:1.0'
 
     input:
