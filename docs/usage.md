@@ -39,6 +39,7 @@ nextflow run nf-core/rnadnavar -r <VERSION> -profile <PROFILE> --input ./samples
 This will launch the pipeline and perform variant calling, normalisation, consensus and filtering if specified in `--tools`, see the [parameter section](https://nf-co. re/rnadnavar/latest/parameters#tools) for details on the tools. In the above example the pipeline runs with the docker configuration profile. See below for more information about profiles.
 
 ## Getting help
+
 For detailed parameter information, you can use:
 
 ```bash
@@ -48,8 +49,8 @@ nextflow run nf-core/rnadnavar --show_hidden  # Show hidden parameters
 ```
 
 ## Testing and Quality Assurance
-This pipeline now includes comprehensive testing using the nf-test framework, ensuring better reliability and stability. All modules and subworkflows are thoroughly tested with automated GitHub Actions for continuous integration.
 
+This pipeline now includes comprehensive testing using the nf-test framework, ensuring better reliability and stability. All modules and subworkflows are thoroughly tested with automated GitHub Actions for continuous integration.
 
 ## Samplesheet input
 
@@ -287,4 +288,3 @@ NXF_OPTS='-Xms1g -Xmx4g'
 - If you get this error `TypeError: '<=' not supported between instances of 'str' and 'int'` in the `FILTERING` process it might be that `vcf2maf` failed to pass the information from vcf to maf because the id in the vcf differs from sample id provided in samplesheet. Please make sure they both match.
 
 - **Java ConcurrentModificationException**: This critical error has been resolved in recent updates. If you encounter this issue, please ensure you're using the latest version of the pipeline.
-
