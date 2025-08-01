@@ -15,10 +15,10 @@ lint:
     - conf/test.config
     - conf/test_full.config
   files_unchanged:
-  - .gitignore
-  - LICENSE
-  - assets/nf-core-rnadnavar_logo_light.png
-  - docs/images/nf-core-rnadnavar_logo_dark.png
-  - docs/images/nf-core-rnadnavar_logo_light.png 
+    - .gitignore
+    - LICENSE
+    - assets/nf-core-rnadnavar_logo_light.png
+    - docs/images/nf-core-rnadnavar_logo_dark.png
+    - docs/images/nf-core-rnadnavar_logo_light.png
   modules_config: False
   template_strings: false

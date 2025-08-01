@@ -726,7 +726,8 @@
                     "default": "s3://ngi-igenomes/igenomes/"
                 }
             }
-        }, "filtering": {
+        },
+        "filtering": {
             "title": "Filtering",
             "type": "object",
             "description": "",
@@ -737,12 +738,12 @@
                     "type": "string",
                     "fa_icon": "fas fa-database",
                     "description": "Path to BED file with positions to blacklist during filtering (e.g. regions difficult to map)"
-                }, 
+                },
                 "whitelist": {
                     "type": "string",
                     "fa_icon": "fas fa-database",
                     "description": "Path to BED file with variants to whitelist during filtering"
-                }, 
+                },
                 "rnaedits": {
                     "type": "string",
                     "fa_icon": "fas fa-database",
