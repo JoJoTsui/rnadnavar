@@ -7,14 +7,15 @@
     IMPORT FUNCTIONS / MODULES / SUBWORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
+
 include { UTILS_NFSCHEMA_PLUGIN   } from '../../nf-core/utils_nfschema_plugin'
 include { paramsSummaryMap        } from 'plugin/nf-schema'
 include { samplesheetToList       } from 'plugin/nf-schema'
 include { completionEmail         } from '../../nf-core/utils_nfcore_pipeline'
 include { completionSummary       } from '../../nf-core/utils_nfcore_pipeline'
 include { imNotification          } from '../../nf-core/utils_nfcore_pipeline'
+include { UTILS_NFCORE_PIPELINE   } from '../../nf-core/utils_nfcore_pipeline'
 include { UTILS_NEXTFLOW_PIPELINE } from '../../nf-core/utils_nextflow_pipeline'
-include { SAMPLESHEET_TO_CHANNEL  } from '../samplesheet_to_channel'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,18 +44,18 @@ workflow PIPELINE_INITIALISATION {
     )
 
     // Validate parameters and generate parameter summary to stdout
+    //
     UTILS_NFSCHEMA_PLUGIN(
         workflow,
         validate_params,
-        null
+        null,
     )
 
     // Check config provided to the pipeline
-    UTILS_NEXTFLOW_PIPELINE(version,
-                            true,
-                            outdir,
-                            workflow.profile.tokenize(',').intersect(['conda', 'mamba']).size() >= 1,
-                            )
+    //
+    UTILS_NFCORE_PIPELINE(
+        nextflow_cli_args
+    )
 
     //
     // Custom validation for pipeline parameters
@@ -85,7 +86,7 @@ workflow PIPELINE_INITIALISATION {
         params.vep_cache,
         params.star_index,
         params.hisat2_index,
-        params.whitelist
+        params.whitelist,
     ]
 
 
@@ -98,7 +99,6 @@ workflow PIPELINE_INITIALISATION {
             : Channel.fromList(samplesheetToList(params.input_restart, "${projectDir}/assets/schema_input.json"))
 
     SAMPLESHEET_TO_CHANNEL(ch_from_samplesheet)
-
 
     emit:
     samplesheet = SAMPLESHEET_TO_CHANNEL.out.input_sample
@@ -123,7 +123,7 @@ workflow PIPELINE_COMPLETION {
 
     main:
     summary_params = paramsSummaryMap(workflow, parameters_schema: "nextflow_schema.json")
-    def multiqc_report_list = multiqc_report.toList()
+    def multiqc_reports = multiqc_report.toList()
 
     // Completion email and summary
     workflow.onComplete {
@@ -135,7 +135,7 @@ workflow PIPELINE_COMPLETION {
                 plaintext_email,
                 outdir,
                 monochrome_logs,
-                multiqc_report_list.getVal(),
+                multiqc_reports.getVal(),
             )
         }
 

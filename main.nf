@@ -10,10 +10,22 @@
 ----------------------------------------------------------------------------------------
 */
 
-nextflow.enable.dsl = 2
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<<<<<<< HEAD
+=======
+    IMPORT FUNCTIONS / MODULES / SUBWORKFLOWS / WORKFLOWS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
+include { RNADNAVAR  } from './workflows/rnadnavar'
+include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_rnadnavar_pipeline'
+include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_rnadnavar_pipeline'
+include { getGenomeAttribute      } from './subworkflows/local/utils_nfcore_rnadnavar_pipeline'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>>>>>>> TEMPLATE
     GENOME PARAMETER VALUES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */

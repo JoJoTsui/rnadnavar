@@ -1,14 +1,3 @@
-nf_core_version: 3.3.1
-repository_type: pipeline
-template:
-  author: Raquel Manzano-Garcia
-  description: Pipeline for RNA and DNA integrated analysis for somatic mutation detection
-  force: false
-  is_nfcore: true
-  name: rnadnavar
-  org: nf-core
-  outdir: .
-  version: 1.0dev
 lint:
   files_exist:
     - conf/modules.config
@@ -20,5 +9,16 @@ lint:
     - assets/nf-core-rnadnavar_logo_light.png
     - docs/images/nf-core-rnadnavar_logo_dark.png
     - docs/images/nf-core-rnadnavar_logo_light.png
-  modules_config: False
+  modules_config: false
   template_strings: false
+nf_core_version: 3.3.2
+repository_type: pipeline
+template:
+  author: Raquel Manzano-Garcia
+  description: Pipeline for RNA and DNA integrated analysis for somatic mutation detection
+  force: false
+  is_nfcore: true
+  name: rnadnavar
+  org: nf-core
+  outdir: .
+  version: 1.0dev
