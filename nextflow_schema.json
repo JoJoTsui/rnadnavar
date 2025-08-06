@@ -827,15 +827,16 @@
                     "hidden": true,
                     "fa_icon": "fas fa-users-cog"
                 },
-                "test_data_base": {
+                "pipelines_testdata_base_path": {
                     "type": "string",
-                    "default": "https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar",
+                    "default": "https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/",
                     "description": "Base path / URL for data used in the test profiles",
                     "help_text": "Warning: The `-profile test` samplesheet file itself contains remote paths. Setting this parameter does not alter the contents of that file.",
                     "hidden": true
                 },
                 "modules_testdata_base_path": {
                     "type": "string",
+                    "default": "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/",
                     "description": "Base path / URL for data used in the modules",
                     "hidden": true
                 },
@@ -947,13 +948,6 @@
                     "description": "Incoming hook URL for messaging service",
                     "fa_icon": "fas fa-people-group",
                     "help_text": "Incoming hook URL for messaging service. Currently, MS Teams and Slack are supported.",
-                    "hidden": true
-                },
-                "pipelines_testdata_base_path": {
-                    "type": "string",
-                    "fa_icon": "far fa-check-circle",
-                    "description": "Base URL or local path to location of pipeline test dataset files",
-                    "default": "https://raw.githubusercontent.com/nf-core/test-datasets/",
                     "hidden": true
                 },
                 "trace_report_suffix": {
