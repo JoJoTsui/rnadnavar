@@ -133,7 +133,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
             new_meta.id = meta.normal_id
             [new_meta, cram, crai, intervls]
         }.unique()
-        
+
         pileup_tumor = pileup.tumor.map{ meta, cram, crai, intervls ->
             def new_meta = meta.clone()
             new_meta.id = meta.tumor_id
@@ -172,7 +172,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
             .map{ meta, table ->
                 def new_meta = meta.findAll { key, value -> !(key in ['normal_id', 'tumor_id', 'num_intervals']) }
                 new_meta.id = meta.patient
-                [ groupKey(new_meta, new_meta.id), meta.id, table ]  
+                [ groupKey(new_meta, new_meta.id), meta.id, table ]
             }
 
         pileup_table_normal = Channel.empty()

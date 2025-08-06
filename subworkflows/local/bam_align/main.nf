@@ -130,7 +130,7 @@ workflow BAM_ALIGN {
                 rna: it[0].status == 2
             }
 
-        //  DNA mapping 
+        //  DNA mapping
         sort_bam = true
         FASTQ_ALIGN(reads_for_alignment_status.dna, index_alignment, sort_bam)
         FASTQ_ALIGN.out.bam.dump(tag:'FASTQ_ALIGN.out.bam')
@@ -152,7 +152,7 @@ workflow BAM_ALIGN {
             }
             // Group
             .groupTuple()
-        
+
         bam_mapped_dna.dump(tag:"bam_mapped_dna")
         reads_for_alignment_status.rna.dump(tag:"reads_for_alignment_status.rna")
 
