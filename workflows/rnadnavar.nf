@@ -21,26 +21,26 @@ include { methodsDescriptionText                                    } from '../s
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
 // Build the genome index and other reference files
-include { SAMPLESHEET_TO_CHANNEL                                    } from '../subworkflows/local/samplesheet_to_channel/main'
-include { PREPARE_REFERENCE_AND_INTERVALS                           } from '../subworkflows/local/prepare_reference_and_intervals/main'
-include { PREPARE_INTERVALS as PREPARE_INTERVALS_FOR_REALIGNMENT    } from '../subworkflows/local/prepare_intervals/main'
+include { SAMPLESHEET_TO_CHANNEL                                    } from '../subworkflows/local/samplesheet_to_channel'
+include { PREPARE_REFERENCE_AND_INTERVALS                           } from '../subworkflows/local/prepare_reference_and_intervals'
+include { PREPARE_INTERVALS as PREPARE_INTERVALS_FOR_REALIGNMENT    } from '../subworkflows/local/prepare_intervals'
 // Download annotation cache if needed
-include { ENSEMBLVEP_DOWNLOAD                                       } from '../modules/nf-core/ensemblvep/download/main'
-include { UNZIP as UNZIP_VEP_CACHE                                  } from '../modules/nf-core/unzip/main'
+include { ENSEMBLVEP_DOWNLOAD                                       } from '../modules/nf-core/ensemblvep/download'
+include { UNZIP as UNZIP_VEP_CACHE                                  } from '../modules/nf-core/unzip'
 include { ANNOTATION_CACHE_INITIALISATION                           } from '../subworkflows/local/annotation_cache_initialisation'
 
 // Alignment
-include { BAM_ALIGN                                                 } from '../subworkflows/local/bam_align/main'
+include { BAM_ALIGN                                                 } from '../subworkflows/local/bam_align'
 
 // Core subworkflows of the pipeline
-include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as BAM_PROCESSING } from '../subworkflows/local/bam_variant_calling_pre_post_processing/main'
+include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as BAM_PROCESSING } from '../subworkflows/local/bam_variant_calling_pre_post_processing'
 
 // Second run
-include { BAM_EXTRACT_READS_HISAT2_ALIGN as PREPARE_REALIGNMENT     } from '../subworkflows/local/prepare_realignment/main'
-include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as REALIGNMENT    } from '../subworkflows/local/bam_variant_calling_pre_post_processing/main'
+include { BAM_EXTRACT_READS_HISAT2_ALIGN as PREPARE_REALIGNMENT     } from '../subworkflows/local/prepare_realignment'
+include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as REALIGNMENT    } from '../subworkflows/local/bam_variant_calling_pre_post_processing'
 
 // Filter RNA
-include { MAF_FILTERING_RNA                                         } from '../subworkflows/local/maf_rna_filtering/main'
+include { MAF_FILTERING_RNA                                         } from '../subworkflows/local/maf_rna_filtering'
 
 
 /*
@@ -61,7 +61,7 @@ workflow RNADNAVAR {
     // To gather used softwares versions for MultiQC
     versions = Channel.empty()
 
-    // Set input, can either be from --input or from automatic retrieval in utils_nfcore_rnadnavar_pipeline/main
+    // Set input, can either be from --input or from automatic retrieval in utils_nfcore_rnadnavar_pipeline
     if (params.input) {
         ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
     }
