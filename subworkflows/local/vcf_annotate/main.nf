@@ -25,7 +25,7 @@ workflow VCF_ANNOTATE {
 
     if (params.tools && params.tools.split(',').contains('vep') || realignment) {
 
-            fasta = (params.vep_include_fasta) ? fasta.map{ meta, fasta -> [ [ id:fasta.baseName ], fasta ] } : [[id: 'null'], []]
+            fasta = (params.vep_include_fasta) ? fasta.map{ _meta, fa -> [ [ id:fa.baseName ], fa ] } : [[id: 'null'], []]
             vep_cache_version  = params.vep_cache_version  ?: Channel.empty()
             vep_genome         = params.vep_genome         ?: Channel.empty()
             vep_species        = params.vep_species        ?: Channel.empty()
@@ -44,15 +44,15 @@ workflow VCF_ANNOTATE {
                 vep_extra_files.add(file(params.spliceai_snv_tbi, checkIfExists: true))
             }
 
-            vcf_for_vep = vcf.map{ meta, vcf -> [ meta, vcf, [] ] }
+            vcf_for_vep = vcf.map{ meta, vcf_file -> [ meta, vcf_file, [] ] }
             VCF_ANNOTATE_ENSEMBLVEP(vcf_for_vep, fasta, vep_genome, vep_species, vep_cache_version, vep_cache, vep_extra_files)
 
             reports  = reports.mix(VCF_ANNOTATE_ENSEMBLVEP.out.reports)
-            vcf_ann  = vcf_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.vcf_tbi).map{meta, vcf, tbi -> [meta +[data_type:"vcf"], vcf, tbi]}
+            vcf_ann  = vcf_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.vcf_tbi).map{meta, vcf_file, tbi -> [meta +[data_type:"vcf"], vcf_file, tbi]}
             tab_ann  = tab_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.tab)
             json_ann = json_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.json)
             versions = versions.mix(VCF_ANNOTATE_ENSEMBLVEP.out.versions)
-            CHANNEL_ANNOTATE_CREATE_CSV(vcf_ann.map{meta, vcf, tbi -> [meta, vcf]}, "annotated")
+            CHANNEL_ANNOTATE_CREATE_CSV(vcf_ann.map{meta, vcf_file, _tbi -> [meta, vcf_file]}, "annotated")
 
     } else{
 

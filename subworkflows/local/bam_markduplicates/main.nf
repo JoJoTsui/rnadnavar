@@ -10,16 +10,16 @@ include { GATK4_MARKDUPLICATES      } from '../../../modules/nf-core/gatk4/markd
 workflow BAM_MARKDUPLICATES {
     take:
     bam                    // channel: [mandatory] [ meta, bam ]
-    fasta                  // channel: [mandatory] [ fasta ]
+    fasta                  // channel: [mandatory] [ meta, fasta ]
     fasta_fai              // channel: [mandatory] [ fasta_fai ]
-    intervals_bed_combined // channel: [optional]  [ intervals_bed ]
+    intervals_bed_combined // channel: [optional]  [ meta, intervals_bed ]
 
     main:
     versions = Channel.empty()
     reports  = Channel.empty()
 
     // RUN MARKUPDUPLICATES
-    GATK4_MARKDUPLICATES(bam, fasta, fasta_fai)
+    GATK4_MARKDUPLICATES(bam, fasta.map{_meta, fa -> fa}, fasta_fai)
 
     // Join with the crai file
     cram = GATK4_MARKDUPLICATES.out.cram.join(GATK4_MARKDUPLICATES.out.crai, failOnDuplicate: true, failOnMismatch: true)

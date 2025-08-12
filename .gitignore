@@ -13,3 +13,4 @@ res-test
 node_modules/
 .nf-test*
 .vscode*
+null/

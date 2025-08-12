@@ -6,11 +6,11 @@
 // For all modules here:
 // A when clause condition is defined in the conf/modules.config to determine if the module should be run
 
-include { BUILD_INTERVALS                                        } from '../../../modules/local/build_intervals/main'
-include { CREATE_INTERVALS_BED                                   } from '../../../modules/local/create_intervals_bed/main'
-include { GATK4_INTERVALLISTTOBED                                } from '../../../modules/nf-core/gatk4/intervallisttobed/main'
-include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_SPLIT    } from '../../../modules/nf-core/tabix/bgziptabix/main'
-include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_COMBINED } from '../../../modules/nf-core/tabix/bgziptabix/main'
+include { BUILD_INTERVALS                                        } from '../../../modules/local/build_intervals'
+include { CREATE_INTERVALS_BED                                   } from '../../../modules/local/create_intervals_bed'
+include { GATK4_INTERVALLISTTOBED                                } from '../../../modules/nf-core/gatk4/intervallisttobed'
+include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_SPLIT    } from '../../../modules/nf-core/tabix/bgziptabix'
+include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_COMBINED } from '../../../modules/nf-core/tabix/bgziptabix'
 
 workflow PREPARE_INTERVALS {
     take:

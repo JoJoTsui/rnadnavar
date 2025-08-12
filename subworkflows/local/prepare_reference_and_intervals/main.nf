@@ -57,14 +57,14 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
 
 
     emit:
-    fasta                         = fasta
-    fasta_fai                     = fasta_fai
-    dict                          = dict
-    bwa                           = bwa
-    germline_resource             = germline_resource
-    germline_resource_tbi         = germline_resource_tbi
-    bwamem2                       = bwamem2
-    dragmap                       = dragmap
+    fasta
+    fasta_fai
+    dict
+    bwa
+    germline_resource
+    germline_resource_tbi
+    bwamem2
+    dragmap
     star_index                    = PREPARE_GENOME.out.star_index
     gtf                           = PREPARE_GENOME.out.gtf
     intervals                     = PREPARE_INTERVALS.out.intervals_bed
@@ -72,17 +72,17 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     intervals_for_preprocessing   = PREPARE_INTERVALS.out.intervals_for_preprocessing
     intervals_bed_combined        = PREPARE_INTERVALS.out.intervals_bed_combined
     intervals_bed_gz_tbi_combined = PREPARE_INTERVALS.out.intervals_bed_gz_tbi_combined
-    dbsnp                         = dbsnp
-    dbsnp_tbi                     = dbsnp_tbi
-    pon                           = pon
-    pon_tbi                       = pon_tbi
-    germline_resource             = germline_resource
-    germline_resource_tbi         = germline_resource_tbi
-    hisat2_index                  = hisat2_index
-    splicesites                   = splicesites
-    known_sites_indels            = known_sites_indels
-    known_sites_indels_tbi        = known_sites_indels_tbi
-    known_sites_snps              = known_sites_snps
-    known_sites_snps_tbi          = known_sites_snps_tbi
-    versions                      = versions                                            // channel: [ versions.yml ]
+    dbsnp
+    dbsnp_tbi
+    pon
+    pon_tbi
+    germline_resource
+    germline_resource_tbi
+    hisat2_index
+    splicesites
+    known_sites_indels
+    known_sites_indels_tbi
+    known_sites_snps
+    known_sites_snps_tbi
+    versions                                                                  // channel: [ versions.yml ]
 }

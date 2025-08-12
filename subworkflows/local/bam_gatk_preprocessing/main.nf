@@ -30,9 +30,6 @@ workflow BAM_GATK_PREPROCESSING {
     dict                          // channel: [mandatory] dict
     known_sites_indels            // channel: [optional]  known_sites
     known_sites_indels_tbi        // channel: [optional]  known_sites
-    germline_resource             // channel: [optional]  germline_resource
-    germline_resource_tbi         // channel: [optional]  germline_resource_tbi
-    intervals                     // channel: [mandatory] intervals/target regions
     intervals_for_preprocessing   // channel: [mandatory] intervals/wes
     intervals_and_num_intervals   // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
     realignment                   // boolean
@@ -73,7 +70,7 @@ workflow BAM_GATK_PREPROCESSING {
                 }
 
                 // Convert any input BAMs to CRAM
-                BAM_TO_CRAM(input_markduplicates_convert.bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
+                BAM_TO_CRAM(input_markduplicates_convert.bam, fasta.map{meta, fa -> [fa]}, fasta_fai)
                 versions = versions.mix(BAM_TO_CRAM.out.versions)
 
                 cram_skip_markduplicates = Channel.empty().mix(input_markduplicates_convert.cram, BAM_TO_CRAM.out.cram)
@@ -88,6 +85,9 @@ workflow BAM_GATK_PREPROCESSING {
             versions = versions.mix(CRAM_QC_NO_MD.out.versions)
         } else {
             cram_for_markduplicates.dump(tag:"cram_for_markduplicates")
+            fasta.dump(tag:"fasta_for_markduplicates")
+            fasta_fai.dump(tag:"fasta_fai_for_markduplicates")
+            intervals_for_preprocessing.dump(tag:"intervals_for_preprocessing_for_markduplicates")
             BAM_MARKDUPLICATES(
                 cram_for_markduplicates,
                 fasta,
@@ -108,14 +108,17 @@ workflow BAM_GATK_PREPROCESSING {
             // Make sure correct data types are carried through
             .map{ meta, cram, crai -> [ meta + [data_type: "cram"], cram, crai ] }
         // If params.save_output_as_bam, then convert CRAM files to BAM
-        CRAM_TO_BAM(ch_md_cram_for_restart, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
-        versions = versions.mix(CRAM_TO_BAM.out.versions)
-
         // CSV should be written for the file actually out, either CRAM or BAM
         // Create CSV to restart from this step
         csv_subfolder = 'markduplicates'
-        cram_to_bam_bai = CRAM_TO_BAM.out.bam.join(CRAM_TO_BAM.out.bai, failOnDuplicate: true, failOnMismatch: true)
-        params.save_output_as_bam ? CHANNEL_MARKDUPLICATES_CREATE_CSV(cram_to_bam_bai, csv_subfolder, params.outdir, params.save_output_as_bam) : CHANNEL_MARKDUPLICATES_CREATE_CSV(ch_md_cram_for_restart, csv_subfolder, params.outdir, params.save_output_as_bam)
+        if (params.save_output_as_bam){
+            CRAM_TO_BAM(ch_md_cram_for_restart, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
+            versions = versions.mix(CRAM_TO_BAM.out.versions)
+            cram_to_bam_bai = CRAM_TO_BAM.out.bam.join(CRAM_TO_BAM.out.bai, failOnDuplicate: true, failOnMismatch: true)
+            CHANNEL_MARKDUPLICATES_CREATE_CSV(cram_to_bam_bai, csv_subfolder, params.outdir, params.save_output_as_bam)
+        } else {
+            CHANNEL_MARKDUPLICATES_CREATE_CSV(ch_md_cram_for_restart, csv_subfolder, params.outdir, params.save_output_as_bam)
+        }
     } else {
         ch_md_cram_for_restart   = Channel.empty().mix(input_sample)
         cram_skip_markduplicates = Channel.empty().mix(input_sample)
@@ -160,7 +163,7 @@ workflow BAM_GATK_PREPROCESSING {
                                             }
             BAM_SPLITNCIGARREADS (
                 cram_for_splitncigar_status.rna,
-                dict.map{dict -> [[id:"dict"], dict]},
+                dict.map{d -> [[id:"dict"], d]},
                 fasta,
                 fasta_fai.map{fai -> [[id:"fai"], fai]},
                 intervals_and_num_intervals
@@ -293,6 +296,7 @@ workflow BAM_GATK_PREPROCESSING {
                 intervals_and_num_intervals)
 
             cram_variant_calling_no_spark = BAM_APPLYBQSR.out.cram
+            cram_variant_calling_no_spark.dump(tag:"cram_variant_calling_no_spark")
 
             // Gather used softwares versions
             versions = versions.mix(BAM_APPLYBQSR.out.versions)
@@ -347,6 +351,7 @@ workflow BAM_GATK_PREPROCESSING {
             bam:  it[0].data_type == "bam"
             cram: it[0].data_type == "cram"
         }
+
         // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
         BAM_TO_CRAM(input_variant_calling_convert.bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
         versions = versions.mix(BAM_TO_CRAM.out.versions)

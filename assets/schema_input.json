@@ -1,5 +1,5 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://raw.githubusercontent.com/nf-core/rnadnavar/master/assets/schema_input.json",
     "title": "nf-core/rnadnavar pipeline - params.input schema",
     "description": "Schema for the file provided with params.input",
@@ -34,7 +34,6 @@
                 "meta": ["lane"]
             },
             "fastq_1": {
-                "errorMessage": "FastQ file for reads 1 cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'",
                 "anyOf": [
                     {
                         "type": "string",
@@ -46,7 +45,9 @@
                     }
                 ],
                 "format": "file-path",
-                "exists": true
+                "exists": true,
+                "pattern": "^([\\S\\s]*\\/)?[^\\s\\/]+\\.f(ast)?q\\.gz$",
+                "errorMessage": "FastQ file for reads 1 must be provided, cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'"
             },
             "fastq_2": {
                 "errorMessage": "FastQ file for reads 2 cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'",
