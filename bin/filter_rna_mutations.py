@@ -100,6 +100,10 @@ def add_filters(maf, rnaeditingsites, realignment, whitelist):
             ravex_filter = ["PASS"]
         ravex_filter = ";".join(ravex_filter)
         maf.at[idx, "RaVeX_FILTER"] = ravex_filter
+    # column cleanup
+    if "coordinates_hg19" in maf.columns:
+        maf.drop(["coordinates_hg19"], axis=1, inplace=True)
+
     return maf
 
 
@@ -247,6 +251,8 @@ def main():
         rnadbs = pd.DataFrame()
         if args.rnaedits:
             rnadbs = check_rnaediting(args.rnaedits)
+        else:
+            rnadbs = args.rnaedits
         calls = add_filters(maf=calls, rnaeditingsites=rnadbs, realignment=didrealignment, whitelist=args.whitelist)
         results[idx] = calls
     # write maf files

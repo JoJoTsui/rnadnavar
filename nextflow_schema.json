@@ -1,10 +1,10 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://raw.githubusercontent.com/nf-core/rnadnavar/master/nextflow_schema.json",
     "title": "nf-core/rnadnavar pipeline parameters",
     "description": "Pipeline for RNA and DNA integrated analysis for somatic mutation detection",
     "type": "object",
-    "definitions": {
+    "$defs": {
         "input_output_options": {
             "title": "Input/output options",
             "type": "object",
@@ -44,18 +44,15 @@
                     "schema": "assets/schema_input.json"
                 },
                 "split_fastq": {
+                    "type": "integer",
                     "oneOf": [
                         {
-                            "type": "integer",
                             "minimum": 250
                         },
                         {
-                            "type": "integer",
-                            "minimum": 0,
-                            "maximum": 0
+                            "const": 0
                         }
                     ],
-                    "type": "integer",
                     "default": 50000000,
                     "fa_icon": "fas fa-clock",
                     "description": "Specify how many reads each split of a FastQ file contains. Set 0 to turn off splitting at all.",
@@ -326,14 +323,6 @@
                     "description": "Download annotation cache.",
                     "help_text": "Set this parameter, if you wish to download annotation cache."
                 },
-                "igenomes_base": {
-                    "type": "string",
-                    "format": "directory-path",
-                    "description": "Directory / URL base for iGenomes references.",
-                    "default": "s3://ngi-igenomes/igenomes/",
-                    "fa_icon": "fas fa-cloud-download-alt",
-                    "hidden": true
-                },
                 "igenomes_ignore": {
                     "type": "boolean",
                     "description": "Do not load the iGenomes reference config.",
@@ -359,10 +348,6 @@
                     "type": "string",
                     "description": "Path to GFF3 annotation file.",
                     "help_text": "This parameter must be specified if `--genome` or `--gtf` are not specified."
-                },
-                "exon_bed": {
-                    "type": "string",
-                    "description": "Path to BED file containing exon intervals. This will be created from the GTF file if not specified."
                 }
             },
             "help_text": "The pipeline config files come bundled with paths to the Illumina iGenomes reference index files.\nThe configuration is set up to use the AWS-iGenomes resource\ncf https://ewels.github.io/AWS-iGenomes/."
@@ -732,15 +717,67 @@
                     "fa_icon": "fas fa-table",
                     "hidden": true
                 },
+                "igenomes_base": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "The base path to the igenomes reference files",
+                    "fa_icon": "fas fa-ban",
+                    "hidden": true,
+                    "default": "s3://ngi-igenomes/igenomes/"
+                }
+            }
+        },
+        "filtering": {
+            "title": "Filtering",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "fa_icon": "fas fa-toolbox",
+            "properties": {
+                "blacklist": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to BED file with positions to blacklist during filtering (e.g. regions difficult to map)"
+                },
                 "whitelist": {
                     "type": "string",
                     "fa_icon": "fas fa-database",
                     "description": "Path to BED file with variants to whitelist during filtering"
                 },
-                "blacklist": {
+                "rnaedits": {
                     "type": "string",
                     "fa_icon": "fas fa-database",
-                    "description": "Path to BED file with positions to blacklist during filtering (e.g. regions difficult to map)"
+                    "description": "Path to BED files with RNA editing sites, comma separated if more than one"
+                },
+                "chain": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "Chain file to do liftover - only if `rna_pon2` is provided"
+                },
+                "rna_pon": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to  RNA PoN"
+                },
+                "rna_pon2": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to  second RNA PoN"
+                },
+                "fasta2": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "Path to second fasta file - only is `rna_pon2` provided"
+                },
+                "refname2": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "RNA filtering - name of the second reference being used (e.g. HG19) - only if `rna_pon2` is provided"
+                },
+                "refname": {
+                    "type": "string",
+                    "fa_icon": "fas fa-database",
+                    "description": "RNA filtering - name of the reference being used (e.g. HG38)"
                 }
             }
         },
@@ -790,11 +827,17 @@
                     "hidden": true,
                     "fa_icon": "fas fa-users-cog"
                 },
-                "test_data_base": {
+                "pipelines_testdata_base_path": {
                     "type": "string",
-                    "default": "https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar",
+                    "default": "https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/",
                     "description": "Base path / URL for data used in the test profiles",
                     "help_text": "Warning: The `-profile test` samplesheet file itself contains remote paths. Setting this parameter does not alter the contents of that file.",
+                    "hidden": true
+                },
+                "modules_testdata_base_path": {
+                    "type": "string",
+                    "default": "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/",
+                    "description": "Base path / URL for data used in the modules",
                     "hidden": true
                 },
                 "seq_center": {
@@ -813,41 +856,6 @@
                 }
             }
         },
-        "max_job_request_options": {
-            "title": "Max job request options",
-            "type": "object",
-            "fa_icon": "fab fa-acquisitions-incorporated",
-            "description": "Set the top limit for requested resources for any single job.",
-            "help_text": "If you are running on a smaller system, a pipeline step requesting more resources than are available may cause the Nextflow to stop the run with an error. These options allow you to cap the maximum resources requested by any single job so that the pipeline will run on your system.\n\nNote that you can not _increase_ the resources requested by any job using these options. For that you will need your own configuration file. See [the nf-core website](https://nf-co.re/usage/configuration) for details.",
-            "properties": {
-                "max_cpus": {
-                    "type": "integer",
-                    "description": "Maximum number of CPUs that can be requested for any single job.",
-                    "default": 16,
-                    "fa_icon": "fas fa-microchip",
-                    "hidden": true,
-                    "help_text": "Use to set an upper-limit for the CPU requirement for each process. Should be an integer e.g. `--max_cpus 1`."
-                },
-                "max_memory": {
-                    "type": "string",
-                    "description": "Maximum amount of memory that can be requested for any single job.",
-                    "default": "128.GB",
-                    "fa_icon": "fas fa-memory",
-                    "pattern": "^\\d+(\\.\\d+)?\\.?\\s*(K|M|G|T)?B$",
-                    "hidden": true,
-                    "help_text": "Use to set an upper-limit for the memory requirement for each process. Should be a string in the format integer-unit e.g. `--max_memory '8.GB'`."
-                },
-                "max_time": {
-                    "type": "string",
-                    "description": "Maximum amount of time that can be requested for any single job.",
-                    "default": "240.h",
-                    "fa_icon": "far fa-clock",
-                    "pattern": "^(\\d+\\.?\\s*(s|m|h|d|day)\\s*)+$",
-                    "hidden": true,
-                    "help_text": "Use to set an upper-limit for the time requirement for each process. Should be a string in the format integer-unit e.g. `--max_time '2.h'`."
-                }
-            }
-        },
         "generic_options": {
             "title": "Generic options",
             "type": "object",
@@ -855,12 +863,6 @@
             "description": "Less common options for the pipeline, typically set in a config file.",
             "help_text": "These options are common to all nf-core pipelines and allow you to customise some of the core preferences for how the pipeline runs.\n\nTypically these options would be set in a Nextflow config file loaded for all pipeline runs, such as `~/.nextflow/config`.",
             "properties": {
-                "help": {
-                    "type": "boolean",
-                    "description": "Display help text.",
-                    "fa_icon": "fas fa-question-circle",
-                    "hidden": true
-                },
                 "version": {
                     "type": "boolean",
                     "description": "Display version and exit.",
@@ -941,27 +943,6 @@
                     "fa_icon": "fas fa-check-square",
                     "hidden": true
                 },
-                "validationShowHiddenParams": {
-                    "type": "boolean",
-                    "fa_icon": "far fa-eye-slash",
-                    "description": "Show all params when using `--help`",
-                    "hidden": true,
-                    "help_text": "By default, parameters set as _hidden_ in the schema are not shown on the command line when a user runs with `--help`. Specifying this option will tell the pipeline to show all parameters."
-                },
-                "validationFailUnrecognisedParams": {
-                    "type": "boolean",
-                    "fa_icon": "far fa-check-circle",
-                    "description": "Validation of parameters fails when an unrecognised parameter is found.",
-                    "hidden": true,
-                    "help_text": "By default, when an unrecognised parameter is found, it returns a warinig."
-                },
-                "validationLenientMode": {
-                    "type": "boolean",
-                    "fa_icon": "far fa-check-circle",
-                    "description": "Validation of parameters in lenient more.",
-                    "hidden": true,
-                    "help_text": "Allows string values that are parseable as numbers or booleans. For further information see [JSONSchema docs](https://github.com/everit-org/json-schema#lenient-mode)."
-                },
                 "hook_url": {
                     "type": "string",
                     "description": "Incoming hook URL for messaging service",
@@ -969,11 +950,10 @@
                     "help_text": "Incoming hook URL for messaging service. Currently, MS Teams and Slack are supported.",
                     "hidden": true
                 },
-                "pipelines_testdata_base_path": {
+                "trace_report_suffix": {
                     "type": "string",
-                    "fa_icon": "far fa-check-circle",
-                    "description": "Base URL or local path to location of pipeline test dataset files",
-                    "default": "https://raw.githubusercontent.com/nf-core/test-datasets/",
+                    "fa_icon": "far calendar",
+                    "description": "Suffix to add to the trace report filename. Default is the date and time in the format yyyy-MM-dd_HH-mm-ss.",
                     "hidden": true
                 }
             }
@@ -981,34 +961,34 @@
     },
     "allOf": [
         {
-            "$ref": "#/definitions/input_output_options"
+            "$ref": "#/$defs/input_output_options"
         },
         {
-            "$ref": "#/definitions/reference_genome_options"
+            "$ref": "#/$defs/reference_genome_options"
         },
         {
-            "$ref": "#/definitions/alignment_options"
+            "$ref": "#/$defs/alignment_options"
         },
         {
-            "$ref": "#/definitions/fastq_preprocessing"
+            "$ref": "#/$defs/fastq_preprocessing"
         },
         {
-            "$ref": "#/definitions/pipeline_stage_options"
+            "$ref": "#/$defs/variant_calling"
         },
         {
-            "$ref": "#/definitions/variant_calling"
+            "$ref": "#/$defs/annotation"
         },
         {
-            "$ref": "#/definitions/annotation"
+            "$ref": "#/$defs/filtering"
         },
         {
-            "$ref": "#/definitions/institutional_config_options"
+            "$ref": "#/$defs/pipeline_stage_options"
         },
         {
-            "$ref": "#/definitions/max_job_request_options"
+            "$ref": "#/$defs/institutional_config_options"
         },
         {
-            "$ref": "#/definitions/generic_options"
+            "$ref": "#/$defs/generic_options"
         }
     ]
 }
