@@ -172,23 +172,35 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
             .map{ meta, table ->
                 def new_meta = meta.findAll { key, value -> !(key in ['normal_id', 'tumor_id', 'num_intervals']) }
                 new_meta.id = meta.patient
-                [ groupKey(new_meta, new_meta.id), meta.id, table ]
+                [ new_meta, meta.id, table ]
             }
+            .groupTuple(by: 0)
 
         pileup_table_normal = Channel.empty()
             .mix(GATHERPILEUPSUMMARIES_NORMAL.out.table, pileup_table_normal_branch.no_intervals)
             .map{ meta, table ->
                 def new_meta = meta.findAll { key, value -> !(key in ['normal_id', 'tumor_id', 'num_intervals']) }
                 new_meta.id = meta.patient
-                [ groupKey(new_meta, new_meta.id), meta.id, table ]
+                [ new_meta, meta.id, table ]
             }
+            .groupTuple(by: 0)
 
         ch_calculatecontamination_in_tables = pileup_table_tumor
-            .combine(pileup_table_normal, by: 0)
-            .map{ meta, tumor_id, tumor_table, normal_id, normal_table ->
-                def combined_meta = meta.clone()
-                combined_meta.id = "${tumor_id}_vs_${normal_id}".toString()
-                [combined_meta.clone(), tumor_table, normal_table]
+            .cross(pileup_table_normal)
+            .flatMap{ tumor_data, normal_data ->
+                def meta = tumor_data[0]
+                def tumor_ids = tumor_data[1]
+                def tumor_tables = tumor_data[2]
+                def normal_ids = normal_data[1]
+                def normal_tables = normal_data[2]
+                
+                [tumor_ids, tumor_tables].transpose().collectMany{ tumor_id, tumor_table ->
+                    [normal_ids, normal_tables].transpose().collect{ normal_id, normal_table ->
+                        def combined_meta = meta.clone()
+                        combined_meta.id = "${tumor_id}_vs_${normal_id}".toString()
+                        [combined_meta, tumor_table, normal_table]
+                    }
+                }
             }
         ch_calculatecontamination_in_tables.dump(tag:'ch_calculatecontamination_in_tablesMUTECT2')
         CALCULATECONTAMINATION(ch_calculatecontamination_in_tables)
