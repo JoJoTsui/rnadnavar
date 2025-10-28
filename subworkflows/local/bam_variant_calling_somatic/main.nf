@@ -119,11 +119,14 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
 
     }
 
-    vcf_all = Channel.empty().mix(
-        vcf_mutect2,
-        vcf_strelka,
-        vcf_sage
-    )
+    // Chain mix to avoid any ambiguity with varargs and ensure all callers are included
+    vcf_all = Channel.empty()
+        .mix(vcf_mutect2)
+        .mix(vcf_strelka)
+        .mix(vcf_sage)
+
+    // Debug: ensure we see entries from all callers in the Nextflow log
+    vcf_all.dump(tag: "vcf_all")
 
     emit:
     vcf_all

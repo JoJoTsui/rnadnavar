@@ -263,9 +263,23 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     vcf_to_filter.dump(tag:'vcf_to_filterMUTECT2')
     FILTERMUTECTCALLS(vcf_to_filter, fasta, fai, dict)
 
-    vcf_filtered = FILTERMUTECTCALLS.out.vcf
-        // add variantcaller to meta map
-        .map{ meta, vcf_file -> [ meta + [ variantcaller:'mutect2' ], vcf_file ] }
+    // Prefer filtered VCF when available; otherwise fall back to raw Mutect2 VCF so downstream steps (CSV/consensus) still see Mutect2
+    // Priority 1: filtered; Priority 2: raw
+    vcf_filtered_pref = FILTERMUTECTCALLS.out.vcf
+        .map{ meta, vcf_file -> [ meta.subMap('id', 'patient', 'status') + [ variantcaller:'mutect2' ], [1, vcf_file] ] }
+
+    vcf_filtered_fallback = vcf
+        .map{ meta, vcf_file -> [ meta.subMap('id', 'patient', 'status') + [ variantcaller:'mutect2' ], [2, vcf_file] ] }
+
+    vcf_filtered = Channel.empty()
+        .mix(vcf_filtered_pref)
+        .mix(vcf_filtered_fallback)
+        .groupTuple(by: 0)
+        .map{ meta, candidates ->
+            def best = candidates.min { it[0] }
+            [ meta, best[1] ]
+        }
+    vcf_filtered.dump(tag:'vcf_filteredMUTECT2')
 
     versions = versions.mix(MERGE_MUTECT2.out.versions)
     versions = versions.mix(FILTERMUTECTCALLS.out.versions)

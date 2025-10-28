@@ -131,6 +131,8 @@ workflow BAM_VARIANT_CALLING {
 
             // Gather vcf files for annotation and QC
             vcf_to_normalise            = Channel.empty().mix(BAM_VARIANT_CALLING_SOMATIC.out.vcf_all)
+            // Debug: ensure mutect2/strelka/sage entries reach normalization
+            vcf_to_normalise.dump(tag:"vcf_to_normalise")
             contamination_table_mutect2 = Channel.empty().mix(BAM_VARIANT_CALLING_SOMATIC.out.contamination_table_mutect2)
             segmentation_table_mutect2  = Channel.empty().mix(BAM_VARIANT_CALLING_SOMATIC.out.segmentation_table_mutect2)
             artifact_priors_mutect2     = Channel.empty().mix(BAM_VARIANT_CALLING_SOMATIC.out.artifact_priors_mutect2)
