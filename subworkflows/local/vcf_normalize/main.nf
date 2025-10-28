@@ -5,7 +5,8 @@
 // A when clause condition is defined in the conf/modules.config to determine if the module should be run
 // VT steps
 include { VT_DECOMPOSE                        } from '../../../modules/nf-core/vt/decompose/main'
-include { VT_NORMALIZE                        } from '../../../modules/nf-core/vt/normalize/main'
+include { BCFTOOLS_NORM                        } from '../../../modules/nf-core/bcftools/norm/main'
+// include { VT_NORMALIZE                        } from '../../../modules/nf-core/vt/normalize/main'
 // Create samplesheet to restart from different steps
 include { CHANNEL_VARIANT_CALLING_CREATE_CSV  } from '../channel_variant_calling_create_csv/main'
 
@@ -39,11 +40,12 @@ workflow VCF_NORMALIZE {
 
         // Normalise variants
         vcf_decomposed = vcf_decomposed.map{meta,vcf -> [meta, vcf, [],[]]} // tbi not necessary, vt accepts intervals, not in use for now
-        VT_NORMALIZE(vcf_decomposed,
-                    fasta, fasta_fai) // fai not necessary?
+        // VT_NORMALIZE(vcf_decomposed,
+        //             fasta, fasta_fai) // fai not necessary?
+        BCFTOOLS_NORM(vcf_decomposed, fasta)
 
-        vcf_to_consensus = VT_NORMALIZE.out.vcf
-        version = version.mix(VT_NORMALIZE.out.versions.first())
+        vcf_to_consensus = BCFTOOLS_NORM.out.vcf
+        version = version.mix(BCFTOOLS_NORM.out.versions.first())
 
         CHANNEL_VARIANT_CALLING_CREATE_CSV(vcf_to_consensus, "normalized")
 
