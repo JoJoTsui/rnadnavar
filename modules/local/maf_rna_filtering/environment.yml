@@ -1,0 +1,21 @@
+name: rna_filtering
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python>=3.8
+  - pandas=1.4.2
+  - numpy>=1.16.4
+  - scipy>=1.5.4
+  - statsmodels>=0.12.2
+  - pyfaidx>=0.5.5.2
+  - tqdm>=4.32.1
+  - matplotlib>=3.1.1
+  - adjusttext>=0.7.3
+  - pyarrow>=0.17.0
+  - pyliftover
+  - pip
+  - pip:
+    - git+https://gh-proxy.com/https://github.com/getzlab/CApy.git
+    - firecloud-dalmatian>=0.0.17

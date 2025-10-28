@@ -2,7 +2,7 @@ process RNA_FILTERING {
     tag "$meta.id"
     label 'process_low'
 
-    conda null
+    conda "${moduleDir}/environment.yml"
     container 'nf-core/rnadnavar_pyenv_rnafilt:1.0'
 
     input:

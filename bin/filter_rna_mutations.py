@@ -10,7 +10,7 @@ import warnings
 # CApy import throws FutureWarnings and unnecessary messages
 warnings.simplefilter(action='ignore', category=FutureWarning)
 from capy import mut # type: ignore
-from liftover import ChainFile
+from pyliftover import chainfile
 print("-- done importing")
 
 
@@ -160,7 +160,7 @@ def add_coords2_with_liftover(M, chain_file,ref1="hg38",ref2="hg19"):
     Liftover ref1 coordinates from maf to ref2
     """
     print("- Liftovering coordinates as second PoN was provided with chain file")
-    converter = ChainFile(chain_file, ref1, ref2)
+    converter = chainfile(chain_file, ref1, ref2)
     na_nr = M[M["Chromosome"].isnull()].shape[0]
     if na_nr > 0:
         print(f"[WGN] Removing {na_nr} variants where Chromosome is NA")
@@ -204,7 +204,7 @@ def check_rnaediting(rnaedits):
     rnadbs = []
     for rnadb_file in rnaedits:
         print(f" - Reading {rnadb_file}")
-        rnadb = pd.read_csv(rnadb_file, sep="\s+", names=["chr", "start", "end", "ref", "alt"], header=None, low_memory=False)
+        rnadb = pd.read_csv(rnadb_file, sep=r"\s+", names=["chr", "start", "end", "ref", "alt"], header=None, low_memory=False)
         rnadbs += [rnadb.assign(DNAchange=rnadb["chr"] + ":g." + rnadb["start"].map(str) + rnadb["ref"] + ">" + rnadb["alt"])]
     rnadbs_concat = pd.concat(rnadbs)
     return rnadbs_concat
@@ -248,11 +248,10 @@ def main():
         if args.pon:
             calls = run_capy(M=calls, pon=args.pon,  ref=args.ref,  thr=args.thr, suffix='_'+args.refname, chroms=chroms, refname2=False)
         # Annotate known RNA editing
-        rnadbs = pd.DataFrame()
         if args.rnaedits:
             rnadbs = check_rnaediting(args.rnaedits)
         else:
-            rnadbs = args.rnaedits
+            rnadbs = pd.DataFrame()
         calls = add_filters(maf=calls, rnaeditingsites=rnadbs, realignment=didrealignment, whitelist=args.whitelist)
         results[idx] = calls
     # write maf files
