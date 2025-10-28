@@ -34,6 +34,8 @@ process VT_NORMALIZE {
     def VERSION = "2015.11.10" // WARN: Version information not provided by tool on CLI. Please update this string when bumping container versions.
 
     """
+    tabix -p vcf ${vcf}
+
     vt normalize \\
         -o ${prefix}.vcf \\
         -r ${fasta} \\
