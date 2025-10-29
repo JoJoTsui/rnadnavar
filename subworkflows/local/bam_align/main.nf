@@ -132,7 +132,7 @@ workflow BAM_ALIGN {
 
         //  DNA mapping
         sort_bam = true
-        FASTQ_ALIGN(reads_for_alignment_status.dna, index_alignment, sort_bam)
+        FASTQ_ALIGN(reads_for_alignment_status.dna, index_alignment, fasta, sort_bam)
         FASTQ_ALIGN.out.bam.dump(tag:'FASTQ_ALIGN.out.bam')
         // Grouping the bams from the same samples not to stall the workflow
         bam_mapped_dna = FASTQ_ALIGN.out.bam
