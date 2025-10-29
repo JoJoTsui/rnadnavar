@@ -37,6 +37,14 @@ process BCFTOOLS_NORM {
         --threads $task.cpus \\
         ${vcf}
 
+    # Create index if output is compressed
+    if [[ "${extension}" == "vcf.gz" ]]; then
+        bcftools index --tbi --threads ${task.cpus} ${prefix}.${extension}
+        bcftools index --csi --threads ${task.cpus} ${prefix}.${extension}
+    elif [[ "${extension}" == "bcf.gz" ]]; then
+        bcftools index --threads ${task.cpus} ${prefix}.${extension}
+    fi
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         bcftools: \$(bcftools --version 2>&1 | head -n1 | sed 's/^.*bcftools //; s/ .*\$//')

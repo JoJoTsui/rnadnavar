@@ -39,7 +39,7 @@ workflow VCF_NORMALIZE {
         version = version.mix(VT_DECOMPOSE.out.versions.first())
 
         // Normalise variants
-        vcf_decomposed = vcf_decomposed.map{meta,vcf -> [meta, vcf, [],[]]} // tbi not necessary, vt accepts intervals, not in use for now
+        vcf_decomposed = vcf_decomposed.map{meta,vcf -> [meta, vcf, []]} // tbi not necessary
         // VT_NORMALIZE(vcf_decomposed,
         //             fasta, fasta_fai) // fai not necessary?
         BCFTOOLS_NORM(vcf_decomposed, fasta)
