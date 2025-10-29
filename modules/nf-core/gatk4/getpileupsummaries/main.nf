@@ -42,6 +42,7 @@ process GATK4_GETPILEUPSUMMARIES {
         --output ${prefix}.pileups.table \\
         $reference_command \\
         $interval_command \\
+        --disable-bam-index-caching true \\
         --tmp-dir . \\
         $args
 
