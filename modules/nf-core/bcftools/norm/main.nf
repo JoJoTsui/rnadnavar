@@ -12,7 +12,8 @@ process BCFTOOLS_NORM {
     tuple val(meta2), path(fasta)
 
     output:
-    tuple val(meta), path("*.{vcf,vcf.gz,bcf,bcf.gz}"), emit: vcf
+    // tuple val(meta), path("*.{vcf,vcf.gz,bcf,bcf.gz}"), emit: vcf
+    tuple val(meta), path("*.vcf.gz"), emit: vcf
     tuple val(meta), path("*.tbi")                    , emit: tbi, optional: true
     tuple val(meta), path("*.csi")                    , emit: csi, optional: true
     path "versions.yml"                               , emit: versions
