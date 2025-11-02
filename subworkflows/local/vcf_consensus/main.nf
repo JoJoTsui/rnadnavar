@@ -42,31 +42,28 @@ workflow VCF_CONSENSUS {
         // First we transform the maf to MAF
         VCF2MAF(vcf_to_consensus_type.vcf.map{metaVCF -> [metaVCF[0], metaVCF[1]]},
                 fasta)
-        maf_to_consensus = VCF2MAF.out.maf.mix(vcf_to_consensus_type.maf).map { meta, maf ->
-                                                // change data type to maf
-                                                def key = meta + [data_type: 'maf']
-                                                // selectdata type
-                                                key = key.subMap('id', 'patient', 'status', 'data_type')
-                                                [key, maf, meta.variantcaller]
-                                            }.groupTuple() // [meta, maf, variantcaller]
-        versions         = versions.mix(VCF2MAF.out.versions)
-
-//        maf_to_consensus.dump(tag:"maf_to_consensus")
         // count number of callers to generate groupKey
         if (realignment || (params.step in ['consensus', 'annotate','filtering', 'rna_filtering'] && params.tools && params.tools.split(',').contains("realignment")) ) {
             tools_list = params.defaultvariantcallers.split(',') // TODO: testing is necessary if this changes
         } else {
             tools_list = params.tools.split(',').findAll { it in ['sage', 'strelka', 'mutect2'] }
         }
-        maf_to_consensus.dump(tag:"maf_to_consensus0")
-        // convert [meta,maf] to [meta, maf, variantcaller]
-        // maf_to_consensus = maf_to_consensus.map{ meta, maf ->
-        //                             def ncallers   = tools_list.unique().size()
-        //                             def key = groupKey(meta.subMap('id', 'patient', 'status') +
-        //                                         [ncallers : ncallers], ncallers)
-        //                             [key, maf, meta.variantcaller]}
-        //                             .groupTuple()
-        // maf_to_consensus.dump(tag:"maf_to_consensus1")
+        
+        maf_to_consensus = VCF2MAF.out.maf.mix(vcf_to_consensus_type.maf).map { meta, maf ->
+                                                // change data type to maf
+                                                def key = meta + [data_type: 'maf']
+                                                // select data type
+                                                key = key.subMap('id', 'patient', 'status', 'data_type')
+                                                [key, maf, meta.variantcaller]
+                                            }.map{ meta, maf, variantcaller ->
+                                                def ncallers   = tools_list.unique().size()
+                                                def key = groupKey(meta.subMap('id', 'patient', 'status') +
+                                                            [ncallers : ncallers], ncallers)
+                                                [key, maf, variantcaller]
+                                            }.groupTuple() // [meta, [maf1, maf2, ...], [variantcaller1, variantcaller2, ...]]
+        versions         = versions.mix(VCF2MAF.out.versions)
+
+        maf_to_consensus.dump(tag:"maf_to_consensus")
         // Run consensus on VCF with same id
         RUN_CONSENSUS ( maf_to_consensus )
 
