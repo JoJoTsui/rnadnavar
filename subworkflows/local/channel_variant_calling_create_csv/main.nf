@@ -17,6 +17,8 @@ workflow CHANNEL_VARIANT_CALLING_CREATE_CSV {
             // Use different path structure for normalized files
             if (csv_name == "normalized") {
                 vcf = "${params.outdir}/normalized/${variantcaller}/${meta.id}/${vcf.getName()}"
+            } else if (csv_name == "annotated") {
+                vcf = "${params.outdir}/annotation/${variantcaller}/${meta.id}/${vcf.getName()}"
             } else {
                 vcf = "${params.outdir}/variant_calling/${variantcaller}/${meta.id}/${vcf.getName()}"
             }
