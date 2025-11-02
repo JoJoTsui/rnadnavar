@@ -34,7 +34,7 @@ workflow ANNOTATION_CACHE_INITIALISATION {
         }
         vep_cache_path = file("${vep_cache}", checkIfExists: true)
         def meta = [:]
-        ensemblvep_cache = Channel.of( [ meta, vep_cache_path ] )
+        ensemblvep_cache = Channel.of( [ meta, vep_cache_path ] ).collect()
     } else ensemblvep_cache = []
 
     emit:
