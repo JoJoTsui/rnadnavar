@@ -429,8 +429,8 @@
                     "type": "string",
                     "fa_icon": "fas fa-toolbox",
                     "description": "Tools to use for variant calling and/or for annotation.",
-                    "help_text": "Multiple tools separated with commas.\n\n**Variant Calling:**\n\nSomatic variant calling can currently only be performed with the following variant callers:\n- SNPs/Indels: Mutect2, Strelka2, SAGE\n\n> **NB** Mutect2 for somatic variant calling cannot be combined with `--no_intervals`\n\n**Annotation:**\n \n- VEP (only).\n\n> **NB** As RNADNAVAR will use bgzip and tabix to compress and index VCF files annotated, it expects VCF files to be sorted when starting from `--step annotate`.",
-                    "pattern": "^((manta|sage|mutect2|strelka|vep|consensus|filtering|norm|rna_filtering|vcf2maf|preprocessing|realignment|rescue)*,?)*$"
+                    "help_text": "Multiple tools separated with commas.\n\n**Variant Calling:**\n\nSomatic variant calling can currently only be performed with the following variant callers:\n- SNPs/Indels: Mutect2, Strelka2, SAGE, DeepSomatic\n\n> **NB** Mutect2 for somatic variant calling cannot be combined with `--no_intervals`\n\n**Annotation:**\n \n- VEP (only).\n\n> **NB** As RNADNAVAR will use bgzip and tabix to compress and index VCF files annotated, it expects VCF files to be sorted when starting from `--step annotate`.",
+                    "pattern": "^((manta|sage|mutect2|strelka|deepsomatic|vep|consensus|filtering|norm|rna_filtering|vcf2maf|preprocessing|realignment|rescue)*,?)*$"
                 },
                 "skip_tools": {
                     "type": "string",
@@ -578,6 +578,35 @@
                     "description": "Do not analyze soft clipped bases in the reads for GATK Mutect2.",
                     "help_text": "use the `--dont-use-soft-clipped-bases` params with GATK Mutect2.",
                     "hidden": true
+                },
+                "deepsomatic_bin_path": {
+                    "type": "string",
+                    "default": "/opt/deepvariant/bin/deepsomatic/run_deepsomatic",
+                    "fa_icon": "fas fa-file-code",
+                    "description": "Path to DeepSomatic binary executable.",
+                    "help_text": "Specify the full path to the DeepSomatic binary. This should point to the run_deepsomatic script in your DeepSomatic installation."
+                },
+                "deepsomatic_model_type": {
+                    "type": "string",
+                    "default": "WES",
+                    "fa_icon": "fas fa-dna",
+                    "enum": ["WES", "WGS", "PACBIO", "HYBRID_PACBIO_ILLUMINA"],
+                    "description": "DeepSomatic model type to use for variant calling.",
+                    "help_text": "Select the appropriate model type based on your sequencing data:\n- WES: Whole Exome Sequencing\n- WGS: Whole Genome Sequencing\n- PACBIO: PacBio long-read sequencing\n- HYBRID_PACBIO_ILLUMINA: Hybrid PacBio and Illumina sequencing"
+                },
+                "deepsomatic_intermediate_results_dir": {
+                    "type": "string",
+                    "default": "tmp",
+                    "fa_icon": "fas fa-folder",
+                    "description": "Directory name for DeepSomatic intermediate results.",
+                    "help_text": "Specify the directory name where DeepSomatic will store intermediate files during processing."
+                },
+                "vc_priority": {
+                    "type": "string",
+                    "default": "deepsomatic mutect2 strelka consensus",
+                    "fa_icon": "fas fa-sort-numeric-down",
+                    "description": "Priority order for variant caller consensus.",
+                    "help_text": "Specify the priority order of variant callers for consensus calling. Variant callers should be listed in order of preference, separated by spaces."
                 }
             }
         },

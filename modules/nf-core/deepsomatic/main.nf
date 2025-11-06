@@ -2,13 +2,14 @@ process DEEPSOMATIC {
     tag "$meta.id"
     label 'process_high'
 
-    container "docker.io/google/deepsomatic:1.7.0"
+    // Use local installation instead of container
+    // conda "${moduleDir}/environment.yml"
+    
     input:
     tuple val(meta), path(input_normal), path(index_normal), path(input_tumor), path(index_tumor)
     tuple val(meta2), path(intervals)
     tuple val(meta3), path(fasta)
     tuple val(meta4), path(fai)
-    tuple val(meta5), path(gzi)
 
     output:
     tuple val(meta), path("${prefix}.vcf.gz")      ,  emit: vcf
@@ -21,28 +22,33 @@ process DEEPSOMATIC {
     task.ext.when == null || task.ext.when
 
     script:
-    // Exit if running this module with -profile conda / -profile mamba
-    if (workflow.profile.tokenize(',').intersect(['conda', 'mamba']).size() >= 1) {
-        error "DEEPSOMATIC module does not support Conda. Please use Docker / Singularity / Podman instead."
-    }
     def args = task.ext.args ?: ''
     prefix = task.ext.prefix ?: "${meta.id}"
     def regions = intervals ? "--regions=${intervals}" : ""
-    def VERSION = '1.7.0'
+    def VERSION = '1.9.0'
+    
+    // Configure DeepSomatic binary path and model type
+    def deepsomatic_bin = params.deepsomatic_bin_path ?: '/opt/deepvariant/bin/deepsomatic/run_deepsomatic'
+    def model_type = params.deepsomatic_model_type ?: (params.wes ? 'WES' : 'WGS')
+    // def intermediate_dir = params.deepsomatic_intermediate_results_dir ?: 'tmp'
+    
+    // Handle sample names from metadata or use defaults
+    def sample_name_tumor = meta.tumor_id ?: meta.id + "_tumor"
+    def sample_name_normal = meta.normal_id ?: meta.id + "_normal"
 
     """
-    run_deepsomatic \\
+    ${deepsomatic_bin} \\
+        --model_type=${model_type} \\
         --ref=${fasta} \\
         --reads_normal=${input_normal} \\
         --reads_tumor=${input_tumor} \\
         --output_vcf=${prefix}.vcf.gz \\
         --output_gvcf=${prefix}.g.vcf.gz \\
-        --sample_name_tumor="tumor" \\
-        --sample_name_normal="normal" \\
-        ${args} \\
+        --sample_name_tumor="${sample_name_tumor}" \\
+        --sample_name_normal="${sample_name_normal}" \\
+        --num_shards=${task.cpus} \\
         ${regions} \\
-        --intermediate_results_dir=tmp \\
-        --num_shards=${task.cpus}
+        ${args}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -51,12 +57,8 @@ process DEEPSOMATIC {
     """
 
     stub:
-    // Exit if running this module with -profile conda / -profile mamba
-    if (workflow.profile.tokenize(',').intersect(['conda', 'mamba']).size() >= 1) {
-        error "DEEPSOMATIC module does not support Conda. Please use Docker / Singularity / Podman instead."
-    }
     prefix = task.ext.prefix ?: "${meta.id}"
-    def VERSION = '1.7.0'
+    def VERSION = '1.9.0'
     """
     echo "" | gzip > ${prefix}.vcf.gz
     touch ${prefix}.vcf.gz.tbi

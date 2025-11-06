@@ -5,6 +5,7 @@ include { BAM_VARIANT_CALLING_SOMATIC_MANTA             } from '../bam_variant_c
 include { BAM_VARIANT_CALLING_SOMATIC_MUTECT2           } from '../bam_variant_calling_somatic_mutect2/main'
 include { BAM_VARIANT_CALLING_SOMATIC_STRELKA           } from '../bam_variant_calling_somatic_strelka/main'
 include { BAM_VARIANT_CALLING_SOMATIC_SAGE              } from '../bam_variant_calling_somatic_sage/main'
+include { BAM_VARIANT_CALLING_SOMATIC_DEEPSOMATIC       } from '../bam_variant_calling_somatic_deepsomatic/main'
 
 workflow BAM_VARIANT_CALLING_SOMATIC {
     take:
@@ -32,6 +33,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     vcf_strelka       = Channel.empty()
     vcf_mutect2       = Channel.empty()
     vcf_sage          = Channel.empty()
+    vcf_deepsomatic   = Channel.empty()
     // SAGE
     if (tools && tools.split(',').contains('sage') || realignment) {
         cram.dump(tag:"sage_cram")
@@ -119,11 +121,31 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
 
     }
 
+    // DEEPSOMATIC
+    if (tools && tools.split(',').contains('deepsomatic')) {
+        // Remap channel to match DeepSomatic subworkflow input format
+        deepsomatic_cram = cram.map { meta, normal_cram, normal_crai, tumor_cram, tumor_crai -> 
+            [ meta, [ normal_cram, tumor_cram ], [ normal_crai, tumor_crai ] ] 
+        }
+        
+        BAM_VARIANT_CALLING_SOMATIC_DEEPSOMATIC(
+            deepsomatic_cram,
+            fasta,
+            fasta_fai.map{ it -> [ [ id:'fasta_fai' ], it ] },
+            dict,
+            intervals
+        )
+
+        vcf_deepsomatic = BAM_VARIANT_CALLING_SOMATIC_DEEPSOMATIC.out.vcf_filtered
+        versions        = versions.mix(BAM_VARIANT_CALLING_SOMATIC_DEEPSOMATIC.out.versions)
+    }
+
     // Chain mix to avoid any ambiguity with varargs and ensure all callers are included
     vcf_all = Channel.empty()
         .mix(vcf_mutect2)
         .mix(vcf_strelka)
         .mix(vcf_sage)
+        .mix(vcf_deepsomatic)
 
     // Debug: ensure we see entries from all callers in the Nextflow log
     vcf_all.dump(tag: "vcf_all")
@@ -134,6 +156,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     vcf_mutect2
     vcf_strelka
     vcf_sage
+    vcf_deepsomatic
     contamination_table_mutect2 = contamination_table_mutect2
     segmentation_table_mutect2  = segmentation_table_mutect2
     artifact_priors_mutect2     = artifact_priors_mutect2
