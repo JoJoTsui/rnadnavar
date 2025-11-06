@@ -46,7 +46,7 @@ workflow VCF_CONSENSUS {
         if (realignment || (params.step in ['consensus', 'annotate','filtering', 'rna_filtering'] && params.tools && params.tools.split(',').contains("realignment")) ) {
             tools_list = params.defaultvariantcallers.split(',') // TODO: testing is necessary if this changes
         } else {
-            tools_list = params.tools.split(',').findAll { it in ['sage', 'strelka', 'mutect2'] }
+            tools_list = params.tools.split(',').findAll { it in ['sage', 'strelka', 'mutect2', 'deepsomatic'] }
         }
         
         maf_to_consensus = VCF2MAF.out.maf.mix(vcf_to_consensus_type.maf).map { meta, maf ->
