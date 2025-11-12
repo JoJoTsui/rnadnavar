@@ -14,6 +14,7 @@ include { VCF_ANNOTATE                                    } from '../vcf_annotat
 include { VCF_CONSENSUS                                   } from '../vcf_consensus/main'
 // Filtering
 include { MAF_FILTERING                                   } from '../maf_filtering/main'
+include { VCF_FILTERING                                   } from '../vcf_filtering/main'
 
 
 workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
@@ -135,13 +136,20 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     dna_consensus_maf             = VCF_CONSENSUS.out.maf_consensus_dna
     dna_varcall_mafs              = VCF_CONSENSUS.out.mafs_dna
     maf_to_filter                 = VCF_CONSENSUS.out.maf
+    vcf_to_filter                 = VCF_CONSENSUS.out.vcf
     versions                      = versions.mix(VCF_CONSENSUS.out.versions)
 
     maf_to_filter.dump(tag:"maf_to_filter0")
-    // STEP 7: FILTERING
+    vcf_to_filter.dump(tag:"vcf_to_filter0")
+    
+    // STEP 7: FILTERING (parallel MAF and VCF filtering)
     MAF_FILTERING(maf_to_filter, fasta, input_sample, realignment)
     filtered_maf = MAF_FILTERING.out.maf
     versions     = versions.mix(MAF_FILTERING.out.versions)
+    
+    VCF_FILTERING(vcf_to_filter, fasta, input_sample, realignment)
+    filtered_vcf = VCF_FILTERING.out.vcf
+    versions     = versions.mix(VCF_FILTERING.out.versions)
 
 
     emit:
@@ -149,6 +157,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     dna_varcall_mafs            = dna_varcall_mafs
     cram_variant_calling        = cram_variant_calling
     maf                         = filtered_maf
+    vcf                         = filtered_vcf
     versions                    = versions  // channel: [ versions.yml ]
     reports                     = reports
 }

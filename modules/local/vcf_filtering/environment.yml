@@ -1,0 +1,8 @@
+name: vcf_filtering
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - conda-forge::pandas=1.4.3
+  - bioconda::pysam=0.23.3
