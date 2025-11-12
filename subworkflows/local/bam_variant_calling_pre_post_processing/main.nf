@@ -12,8 +12,11 @@ include { VCF_NORMALIZE                                   } from '../vcf_normali
 include { VCF_ANNOTATE                                    } from '../vcf_annotate/main'
 // Consensus
 include { VCF_CONSENSUS                                   } from '../vcf_consensus/main'
+// VCF Consensus Workflow (standalone)
+include { VCF_CONSENSUS_WORKFLOW                          } from '../vcf_consensus_workflow/main'
 // Filtering
 include { MAF_FILTERING                                   } from '../maf_filtering/main'
+include { VCF_FILTERING                                   } from '../vcf_filtering/main'
 
 
 workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
@@ -117,12 +120,15 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
                 vep_cache
                 )
 
+    vcf_annotated                 = VCF_ANNOTATE.out.vcf_ann
     vcf_to_consensus              = VCF_ANNOTATE.out.vcf_ann
     versions                      = versions.mix(VCF_ANNOTATE.out.versions)
     reports                       = reports.mix(VCF_ANNOTATE.out.reports)
 
     vcf_to_consensus.dump(tag:"vcf_to_consensus0")
-    // STEP 6: CONSENSUS
+    vcf_annotated.dump(tag:"vcf_annotated0")
+    
+    // STEP 6: CONSENSUS (MAF-based)
     VCF_CONSENSUS (
             vcf_to_consensus,
             fasta,
@@ -138,10 +144,22 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     versions                      = versions.mix(VCF_CONSENSUS.out.versions)
 
     maf_to_filter.dump(tag:"maf_to_filter0")
-    // STEP 7: FILTERING
+    
+    // STEP 6B: VCF CONSENSUS WORKFLOW (standalone VCF branch)
+    VCF_CONSENSUS_WORKFLOW(vcf_annotated, input_sample, realignment)
+    vcf_consensus = VCF_CONSENSUS_WORKFLOW.out.vcf
+    versions = versions.mix(VCF_CONSENSUS_WORKFLOW.out.versions)
+    
+    vcf_consensus.dump(tag:"vcf_consensus0")
+    
+    // STEP 7: FILTERING (parallel MAF and VCF filtering)
     MAF_FILTERING(maf_to_filter, fasta, input_sample, realignment)
     filtered_maf = MAF_FILTERING.out.maf
     versions     = versions.mix(MAF_FILTERING.out.versions)
+    
+    VCF_FILTERING(vcf_consensus, fasta, input_sample, realignment)
+    filtered_vcf = VCF_FILTERING.out.vcf
+    versions     = versions.mix(VCF_FILTERING.out.versions)
 
 
     emit:
@@ -149,6 +167,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     dna_varcall_mafs            = dna_varcall_mafs
     cram_variant_calling        = cram_variant_calling
     maf                         = filtered_maf
+    vcf                         = filtered_vcf
     versions                    = versions  // channel: [ versions.yml ]
     reports                     = reports
 }
