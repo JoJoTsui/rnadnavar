@@ -63,17 +63,29 @@ names(argsL) <- argsDF$V1
 
 # Input variables
 sampleid <- argsL$id
-input_files <- list.files(strsplit(argsL[["input_dir"]], split=",")[[1]], pattern="\\.maf$", full.names=TRUE)
+
+# First, detect file type by checking what files exist
+all_files <- list.files(strsplit(argsL[["input_dir"]], split=",")[[1]], full.names=TRUE)
+is.vcf <- any(grepl(pattern = "\\.vcf$|\\.vcf\\.gz$", x = all_files, perl = T))
+
+# List files based on detected type
+if (is.vcf) {
+    input_files <- list.files(strsplit(argsL[["input_dir"]], split=",")[[1]], pattern="\\.vcf$|\\.vcf\\.gz$", full.names=TRUE)
+} else {
+    input_files <- list.files(strsplit(argsL[["input_dir"]], split=",")[[1]], pattern="\\.maf$", full.names=TRUE)
+}
 
 # Extract caller names from file names
 get_caller <- function(filename) {
-    sub(".*(\\.|_)(.*?)\\.maf", "\\2", filename)
+    if (grepl(pattern = "\\.vcf$|\\.vcf\\.gz$", x = filename, perl = T)) {
+        sub(".*(\\.|_)(.*?)\\.variants.*", "\\2", filename)
+    } else {
+        sub(".*(\\.|_)(.*?)\\.maf", "\\2", filename)
+    }
 }
 callers <- sapply(input_files, get_caller)
 
 names(input_files) <- callers
-
-is.vcf <- grepl(x = input_files[1], pattern = ".vcf$|.vcf.gz$", perl = T)
 
 # output files
 pdf.out <- paste0(argsL$out_prefix, ".pdf")
@@ -139,14 +151,18 @@ for(c in callers[1:length(callers)]){
         message("   - Removing ",nrow(tmp[is.na(end)]), " spurious calls with no alt")
         tmp <- tmp[!is.na(end)]
         muts[[c]] <- tmp
-        mutsGR[[c]] <- GenomicRanges::makeGRangesFromDataFrame(df = tmp,
-                                                            ignore.strand = TRUE,
-                                                            start.field = "start",
-                                                            end.field = "end",
-                                                            seqnames.field = "#CHROM",
-                                                            keep.extra.columns = T)
+        if (nrow(tmp) > 0) {
+            mutsGR[[c]] <- GenomicRanges::makeGRangesFromDataFrame(df = tmp,
+                                                                ignore.strand = TRUE,
+                                                                start.field = "start",
+                                                                end.field = "end",
+                                                                seqnames.field = "#CHROM",
+                                                                keep.extra.columns = T)
         } else {
-            mutsGR[[c]] <- tmp  # empty
+            mutsGR[[c]] <- GenomicRanges::GRanges()  # empty GRanges object
+        }
+        } else {
+            mutsGR[[c]] <- GenomicRanges::GRanges()  # empty GRanges object
         }
 }
 
