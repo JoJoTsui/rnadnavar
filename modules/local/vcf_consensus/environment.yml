@@ -1,0 +1,11 @@
+name: vcf_filtering
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - bioconda::cyvcf2=0.31.1
+  - bioconda::pysam=0.22.1
+  - conda-forge::numpy=1.24.3
+  - bioconda::bcftools=1.21
+  - bioconda::htslib=1.21
