@@ -77,11 +77,24 @@ if (is.vcf) {
 
 # Extract caller names from file names
 get_caller <- function(filename) {
-    if (grepl(pattern = "\\.vcf$|\\.vcf\\.gz$", x = filename, perl = T)) {
-        sub(".*(\\.|_)(.*?)\\.variants.*", "\\2", filename)
+    # Get basename first to remove path
+    base <- basename(filename)
+    
+    if (grepl(pattern = "\\.vcf$|\\.vcf\\.gz$", x = base, perl = T)) {
+        # Try to match .variants. pattern first (e.g., sample.caller.variants.vcf.gz)
+        if (grepl(pattern = "\\.variants\\.", x = base, perl = T)) {
+            caller <- sub(".*(\\.|_)(.*?)\\.variants.*", "\\2", base)
+        } else {
+            # For consensus files (e.g., sample.consensus.vcf), extract the part before .vcf
+            caller <- sub(".*\\.(.*?)\\.vcf.*", "\\1", base)
+        }
     } else {
-        sub(".*(\\.|_)(.*?)\\.maf", "\\2", filename)
+        caller <- sub(".*(\\.|_)(.*?)\\.maf", "\\2", base)
     }
+    
+    # Clean up any remaining path separators
+    caller <- gsub("/", "_", caller)
+    return(caller)
 }
 callers <- sapply(input_files, get_caller)
 
