@@ -159,10 +159,6 @@ def apply_filters(vcf_in, vcf_out, args, genome):
                 if len(parts) >= 3:
                     blacklist_regions.append((parts[0], int(parts[1]), int(parts[2])))
     
-    # Add RaVeX_FILTER to header
-    vcf_out.header.filters.add("RaVeX_FILTER", None, None, "RaVeX filtering applied")
-    vcf_out.header.info.add("RaVeX_FILTER", ".", "String", "RaVeX filter reasons")
-    
     for record in vcf_in:
         filters = []
         
@@ -246,6 +242,10 @@ def main():
     # Open input VCF
     vcf_in = pysam.VariantFile(args.input)
     
+    # Add RaVeX_FILTER to header before creating output
+    vcf_in.header.filters.add("RaVeX_FILTER", None, None, "RaVeX filtering applied")
+    vcf_in.header.info.add("RaVeX_FILTER", ".", "String", "RaVeX filter reasons")
+    
     # Create output VCF
     vcf_out = pysam.VariantFile(args.output, 'w', header=vcf_in.header)
     
@@ -259,8 +259,28 @@ def main():
     if genome:
         genome.close()
     
+    # Sort and index output VCF
+    import subprocess
+    import os
+    
+    # Sort the VCF file
+    sorted_vcf = args.output.replace('.vcf.gz', '.sorted.vcf.gz')
+    try:
+        subprocess.run(['bcftools', 'sort', '-O', 'z', '-o', sorted_vcf, args.output], 
+                      check=True, capture_output=True)
+        # Replace original with sorted
+        os.rename(sorted_vcf, args.output)
+    except subprocess.CalledProcessError:
+        print("Warning: bcftools sort failed, trying to index unsorted VCF...")
+    except FileNotFoundError:
+        print("Warning: bcftools not found, trying to index unsorted VCF...")
+    
     # Index output
-    pysam.tabix_index(args.output, preset='vcf', force=True)
+    try:
+        pysam.tabix_index(args.output, preset='vcf', force=True)
+    except OSError as e:
+        print(f"Warning: Failed to index VCF: {e}")
+        print("VCF file created but not indexed.")
     
     print(f"Done! Filtered VCF written to '{args.output}'")
 

@@ -342,7 +342,8 @@ for ( c in callers){
 # Final VCF consensus
 if (is.vcf){
     meta <- paste0("##fileformat=VCFv4.2\n##source=Consensus", length(callers), "Callers (", paste0(callers, collapse = ","), ")\n", contigs_meta,
-                                '##FILTER=<ID=PASS,Description="All filters passed">\n##FILTER=<ID=FAIL,Description="More than half the callers did not give a PASS">\n')
+                                '##FILTER=<ID=PASS,Description="All filters passed">\n##FILTER=<ID=FAIL,Description="More than half the callers did not give a PASS">\n',
+                                '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n')
     # we need the meta contigs and the INFO
     meta <- paste0(meta,
                                 meta_consensus)
@@ -352,18 +353,60 @@ if (is.vcf){
 
 to.vcf <- all.muts[all.muts$isconsensus==T,]
 if (is.vcf){
-
-    col.out <- c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
+    # Get sample names from the first caller's header
+    sample_cols <- callers_meta[[callers[1]]]$header[10:length(callers_meta[[callers[1]]]$header)]
+    
+    col.out <- c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", sample_cols)
     to.vcf$ID <- to.vcf$DNAchange
     to.vcf$QUAL <- "."
     to.vcf$INFO <- to.vcf$INFO_consensus
-    to.vcf$FORMAT <- "."
+    to.vcf$FORMAT <- "GT"
     to.vcf$FILTER <- to.vcf$FILTER_consensus
+    
+    # Add sample columns with default genotype
+    for (sample_col in sample_cols) {
+        to.vcf[[sample_col]] <- "./."
+    }
 } else{
     col.out <- callers_meta[[c]]$header  # any caller header is fine
 }
 
 to.vcf <- to.vcf[,col.out][!duplicated(to.vcf),]
+
+# Sort VCF by chromosome and position for proper indexing
+if (is.vcf && nrow(to.vcf) > 0) {
+    # Extract chromosome order from contig metadata
+    contig_lines <- strsplit(contigs_meta, "\n")[[1]]
+    chrom_order <- sapply(contig_lines, function(line) {
+        # Extract ID from ##contig=<ID=chr1,length=...>
+        if (grepl("##contig=<ID=", line)) {
+            sub(".*ID=([^,>]+).*", "\\1", line)
+        } else {
+            NA
+        }
+    })
+    chrom_order <- chrom_order[!is.na(chrom_order)]
+    
+    # If no contig order found, use natural sort
+    if (length(chrom_order) == 0) {
+        chrom_order <- unique(to.vcf$`#CHROM`)
+        # Natural sort: chr1, chr2, ..., chr9, chr10, chr11, ..., chr22, chrX, chrY, chrM
+        chrom_order <- chrom_order[order(
+            ifelse(grepl("^chr[0-9]+$", chrom_order), 
+                   as.numeric(sub("chr", "", chrom_order)), 
+                   999),
+            chrom_order
+        )]
+    }
+    
+    # Convert chromosome to factor with proper ordering
+    to.vcf$`#CHROM` <- factor(to.vcf$`#CHROM`, levels = chrom_order)
+    # Sort by chromosome and position
+    to.vcf <- to.vcf[order(to.vcf$`#CHROM`, to.vcf$POS), ]
+    # Convert back to character
+    to.vcf$`#CHROM` <- as.character(to.vcf$`#CHROM`)
+}
+
 message("- Total variants ", prettyNum(nrow(to.vcf), big.mark = ","))
 message("- Variants in consensus ", prettyNum(nrow(all.muts[(!duplicated(all.muts$DNAchange) & all.muts$isconsensus==T),]), big.mark = ","))
 
