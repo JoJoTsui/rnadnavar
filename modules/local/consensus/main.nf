@@ -1,7 +1,6 @@
 process RUN_CONSENSUS {
     tag "$meta.id"
     label 'process_low'
-    publishDir "${params.outdir}/consensus/${meta.id}", mode: params.publish_dir_mode, pattern: "*.{vcf,maf,pdf}"
 
     conda "bioconda::bioconductor-rtracklayer bioconda::bioconductor-complexheatmap conda-forge::r-ggrepel conda-forge::r-data.table conda-forge::r-dplyr conda-forge::r-ggpubr "
     container 'nf-core/rnadnavar_renv_consensus:1.0'
