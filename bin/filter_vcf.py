@@ -242,15 +242,34 @@ def write_filtered_vcf(filtered_variants, input_vcf_path, output_path):
     # Create new header
     new_header = input_vcf.header.copy()
     
-    # Add RaVeX filter definitions
-    new_header.filters.add(
-        'RaVeX_FILTER', None, None,
-        'RaVeX filtering applied'
-    )
-    new_header.info.add(
-        'RaVeX_FILTER', '.', 'String',
-        'RaVeX filter reasons: semicolon-separated list of filter flags'
-    )
+    # Add RaVeX filter definitions (check if they already exist)
+    if 'RaVeX_FILTER' not in new_header.filters:
+        new_header.filters.add(
+            'RaVeX_FILTER', None, None,
+            'RaVeX filtering applied'
+        )
+    
+    if 'RaVeX_FILTER' not in new_header.info:
+        new_header.info.add(
+            'RaVeX_FILTER', '.', 'String',
+            'RaVeX filter reasons: semicolon-separated list of filter flags'
+        )
+    
+    # Add individual filter flag INFO fields to prevent bcftools warnings
+    filter_flags = {
+        'min_alt_reads': 'Variant filtered due to insufficient alternate reads',
+        'gnomad': 'Variant filtered due to high gnomAD allele frequency',
+        'blacklist': 'Variant in blacklisted region',
+        'noncoding': 'Variant in noncoding region',
+        'ig_pseudo': 'Variant in immunoglobulin or pseudogene',
+        'homopolymer': 'Variant in homopolymer region',
+        'vc_filter': 'Variant failed variant caller filters',
+        'not_consensus': 'Variant not in consensus'
+    }
+    
+    for flag, description in filter_flags.items():
+        if flag not in new_header.info:
+            new_header.info.add(flag, '0', 'Flag', description)
     
     # Create output VCF
     output_vcf = pysam.VariantFile(output_path, 'w', header=new_header)
@@ -299,19 +318,31 @@ def write_filtered_vcf(filtered_variants, input_vcf_path, output_path):
             qual=record.qual
         )
         
-        # Copy INFO fields
+        # Copy INFO fields (only if defined in header)
         for key in record.info:
+            # Skip if not in output header
+            if key not in new_header.info:
+                continue
             try:
-                new_record.info[key] = record.info[key]
+                value = record.info[key]
+                # Skip None or empty values
+                if value is not None and value != '':
+                    new_record.info[key] = value
             except Exception:
                 pass
         
-        # Copy FORMAT and sample data
+        # Copy FORMAT and sample data (only if defined in header)
         if record.format:
             for fmt_key in record.format.keys():
+                # Skip if not in output header
+                if fmt_key not in new_header.formats:
+                    continue
                 try:
                     for sample_idx, sample in enumerate(record.samples):
-                        new_record.samples[sample_idx][fmt_key] = record.samples[sample_idx][fmt_key]
+                        value = record.samples[sample_idx][fmt_key]
+                        # Skip None values
+                        if value is not None:
+                            new_record.samples[sample_idx][fmt_key] = value
                 except Exception:
                     pass
         
@@ -321,6 +352,10 @@ def write_filtered_vcf(filtered_variants, input_vcf_path, output_path):
         else:
             new_record.filter.add('RaVeX_FILTER')
             new_record.info['RaVeX_FILTER'] = ";".join(filter_list)
+            # Also set individual filter flags
+            for flag in filter_list:
+                if flag in new_header.info:
+                    new_record.info[flag] = True
         
         output_vcf.write(new_record)
     
