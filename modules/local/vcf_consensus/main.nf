@@ -20,7 +20,8 @@ process VCF_CONSENSUS {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def thr = task.ext.thr ?: 2
+    def snv_thr = task.ext.snv_thr ?: 2
+    def indel_thr = task.ext.indel_thr ?: 2
 
     """
     mkdir -p inputs
@@ -41,12 +42,11 @@ process VCF_CONSENSUS {
     run_consensus_vcf.py \\
         --input_dir inputs/ \\
         --out_prefix ${prefix}.consensus \\
-        --thr ${thr} \\
-        --cpu ${task.cpus} \\
-        --id ${meta.id}
+        --snv_thr ${snv_thr} \\
+        --indel_thr ${indel_thr}
     
     # Compress and index
-    bgzip -c ${prefix}.consensus.vcf > ${prefix}.consensus.vcf.gz
+    # bgzip -c ${prefix}.consensus.vcf > ${prefix}.consensus.vcf.gz
     tabix -p vcf ${prefix}.consensus.vcf.gz
     
     cat <<-END_VERSIONS > versions.yml
