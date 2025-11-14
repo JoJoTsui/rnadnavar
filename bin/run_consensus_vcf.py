@@ -675,52 +675,64 @@ def create_output_header(template_header, sample_name):
         if line.startswith('#'):
             new_header.add_line(line)
     
+    # Helpers to avoid duplicate header entries when input template already defines them
+    def add_info_safe(h, ident, number, typ, desc):
+        if ident not in h.info:
+            h.info.add(ident, number, typ, desc)
+    def add_filter_safe(h, ident, number, typ, desc):
+        if ident not in h.filters:
+            h.filters.add(ident, number, typ, desc)
+
     # Add custom INFO fields for caller aggregation
-    new_header.info.add('N_CALLERS', '1', 'Integer', 'Total number of aggregated callers')
-    new_header.info.add('CALLERS', '.', 'String', 'List of all aggregated callers (pipe-separated)')
-    new_header.info.add('N_SUPPORT_CALLERS', '1', 'Integer', 'Number of callers that detected this variant')
-    new_header.info.add('CALLERS_SUPPORT', '.', 'String', 'Callers that detected this variant (pipe-separated)')
-    new_header.info.add('FILTERS_ORIGINAL', '.', 'String', 'Original filter values from each caller (pipe-separated)')
-    new_header.info.add('FILTERS_NORMALIZED', '.', 'String', 'Normalized filter categories (pipe-separated)')
-    new_header.info.add('FILTERS_CATEGORY', '.', 'String', 'Filter categories (pipe-separated)')
-    new_header.info.add('UNIFIED_FILTER', '1', 'String', 'Unified filter status based on majority')
+    add_info_safe(new_header, 'N_CALLERS', '1', 'Integer', 'Total number of aggregated callers')
+    add_info_safe(new_header, 'CALLERS', '.', 'String', 'List of all aggregated callers (pipe-separated)')
+    add_info_safe(new_header, 'N_SUPPORT_CALLERS', '1', 'Integer', 'Number of callers that detected this variant')
+    add_info_safe(new_header, 'CALLERS_SUPPORT', '.', 'String', 'Callers that detected this variant (pipe-separated)')
+    add_info_safe(new_header, 'FILTERS_ORIGINAL', '.', 'String', 'Original filter values from each caller (pipe-separated)')
+    add_info_safe(new_header, 'FILTERS_NORMALIZED', '.', 'String', 'Normalized filter categories (pipe-separated)')
+    add_info_safe(new_header, 'FILTERS_CATEGORY', '.', 'String', 'Filter categories (pipe-separated)')
+    add_info_safe(new_header, 'UNIFIED_FILTER', '1', 'String', 'Unified filter status based on majority')
     
     # Consensus flags
-    new_header.info.add('PASSES_CONSENSUS', '1', 'String', 'Whether variant passes consensus threshold (YES/NO)')
+    add_info_safe(new_header, 'PASSES_CONSENSUS', '1', 'String', 'Whether variant passes consensus threshold (YES/NO)')
     
     # Quality aggregation
-    new_header.info.add('QUAL_MEAN', '1', 'Float', 'Mean QUAL score across callers')
-    new_header.info.add('QUAL_MIN', '1', 'Float', 'Minimum QUAL score across callers')
-    new_header.info.add('QUAL_MAX', '1', 'Float', 'Maximum QUAL score across callers')
+    add_info_safe(new_header, 'QUAL_MEAN', '1', 'Float', 'Mean QUAL score across callers')
+    add_info_safe(new_header, 'QUAL_MIN', '1', 'Float', 'Minimum QUAL score across callers')
+    add_info_safe(new_header, 'QUAL_MAX', '1', 'Float', 'Maximum QUAL score across callers')
     
     # Genotype aggregation
-    new_header.info.add('CONSENSUS_GT', '1', 'String', 'Consensus genotype across callers')
-    new_header.info.add('GT_BY_CALLER', '.', 'String', 'Genotypes from each caller (pipe-separated)')
+    add_info_safe(new_header, 'CONSENSUS_GT', '1', 'String', 'Consensus genotype across callers')
+    add_info_safe(new_header, 'GT_BY_CALLER', '.', 'String', 'Genotypes from each caller (pipe-separated)')
     
     # Depth aggregation
-    new_header.info.add('DP_MEAN', '1', 'Float', 'Mean depth across callers')
-    new_header.info.add('DP_MIN', '1', 'Integer', 'Minimum depth across callers')
-    new_header.info.add('DP_MAX', '1', 'Integer', 'Maximum depth across callers')
-    new_header.info.add('DP_BY_CALLER', '.', 'String', 'Depth values from each caller (pipe-separated)')
+    add_info_safe(new_header, 'DP_MEAN', '1', 'Float', 'Mean depth across callers')
+    add_info_safe(new_header, 'DP_MIN', '1', 'Integer', 'Minimum depth across callers')
+    add_info_safe(new_header, 'DP_MAX', '1', 'Integer', 'Maximum depth across callers')
+    add_info_safe(new_header, 'DP_BY_CALLER', '.', 'String', 'Depth values from each caller (pipe-separated)')
     
     # VAF aggregation
-    new_header.info.add('VAF_MEAN', '1', 'Float', 'Mean variant allele frequency across callers')
-    new_header.info.add('VAF_MIN', '1', 'Float', 'Minimum VAF across callers')
-    new_header.info.add('VAF_MAX', '1', 'Float', 'Maximum VAF across callers')
-    new_header.info.add('VAF_BY_CALLER', '.', 'String', 'VAF values from each caller (pipe-separated)')
+    add_info_safe(new_header, 'VAF_MEAN', '1', 'Float', 'Mean variant allele frequency across callers')
+    add_info_safe(new_header, 'VAF_MIN', '1', 'Float', 'Minimum VAF across callers')
+    add_info_safe(new_header, 'VAF_MAX', '1', 'Float', 'Maximum VAF across callers')
+    add_info_safe(new_header, 'VAF_BY_CALLER', '.', 'String', 'VAF values from each caller (pipe-separated)')
+
+    # Rescue indicator
+    add_info_safe(new_header, 'RESCUED', '1', 'String', 'Variant included via cross-modality consensus (YES/NO)')
     
     # Add sample
-    new_header.add_sample(sample_name if sample_name else 'SAMPLE')
+    if (sample_name if sample_name else 'SAMPLE') not in new_header.samples:
+        new_header.add_sample(sample_name if sample_name else 'SAMPLE')
     
     # Add unified filter categories
-    new_header.filters.add('LowQuality', None, None, 'Low quality or evidence score')
-    new_header.filters.add('LowDepth', None, None, 'Low sequencing depth')
-    new_header.filters.add('StrandBias', None, None, 'Strand bias detected')
-    new_header.filters.add('Germline', None, None, 'Likely germline variant')
-    new_header.filters.add('Artifact', None, None, 'Likely artifact or present in normal')
-    new_header.filters.add('NoConsensus', None, None, 'Does not meet consensus threshold')
-    new_header.filters.add('LowEvidenceScore', None, None, 'Low empirical variant score (Strelka EVS)')
-    new_header.filters.add('ReferenceCall', None, None, 'Called as reference (DeepSomatic RefCall)')
+    add_filter_safe(new_header, 'LowQuality', None, None, 'Low quality or evidence score')
+    add_filter_safe(new_header, 'LowDepth', None, None, 'Low sequencing depth')
+    add_filter_safe(new_header, 'StrandBias', None, None, 'Strand bias detected')
+    add_filter_safe(new_header, 'Germline', None, None, 'Likely germline variant')
+    add_filter_safe(new_header, 'Artifact', None, None, 'Likely artifact or present in normal')
+    add_filter_safe(new_header, 'NoConsensus', None, None, 'Does not meet consensus threshold')
+    add_filter_safe(new_header, 'LowEvidenceScore', None, None, 'Low empirical variant score (Strelka EVS)')
+    add_filter_safe(new_header, 'ReferenceCall', None, None, 'Called as reference (DeepSomatic RefCall)')
     
     return new_header
 
@@ -822,6 +834,9 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
         record.info['PASSES_CONSENSUS'] = 'YES' if data['passes_consensus'] else 'NO'
         if not data['passes_consensus']:
             record.filter.add('NoConsensus')
+
+        # Rescue indicator
+        record.info['RESCUED'] = 'YES' if 'consensus' in set(data['callers']) else 'NO'
         
         # Add quality statistics
         if data['qualities']:
