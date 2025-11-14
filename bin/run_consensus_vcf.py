@@ -495,6 +495,9 @@ def read_all_variants(vcf_files, snv_threshold, indel_threshold, exclude_refcall
             
             # Store caller-specific information
             data['callers'].append(caller)
+            if 'support_callers' not in data:
+                data['support_callers'] = set()
+            data['support_callers'].add(caller)
             
             # Store and normalize filters
             data['filters_original'].append(filter_str)
@@ -550,27 +553,27 @@ def aggregate_variant_info(variant_data, snv_threshold, indel_threshold):
         # Count variant types
         if data['is_snv']:
             stats['snvs'] += 1
-            if n_callers >= snv_threshold:
+            if len(set(data['callers'])) >= snv_threshold:
                 stats['snvs_consensus'] += 1
                 data['passes_consensus'] = True
             else:
                 data['passes_consensus'] = False
         else:
             stats['indels'] += 1
-            if n_callers >= indel_threshold:
+            if len(set(data['callers'])) >= indel_threshold:
                 stats['indels_consensus'] += 1
                 data['passes_consensus'] = True
             else:
                 data['passes_consensus'] = False
         
         # Count caller distribution
-        if n_callers == 1:
+        if len(set(data['callers'])) == 1:
             stats['single_caller'] += 1
         else:
             stats['multi_caller'] += 1
         
-        # Aggregate genotype information
-        data['gt_aggregated'] = aggregate_genotypes(data['genotypes'])
+        # Aggregate genotype information (stable caller order)
+        data['gt_aggregated'] = aggregate_genotypes(data['genotypes'], data['callers'])
     
     print(f"\n- Statistics:")
     print(f"  - Total variants: {stats['total_variants']:,}")
@@ -582,7 +585,7 @@ def aggregate_variant_info(variant_data, snv_threshold, indel_threshold):
     return variant_data
 
 
-def aggregate_genotypes(genotypes_by_caller):
+def aggregate_genotypes(genotypes_by_caller, callers_order):
     """
     Aggregate genotype information across callers
     Returns dict with aggregated stats
@@ -600,30 +603,43 @@ def aggregate_genotypes(genotypes_by_caller):
         'vaf_max': None,
         'ad_values': [],
         'gq_values': [],
+        'gt_by_caller': [],
+        'dp_by_caller': [],
+        'vaf_by_caller': [],
     }
     
     gt_counts = defaultdict(int)
     
-    for caller, info in genotypes_by_caller.items():
+    for caller in callers_order:
+        info = genotypes_by_caller.get(caller, {})
         # Collect GTs
-        if info['GT'] is not None:
+        if info and 'GT' in info and info['GT'] is not None:
             agg['gt_list'].append(info['GT'])
             gt_counts[info['GT']] += 1
+            agg['gt_by_caller'].append(info['GT'])
+        else:
+            agg['gt_by_caller'].append('.')
         
         # Collect DPs
-        if info['DP'] is not None:
+        if info and 'DP' in info and info['DP'] is not None:
             agg['dp_values'].append(info['DP'])
+            agg['dp_by_caller'].append(info['DP'])
+        else:
+            agg['dp_by_caller'].append(None)
         
         # Collect VAFs
-        if info['VAF'] is not None:
+        if info and 'VAF' in info and info['VAF'] is not None:
             agg['vaf_values'].append(info['VAF'])
+            agg['vaf_by_caller'].append(info['VAF'])
+        else:
+            agg['vaf_by_caller'].append(None)
         
         # Collect ADs
-        if info['AD'] is not None:
+        if info and 'AD' in info and info['AD'] is not None:
             agg['ad_values'].append(info['AD'])
         
         # Collect GQs
-        if info['GQ'] is not None:
+        if info and 'GQ' in info and info['GQ'] is not None:
             agg['gq_values'].append(info['GQ'])
     
     # Determine consensus genotype (most common)
@@ -660,8 +676,10 @@ def create_output_header(template_header, sample_name):
             new_header.add_line(line)
     
     # Add custom INFO fields for caller aggregation
-    new_header.info.add('N_CALLERS', '1', 'Integer', 'Number of callers that detected this variant')
-    new_header.info.add('CALLERS', '.', 'String', 'List of callers that detected this variant (pipe-separated)')
+    new_header.info.add('N_CALLERS', '1', 'Integer', 'Total number of aggregated callers')
+    new_header.info.add('CALLERS', '.', 'String', 'List of all aggregated callers (pipe-separated)')
+    new_header.info.add('N_SUPPORT_CALLERS', '1', 'Integer', 'Number of callers that detected this variant')
+    new_header.info.add('CALLERS_SUPPORT', '.', 'String', 'Callers that detected this variant (pipe-separated)')
     new_header.info.add('FILTERS_ORIGINAL', '.', 'String', 'Original filter values from each caller (pipe-separated)')
     new_header.info.add('FILTERS_NORMALIZED', '.', 'String', 'Normalized filter categories (pipe-separated)')
     new_header.info.add('FILTERS_CATEGORY', '.', 'String', 'Filter categories (pipe-separated)')
@@ -707,7 +725,7 @@ def create_output_header(template_header, sample_name):
     return new_header
 
 
-def write_union_vcf(variant_data, template_header, sample_name, out_file, output_format):
+def write_union_vcf(variant_data, template_header, sample_name, out_file, output_format, all_callers):
     """
     Write union VCF with all variants and aggregated information using pysam
     """
@@ -770,15 +788,17 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
         )
         
         # Add aggregated INFO fields
-        record.info['N_CALLERS'] = len(data['callers'])
-        record.info['CALLERS'] = '|'.join(data['callers'])
+        record.info['N_CALLERS'] = len(all_callers)
+        record.info['CALLERS'] = '|'.join(all_callers)
+        record.info['N_SUPPORT_CALLERS'] = len(set(data['callers']))
+        record.info['CALLERS_SUPPORT'] = '|'.join(data['callers'])
         record.info['FILTERS_ORIGINAL'] = '|'.join(data['filters_original'])
         record.info['FILTERS_NORMALIZED'] = '|'.join(data['filters_normalized'])
         record.info['FILTERS_CATEGORY'] = '|'.join(data['filters_category'])
         
         # Determine unified filter (majority vote on categories)
         pass_count = sum(1 for f in data['filters_normalized'] if f == 'PASS')
-        if pass_count >= len(data['callers']) / 2:
+        if pass_count >= len(set(data['callers'])) / 2:
             record.info['UNIFIED_FILTER'] = 'PASS'
         else:
             record.info['UNIFIED_FILTER'] = 'FAIL'
@@ -815,22 +835,22 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
         if agg['consensus_gt']:
             record.info['CONSENSUS_GT'] = agg['consensus_gt']
         
-        if agg['gt_list']:
-            record.info['GT_BY_CALLER'] = '|'.join(agg['gt_list'])
+        if agg['gt_by_caller']:
+            record.info['GT_BY_CALLER'] = '|'.join(agg['gt_by_caller'])
         
         # Add depth statistics
         if agg['dp_values']:
             record.info['DP_MEAN'] = round(agg['dp_mean'], 1)
             record.info['DP_MIN'] = agg['dp_min']
             record.info['DP_MAX'] = agg['dp_max']
-            record.info['DP_BY_CALLER'] = '|'.join(map(str, agg['dp_values']))
+            record.info['DP_BY_CALLER'] = '|'.join('' if v is None else str(v) for v in agg['dp_by_caller'])
         
         # Add VAF statistics
         if agg['vaf_values']:
             record.info['VAF_MEAN'] = round(agg['vaf_mean'], 4)
             record.info['VAF_MIN'] = round(agg['vaf_min'], 4)
             record.info['VAF_MAX'] = round(agg['vaf_max'], 4)
-            record.info['VAF_BY_CALLER'] = '|'.join(f"{v:.4f}" for v in agg['vaf_values'])
+            record.info['VAF_BY_CALLER'] = '|'.join('' if v is None else f"{v:.4f}" for v in agg['vaf_by_caller'])
         
         # Write record
         vcf_out.write(record)
@@ -884,7 +904,7 @@ def main():
     
     # Write output VCF (with pysam)
     out_file = f"{args.out_prefix}.{args.output_format}"
-    write_union_vcf(variant_data, template_header, sample_name, out_file, args.output_format)
+    write_union_vcf(variant_data, template_header, sample_name, out_file, args.output_format, all_callers)
     
     print(f"\n{'='*60}")
     print("DONE! Union VCF created successfully.")
