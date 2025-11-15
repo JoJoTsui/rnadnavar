@@ -429,7 +429,7 @@
                     "type": "string",
                     "fa_icon": "fas fa-toolbox",
                     "description": "Tools to use for variant calling and/or for annotation.",
-                    "help_text": "Multiple tools separated with commas.\n\n**Variant Calling:**\n\nSomatic variant calling can currently only be performed with the following variant callers:\n- SNPs/Indels: Mutect2, Strelka2, SAGE, DeepSomatic\n\n> **NB** Mutect2 for somatic variant calling cannot be combined with `--no_intervals`\n\n**Annotation:**\n \n- VEP (only).\n\n> **NB** As RNADNAVAR will use bgzip and tabix to compress and index VCF files annotated, it expects VCF files to be sorted when starting from `--step annotate`.",
+                    "help_text": "Multiple tools separated with commas.\n\n**Variant Calling:**\n\nSomatic variant calling can currently only be performed with the following variant callers:\n- SNPs/Indels: Mutect2, Strelka2, SAGE, DeepSomatic\n\n> **NB** Mutect2 for somatic variant calling cannot be combined with `--no_intervals`\n\n**Consensus and Rescue:**\n\n- consensus: Aggregate variants within the same modality (DNA or RNA) across multiple callers\n- rescue: Perform cross-modality variant rescue to identify variants supported by both DNA and RNA evidence\n\n> **NB** The rescue workflow requires both DNA and RNA samples and runs after consensus calling\n\n**Annotation:**\n \n- VEP (only).\n\n> **NB** As RNADNAVAR will use bgzip and tabix to compress and index VCF files annotated, it expects VCF files to be sorted when starting from `--step annotate`.",
                     "pattern": "^((manta|sage|mutect2|strelka|deepsomatic|vep|consensus|filtering|norm|rna_filtering|vcf2maf|preprocessing|realignment|rescue)*,?)*$"
                 },
                 "skip_tools": {
@@ -607,6 +607,20 @@
                     "fa_icon": "fas fa-sort-numeric-down",
                     "description": "Priority order for variant caller consensus.",
                     "help_text": "Specify the priority order of variant callers for consensus calling. Variant callers should be listed in order of preference, separated by spaces."
+                },
+                "rescue_snv_thr": {
+                    "type": "integer",
+                    "default": 2,
+                    "fa_icon": "fas fa-filter",
+                    "description": "Minimum number of callers required for SNV consensus in rescue workflow.",
+                    "help_text": "When using the rescue workflow (--tools rescue), this parameter specifies the minimum number of variant callers (across DNA and RNA modalities) that must support a SNV for it to be included in the rescued output. Default is 2."
+                },
+                "rescue_indel_thr": {
+                    "type": "integer",
+                    "default": 2,
+                    "fa_icon": "fas fa-filter",
+                    "description": "Minimum number of callers required for indel consensus in rescue workflow.",
+                    "help_text": "When using the rescue workflow (--tools rescue), this parameter specifies the minimum number of variant callers (across DNA and RNA modalities) that must support an indel for it to be included in the rescued output. Default is 2."
                 }
             }
         },

@@ -3,6 +3,7 @@
 //
 include { VCF_CONSENSUS                            } from '../../../modules/local/vcf_consensus/main'
 include { VCF_CONSENSUS as VCF_CONSENSUS_RESCUE    } from '../../../modules/local/vcf_consensus/main'
+include { VCF_RESCUE_WORKFLOW                      } from '../vcf_rescue_workflow/main'
 
 workflow VCF_CONSENSUS_WORKFLOW {
     take:
@@ -46,50 +47,44 @@ workflow VCF_CONSENSUS_WORKFLOW {
         consensus_vcf = VCF_CONSENSUS.out.vcf
         versions = versions.mix(VCF_CONSENSUS.out.versions)
         
-        // RESCUE: Cross DNA/RNA for second consensus
+        // RESCUE: Cross-modality variant rescue
         if (params.tools && params.tools.split(',').contains('rescue')) {
-            // Separate DNA and RNA
-            vcf_dna = consensus_vcf.filter { it[0].status <= 1 }
-            vcf_rna = consensus_vcf.filter { it[0].status == 2 }
+            // Separate DNA (status ≤ 1) and RNA (status = 2) consensus VCFs
+            dna_consensus_vcf = consensus_vcf.filter { it[0].status <= 1 }
+            rna_consensus_vcf = consensus_vcf.filter { it[0].status == 2 }
             
-            vcf_grouped_dna = vcf_grouped.filter { it[0].status <= 1 }
-            vcf_grouped_rna = vcf_grouped.filter { it[0].status == 2 }
-            
-            // Cross DNA variants with RNA consensus
-            dna_with_rna = vcf_grouped_dna
-                .map { meta, vcfs, tbis, callers -> [meta.patient, meta, vcfs, tbis, callers] }
-                .cross(vcf_rna.map { meta, vcf, tbi -> [meta.patient, meta, vcf, tbi] })
-                .map { dna, rna ->
-                    def meta = [:]
-                    meta.patient = dna[0]
-                    meta.dna_id = dna[1].id
-                    meta.rna_id = rna[1].id
-                    meta.status = dna[1].status
-                    meta.id = "${meta.dna_id}_with_${meta.rna_id}".toString()
-                    [meta, dna[2] + [rna[2]], dna[3] + [rna[3]], dna[4] + ['consensus']]
+            // Separate DNA and RNA caller VCFs from grouped input
+            dna_caller_vcfs = vcf_grouped
+                .filter { it[0].status <= 1 }
+                .flatMap { meta, vcfs, tbis, callers ->
+                    vcfs.indices.collect { i ->
+                        [meta, vcfs[i], tbis[i], callers[i]]
+                    }
                 }
             
-            // Cross RNA variants with DNA consensus
-            rna_with_dna = vcf_grouped_rna
-                .map { meta, vcfs, tbis, callers -> [meta.patient, meta, vcfs, tbis, callers] }
-                .cross(vcf_dna.map { meta, vcf, tbi -> [meta.patient, meta, vcf, tbi] })
-                .map { rna, dna ->
-                    def meta = [:]
-                    meta.patient = rna[0]
-                    meta.rna_id = rna[1].id
-                    meta.dna_id = dna[1].id
-                    meta.status = rna[1].status
-                    meta.id = "${meta.rna_id}_with_${meta.dna_id}".toString()
-                    [meta, rna[2] + [dna[2]], rna[3] + [dna[3]], rna[4] + ['consensus']]
+            rna_caller_vcfs = vcf_grouped
+                .filter { it[0].status == 2 }
+                .flatMap { meta, vcfs, tbis, callers ->
+                    vcfs.indices.collect { i ->
+                        [meta, vcfs[i], tbis[i], callers[i]]
+                    }
                 }
             
-            // Run rescue consensus
-            VCF_CONSENSUS_RESCUE(dna_with_rna.mix(rna_with_dna))
-            consensus_vcf_rescue = VCF_CONSENSUS_RESCUE.out.vcf
-            versions = versions.mix(VCF_CONSENSUS_RESCUE.out.versions)
+            // Invoke VCF_RESCUE_WORKFLOW
+            VCF_RESCUE_WORKFLOW(
+                dna_consensus_vcf,
+                rna_consensus_vcf,
+                dna_caller_vcfs,
+                rna_caller_vcfs
+            )
             
             // Use rescue results as final consensus
-            consensus_vcf = consensus_vcf_rescue
+            consensus_vcf_rescue = VCF_RESCUE_WORKFLOW.out.vcf
+            versions = versions.mix(VCF_RESCUE_WORKFLOW.out.versions)
+            
+            // Optionally replace consensus with rescue results
+            // For now, emit both - users can choose which to use downstream
+            consensus_vcf = consensus_vcf.mix(consensus_vcf_rescue)
         }
     }
 

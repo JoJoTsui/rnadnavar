@@ -1,0 +1,616 @@
+"""
+I/O utility functions for VCF file operations.
+
+This module provides reusable functions for reading and writing VCF files,
+creating VCF headers with custom INFO fields, and handling variant identifiers.
+It supports both consensus and rescue workflows with appropriate metadata fields.
+
+Functions:
+    get_caller_name: Extract caller name from VCF filename
+    normalize_chromosome: Normalize chromosome names for consistent sorting
+    variant_key: Create unique variant identifier
+    is_snv: Determine if variant is a single nucleotide variant
+    create_output_header: Create VCF header with consensus/rescue INFO fields
+    write_union_vcf: Write aggregated variants to VCF file
+
+Example:
+    >>> from vcf_utils.io_utils import create_output_header, write_union_vcf
+    >>> from cyvcf2 import VCF
+    >>> 
+    >>> # Read template header
+    >>> template_vcf = VCF('input.vcf.gz')
+    >>> template_header = template_vcf
+    >>> 
+    >>> # Create output header for consensus
+    >>> header = create_output_header(template_header, 'sample123', include_rescue_fields=False)
+    >>> 
+    >>> # Write aggregated variants
+    >>> write_union_vcf(aggregated_data, template_header, 'sample123', 
+    ...                 'output.vcf.gz', 'vcf.gz', ['mutect2', 'strelka'])
+"""
+from pathlib import Path
+
+
+def get_caller_name(filename):
+    """
+    Extract caller name from VCF filename.
+    
+    This function parses VCF filenames to extract the variant caller name,
+    handling common naming patterns used in variant calling pipelines.
+    
+    Args:
+        filename (str): VCF filename (can include path)
+    
+    Returns:
+        str: Caller name extracted from filename
+    
+    Notes:
+        - Handles '.variants.' pattern: sample.strelka.variants.vcf.gz -> 'strelka'
+        - Handles '.consensus.' pattern: sample.consensus.vcf.gz -> 'consensus'
+        - Fallback: takes second dot-separated component
+    
+    Example:
+        >>> get_caller_name('sample123.mutect2.variants.vcf.gz')
+        'mutect2'
+        >>> get_caller_name('sample123.strelka.variants.vcf.gz')
+        'strelka'
+        >>> get_caller_name('sample123.consensus.vcf.gz')
+        'consensus'
+    """
+    name = Path(filename).name
+    # Handle .variants. pattern (e.g., sample.strelka.variants.vcf.gz)
+    if '.variants.' in name:
+        parts = name.split('.')
+        for i, part in enumerate(parts):
+            if part == 'variants' and i > 0:
+                return parts[i-1]
+    # Handle .consensus. pattern
+    if '.consensus.' in name:
+        return 'consensus'
+    # Fallback: take second component
+    parts = name.split('.')
+    return parts[1] if len(parts) > 1 else parts[0]
+
+
+def normalize_chromosome(chrom):
+    """
+    Normalize chromosome names for consistent sorting.
+    
+    This function removes 'chr' or 'Chr' prefixes from chromosome names
+    to enable consistent sorting and comparison across different reference
+    genome naming conventions.
+    
+    Args:
+        chrom (str or int): Chromosome name (e.g., 'chr1', 'Chr1', '1', 'chrX')
+    
+    Returns:
+        str: Normalized chromosome name without prefix (e.g., '1', 'X', 'MT')
+    
+    Example:
+        >>> normalize_chromosome('chr1')
+        '1'
+        >>> normalize_chromosome('Chr22')
+        '22'
+        >>> normalize_chromosome('chrX')
+        'X'
+        >>> normalize_chromosome('1')
+        '1'
+    """
+    chrom = str(chrom).replace('chr', '').replace('Chr', '')
+    return chrom
+
+
+def variant_key(variant, use_cyvcf2=True):
+    """
+    Create unique key for variant including all ALT alleles.
+    
+    This function generates a unique identifier for a variant based on its
+    genomic position and alleles. It works with both cyvcf2.Variant objects
+    and dictionary representations.
+    
+    Args:
+        variant (cyvcf2.Variant or dict): Variant object or dictionary with
+            CHROM, POS, REF, and ALT fields
+        use_cyvcf2 (bool, optional): If True, treat variant as cyvcf2.Variant
+            object. If False, treat as dictionary. Default: True
+    
+    Returns:
+        str: Unique variant key in format "chrom:pos:ref:alt" where:
+            - chrom is normalized (no 'chr' prefix)
+            - pos is 1-based position
+            - ref is reference allele
+            - alt is comma-separated alternate alleles
+    
+    Example:
+        >>> from cyvcf2 import VCF
+        >>> vcf = VCF('variants.vcf.gz')
+        >>> for variant in vcf:
+        ...     key = variant_key(variant, use_cyvcf2=True)
+        ...     print(key)
+        ...     break
+        1:12345:A:G
+        >>> 
+        >>> # With dictionary
+        >>> var_dict = {'CHROM': 'chr2', 'POS': 67890, 'REF': 'C', 'ALT': 'T,G'}
+        >>> variant_key(var_dict, use_cyvcf2=False)
+        '2:67890:C:T,G'
+    """
+    if use_cyvcf2:
+        # cyvcf2.Variant object
+        chrom = normalize_chromosome(variant.CHROM)
+        pos = variant.POS
+        ref = variant.REF
+        # Handle multiple ALT alleles
+        alts = ','.join(variant.ALT) if variant.ALT else '.'
+    else:
+        # dict representation
+        chrom = normalize_chromosome(variant['CHROM'])
+        pos = variant['POS']
+        ref = variant['REF']
+        alts = variant['ALT']
+    
+    return f"{chrom}:{pos}:{ref}:{alts}"
+
+
+def is_snv(ref, alt_list):
+    """
+    Determine if variant is a single nucleotide variant (SNV).
+    
+    A variant is classified as SNV if both the reference and all alternate
+    alleles are single nucleotides. Multi-nucleotide variants, insertions,
+    deletions, and complex variants are not SNVs.
+    
+    Args:
+        ref (str): Reference allele
+        alt_list (list): List of alternate alleles
+    
+    Returns:
+        bool: True if variant is SNV, False otherwise
+    
+    Notes:
+        - Returns False if ref is not a single base
+        - Returns False if any alt allele is not a single base
+        - Returns False if any alt allele is '*' (deletion indicator)
+    
+    Example:
+        >>> is_snv('A', ['G'])
+        True
+        >>> is_snv('A', ['G', 'T'])
+        True
+        >>> is_snv('AT', ['A'])
+        False
+        >>> is_snv('A', ['AT'])
+        False
+        >>> is_snv('A', ['*'])
+        False
+    """
+    if len(ref) != 1:
+        return False
+    for alt in alt_list:
+        if len(alt) != 1 or alt == '*':  # * indicates deletion in some formats
+            return False
+    return True
+
+
+
+def create_output_header(template_header, sample_name, include_rescue_fields=False):
+    """
+    Create output VCF header with all INFO fields.
+    
+    This function creates a pysam VariantHeader with all necessary INFO and
+    FILTER fields for consensus or rescue VCF output. It preserves metadata
+    from the template header and adds custom fields for variant aggregation.
+    
+    Args:
+        template_header (cyvcf2.VCF): cyvcf2 VCF header object to use as template.
+            Metadata lines (contigs, references, etc.) are preserved.
+        sample_name (str): Sample name for the output VCF. If None or empty,
+            defaults to 'SAMPLE'.
+        include_rescue_fields (bool, optional): If True, add rescue-specific
+            INFO fields for modality tracking (MODALITIES, CALLERS_BY_MODALITY,
+            DNA_SUPPORT, RNA_SUPPORT, CROSS_MODALITY, DP_DNA_MEAN, DP_RNA_MEAN,
+            VAF_DNA_MEAN, VAF_RNA_MEAN). Default: False
+    
+    Returns:
+        pysam.VariantHeader: VCF header object with all necessary INFO and
+            FILTER fields defined. Ready for use with pysam.VariantFile.
+    
+    INFO Fields Added (Consensus):
+        - N_CALLERS: Total number of aggregated callers
+        - CALLERS: List of all aggregated callers (pipe-separated)
+        - N_SUPPORT_CALLERS: Number of callers that detected this variant
+        - CALLERS_SUPPORT: Callers that detected this variant (pipe-separated)
+        - FILTERS_ORIGINAL: Original filter values from each caller
+        - FILTERS_NORMALIZED: Normalized filter categories
+        - FILTERS_CATEGORY: Filter categories
+        - UNIFIED_FILTER: Unified filter status based on majority
+        - PASSES_CONSENSUS: Whether variant passes consensus threshold (YES/NO)
+        - RESCUED: Variant included via cross-modality consensus (YES/NO)
+        - QUAL_MEAN/MIN/MAX: Quality score statistics
+        - CONSENSUS_GT: Consensus genotype across callers
+        - GT_BY_CALLER: Genotypes from each caller
+        - DP_MEAN/MIN/MAX: Depth statistics
+        - DP_BY_CALLER: Depth values from each caller
+        - VAF_MEAN/MIN/MAX: VAF statistics
+        - VAF_BY_CALLER: VAF values from each caller
+    
+    INFO Fields Added (Rescue, when include_rescue_fields=True):
+        - MODALITIES: Modalities where variant was detected
+        - CALLERS_BY_MODALITY: Callers grouped by modality
+        - DNA_SUPPORT: Number of DNA callers supporting this variant
+        - RNA_SUPPORT: Number of RNA callers supporting this variant
+        - CROSS_MODALITY: Whether variant has cross-modality support (YES/NO)
+        - DP_DNA_MEAN: Mean depth across DNA callers
+        - DP_RNA_MEAN: Mean depth across RNA callers
+        - VAF_DNA_MEAN: Mean VAF across DNA callers
+        - VAF_RNA_MEAN: Mean VAF across RNA callers
+    
+    FILTER Fields Added:
+        - LowQuality, LowDepth, StrandBias, Germline, Artifact, NoConsensus,
+          LowEvidenceScore, ReferenceCall
+    
+    Example:
+        >>> from cyvcf2 import VCF
+        >>> import pysam
+        >>> 
+        >>> # Create consensus header
+        >>> template = VCF('input.vcf.gz')
+        >>> header = create_output_header(template, 'sample123', include_rescue_fields=False)
+        >>> 
+        >>> # Create rescue header
+        >>> rescue_header = create_output_header(template, 'sample123', include_rescue_fields=True)
+        >>> 
+        >>> # Use with pysam
+        >>> vcf_out = pysam.VariantFile('output.vcf.gz', 'wz', header=header)
+    """
+    import pysam
+    
+    # Convert cyvcf2 header to pysam header
+    header_str = str(template_header.raw_header)
+    new_header = pysam.VariantHeader()
+    
+    # Add lines from template (excluding sample line)
+    for line in header_str.strip().split('\n'):
+        if line.startswith('#CHROM'):
+            continue
+        if line.startswith('#'):
+            new_header.add_line(line)
+    
+    # Helpers to avoid duplicate header entries when input template already defines them
+    def add_info_safe(h, ident, number, typ, desc):
+        if ident not in h.info:
+            h.info.add(ident, number, typ, desc)
+    
+    def add_filter_safe(h, ident, number, typ, desc):
+        if ident not in h.filters:
+            h.filters.add(ident, number, typ, desc)
+
+    # Add custom INFO fields for caller aggregation
+    add_info_safe(new_header, 'N_CALLERS', '1', 'Integer', 'Total number of aggregated callers')
+    add_info_safe(new_header, 'CALLERS', '.', 'String', 'List of all aggregated callers (pipe-separated)')
+    add_info_safe(new_header, 'N_SUPPORT_CALLERS', '1', 'Integer', 'Number of callers that detected this variant')
+    add_info_safe(new_header, 'CALLERS_SUPPORT', '.', 'String', 'Callers that detected this variant (pipe-separated)')
+    add_info_safe(new_header, 'FILTERS_ORIGINAL', '.', 'String', 'Original filter values from each caller (pipe-separated)')
+    add_info_safe(new_header, 'FILTERS_NORMALIZED', '.', 'String', 'Normalized filter categories (pipe-separated)')
+    add_info_safe(new_header, 'FILTERS_CATEGORY', '.', 'String', 'Filter categories (pipe-separated)')
+    add_info_safe(new_header, 'UNIFIED_FILTER', '1', 'String', 'Unified filter status based on majority')
+    
+    # Consensus flags
+    add_info_safe(new_header, 'PASSES_CONSENSUS', '1', 'String', 'Whether variant passes consensus threshold (YES/NO)')
+    
+    # Quality aggregation
+    add_info_safe(new_header, 'QUAL_MEAN', '1', 'Float', 'Mean QUAL score across callers')
+    add_info_safe(new_header, 'QUAL_MIN', '1', 'Float', 'Minimum QUAL score across callers')
+    add_info_safe(new_header, 'QUAL_MAX', '1', 'Float', 'Maximum QUAL score across callers')
+    
+    # Genotype aggregation
+    add_info_safe(new_header, 'CONSENSUS_GT', '1', 'String', 'Consensus genotype across callers')
+    add_info_safe(new_header, 'GT_BY_CALLER', '.', 'String', 'Genotypes from each caller (pipe-separated)')
+    
+    # Depth aggregation
+    add_info_safe(new_header, 'DP_MEAN', '1', 'Float', 'Mean depth across callers')
+    add_info_safe(new_header, 'DP_MIN', '1', 'Integer', 'Minimum depth across callers')
+    add_info_safe(new_header, 'DP_MAX', '1', 'Integer', 'Maximum depth across callers')
+    add_info_safe(new_header, 'DP_BY_CALLER', '.', 'String', 'Depth values from each caller (pipe-separated)')
+    
+    # VAF aggregation
+    add_info_safe(new_header, 'VAF_MEAN', '1', 'Float', 'Mean variant allele frequency across callers')
+    add_info_safe(new_header, 'VAF_MIN', '1', 'Float', 'Minimum VAF across callers')
+    add_info_safe(new_header, 'VAF_MAX', '1', 'Float', 'Maximum VAF across callers')
+    add_info_safe(new_header, 'VAF_BY_CALLER', '.', 'String', 'VAF values from each caller (pipe-separated)')
+
+    # Rescue indicator
+    add_info_safe(new_header, 'RESCUED', '1', 'String', 'Variant included via cross-modality consensus (YES/NO)')
+    
+    # Add rescue-specific modality tracking fields if requested
+    if include_rescue_fields:
+        add_info_safe(new_header, 'MODALITIES', '.', 'String', 'Modalities where variant was detected (pipe-separated)')
+        add_info_safe(new_header, 'CALLERS_BY_MODALITY', '.', 'String', 'Callers grouped by modality (format: modality:caller1,caller2|...)')
+        add_info_safe(new_header, 'DNA_SUPPORT', '1', 'Integer', 'Number of DNA callers supporting this variant')
+        add_info_safe(new_header, 'RNA_SUPPORT', '1', 'Integer', 'Number of RNA callers supporting this variant')
+        add_info_safe(new_header, 'CROSS_MODALITY', '1', 'String', 'Whether variant has cross-modality support (YES/NO)')
+        
+        # Modality-specific statistics
+        add_info_safe(new_header, 'DP_DNA_MEAN', '1', 'Float', 'Mean depth across DNA callers')
+        add_info_safe(new_header, 'DP_RNA_MEAN', '1', 'Float', 'Mean depth across RNA callers')
+        add_info_safe(new_header, 'VAF_DNA_MEAN', '1', 'Float', 'Mean VAF across DNA callers')
+        add_info_safe(new_header, 'VAF_RNA_MEAN', '1', 'Float', 'Mean VAF across RNA callers')
+    
+    # Add sample
+    if (sample_name if sample_name else 'SAMPLE') not in new_header.samples:
+        new_header.add_sample(sample_name if sample_name else 'SAMPLE')
+    
+    # Add unified filter categories
+    add_filter_safe(new_header, 'LowQuality', None, None, 'Low quality or evidence score')
+    add_filter_safe(new_header, 'LowDepth', None, None, 'Low sequencing depth')
+    add_filter_safe(new_header, 'StrandBias', None, None, 'Strand bias detected')
+    add_filter_safe(new_header, 'Germline', None, None, 'Likely germline variant')
+    add_filter_safe(new_header, 'Artifact', None, None, 'Likely artifact or present in normal')
+    add_filter_safe(new_header, 'NoConsensus', None, None, 'Does not meet consensus threshold')
+    add_filter_safe(new_header, 'LowEvidenceScore', None, None, 'Low empirical variant score (Strelka EVS)')
+    add_filter_safe(new_header, 'ReferenceCall', None, None, 'Called as reference (DeepSomatic RefCall)')
+    
+    return new_header
+
+
+
+def write_union_vcf(variant_data, template_header, sample_name, out_file, output_format, 
+                    all_callers, modality_map=None):
+    """
+    Write union VCF with all variants and aggregated information using pysam.
+    
+    This function writes aggregated variant data to a VCF file, including all
+    consensus/rescue INFO fields and properly formatted variant records. Variants
+    are sorted by genomic position before writing.
+    
+    Args:
+        variant_data (dict): Dictionary of variant data keyed by variant_key.
+            Each value should be an aggregated variant dict from aggregate_variants().
+        template_header (cyvcf2.VCF): cyvcf2 VCF header object to use as template
+            for creating the output header.
+        sample_name (str): Sample name for the output VCF.
+        out_file (str): Output file path (e.g., 'output.vcf.gz').
+        output_format (str): Output format - 'vcf', 'vcf.gz', or 'bcf'.
+        all_callers (list): List of all caller names in the analysis. Used to
+            populate N_CALLERS and CALLERS INFO fields.
+        modality_map (dict, optional): Dictionary mapping caller names to modality
+            ('DNA' or 'RNA'). If provided, modality-specific INFO fields will be
+            written (MODALITIES, CALLERS_BY_MODALITY, DNA_SUPPORT, RNA_SUPPORT,
+            CROSS_MODALITY, DP_DNA_MEAN, DP_RNA_MEAN, VAF_DNA_MEAN, VAF_RNA_MEAN).
+            Default: None
+    
+    Returns:
+        int: Number of variants written to the output file.
+    
+    Notes:
+        - Variants are sorted by chromosome and position before writing
+        - Chromosome sorting uses contig order from template header
+        - Special chromosome handling: X=23, Y=24, M/MT=25
+        - FILTER field is set based on unified filter computation
+        - NoConsensus filter is added for variants not passing consensus threshold
+        - Progress is printed every 10,000 variants
+    
+    Example:
+        >>> from cyvcf2 import VCF
+        >>> 
+        >>> # Write consensus VCF
+        >>> template = VCF('input.vcf.gz')
+        >>> n_written = write_union_vcf(
+        ...     aggregated_data, template, 'sample123', 'consensus.vcf.gz',
+        ...     'vcf.gz', ['mutect2', 'strelka', 'deepsomatic']
+        ... )
+        >>> print(f"Wrote {n_written} variants")
+        >>> 
+        >>> # Write rescue VCF with modality information
+        >>> modality_map = {'mutect2': 'DNA', 'strelka': 'DNA', 'consensus': 'RNA'}
+        >>> n_written = write_union_vcf(
+        ...     rescue_data, template, 'sample123', 'rescued.vcf.gz',
+        ...     'vcf.gz', ['mutect2', 'strelka', 'consensus'], modality_map
+        ... )
+    """
+    import pysam
+    from statistics import mean
+    from collections import Counter
+    
+    print(f"- Writing union VCF to {out_file}")
+    
+    # Create output header with rescue fields if modality_map is provided
+    include_rescue_fields = modality_map is not None
+    output_header = create_output_header(template_header, sample_name, include_rescue_fields)
+    
+    # Determine write mode
+    mode = 'w'
+    if output_format == 'vcf.gz':
+        mode = 'wz'
+    elif output_format == 'bcf':
+        mode = 'wb'
+    
+    # Open output VCF
+    vcf_out = pysam.VariantFile(out_file, mode, header=output_header)
+    
+    # Get chromosome order for sorting
+    chrom_order = {}
+    for idx, line in enumerate(str(template_header.raw_header).split('\n')):
+        if line.startswith('##contig=<ID='):
+            chrom_name = line.split('ID=')[1].split(',')[0].split('>')[0]
+            chrom_order[normalize_chromosome(chrom_name)] = idx
+    
+    # Sort variants by position
+    def sort_key(item):
+        vkey, data = item
+        chrom = normalize_chromosome(data['CHROM'])
+        chrom_idx = chrom_order.get(chrom, 999999)
+        # Try to convert to int for numeric sorting, otherwise use string
+        try:
+            if chrom.isdigit():
+                chrom_idx = int(chrom)
+            elif chrom == 'X':
+                chrom_idx = 23
+            elif chrom == 'Y':
+                chrom_idx = 24
+            elif chrom == 'M' or chrom == 'MT':
+                chrom_idx = 25
+        except:
+            pass
+        return (chrom_idx, data['POS'])
+    
+    sorted_variants = sorted(variant_data.items(), key=sort_key)
+    
+    # Write each variant
+    written_count = 0
+    for vkey, data in sorted_variants:
+        # Create new record
+        alleles = tuple([data['REF']] + data['ALT'].split(','))
+        
+        record = vcf_out.new_record(
+            contig=data['CHROM'],
+            start=data['POS'] - 1,  # pysam uses 0-based
+            stop=data['POS'] - 1 + len(data['REF']),
+            alleles=alleles,
+            id=';'.join(data['ids']) if data['ids'] else None,
+            qual=mean(data['qualities']) if data['qualities'] else None
+        )
+        
+        # Add aggregated INFO fields
+        record.info['N_CALLERS'] = len(all_callers)
+        record.info['CALLERS'] = '|'.join(all_callers)
+        record.info['N_SUPPORT_CALLERS'] = len(set(data['callers']))
+        record.info['CALLERS_SUPPORT'] = '|'.join(data['callers'])
+        record.info['FILTERS_ORIGINAL'] = '|'.join(data['filters_original'])
+        record.info['FILTERS_NORMALIZED'] = '|'.join(data['filters_normalized'])
+        record.info['FILTERS_CATEGORY'] = '|'.join(data['filters_category'])
+        
+        # Determine unified filter (majority vote on categories)
+        pass_count = sum(1 for f in data['filters_normalized'] if f == 'PASS')
+        if pass_count >= len(set(data['callers'])) / 2:
+            record.info['UNIFIED_FILTER'] = 'PASS'
+        else:
+            record.info['UNIFIED_FILTER'] = 'FAIL'
+            # Find most common category
+            non_pass_cats = [c for c in data['filters_category'] if c != 'PASS']
+            if non_pass_cats:
+                most_common_cat = Counter(non_pass_cats).most_common(1)[0][0]
+                # Map category to filter
+                if 'quality' in most_common_cat:
+                    record.filter.add('LowQuality')
+                elif 'depth' in most_common_cat:
+                    record.filter.add('LowDepth')
+                elif 'bias' in most_common_cat:
+                    record.filter.add('StrandBias')
+                elif 'germline' in most_common_cat:
+                    record.filter.add('Germline')
+                elif 'artifact' in most_common_cat:
+                    record.filter.add('Artifact')
+        
+        # Add consensus flag
+        record.info['PASSES_CONSENSUS'] = 'YES' if data['passes_consensus'] else 'NO'
+        if not data['passes_consensus']:
+            record.filter.add('NoConsensus')
+
+        # Rescue indicator
+        record.info['RESCUED'] = 'YES' if 'consensus' in set(data['callers']) else 'NO'
+        
+        # Add modality-specific fields if modality_map is provided
+        if modality_map:
+            # Group callers by modality
+            modalities = set()
+            dna_callers = []
+            rna_callers = []
+            
+            for caller in data['callers']:
+                modality = modality_map.get(caller, 'UNKNOWN')
+                modalities.add(modality)
+                if modality == 'DNA':
+                    dna_callers.append(caller)
+                elif modality == 'RNA':
+                    rna_callers.append(caller)
+            
+            # Write modality fields
+            record.info['MODALITIES'] = '|'.join(sorted(modalities))
+            
+            # Format: DNA:caller1,caller2|RNA:caller3,caller4
+            callers_by_mod = []
+            if dna_callers:
+                callers_by_mod.append(f"DNA:{','.join(dna_callers)}")
+            if rna_callers:
+                callers_by_mod.append(f"RNA:{','.join(rna_callers)}")
+            if callers_by_mod:
+                record.info['CALLERS_BY_MODALITY'] = '|'.join(callers_by_mod)
+            
+            record.info['DNA_SUPPORT'] = len(set(dna_callers))
+            record.info['RNA_SUPPORT'] = len(set(rna_callers))
+            record.info['CROSS_MODALITY'] = 'YES' if len(modalities) > 1 else 'NO'
+            
+            # Calculate modality-specific statistics
+            agg = data['gt_aggregated']
+            
+            # DNA statistics
+            dna_dp_values = []
+            dna_vaf_values = []
+            for i, caller in enumerate(data['callers']):
+                if modality_map.get(caller) == 'DNA':
+                    if i < len(agg['dp_by_caller']) and agg['dp_by_caller'][i] is not None:
+                        dna_dp_values.append(agg['dp_by_caller'][i])
+                    if i < len(agg['vaf_by_caller']) and agg['vaf_by_caller'][i] is not None:
+                        dna_vaf_values.append(agg['vaf_by_caller'][i])
+            
+            if dna_dp_values:
+                record.info['DP_DNA_MEAN'] = round(mean(dna_dp_values), 1)
+            if dna_vaf_values:
+                record.info['VAF_DNA_MEAN'] = round(mean(dna_vaf_values), 4)
+            
+            # RNA statistics
+            rna_dp_values = []
+            rna_vaf_values = []
+            for i, caller in enumerate(data['callers']):
+                if modality_map.get(caller) == 'RNA':
+                    if i < len(agg['dp_by_caller']) and agg['dp_by_caller'][i] is not None:
+                        rna_dp_values.append(agg['dp_by_caller'][i])
+                    if i < len(agg['vaf_by_caller']) and agg['vaf_by_caller'][i] is not None:
+                        rna_vaf_values.append(agg['vaf_by_caller'][i])
+            
+            if rna_dp_values:
+                record.info['DP_RNA_MEAN'] = round(mean(rna_dp_values), 1)
+            if rna_vaf_values:
+                record.info['VAF_RNA_MEAN'] = round(mean(rna_vaf_values), 4)
+        
+        # Add quality statistics
+        if data['qualities']:
+            record.info['QUAL_MEAN'] = round(mean(data['qualities']), 2)
+            record.info['QUAL_MIN'] = round(min(data['qualities']), 2)
+            record.info['QUAL_MAX'] = round(max(data['qualities']), 2)
+        
+        # Add genotype aggregation
+        agg = data['gt_aggregated']
+        
+        if agg['consensus_gt']:
+            record.info['CONSENSUS_GT'] = agg['consensus_gt']
+        
+        if agg['gt_by_caller']:
+            record.info['GT_BY_CALLER'] = '|'.join(agg['gt_by_caller'])
+        
+        # Add depth statistics
+        if agg['dp_values']:
+            record.info['DP_MEAN'] = round(agg['dp_mean'], 1)
+            record.info['DP_MIN'] = agg['dp_min']
+            record.info['DP_MAX'] = agg['dp_max']
+            record.info['DP_BY_CALLER'] = '|'.join('' if v is None else str(v) for v in agg['dp_by_caller'])
+        
+        # Add VAF statistics
+        if agg['vaf_values']:
+            record.info['VAF_MEAN'] = round(agg['vaf_mean'], 4)
+            record.info['VAF_MIN'] = round(agg['vaf_min'], 4)
+            record.info['VAF_MAX'] = round(agg['vaf_max'], 4)
+            record.info['VAF_BY_CALLER'] = '|'.join('' if v is None else f"{v:.4f}" for v in agg['vaf_by_caller'])
+        
+        # Write record
+        vcf_out.write(record)
+        written_count += 1
+        
+        if written_count % 10000 == 0:
+            print(f"  - Written {written_count:,} variants...")
+    
+    vcf_out.close()
+    print(f"- Successfully wrote {written_count:,} variants to {out_file}")
+    
+    return written_count

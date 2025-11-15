@@ -7,6 +7,15 @@ Uses cyvcf2 for reading and pysam for writing
 import argparse
 from cyvcf2 import VCF
 import pysam
+import sys
+from pathlib import Path
+
+# Add vcf_utils to path
+script_dir = Path(__file__).parent
+sys.path.insert(0, str(script_dir))
+
+from vcf_utils.filters import normalize_filter
+from vcf_utils.io_utils import normalize_chromosome, variant_key
 
 
 def argparser():
@@ -144,7 +153,9 @@ def apply_filters(vcf_in, args, genome):
                     continue
                 parts = line.strip().split('\t')
                 if len(parts) >= 4:
-                    var_id = f"{parts[0]}:{parts[1]}:{parts[2]}:{parts[3]}"
+                    # Use normalized chromosome for consistency
+                    chrom = normalize_chromosome(parts[0])
+                    var_id = f"{chrom}:{parts[1]}:{parts[2]}:{parts[3]}"
                     whitelist_vars.add(var_id)
     
     # Read blacklist if provided
@@ -156,7 +167,9 @@ def apply_filters(vcf_in, args, genome):
                     continue
                 parts = line.strip().split('\t')
                 if len(parts) >= 3:
-                    blacklist_regions.append((parts[0], int(parts[1]), int(parts[2])))
+                    # Normalize chromosome for consistency
+                    chrom = normalize_chromosome(parts[0])
+                    blacklist_regions.append((chrom, int(parts[1]), int(parts[2])))
     
     seen_variants = set()
     filtered_variants = []
@@ -164,20 +177,22 @@ def apply_filters(vcf_in, args, genome):
     for variant in vcf_in:
         filters = []
         
+        # Use shared variant_key function for consistency
+        vkey = variant_key(variant, use_cyvcf2=True)
+        
+        # Skip duplicates
+        if vkey in seen_variants:
+            continue
+        seen_variants.add(vkey)
+        
         # Get variant info
-        chrom = variant.CHROM
+        chrom = normalize_chromosome(variant.CHROM)
         pos = variant.POS
         ref = variant.REF
         alt = variant.ALT[0] if variant.ALT else ""
-        var_id = f"{chrom}:{pos}:{ref}:{alt}"
-        
-        # Skip duplicates
-        if var_id in seen_variants:
-            continue
-        seen_variants.add(var_id)
         
         # Check whitelist first
-        if whitelist_vars and var_id in whitelist_vars:
+        if whitelist_vars and vkey in whitelist_vars:
             filtered_variants.append((variant, "PASS", []))
             continue
         
@@ -221,9 +236,10 @@ def apply_filters(vcf_in, args, genome):
             if context and filter_homopolymer(context, alt):
                 filters.append("homopolymer")
         
-        # Variant caller filter
-        if variant.FILTER and variant.FILTER != 'PASS':
-            if variant.FILTER not in args.filters:
+        # Variant caller filter - use normalize_filter for consistency
+        if variant.FILTER:
+            normalized = normalize_filter(variant.FILTER)
+            if normalized != 'PASS' and variant.FILTER not in args.filters:
                 filters.append("vc_filter")
         
         # Store variant with filter info
