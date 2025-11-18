@@ -11,8 +11,8 @@ process VCF_RESCUE {
     tuple val(meta),
           path(dna_consensus_vcf), path(dna_consensus_tbi),
           path(rna_consensus_vcf), path(rna_consensus_tbi),
-          path(dna_vcfs), path(dna_tbis),
-          path(rna_vcfs), path(rna_tbis)
+          path(dna_caller_vcfs), path(dna_caller_tbis), val(dna_callers),
+          path(rna_caller_vcfs), path(rna_caller_tbis), val(rna_callers)
 
     output:
     tuple val(meta), path("*.rescued.vcf.gz"), path("*.rescued.vcf.gz.tbi"), emit: vcf
@@ -26,31 +26,25 @@ process VCF_RESCUE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     def snv_thr = task.ext.snv_thr ?: 2
     def indel_thr = task.ext.indel_thr ?: 2
+    
+    // Build DNA caller VCF arguments
+    def dna_vcf_args = ""
+    if (dna_caller_vcfs && dna_caller_vcfs.size() > 0) {
+        dna_vcf_args = dna_caller_vcfs.collect { "--dna_vcf ${it}" }.join(' ')
+    }
+    
+    // Build RNA caller VCF arguments
+    def rna_vcf_args = ""
+    if (rna_caller_vcfs && rna_caller_vcfs.size() > 0) {
+        rna_vcf_args = rna_caller_vcfs.collect { "--rna_vcf ${it}" }.join(' ')
+    }
 
     """
-    mkdir -p dna_vcfs rna_vcfs
-    
-    # Link DNA caller VCFs
-    for vcf in ${dna_vcfs}; do
-        ln -s \$(readlink -f \$vcf) dna_vcfs/
-    done
-    for tbi in ${dna_tbis}; do
-        ln -s \$(readlink -f \$tbi) dna_vcfs/
-    done
-    
-    # Link RNA caller VCFs
-    for vcf in ${rna_vcfs}; do
-        ln -s \$(readlink -f \$vcf) rna_vcfs/
-    done
-    for tbi in ${rna_tbis}; do
-        ln -s \$(readlink -f \$tbi) rna_vcfs/
-    done
-    
     run_rescue_vcf.py \\
         --dna_consensus ${dna_consensus_vcf} \\
         --rna_consensus ${rna_consensus_vcf} \\
-        --dna_vcfs dna_vcfs/ \\
-        --rna_vcfs rna_vcfs/ \\
+        ${dna_vcf_args} \\
+        ${rna_vcf_args} \\
         --out_prefix ${prefix}.rescued \\
         --snv_thr ${snv_thr} \\
         --indel_thr ${indel_thr}

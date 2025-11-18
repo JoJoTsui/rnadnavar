@@ -164,8 +164,21 @@ The rescue workflow generates comprehensive statistics:
 
 **Content**: All variants from DNA and RNA consensus with modality annotations
 
+### Modality Prefix Format
+
+**Important**: In rescue VCFs, all caller names are prefixed with their modality (DNA_ or RNA_) to clearly distinguish the source of evidence. This applies to all caller-related INFO fields.
+
 **Example INFO fields**:
 ```
+##INFO=<ID=N_CALLERS,Number=1,Type=Integer,Description="Total number of variant callers (excludes consensus)">
+##INFO=<ID=N_DNA_CALLERS,Number=1,Type=Integer,Description="Number of DNA variant callers">
+##INFO=<ID=N_RNA_CALLERS,Number=1,Type=Integer,Description="Number of RNA variant callers">
+##INFO=<ID=CALLERS,Number=.,Type=String,Description="List of all callers with modality prefix">
+##INFO=<ID=CALLERS_SUPPORT,Number=.,Type=String,Description="Supporting callers with modality prefix">
+##INFO=<ID=FILTERS_ORIGINAL,Number=.,Type=String,Description="Original filters with modality prefix (format: MODALITY_caller:filter|...)">
+##INFO=<ID=GT_BY_CALLER,Number=.,Type=String,Description="Genotypes with modality prefix (format: MODALITY_caller:GT|...)">
+##INFO=<ID=DP_BY_CALLER,Number=.,Type=String,Description="Depth with modality prefix (format: MODALITY_caller:DP|...)">
+##INFO=<ID=VAF_BY_CALLER,Number=.,Type=String,Description="VAF with modality prefix (format: MODALITY_caller:VAF|...)">
 ##INFO=<ID=MODALITIES,Number=.,Type=String,Description="Modalities where variant was detected">
 ##INFO=<ID=CALLERS_BY_MODALITY,Number=.,Type=String,Description="Callers grouped by modality">
 ##INFO=<ID=DNA_SUPPORT,Number=1,Type=Integer,Description="Number of DNA callers supporting this variant">
@@ -181,15 +194,18 @@ The rescue workflow generates comprehensive statistics:
 ### Example Variant Record
 
 ```
-chr1  12345  .  A  G  .  PASS  MODALITIES=DNA|RNA;CALLERS_BY_MODALITY=DNA:mutect2,strelka|RNA:mutect2;DNA_SUPPORT=2;RNA_SUPPORT=1;CROSS_MODALITY=YES;RESCUED=YES;DP_DNA_MEAN=150.5;DP_RNA_MEAN=85.0;VAF_DNA_MEAN=0.25;VAF_RNA_MEAN=0.28
+chr1  12345  .  A  G  .  PASS  N_CALLERS=3;N_DNA_CALLERS=2;N_RNA_CALLERS=1;CALLERS=DNA_mutect2|DNA_strelka|RNA_deepsomatic;CALLERS_SUPPORT=DNA_mutect2|RNA_deepsomatic;FILTERS_ORIGINAL=DNA_mutect2:PASS|RNA_deepsomatic:LowQuality;GT_BY_CALLER=DNA_mutect2:0/1|RNA_deepsomatic:0/1;DP_BY_CALLER=DNA_mutect2:100|RNA_deepsomatic:50;VAF_BY_CALLER=DNA_mutect2:0.45|RNA_deepsomatic:0.38;MODALITIES=DNA|RNA;CALLERS_BY_MODALITY=DNA:mutect2,strelka|RNA:deepsomatic;DNA_SUPPORT=2;RNA_SUPPORT=1;CROSS_MODALITY=YES;RESCUED=YES;DP_DNA_MEAN=150.5;DP_RNA_MEAN=85.0;VAF_DNA_MEAN=0.25;VAF_RNA_MEAN=0.28
 ```
 
 This variant:
-- Was detected in both DNA and RNA
-- Has support from 2 DNA callers (mutect2, strelka) and 1 RNA caller (mutect2)
+- Was detected by 3 variant callers total (N_CALLERS=3)
+- Has 2 DNA callers (DNA_mutect2, DNA_strelka) and 1 RNA caller (RNA_deepsomatic)
+- Was detected in both DNA and RNA modalities
+- Has support from 2 DNA callers (mutect2, strelka) and 1 RNA caller (deepsomatic)
 - Is marked as rescued (RESCUED=YES)
 - Has cross-modality support (CROSS_MODALITY=YES)
 - Shows similar VAF in DNA (0.25) and RNA (0.28)
+- All caller names are prefixed with their modality (DNA_ or RNA_)
 
 
 ## Interpreting Rescue Results

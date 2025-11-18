@@ -32,16 +32,18 @@ def argparser():
         help='Path to RNA consensus VCF file'
     )
     parser.add_argument(
-        '--dna_vcfs',
+        '--dna_vcf',
         type=str,
-        required=True,
-        help='Directory containing individual DNA caller VCF files'
+        action='append',
+        default=[],
+        help='Path to individual DNA caller VCF file (can be specified multiple times)'
     )
     parser.add_argument(
-        '--rna_vcfs',
+        '--rna_vcf',
         type=str,
-        required=True,
-        help='Directory containing individual RNA caller VCF files'
+        action='append',
+        default=[],
+        help='Path to individual RNA caller VCF file (can be specified multiple times)'
     )
     
     # Output options
@@ -103,8 +105,6 @@ def main():
     # Validate input files
     dna_consensus_path = Path(args.dna_consensus)
     rna_consensus_path = Path(args.rna_consensus)
-    dna_vcfs_dir = Path(args.dna_vcfs)
-    rna_vcfs_dir = Path(args.rna_vcfs)
     
     if not dna_consensus_path.exists():
         print(f"Error: DNA consensus VCF not found: {dna_consensus_path}", file=sys.stderr)
@@ -112,22 +112,20 @@ def main():
     if not rna_consensus_path.exists():
         print(f"Error: RNA consensus VCF not found: {rna_consensus_path}", file=sys.stderr)
         sys.exit(1)
-    if not dna_vcfs_dir.is_dir():
-        print(f"Error: DNA VCFs directory not found: {dna_vcfs_dir}", file=sys.stderr)
-        sys.exit(1)
-    if not rna_vcfs_dir.is_dir():
-        print(f"Error: RNA VCFs directory not found: {rna_vcfs_dir}", file=sys.stderr)
-        sys.exit(1)
     
-    print(f"\nInput files:")
+    print("\nInput files:")
     print(f"  - DNA consensus: {dna_consensus_path}")
     print(f"  - RNA consensus: {rna_consensus_path}")
-    print(f"  - DNA VCFs directory: {dna_vcfs_dir}")
-    print(f"  - RNA VCFs directory: {rna_vcfs_dir}")
-    print(f"\nOutput:")
+    print(f"  - DNA caller VCFs: {len(args.dna_vcf)}")
+    for vcf in args.dna_vcf:
+        print(f"    - {vcf}")
+    print(f"  - RNA caller VCFs: {len(args.rna_vcf)}")
+    for vcf in args.rna_vcf:
+        print(f"    - {vcf}")
+    print("\nOutput:")
     print(f"  - Prefix: {args.out_prefix}")
     print(f"  - Format: {args.output_format}")
-    print(f"\nThresholds:")
+    print("\nThresholds:")
     print(f"  - SNV: {args.snv_thr}")
     print(f"  - Indel: {args.indel_thr}")
     
@@ -157,48 +155,64 @@ def main():
     )
     print(f"  - Loaded {len(rna_consensus):,} variants from RNA consensus")
     
-    # Step 3: Read individual DNA caller VCFs with modality='DNA'
+    # Step 3: Read individual DNA caller VCFs
     print("\n" + "=" * 80)
     print("Reading individual DNA caller VCFs...")
     print("=" * 80)
-    dna_vcf_files = find_vcf_files(dna_vcfs_dir)
-    print(f"  - Found {len(dna_vcf_files)} DNA caller VCF files")
-    
-    dna_callers = []
-    for caller, vcf_path in dna_vcf_files.items():
-        print(f"  - Reading {caller} from {Path(vcf_path).name}")
-        variants = read_variants_from_vcf(vcf_path, caller, modality='DNA')
+    dna_caller_variants = {}
+    for dna_vcf_path in args.dna_vcf:
+        from vcf_utils.io_utils import get_caller_name
+        caller_name = get_caller_name(Path(dna_vcf_path).name)
+        print(f"  - Reading {caller_name} from {dna_vcf_path}")
+        variants = read_variants_from_vcf(
+            dna_vcf_path,
+            caller_name,
+            modality='DNA'
+        )
+        dna_caller_variants[caller_name] = variants
         print(f"    - Loaded {len(variants):,} variants")
-        dna_callers.append((caller, variants, 'DNA'))
     
-    # Step 4: Read individual RNA caller VCFs with modality='RNA'
+    # Step 4: Read individual RNA caller VCFs
     print("\n" + "=" * 80)
     print("Reading individual RNA caller VCFs...")
     print("=" * 80)
-    rna_vcf_files = find_vcf_files(rna_vcfs_dir)
-    print(f"  - Found {len(rna_vcf_files)} RNA caller VCF files")
-    
-    rna_callers = []
-    for caller, vcf_path in rna_vcf_files.items():
-        print(f"  - Reading {caller} from {Path(vcf_path).name}")
-        variants = read_variants_from_vcf(vcf_path, caller, modality='RNA')
+    rna_caller_variants = {}
+    for rna_vcf_path in args.rna_vcf:
+        from vcf_utils.io_utils import get_caller_name
+        caller_name = get_caller_name(Path(rna_vcf_path).name)
+        print(f"  - Reading {caller_name} from {rna_vcf_path}")
+        variants = read_variants_from_vcf(
+            rna_vcf_path,
+            caller_name,
+            modality='RNA'
+        )
+        rna_caller_variants[caller_name] = variants
         print(f"    - Loaded {len(variants):,} variants")
-        rna_callers.append((caller, variants, 'RNA'))
     
-    # Step 5: Aggregate all variants using aggregate_variants()
+    # Step 5: Aggregate all variants (consensus + individual callers)
     print("\n" + "=" * 80)
-    print("Aggregating variants across modalities...")
+    print("Aggregating all variants across modalities...")
     print("=" * 80)
     
-    # Combine all variant collections
+    # Combine consensus and individual caller variant collections
+    # Use modality prefix as KEY to avoid collisions in modality_map
+    # but store the original caller name for later use
     all_collections = [
-        ('dna_consensus', dna_consensus, 'DNA'),
-        ('rna_consensus', rna_consensus, 'RNA')
-    ] + dna_callers + rna_callers
+        ('DNA_consensus', dna_consensus, 'DNA'),
+        ('RNA_consensus', rna_consensus, 'RNA')
+    ]
+    
+    # Add individual DNA callers WITH prefix as key to avoid modality_map collisions
+    for caller_name, variants in dna_caller_variants.items():
+        all_collections.append((f'DNA_{caller_name}', variants, 'DNA'))
+    
+    # Add individual RNA callers WITH prefix as key to avoid modality_map collisions
+    for caller_name, variants in rna_caller_variants.items():
+        all_collections.append((f'RNA_{caller_name}', variants, 'RNA'))
     
     print(f"  - Total variant sources: {len(all_collections)}")
-    print(f"    - DNA sources: {1 + len(dna_callers)} (1 consensus + {len(dna_callers)} callers)")
-    print(f"    - RNA sources: {1 + len(rna_callers)} (1 consensus + {len(rna_callers)} callers)")
+    print(f"    - DNA sources: {1 + len(dna_caller_variants)} (1 consensus + {len(dna_caller_variants)} callers)")
+    print(f"    - RNA sources: {1 + len(rna_caller_variants)} (1 consensus + {len(rna_caller_variants)} callers)")
     
     variant_data = aggregate_variants(
         all_collections,
@@ -227,6 +241,11 @@ def main():
     print(f"  - Created modality map for {len(modality_map)} callers/sources")
     print(f"    - DNA: {sum(1 for m in modality_map.values() if m == 'DNA')}")
     print(f"    - RNA: {sum(1 for m in modality_map.values() if m == 'RNA')}")
+    
+    # Print modality map for debugging
+    print("\n  Modality map:")
+    for caller, modality in sorted(modality_map.items()):
+        print(f"    - {caller}: {modality}")
     
     # Step 7: Tag variants with modality using tag_variant_with_modality()
     print("\n" + "=" * 80)
@@ -288,8 +307,16 @@ def main():
     else:
         out_file = f"{args.out_prefix}.vcf.gz"
     
-    # Get all caller names for the output
-    all_caller_names = [caller_name for caller_name, _, _ in all_collections]
+    # Collect all caller names (excluding consensus sources)
+    all_caller_names = []
+    for caller_name, _, _ in all_collections:
+        # Skip consensus sources - we only want individual callers
+        if not caller_name.endswith('_consensus'):
+            all_caller_names.append(caller_name)
+    
+    print(f"\n  - Individual callers to track: {len(all_caller_names)}")
+    for caller in sorted(all_caller_names):
+        print(f"    - {caller}")
     
     # Write VCF with modality_map to enable modality-specific INFO fields
     written_count = write_union_vcf(

@@ -286,17 +286,25 @@ def create_output_header(template_header, sample_name, include_rescue_fields=Fal
             h.filters.add(ident, number, typ, desc)
 
     # Add custom INFO fields for caller aggregation
-    add_info_safe(new_header, 'N_CALLERS', '1', 'Integer', 'Total number of aggregated callers')
-    add_info_safe(new_header, 'CALLERS', '.', 'String', 'List of all aggregated callers (pipe-separated)')
-    add_info_safe(new_header, 'N_SUPPORT_CALLERS', '1', 'Integer', 'Number of callers that detected this variant')
-    add_info_safe(new_header, 'CALLERS_SUPPORT', '.', 'String', 'Callers that detected this variant (pipe-separated)')
-    add_info_safe(new_header, 'FILTERS_ORIGINAL', '.', 'String', 'Original filter values from each caller (pipe-separated)')
-    add_info_safe(new_header, 'FILTERS_NORMALIZED', '.', 'String', 'Normalized filter categories (pipe-separated)')
-    add_info_safe(new_header, 'FILTERS_CATEGORY', '.', 'String', 'Filter categories (pipe-separated)')
-    add_info_safe(new_header, 'UNIFIED_FILTER', '1', 'String', 'Unified filter status based on majority')
+    add_info_safe(new_header, 'N_CALLERS', '1', 'Integer', 'Total number of aggregated variant callers (excludes consensus)')
+    add_info_safe(new_header, 'CALLERS', '.', 'String', 'List of all aggregated variant callers with modality prefix (pipe-separated)')
+    add_info_safe(new_header, 'N_SUPPORT_CALLERS', '1', 'Integer', 'Number of variant callers that detected this variant (excludes consensus)')
+    add_info_safe(new_header, 'CALLERS_SUPPORT', '.', 'String', 'Variant callers that detected this variant with modality prefix (pipe-separated, excludes consensus)')
+    add_info_safe(new_header, 'N_CONSENSUS_SUPPORT', '1', 'Integer', 'Number of consensus callers that detected this variant')
+    add_info_safe(new_header, 'CONSENSUS_SUPPORT', '.', 'String', 'Consensus callers that detected this variant with modality prefix (pipe-separated)')
+    add_info_safe(new_header, 'N_DNA_CALLERS', '1', 'Integer', 'Number of DNA variant callers')
+    add_info_safe(new_header, 'N_RNA_CALLERS', '1', 'Integer', 'Number of RNA variant callers')
+    add_info_safe(new_header, 'FILTERS_ORIGINAL', '.', 'String', 'Original filter values from each caller with modality prefix (format: MODALITY_caller:filter|..., excludes consensus)')
+    add_info_safe(new_header, 'FILTERS_NORMALIZED', '.', 'String', 'Normalized filter categories with modality prefix (format: MODALITY_caller:filter|..., excludes consensus)')
+    add_info_safe(new_header, 'FILTERS_CATEGORY', '.', 'String', 'Filter categories with modality prefix (format: MODALITY_caller:category|..., excludes consensus)')
+    add_info_safe(new_header, 'UNIFIED_FILTER', '1', 'String', 'Unified filter status based on majority of all callers')
+    add_info_safe(new_header, 'UNIFIED_FILTER_DNA', '1', 'String', 'Unified filter status for DNA callers')
+    add_info_safe(new_header, 'UNIFIED_FILTER_RNA', '1', 'String', 'Unified filter status for RNA callers')
     
     # Consensus flags
-    add_info_safe(new_header, 'PASSES_CONSENSUS', '1', 'String', 'Whether variant passes consensus threshold (YES/NO)')
+    add_info_safe(new_header, 'PASSES_CONSENSUS', '1', 'String', 'Whether variant passes consensus threshold overall (YES/NO)')
+    add_info_safe(new_header, 'PASSES_CONSENSUS_DNA', '1', 'String', 'Whether variant passes DNA consensus threshold (YES/NO)')
+    add_info_safe(new_header, 'PASSES_CONSENSUS_RNA', '1', 'String', 'Whether variant passes RNA consensus threshold (YES/NO)')
     
     # Quality aggregation
     add_info_safe(new_header, 'QUAL_MEAN', '1', 'Float', 'Mean QUAL score across callers')
@@ -305,19 +313,19 @@ def create_output_header(template_header, sample_name, include_rescue_fields=Fal
     
     # Genotype aggregation
     add_info_safe(new_header, 'CONSENSUS_GT', '1', 'String', 'Consensus genotype across callers')
-    add_info_safe(new_header, 'GT_BY_CALLER', '.', 'String', 'Genotypes from each caller (pipe-separated)')
+    add_info_safe(new_header, 'GT_BY_CALLER', '.', 'String', 'Genotypes from each caller with modality prefix (format: MODALITY_caller:GT|...)')
     
     # Depth aggregation
     add_info_safe(new_header, 'DP_MEAN', '1', 'Float', 'Mean depth across callers')
     add_info_safe(new_header, 'DP_MIN', '1', 'Integer', 'Minimum depth across callers')
     add_info_safe(new_header, 'DP_MAX', '1', 'Integer', 'Maximum depth across callers')
-    add_info_safe(new_header, 'DP_BY_CALLER', '.', 'String', 'Depth values from each caller (pipe-separated)')
+    add_info_safe(new_header, 'DP_BY_CALLER', '.', 'String', 'Depth values from each caller with modality prefix (format: MODALITY_caller:DP|...)')
     
     # VAF aggregation
     add_info_safe(new_header, 'VAF_MEAN', '1', 'Float', 'Mean variant allele frequency across callers')
     add_info_safe(new_header, 'VAF_MIN', '1', 'Float', 'Minimum VAF across callers')
     add_info_safe(new_header, 'VAF_MAX', '1', 'Float', 'Maximum VAF across callers')
-    add_info_safe(new_header, 'VAF_BY_CALLER', '.', 'String', 'VAF values from each caller (pipe-separated)')
+    add_info_safe(new_header, 'VAF_BY_CALLER', '.', 'String', 'VAF values from each caller with modality prefix (format: MODALITY_caller:VAF|...)')
 
     # Rescue indicator
     add_info_safe(new_header, 'RESCUED', '1', 'String', 'Variant included via cross-modality consensus (YES/NO)')
@@ -372,11 +380,12 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
         out_file (str): Output file path (e.g., 'output.vcf.gz').
         output_format (str): Output format - 'vcf', 'vcf.gz', or 'bcf'.
         all_callers (list): List of all caller names in the analysis. Used to
-            populate N_CALLERS and CALLERS INFO fields.
+            populate N_CALLERS and CALLERS INFO fields. Should exclude consensus callers.
         modality_map (dict, optional): Dictionary mapping caller names to modality
             ('DNA' or 'RNA'). If provided, modality-specific INFO fields will be
             written (MODALITIES, CALLERS_BY_MODALITY, DNA_SUPPORT, RNA_SUPPORT,
             CROSS_MODALITY, DP_DNA_MEAN, DP_RNA_MEAN, VAF_DNA_MEAN, VAF_RNA_MEAN).
+            Caller names will be prefixed with modality (e.g., DNA_mutect2).
             Default: None
     
     Returns:
@@ -389,6 +398,7 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
         - FILTER field is set based on unified filter computation
         - NoConsensus filter is added for variants not passing consensus threshold
         - Progress is printed every 10,000 variants
+        - When modality_map is provided, caller names are prefixed with modality
     
     Example:
         >>> from cyvcf2 import VCF
@@ -402,10 +412,10 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
         >>> print(f"Wrote {n_written} variants")
         >>> 
         >>> # Write rescue VCF with modality information
-        >>> modality_map = {'mutect2': 'DNA', 'strelka': 'DNA', 'consensus': 'RNA'}
+        >>> modality_map = {'mutect2': 'DNA', 'strelka': 'DNA', 'deepsomatic': 'RNA'}
         >>> n_written = write_union_vcf(
         ...     rescue_data, template, 'sample123', 'rescued.vcf.gz',
-        ...     'vcf.gz', ['mutect2', 'strelka', 'consensus'], modality_map
+        ...     'vcf.gz', ['mutect2', 'strelka', 'deepsomatic'], modality_map
         ... )
     """
     import pysam
@@ -413,6 +423,28 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
     from collections import Counter
     
     print(f"- Writing union VCF to {out_file}")
+    
+    # Helper function to add modality prefix to caller name
+    def prefix_caller(caller, modality_map):
+        """Add modality prefix to caller name if modality_map is provided."""
+        if not modality_map:
+            return caller
+        
+        # Check if caller already has modality prefix (DNA_ or RNA_)
+        if caller.startswith('DNA_') or caller.startswith('RNA_'):
+            return caller
+        
+        # Add prefix if caller is in modality_map
+        if caller in modality_map:
+            modality = modality_map[caller]
+            return f"{modality}_{caller}"
+        
+        return caller
+    
+    # Helper function to check if caller is a consensus caller
+    def is_consensus_caller(caller):
+        """Check if caller is a consensus caller."""
+        return caller in ['dna_consensus', 'rna_consensus', 'DNA_consensus', 'RNA_consensus'] or caller.endswith('_consensus')
     
     # Create output header with rescue fields if modality_map is provided
     include_rescue_fields = modality_map is not None
@@ -472,22 +504,69 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
         )
         
         # Add aggregated INFO fields
-        record.info['N_CALLERS'] = len(all_callers)
-        record.info['CALLERS'] = '|'.join(all_callers)
-        record.info['N_SUPPORT_CALLERS'] = len(set(data['callers']))
-        record.info['CALLERS_SUPPORT'] = '|'.join(data['callers'])
-        record.info['FILTERS_ORIGINAL'] = '|'.join(data['filters_original'])
-        record.info['FILTERS_NORMALIZED'] = '|'.join(data['filters_normalized'])
-        record.info['FILTERS_CATEGORY'] = '|'.join(data['filters_category'])
+        # Separate consensus callers from actual variant callers
+        actual_callers_in_variant = [c for c in data['callers'] if not is_consensus_caller(c)]
+        consensus_callers_in_variant = [c for c in data['callers'] if is_consensus_caller(c)]
         
-        # Determine unified filter (majority vote on categories)
-        pass_count = sum(1 for f in data['filters_normalized'] if f == 'PASS')
-        if pass_count >= len(set(data['callers'])) / 2:
+        # Prefix caller names with modality if modality_map is provided
+        prefixed_all_callers = [prefix_caller(c, modality_map) for c in all_callers]
+        prefixed_support_callers = [prefix_caller(c, modality_map) for c in actual_callers_in_variant]
+        prefixed_consensus_callers = [prefix_caller(c, modality_map) for c in consensus_callers_in_variant]
+        
+        record.info['N_CALLERS'] = len(all_callers)
+        record.info['CALLERS'] = '|'.join(prefixed_all_callers)
+        record.info['N_SUPPORT_CALLERS'] = len(set(actual_callers_in_variant))
+        record.info['CALLERS_SUPPORT'] = '|'.join(prefixed_support_callers)
+        
+        # Add consensus support tracking
+        if consensus_callers_in_variant:
+            record.info['N_CONSENSUS_SUPPORT'] = len(set(consensus_callers_in_variant))
+            record.info['CONSENSUS_SUPPORT'] = '|'.join(prefixed_consensus_callers)
+        
+        # Add DNA/RNA caller counts if modality_map is provided
+        # Count from actual callers that detected THIS variant, not just all_callers
+        if modality_map:
+            dna_callers_count = sum(1 for c in actual_callers_in_variant if modality_map.get(c) == 'DNA')
+            rna_callers_count = sum(1 for c in actual_callers_in_variant if modality_map.get(c) == 'RNA')
+            record.info['N_DNA_CALLERS'] = dna_callers_count
+            record.info['N_RNA_CALLERS'] = rna_callers_count
+        
+        # Prefix filter fields with caller names (with modality prefix) - EXCLUDE consensus
+        # Note: Replace semicolons in filter values with commas to avoid VCF parsing issues
+        prefixed_filters_original = []
+        prefixed_filters_normalized = []
+        prefixed_filters_category = []
+        for i, caller in enumerate(data['callers']):
+            if not is_consensus_caller(caller):  # Skip consensus callers
+                prefixed_caller = prefix_caller(caller, modality_map)
+                if i < len(data['filters_original']):
+                    # Replace semicolons with commas in filter values
+                    filter_val = str(data['filters_original'][i]).replace(';', ',')
+                    prefixed_filters_original.append(f"{prefixed_caller}:{filter_val}")
+                if i < len(data['filters_normalized']):
+                    filter_val = str(data['filters_normalized'][i]).replace(';', ',')
+                    prefixed_filters_normalized.append(f"{prefixed_caller}:{filter_val}")
+                if i < len(data['filters_category']):
+                    filter_val = str(data['filters_category'][i]).replace(';', ',')
+                    prefixed_filters_category.append(f"{prefixed_caller}:{filter_val}")
+        
+        record.info['FILTERS_ORIGINAL'] = '|'.join(prefixed_filters_original) if prefixed_filters_original else '.'
+        record.info['FILTERS_NORMALIZED'] = '|'.join(prefixed_filters_normalized) if prefixed_filters_normalized else '.'
+        record.info['FILTERS_CATEGORY'] = '|'.join(prefixed_filters_category) if prefixed_filters_category else '.'
+        
+        # Determine unified filter (majority vote on categories) - EXCLUDE consensus
+        actual_filters_normalized = [data['filters_normalized'][i] for i, c in enumerate(data['callers']) if not is_consensus_caller(c)]
+        actual_filters_category = [data['filters_category'][i] for i, c in enumerate(data['callers']) if not is_consensus_caller(c)]
+        
+        pass_count = sum(1 for f in actual_filters_normalized if f == 'PASS')
+        n_actual_callers = len(actual_callers_in_variant)
+        
+        if n_actual_callers > 0 and pass_count >= n_actual_callers / 2:
             record.info['UNIFIED_FILTER'] = 'PASS'
         else:
             record.info['UNIFIED_FILTER'] = 'FAIL'
             # Find most common category
-            non_pass_cats = [c for c in data['filters_category'] if c != 'PASS']
+            non_pass_cats = [c for c in actual_filters_category if c != 'PASS']
             if non_pass_cats:
                 most_common_cat = Counter(non_pass_cats).most_common(1)[0][0]
                 # Map category to filter
@@ -502,33 +581,65 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
                 elif 'artifact' in most_common_cat:
                     record.filter.add('Artifact')
         
+        # Compute modality-specific unified filters if modality_map provided
+        if modality_map:
+            # DNA unified filter
+            dna_filters = [data['filters_normalized'][i] for i, c in enumerate(data['callers']) 
+                          if not is_consensus_caller(c) and modality_map.get(c) == 'DNA']
+            if dna_filters:
+                dna_pass_count = sum(1 for f in dna_filters if f == 'PASS')
+                record.info['UNIFIED_FILTER_DNA'] = 'PASS' if dna_pass_count >= len(dna_filters) / 2 else 'FAIL'
+            
+            # RNA unified filter
+            rna_filters = [data['filters_normalized'][i] for i, c in enumerate(data['callers']) 
+                          if not is_consensus_caller(c) and modality_map.get(c) == 'RNA']
+            if rna_filters:
+                rna_pass_count = sum(1 for f in rna_filters if f == 'PASS')
+                record.info['UNIFIED_FILTER_RNA'] = 'PASS' if rna_pass_count >= len(rna_filters) / 2 else 'FAIL'
+        
         # Add consensus flag
         record.info['PASSES_CONSENSUS'] = 'YES' if data['passes_consensus'] else 'NO'
         if not data['passes_consensus']:
             record.filter.add('NoConsensus')
+        
+        # Add modality-specific consensus flags if modality_map provided
+        if modality_map:
+            # Check if DNA consensus or RNA consensus is in the callers
+            has_dna_consensus = any(c == 'dna_consensus' for c in data['callers'])
+            has_rna_consensus = any(c == 'rna_consensus' for c in data['callers'])
+            
+            # Check if there are any DNA or RNA callers in this variant
+            has_dna_callers = any(not is_consensus_caller(c) and modality_map.get(c) == 'DNA' for c in data['callers'])
+            has_rna_callers = any(not is_consensus_caller(c) and modality_map.get(c) == 'RNA' for c in data['callers'])
+            
+            if has_dna_consensus or has_dna_callers:
+                record.info['PASSES_CONSENSUS_DNA'] = 'YES' if has_dna_consensus else 'NO'
+            if has_rna_consensus or has_rna_callers:
+                record.info['PASSES_CONSENSUS_RNA'] = 'YES' if has_rna_consensus else 'NO'
 
         # Rescue indicator
         record.info['RESCUED'] = 'YES' if 'consensus' in set(data['callers']) else 'NO'
         
         # Add modality-specific fields if modality_map is provided
         if modality_map:
-            # Group callers by modality
+            # Group callers by modality - EXCLUDE consensus callers
             modalities = set()
             dna_callers = []
             rna_callers = []
             
             for caller in data['callers']:
-                modality = modality_map.get(caller, 'UNKNOWN')
-                modalities.add(modality)
-                if modality == 'DNA':
-                    dna_callers.append(caller)
-                elif modality == 'RNA':
-                    rna_callers.append(caller)
+                if not is_consensus_caller(caller):  # Skip consensus callers
+                    modality = modality_map.get(caller, 'UNKNOWN')
+                    modalities.add(modality)
+                    if modality == 'DNA':
+                        dna_callers.append(caller)
+                    elif modality == 'RNA':
+                        rna_callers.append(caller)
             
             # Write modality fields
-            record.info['MODALITIES'] = '|'.join(sorted(modalities))
+            record.info['MODALITIES'] = '|'.join(sorted(modalities)) if modalities else '.'
             
-            # Format: DNA:caller1,caller2|RNA:caller3,caller4
+            # Format: DNA:caller1,caller2|RNA:caller3,caller4 - EXCLUDE consensus
             callers_by_mod = []
             if dna_callers:
                 callers_by_mod.append(f"DNA:{','.join(dna_callers)}")
@@ -586,22 +697,48 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
         if agg['consensus_gt']:
             record.info['CONSENSUS_GT'] = agg['consensus_gt']
         
+        # Prefix GT_BY_CALLER with modality - EXCLUDE consensus
         if agg['gt_by_caller']:
-            record.info['GT_BY_CALLER'] = '|'.join(agg['gt_by_caller'])
+            prefixed_gt_by_caller = []
+            for i, caller in enumerate(data['callers']):
+                if not is_consensus_caller(caller):  # Skip consensus callers
+                    prefixed_caller = prefix_caller(caller, modality_map)
+                    if i < len(agg['gt_by_caller']):
+                        prefixed_gt_by_caller.append(f"{prefixed_caller}:{agg['gt_by_caller'][i]}")
+            if prefixed_gt_by_caller:
+                record.info['GT_BY_CALLER'] = '|'.join(prefixed_gt_by_caller)
         
-        # Add depth statistics
+        # Add depth statistics with modality prefix - EXCLUDE consensus
         if agg['dp_values']:
             record.info['DP_MEAN'] = round(agg['dp_mean'], 1)
             record.info['DP_MIN'] = agg['dp_min']
             record.info['DP_MAX'] = agg['dp_max']
-            record.info['DP_BY_CALLER'] = '|'.join('' if v is None else str(v) for v in agg['dp_by_caller'])
+            
+            prefixed_dp_by_caller = []
+            for i, caller in enumerate(data['callers']):
+                if not is_consensus_caller(caller):  # Skip consensus callers
+                    prefixed_caller = prefix_caller(caller, modality_map)
+                    if i < len(agg['dp_by_caller']):
+                        dp_val = '' if agg['dp_by_caller'][i] is None else str(agg['dp_by_caller'][i])
+                        prefixed_dp_by_caller.append(f"{prefixed_caller}:{dp_val}")
+            if prefixed_dp_by_caller:
+                record.info['DP_BY_CALLER'] = '|'.join(prefixed_dp_by_caller)
         
-        # Add VAF statistics
+        # Add VAF statistics with modality prefix - EXCLUDE consensus
         if agg['vaf_values']:
             record.info['VAF_MEAN'] = round(agg['vaf_mean'], 4)
             record.info['VAF_MIN'] = round(agg['vaf_min'], 4)
             record.info['VAF_MAX'] = round(agg['vaf_max'], 4)
-            record.info['VAF_BY_CALLER'] = '|'.join('' if v is None else f"{v:.4f}" for v in agg['vaf_by_caller'])
+            
+            prefixed_vaf_by_caller = []
+            for i, caller in enumerate(data['callers']):
+                if not is_consensus_caller(caller):  # Skip consensus callers
+                    prefixed_caller = prefix_caller(caller, modality_map)
+                    if i < len(agg['vaf_by_caller']):
+                        vaf_val = '' if agg['vaf_by_caller'][i] is None else f"{agg['vaf_by_caller'][i]:.4f}"
+                        prefixed_vaf_by_caller.append(f"{prefixed_caller}:{vaf_val}")
+            if prefixed_vaf_by_caller:
+                record.info['VAF_BY_CALLER'] = '|'.join(prefixed_vaf_by_caller)
         
         # Write record
         vcf_out.write(record)

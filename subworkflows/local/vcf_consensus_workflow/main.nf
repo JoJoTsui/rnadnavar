@@ -70,7 +70,7 @@ workflow VCF_CONSENSUS_WORKFLOW {
                     }
                 }
             
-            // Invoke VCF_RESCUE_WORKFLOW
+            // Invoke VCF_RESCUE_WORKFLOW with consensus AND individual caller VCFs
             VCF_RESCUE_WORKFLOW(
                 dna_consensus_vcf,
                 rna_consensus_vcf,
