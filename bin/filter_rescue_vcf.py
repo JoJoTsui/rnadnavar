@@ -11,6 +11,11 @@ import sys
 from pathlib import Path
 from cyvcf2 import VCF, Writer
 
+# Import filter normalization functions
+import os
+sys.path.insert(0, os.path.dirname(__file__))
+from vcf_utils.filters import normalize_filter, categorize_filter
+
 
 def argparser():
     """Parse command-line arguments."""
@@ -123,13 +128,14 @@ def determine_final_variant_type(dna_type, rna_type, dna_consensus, rna_consensu
         return dna_type if dna_type else rna_type
 
 
-def parse_modality_filters(filters_str, modality):
+def parse_modality_filters(filters_str, modality, normalize=True):
     """
     Parse filter string and extract filters for specific modality.
     
     Args:
         filters_str: Filter string in format "DNA_caller:filter|RNA_caller:filter|..."
         modality: 'DNA' or 'RNA'
+        normalize: If True, normalize filter values using filter normalization logic
     
     Returns:
         list: List of filter values for the specified modality
@@ -142,6 +148,9 @@ def parse_modality_filters(filters_str, modality):
         if ':' in item:
             caller_part, filter_val = item.split(':', 1)
             if caller_part.startswith(f'{modality}_'):
+                # Normalize filter if requested
+                if normalize:
+                    filter_val = normalize_filter(filter_val)
                 filters.append(filter_val)
     
     return filters
@@ -209,11 +218,12 @@ def main():
         passes_consensus_rna = variant.INFO.get('PASSES_CONSENSUS_RNA', 'NO') == 'YES'
         
         # Parse modality-specific filters
-        dna_filters_normalized = parse_modality_filters(filters_normalized, 'DNA')
-        rna_filters_normalized = parse_modality_filters(filters_normalized, 'RNA')
+        # Note: FILTERS_NORMALIZED should already be normalized, but we normalize again to be safe
+        dna_filters_normalized = parse_modality_filters(filters_normalized, 'DNA', normalize=True)
+        rna_filters_normalized = parse_modality_filters(filters_normalized, 'RNA', normalize=True)
         
-        dna_filters_category = parse_modality_filters(filters_category, 'DNA')
-        rna_filters_category = parse_modality_filters(filters_category, 'RNA')
+        dna_filters_category = parse_modality_filters(filters_category, 'DNA', normalize=False)
+        rna_filters_category = parse_modality_filters(filters_category, 'RNA', normalize=False)
         
         # Determine modality-specific variant types
         dna_type = determine_modality_variant_type(
@@ -241,12 +251,8 @@ def main():
         
         # Update FILTER column based on final type
         if final_type:
-            if final_type == 'SOMATIC':
-                # SOMATIC variants pass - set to empty list (PASS)
-                variant.FILTER = []
-            else:
-                # Add appropriate filter
-                variant.FILTER = [final_type]
+            # Always output the final type explicitly
+            variant.FILTER = [final_type]
         
         # Write variant
         vcf_out.write_record(variant)
