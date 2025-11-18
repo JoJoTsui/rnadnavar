@@ -78,17 +78,14 @@ workflow VCF_CONSENSUS_WORKFLOW {
                 rna_caller_vcfs
             )
             
-            // Use rescue results as final consensus
+            // Keep rescue results separate from consensus
             consensus_vcf_rescue = VCF_RESCUE_WORKFLOW.out.vcf
             versions = versions.mix(VCF_RESCUE_WORKFLOW.out.versions)
-            
-            // Optionally replace consensus with rescue results
-            // For now, emit both - users can choose which to use downstream
-            consensus_vcf = consensus_vcf.mix(consensus_vcf_rescue)
         }
     }
 
     emit:
-    vcf      = consensus_vcf        // channel: [ [meta], vcf, tbi ]
-    versions = versions             // channel: [ versions.yml ]
+    vcf        = consensus_vcf        // channel: [ [meta], vcf, tbi ]
+    vcf_rescue = consensus_vcf_rescue // channel: [ [meta], vcf, tbi ] - rescued VCFs only
+    versions   = versions             // channel: [ versions.yml ]
 }

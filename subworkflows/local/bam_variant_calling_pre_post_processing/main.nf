@@ -17,6 +17,7 @@ include { VCF_CONSENSUS_WORKFLOW                          } from '../vcf_consens
 // Filtering
 include { MAF_FILTERING                                   } from '../maf_filtering/main'
 include { VCF_FILTERING                                   } from '../vcf_filtering/main'
+include { VCF_RESCUE_FILTERING                            } from '../vcf_rescue_filtering/main'
 
 
 workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
@@ -148,11 +149,13 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     // STEP 6B: VCF CONSENSUS WORKFLOW (standalone VCF branch)
     VCF_CONSENSUS_WORKFLOW(vcf_annotated, input_sample, realignment)
     vcf_consensus = VCF_CONSENSUS_WORKFLOW.out.vcf
+    vcf_rescue = VCF_CONSENSUS_WORKFLOW.out.vcf_rescue
     versions = versions.mix(VCF_CONSENSUS_WORKFLOW.out.versions)
     
     vcf_consensus.dump(tag:"vcf_consensus0")
+    vcf_rescue.dump(tag:"vcf_rescue0")
     
-    // STEP 7: FILTERING (parallel MAF and VCF filtering)
+    // STEP 7: FILTERING (parallel MAF, VCF, and Rescue VCF filtering)
     MAF_FILTERING(maf_to_filter, fasta, input_sample, realignment)
     filtered_maf = MAF_FILTERING.out.maf
     versions     = versions.mix(MAF_FILTERING.out.versions)
@@ -160,6 +163,14 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     VCF_FILTERING(vcf_consensus, fasta, input_sample, realignment)
     filtered_vcf = VCF_FILTERING.out.vcf
     versions     = versions.mix(VCF_FILTERING.out.versions)
+    
+    // Rescue VCF filtering (only if rescue workflow was run)
+    filtered_rescue_vcf = Channel.empty()
+    if (params.tools && params.tools.split(',').contains('rescue')) {
+        VCF_RESCUE_FILTERING(vcf_rescue)
+        filtered_rescue_vcf = VCF_RESCUE_FILTERING.out.vcf
+        versions = versions.mix(VCF_RESCUE_FILTERING.out.versions)
+    }
 
 
     emit:
@@ -168,6 +179,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     cram_variant_calling        = cram_variant_calling
     maf                         = filtered_maf
     vcf                         = filtered_vcf
+    vcf_rescue                  = filtered_rescue_vcf
     versions                    = versions  // channel: [ versions.yml ]
     reports                     = reports
 }
