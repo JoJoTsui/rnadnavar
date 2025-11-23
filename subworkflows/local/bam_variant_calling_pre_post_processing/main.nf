@@ -11,7 +11,7 @@ include { VCF_NORMALIZE                                   } from '../vcf_normali
 // Annotation
 include { VCF_ANNOTATE                                    } from '../vcf_annotate/main'
 // Consensus
-include { VCF_CONSENSUS                                   } from '../vcf_consensus/main'
+include { VCF_CONSENSUS as MAF_CONSENSUS                  } from '../vcf_consensus/main'
 // VCF Consensus Workflow (standalone)
 include { VCF_CONSENSUS_WORKFLOW                          } from '../vcf_consensus_workflow/main'
 // Filtering
@@ -130,7 +130,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     vcf_annotated.dump(tag:"vcf_annotated0")
     
     // STEP 6: CONSENSUS (MAF-based)
-    VCF_CONSENSUS (
+    MAF_CONSENSUS (
             vcf_to_consensus,
             fasta,
             dna_consensus_maf, // null when first pass
@@ -139,10 +139,10 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
             realignment
             )
 
-    dna_consensus_maf             = VCF_CONSENSUS.out.maf_consensus_dna
-    dna_varcall_mafs              = VCF_CONSENSUS.out.mafs_dna
-    maf_to_filter                 = VCF_CONSENSUS.out.maf
-    versions                      = versions.mix(VCF_CONSENSUS.out.versions)
+    dna_consensus_maf             = MAF_CONSENSUS.out.maf_consensus_dna
+    dna_varcall_mafs              = MAF_CONSENSUS.out.mafs_dna
+    maf_to_filter                 = MAF_CONSENSUS.out.maf
+    versions                      = versions.mix(MAF_CONSENSUS.out.versions)
 
     maf_to_filter.dump(tag:"maf_to_filter0")
     
