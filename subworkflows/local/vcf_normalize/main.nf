@@ -5,7 +5,7 @@
 // A when clause condition is defined in the conf/modules.config to determine if the module should be run
 // VT steps
 include { VT_DECOMPOSE                        } from '../../../modules/nf-core/vt/decompose/main'
-include { BCFTOOLS_NORM                        } from '../../../modules/nf-core/bcftools/norm/main'
+include { BCFTOOLS_NORM                       } from '../../../modules/nf-core/bcftools/norm/main'
 // include { VT_NORMALIZE                        } from '../../../modules/nf-core/vt/normalize/main'
 // Create samplesheet to restart from different steps
 include { CHANNEL_VARIANT_CALLING_CREATE_CSV  } from '../channel_variant_calling_create_csv/main'
@@ -38,23 +38,24 @@ workflow VCF_NORMALIZE {
         vcf_decomposed = vcf_decomposed.mix(VT_DECOMPOSE.out.vcf)
         version = version.mix(VT_DECOMPOSE.out.versions.first())
 
-        // Normalise variants
+        // Normalize variants
         vcf_decomposed = vcf_decomposed.map{meta,vcf -> [meta, vcf, []]} // tbi not necessary
         // VT_NORMALIZE(vcf_decomposed,
         //             fasta, fasta_fai) // fai not necessary?
         BCFTOOLS_NORM(vcf_decomposed, fasta)
 
-        vcf_to_consensus = BCFTOOLS_NORM.out.vcf
+        vcf_normalized = BCFTOOLS_NORM.out.vcf.join(BCFTOOLS_NORM.out.tbi, failOnDuplicate: true, failOnMismatch: true)
+        vcf_normalized = vcf_normalized.map{meta, vcf_file, tbi -> [ meta + [ file_name: vcf_file.fileName,  data_type: "vcf" ], vcf_file, tbi ] }
         version = version.mix(BCFTOOLS_NORM.out.versions.first())
 
-        CHANNEL_VARIANT_CALLING_CREATE_CSV(vcf_to_consensus, "normalized")
+        CHANNEL_VARIANT_CALLING_CREATE_CSV(vcf_normalized.map{meta, vcf_file, _tbi -> [meta, vcf_file]}, "normalized")
 
     } else {
-        vcf_to_consensus = vcf_to_normalize
+        vcf_normalized = vcf_to_normalize
     }
 
     emit:
-    vcf         = vcf_to_consensus // channel: [ [meta], vcf ]
+    vcf         = vcf_normalized // channel: [ [meta], vcf ]
     versions    = version // channel: [ versions.yml ]
 
 }
