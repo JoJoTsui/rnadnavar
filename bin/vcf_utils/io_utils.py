@@ -292,8 +292,10 @@ def create_output_header(template_header, sample_name, include_rescue_fields=Fal
     add_info_safe(new_header, 'CALLERS_SUPPORT', '.', 'String', 'Variant callers that detected this variant with modality prefix (pipe-separated, excludes consensus)')
     add_info_safe(new_header, 'N_CONSENSUS_SUPPORT', '1', 'Integer', 'Number of consensus callers that detected this variant')
     add_info_safe(new_header, 'CONSENSUS_SUPPORT', '.', 'String', 'Consensus callers that detected this variant with modality prefix (pipe-separated)')
-    add_info_safe(new_header, 'N_DNA_CALLERS', '1', 'Integer', 'Number of DNA variant callers')
-    add_info_safe(new_header, 'N_RNA_CALLERS', '1', 'Integer', 'Number of RNA variant callers')
+    add_info_safe(new_header, 'N_DNA_CALLERS', '1', 'Integer', 'Total number of DNA variant callers used in analysis')
+    add_info_safe(new_header, 'N_RNA_CALLERS', '1', 'Integer', 'Total number of RNA variant callers used in analysis')
+    add_info_safe(new_header, 'N_DNA_CALLERS_SUPPORT', '1', 'Integer', 'Number of DNA callers that detected this variant')
+    add_info_safe(new_header, 'N_RNA_CALLERS_SUPPORT', '1', 'Integer', 'Number of RNA callers that detected this variant')
     add_info_safe(new_header, 'FILTERS_ORIGINAL', '.', 'String', 'Original filter values from each caller with modality prefix (format: MODALITY_caller:filter|..., excludes consensus)')
     add_info_safe(new_header, 'FILTERS_NORMALIZED', '.', 'String', 'Normalized filter categories with modality prefix (format: MODALITY_caller:filter|..., excludes consensus)')
     add_info_safe(new_header, 'FILTERS_CATEGORY', '.', 'String', 'Filter categories with modality prefix (format: MODALITY_caller:category|..., excludes consensus)')
@@ -524,12 +526,18 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
             record.info['CONSENSUS_SUPPORT'] = '|'.join(prefixed_consensus_callers)
         
         # Add DNA/RNA caller counts if modality_map is provided
-        # Count from actual callers that detected THIS variant, not just all_callers
         if modality_map:
-            dna_callers_count = sum(1 for c in actual_callers_in_variant if modality_map.get(c) == 'DNA')
-            rna_callers_count = sum(1 for c in actual_callers_in_variant if modality_map.get(c) == 'RNA')
-            record.info['N_DNA_CALLERS'] = dna_callers_count
-            record.info['N_RNA_CALLERS'] = rna_callers_count
+            # Total number of DNA/RNA callers used in analysis (fixed)
+            total_dna_callers = sum(1 for c in all_callers if modality_map.get(c) == 'DNA')
+            total_rna_callers = sum(1 for c in all_callers if modality_map.get(c) == 'RNA')
+            record.info['N_DNA_CALLERS'] = total_dna_callers
+            record.info['N_RNA_CALLERS'] = total_rna_callers
+            
+            # Number of DNA/RNA callers that detected THIS variant
+            dna_callers_support = sum(1 for c in actual_callers_in_variant if modality_map.get(c) == 'DNA')
+            rna_callers_support = sum(1 for c in actual_callers_in_variant if modality_map.get(c) == 'RNA')
+            record.info['N_DNA_CALLERS_SUPPORT'] = dna_callers_support
+            record.info['N_RNA_CALLERS_SUPPORT'] = rna_callers_support
         
         # Prefix filter fields with caller names (with modality prefix) - EXCLUDE consensus
         # Note: Replace semicolons in filter values with commas to avoid VCF parsing issues
