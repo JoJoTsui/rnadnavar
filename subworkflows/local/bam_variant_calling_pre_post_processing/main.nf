@@ -108,13 +108,13 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
                     realignment
                     )
     versions                      = versions.mix(VCF_NORMALIZE.out.versions)
-    vcf_to_annotate               = VCF_NORMALIZE.out.vcf
+    vcf_normalized                = VCF_NORMALIZE.out.vcf // channel: [ [meta], vcf, tbi ]
+    vcf_normalized.dump(tag:"vcf_normalized")
 
-    vcf_to_annotate.dump(tag:"vcf_to_annotate")
+
     // ANNOTATION
-
     VCF_ANNOTATE(
-                vcf_to_annotate.map{meta, vcf -> [ meta + [ file_name: vcf.baseName ], vcf ] },
+                vcf_normalized.map{ meta, vcf, tbi -> [ meta + [ file_name: vcf.baseName ], vcf, [tbi] ] }, // channel: [ [meta], vcf, [tbi] ]
                 fasta,
                 input_sample,
                 realignment,
@@ -147,7 +147,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     maf_to_filter.dump(tag:"maf_to_filter0")
     
     // STEP 6B: VCF CONSENSUS WORKFLOW (standalone VCF branch)
-    VCF_CONSENSUS_WORKFLOW(vcf_annotated, input_sample, realignment)
+    VCF_CONSENSUS_WORKFLOW(vcf_normalized, input_sample, realignment)
     vcf_consensus = VCF_CONSENSUS_WORKFLOW.out.vcf
     vcf_rescue = VCF_CONSENSUS_WORKFLOW.out.vcf_rescue
     versions = versions.mix(VCF_CONSENSUS_WORKFLOW.out.versions)

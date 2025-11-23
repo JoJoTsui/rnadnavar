@@ -29,17 +29,35 @@ workflow VCF_CONSENSUS_WORKFLOW {
         } else {
             tools_list = params.tools.split(',').findAll { it in ['sage', 'strelka', 'mutect2', 'deepsomatic'] }
         }
-        
-        // Group VCFs by sample for consensus
-        vcf_grouped = vcf_annotated.map { meta, vcf, tbi ->
-                                def key = meta.subMap('id', 'patient', 'status')
-                                [key, vcf, tbi, meta.variantcaller]
-                            }.map { meta, vcf, tbi, variantcaller ->
-                                def ncallers = tools_list.unique().size()
-                                def key = groupKey(meta + [ncallers: ncallers], ncallers)
-                                [key, vcf, tbi, variantcaller]
-                            }.groupTuple()
-        
+
+
+        // Precompute expected caller count once
+        def ncallers_expected = tools_list.unique().size()
+
+        // Align grouping pattern with MAF consensus: two maps then groupTuple
+        vcf_grouped = vcf_annotated
+            .map { meta, vcf, tbi ->
+                // Normalize tbi: some upstream code may wrap tbi in a singleton list
+                def tbiFile = (tbi instanceof List && tbi.size()==1) ? tbi[0] : tbi
+                // Reduce meta to essential fields and tag data_type
+                def metaReduced = meta.subMap('id','patient','status') + [data_type:'vcf']
+                [ metaReduced, vcf, tbiFile, (meta.variantcaller ?: 'unknown') ]
+            }
+            .map { metaReduced, vcf, tbiFile, variantcaller ->
+                def key = groupKey(metaReduced.subMap('id','patient','status') + [ncallers: ncallers_expected], ncallers_expected)
+                [ key, vcf, tbiFile, variantcaller ]
+            }
+            .groupTuple() // [metaGrouped, [vcf...], [tbi...], [caller...]]
+            .map { metaGrouped, vcfs, tbis, callers ->
+                // Minimal mismatch notice; avoid verbose logging in production
+                if (metaGrouped.ncallers != callers.size()) {
+                    metaGrouped.ncallers_expected = metaGrouped.ncallers
+                    metaGrouped.ncallers = callers.size()
+                    println "[CONSENSUS WARN] Caller count mismatch id=${metaGrouped.id} expected=${metaGrouped.ncallers_expected} actual=${metaGrouped.ncallers}" 
+                }
+                [ metaGrouped, vcfs, tbis, callers ]
+            }
+
         vcf_grouped.dump(tag:"vcf_grouped_for_consensus")
         
         // Run consensus
