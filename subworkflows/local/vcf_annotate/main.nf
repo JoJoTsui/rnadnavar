@@ -44,8 +44,7 @@ workflow VCF_ANNOTATE {
                 vep_extra_files.add(file(params.spliceai_snv_tbi, checkIfExists: true))
             }
 
-            vcf_for_vep = vcf.map{ meta, vcf_file -> [ meta, vcf_file, [] ] }
-            VCF_ANNOTATE_ENSEMBLVEP(vcf_for_vep, fasta, vep_genome, vep_species, vep_cache_version, vep_cache, vep_extra_files)
+            VCF_ANNOTATE_ENSEMBLVEP(vcf, fasta, vep_genome, vep_species, vep_cache_version, vep_cache, vep_extra_files)
 
             reports  = reports.mix(VCF_ANNOTATE_ENSEMBLVEP.out.reports)
             vcf_ann  = vcf_ann.mix(VCF_ANNOTATE_ENSEMBLVEP.out.vcf_tbi).map{meta, vcf_file, tbi -> [meta +[data_type:"vcf"], vcf_file, tbi]}
