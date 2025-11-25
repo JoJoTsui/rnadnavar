@@ -407,14 +407,16 @@ def aggregate_genotypes(genotypes_by_caller, callers_order):
 
 
 def read_variants_from_vcf(vcf_path, caller_name, modality=None, 
-                          exclude_refcall=False, exclude_germline=False):
+                          exclude_refcall=False, exclude_germline=False,
+                          classify_variants=True):
     """
-    Read variants from a single VCF file.
+    Read variants from a single VCF file with biological classification.
     
     This function reads all variants from a VCF file and extracts relevant
     information including position, alleles, filters, quality, and genotype
     data. It supports optional filtering to exclude reference calls and
     germline variants, and can tag variants with modality information.
+    Additionally, it classifies variants into biological categories.
     
     Args:
         vcf_path (str): Path to VCF file (can be .vcf, .vcf.gz, or .bcf)
@@ -425,6 +427,9 @@ def read_variants_from_vcf(vcf_path, caller_name, modality=None,
             in the FILTER field. Useful for DeepSomatic output. Default: False
         exclude_germline (bool, optional): If True, exclude variants with 'GERMLINE'
             in the FILTER field. Default: False
+        classify_variants (bool, optional): If True, classify variants into
+            biological categories (Somatic, Germline, Reference, Artifact).
+            Default: True
     
     Returns:
         dict: Dictionary mapping variant_key to variant_data. Each variant_data
@@ -437,8 +442,9 @@ def read_variants_from_vcf(vcf_path, caller_name, modality=None,
             - caller (str): Caller name
             - modality (str, optional): Modality tag (only if modality arg provided)
             - filter_original (str): Original FILTER field value
-            - filter_normalized (str): Normalized filter string
+            - filter_normalized (str): Normalized filter string (unified)
             - filter_category (str): Filter category
+            - classification (str): Biological classification (if classify_variants=True)
             - quality (float or None): QUAL score
             - genotype (dict): Genotype information from extract_genotype_info()
             - id (str or None): Variant ID from ID field
@@ -448,9 +454,11 @@ def read_variants_from_vcf(vcf_path, caller_name, modality=None,
           unique identifiers in format: "chrom:pos:ref:alt"
         - Filter normalization and categorization use functions from vcf_utils.filters
         - Genotype extraction uses extract_genotype_info() with caller-specific handling
+        - Classification uses vcf_utils.classification module for unified categorization
+        - Filter values are unified: PASS, GERMLINE, RefCall, LowQuality
     
     Example:
-        >>> # Read DNA variants from Mutect2
+        >>> # Read DNA variants from Mutect2 with classification
         >>> dna_vars = read_variants_from_vcf('mutect2.vcf.gz', 'mutect2', 
         ...                                    modality='DNA', exclude_germline=True)
         >>> print(f"Read {len(dna_vars)} DNA variants from Mutect2")
@@ -458,17 +466,30 @@ def read_variants_from_vcf(vcf_path, caller_name, modality=None,
         >>> # Read RNA variants from Strelka
         >>> rna_vars = read_variants_from_vcf('strelka.vcf.gz', 'strelka', modality='RNA')
         >>> 
-        >>> # Access variant data
+        >>> # Access variant data with classification
         >>> for vkey, data in list(dna_vars.items())[:3]:
-        ...     print(f"{vkey}: {data['filter_original']} -> {data['filter_normalized']}")
+        ...     print(f"{vkey}: {data['classification']} -> {data['filter_normalized']}")
     """
     from cyvcf2 import VCF
     from vcf_utils.io_utils import variant_key, is_snv
     from vcf_utils.filters import normalize_filter, categorize_filter
     
+    # Import classification functions if needed
+    if classify_variants:
+        from vcf_utils.classification import (
+            classify_variant_from_record,
+            get_sample_indices,
+            normalize_filter_value
+        )
+    
     variants = {}
     
     vcf = VCF(vcf_path)
+    
+    # Get sample indices for classification (needed for Strelka)
+    sample_indices = None
+    if classify_variants:
+        sample_indices = get_sample_indices(vcf, caller_name)
     
     for variant in vcf:
         # Get filter and check exclusions
@@ -481,6 +502,14 @@ def read_variants_from_vcf(vcf_path, caller_name, modality=None,
         
         vkey = variant_key(variant, use_cyvcf2=True)
         
+        # Classify variant before creating data dict
+        classification = None
+        if classify_variants:
+            try:
+                classification = classify_variant_from_record(variant, caller_name, sample_indices)
+            except Exception as e:
+                classification = "Artifact"
+        
         # Create variant data
         data = {
             'CHROM': variant.CHROM,
@@ -490,13 +519,17 @@ def read_variants_from_vcf(vcf_path, caller_name, modality=None,
             'is_snv': is_snv(variant.REF, variant.ALT),
             'caller': caller_name,
             'filter_original': filter_str,
-            'filter_normalized': normalize_filter(filter_str),
+            'filter_normalized': normalize_filter_value(classification) if classification else normalize_filter(filter_str),
             'quality': float(variant.QUAL) if variant.QUAL is not None else None,
             'genotype': extract_genotype_info(variant, caller_name),
             'id': variant.ID if variant.ID else None,
         }
         
-        # Add filter category
+        # Add classification
+        if classification:
+            data['classification'] = classification
+        
+        # Add filter category based on normalized (unified) filter
         data['filter_category'] = categorize_filter(data['filter_normalized'])
         
         # Add modality if provided

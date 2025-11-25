@@ -346,19 +346,28 @@ def create_output_header(template_header, sample_name, include_rescue_fields=Fal
         add_info_safe(new_header, 'VAF_DNA_MEAN', '1', 'Float', 'Mean VAF across DNA callers')
         add_info_safe(new_header, 'VAF_RNA_MEAN', '1', 'Float', 'Mean VAF across RNA callers')
     
+    # Add classification INFO fields
+    add_info_safe(new_header, 'VC', '1', 'String', 'Variant Classification: Somatic, Germline, Reference, or Artifact')
+    add_info_safe(new_header, 'VC_CALLERS', '.', 'String', 'Classification by each caller (format: caller:classification|...)')
+    add_info_safe(new_header, 'VC_CONSENSUS', '1', 'String', 'Consensus biological classification across callers')
+    
     # Add sample
     if (sample_name if sample_name else 'SAMPLE') not in new_header.samples:
         new_header.add_sample(sample_name if sample_name else 'SAMPLE')
     
-    # Add unified filter categories
-    add_filter_safe(new_header, 'LowQuality', None, None, 'Low quality or evidence score')
+    # Add unified FILTER categories (standardized across all callers)
+    # These are the canonical FILTER values used after classification
+    add_filter_safe(new_header, 'PASS', None, None, 'All filters passed - high-confidence somatic variant')
+    add_filter_safe(new_header, 'GERMLINE', None, None, 'Variant detected in normal sample - likely germline')
+    add_filter_safe(new_header, 'RefCall', None, None, 'Reference call - no variant detected')
+    add_filter_safe(new_header, 'LowQuality', None, None, 'Low quality variant - failed quality filters')
+    
+    # Legacy/additional filter categories (for backwards compatibility)
     add_filter_safe(new_header, 'LowDepth', None, None, 'Low sequencing depth')
     add_filter_safe(new_header, 'StrandBias', None, None, 'Strand bias detected')
-    add_filter_safe(new_header, 'Germline', None, None, 'Likely germline variant')
-    add_filter_safe(new_header, 'Artifact', None, None, 'Likely artifact or present in normal')
+    add_filter_safe(new_header, 'Artifact', None, None, 'Likely artifact')
     add_filter_safe(new_header, 'NoConsensus', None, None, 'Does not meet consensus threshold')
-    add_filter_safe(new_header, 'LowEvidenceScore', None, None, 'Low empirical variant score (Strelka EVS)')
-    add_filter_safe(new_header, 'ReferenceCall', None, None, 'Called as reference (DeepSomatic RefCall)')
+    add_filter_safe(new_header, 'LowEvidenceScore', None, None, 'Low empirical variant score')
     
     return new_header
 
