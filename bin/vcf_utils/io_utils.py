@@ -355,19 +355,15 @@ def create_output_header(template_header, sample_name, include_rescue_fields=Fal
     if (sample_name if sample_name else 'SAMPLE') not in new_header.samples:
         new_header.add_sample(sample_name if sample_name else 'SAMPLE')
     
-    # Add unified FILTER categories (standardized across all callers)
-    # These are the canonical FILTER values used after classification
-    add_filter_safe(new_header, 'PASS', None, None, 'All filters passed - high-confidence somatic variant')
-    add_filter_safe(new_header, 'GERMLINE', None, None, 'Variant detected in normal sample - likely germline')
-    add_filter_safe(new_header, 'RefCall', None, None, 'Reference call - no variant detected')
-    add_filter_safe(new_header, 'LowQuality', None, None, 'Low quality variant - failed quality filters')
+    # Add biological category FILTER values (standardized classification)
+    # These are the canonical FILTER values based on variant classification
+    add_filter_safe(new_header, 'Somatic', None, None, 'High-confidence somatic variant specific to tumor')
+    add_filter_safe(new_header, 'Germline', None, None, 'Germline variant detected in normal sample')
+    add_filter_safe(new_header, 'Reference', None, None, 'Reference call - no variant detected')
+    add_filter_safe(new_header, 'Artifact', None, None, 'Low quality variant or technical artifact')
     
-    # Legacy/additional filter categories (for backwards compatibility)
-    add_filter_safe(new_header, 'LowDepth', None, None, 'Low sequencing depth')
-    add_filter_safe(new_header, 'StrandBias', None, None, 'Strand bias detected')
-    add_filter_safe(new_header, 'Artifact', None, None, 'Likely artifact')
-    add_filter_safe(new_header, 'NoConsensus', None, None, 'Does not meet consensus threshold')
-    add_filter_safe(new_header, 'LowEvidenceScore', None, None, 'Low empirical variant score')
+    # Additional filter for consensus threshold
+    add_filter_safe(new_header, 'NoConsensus', None, None, 'Does not meet consensus threshold (overrides classification)')
     
     return new_header
 
@@ -571,52 +567,73 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
         record.info['FILTERS_NORMALIZED'] = '|'.join(prefixed_filters_normalized) if prefixed_filters_normalized else '.'
         record.info['FILTERS_CATEGORY'] = '|'.join(prefixed_filters_category) if prefixed_filters_category else '.'
         
-        # Determine unified filter (majority vote on categories) - EXCLUDE consensus
+        # Determine unified biological classification (majority vote) - EXCLUDE consensus
         actual_filters_normalized = [data['filters_normalized'][i] for i, c in enumerate(data['callers']) if not is_consensus_caller(c)]
-        actual_filters_category = [data['filters_category'][i] for i, c in enumerate(data['callers']) if not is_consensus_caller(c)]
         
-        pass_count = sum(1 for f in actual_filters_normalized if f == 'PASS')
-        n_actual_callers = len(actual_callers_in_variant)
-        
-        if n_actual_callers > 0 and pass_count >= n_actual_callers / 2:
-            record.info['UNIFIED_FILTER'] = 'PASS'
+        # Compute unified classification using majority vote
+        if actual_filters_normalized:
+            classification_counts = Counter(actual_filters_normalized)
+            max_count = max(classification_counts.values())
+            most_common = [cls for cls, count in classification_counts.items() if count == max_count]
+            
+            # Break ties using priority: Somatic > Germline > Reference > Artifact
+            priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
+            unified_classification = most_common[0]  # default
+            for cls in priority:
+                if cls in most_common:
+                    unified_classification = cls
+                    break
+            
+            record.info['UNIFIED_FILTER'] = unified_classification
+            
+            # Set record FILTER field to unified classification
+            record.filter.clear()
+            record.filter.add(unified_classification)
         else:
-            record.info['UNIFIED_FILTER'] = 'FAIL'
-            # Find most common category
-            non_pass_cats = [c for c in actual_filters_category if c != 'PASS']
-            if non_pass_cats:
-                most_common_cat = Counter(non_pass_cats).most_common(1)[0][0]
-                # Map category to filter
-                if 'quality' in most_common_cat:
-                    record.filter.add('LowQuality')
-                elif 'depth' in most_common_cat:
-                    record.filter.add('LowDepth')
-                elif 'bias' in most_common_cat:
-                    record.filter.add('StrandBias')
-                elif 'germline' in most_common_cat:
-                    record.filter.add('Germline')
-                elif 'artifact' in most_common_cat:
-                    record.filter.add('Artifact')
+            # No actual callers (only consensus) - default to Artifact
+            record.info['UNIFIED_FILTER'] = 'Artifact'
+            record.filter.clear()
+            record.filter.add('Artifact')
         
-        # Compute modality-specific unified filters if modality_map provided
+        # Compute modality-specific unified biological classifications if modality_map provided
         if modality_map:
-            # DNA unified filter
+            # DNA unified classification
             dna_filters = [data['filters_normalized'][i] for i, c in enumerate(data['callers']) 
                           if not is_consensus_caller(c) and modality_map.get(c) == 'DNA']
             if dna_filters:
-                dna_pass_count = sum(1 for f in dna_filters if f == 'PASS')
-                record.info['UNIFIED_FILTER_DNA'] = 'PASS' if dna_pass_count >= len(dna_filters) / 2 else 'FAIL'
+                dna_counts = Counter(dna_filters)
+                dna_max_count = max(dna_counts.values())
+                dna_most_common = [cls for cls, count in dna_counts.items() if count == dna_max_count]
+                # Priority: Somatic > Germline > Reference > Artifact
+                priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
+                dna_unified = dna_most_common[0]
+                for cls in priority:
+                    if cls in dna_most_common:
+                        dna_unified = cls
+                        break
+                record.info['UNIFIED_FILTER_DNA'] = dna_unified
             
-            # RNA unified filter
+            # RNA unified classification
             rna_filters = [data['filters_normalized'][i] for i, c in enumerate(data['callers']) 
                           if not is_consensus_caller(c) and modality_map.get(c) == 'RNA']
             if rna_filters:
-                rna_pass_count = sum(1 for f in rna_filters if f == 'PASS')
-                record.info['UNIFIED_FILTER_RNA'] = 'PASS' if rna_pass_count >= len(rna_filters) / 2 else 'FAIL'
+                rna_counts = Counter(rna_filters)
+                rna_max_count = max(rna_counts.values())
+                rna_most_common = [cls for cls, count in rna_counts.items() if count == rna_max_count]
+                # Priority: Somatic > Germline > Reference > Artifact
+                priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
+                rna_unified = rna_most_common[0]
+                for cls in priority:
+                    if cls in rna_most_common:
+                        rna_unified = cls
+                        break
+                record.info['UNIFIED_FILTER_RNA'] = rna_unified
         
-        # Add consensus flag
+        # Add consensus flag and override FILTER if needed
         record.info['PASSES_CONSENSUS'] = 'YES' if data['passes_consensus'] else 'NO'
         if not data['passes_consensus']:
+            # Override FILTER with NoConsensus if variant doesn't meet threshold
+            record.filter.clear()
             record.filter.add('NoConsensus')
         
         # Add modality-specific consensus flags if modality_map provided

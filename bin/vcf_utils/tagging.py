@@ -155,54 +155,43 @@ def mark_rescued_variants(variant_data, dna_variants, rna_variants):
 
 def compute_unified_filter(variant_data):
     """
-    Compute unified filter status from multiple callers.
+    Compute unified biological classification from multiple callers.
     
-    This function determines the overall filter status for a variant based
-    on the filter values from all supporting callers. It uses a majority
-    vote approach: if at least half of the callers report PASS, the unified
-    filter is PASS; otherwise, it's FAIL with the most common failure category.
+    This function determines the consensus biological classification for a variant
+    based on classifications from all supporting callers. It uses a majority vote
+    approach to select the most common classification across callers.
+    
+    Priority order when tied: Somatic > Germline > Reference > Artifact
     
     Args:
         variant_data: Variant data dict containing:
-            - 'filters_normalized': List of normalized filter strings
-            - 'filters_category': List of filter categories
+            - 'filters_normalized': List of biological classifications (Somatic/Germline/Reference/Artifact)
             - 'callers': List of supporting callers
     
     Returns:
-        tuple: (unified_filter_status, filter_tags)
-            - unified_filter_status: 'PASS' or 'FAIL'
-            - filter_tags: List of filter tag strings to add to FILTER column
+        str: Unified biological classification (Somatic/Germline/Reference/Artifact)
     """
     filters_normalized = variant_data.get('filters_normalized', [])
-    filters_category = variant_data.get('filters_category', [])
-    n_support_callers = len(set(variant_data.get('callers', [])))
     
-    # Count PASS filters
-    pass_count = sum(1 for f in filters_normalized if f == 'PASS')
+    if not filters_normalized:
+        return 'Artifact'  # Default for variants with no classification
     
-    # Majority vote: if at least half pass, unified filter is PASS
-    if pass_count >= n_support_callers / 2:
-        return 'PASS', []
+    # Count each classification
+    classification_counts = Counter(filters_normalized)
     
-    # Otherwise, find most common failure category
-    non_pass_cats = [c for c in filters_category if c != 'PASS']
-    filter_tags = []
+    # Get most common classification(s)
+    max_count = max(classification_counts.values())
+    most_common = [cls for cls, count in classification_counts.items() if count == max_count]
     
-    if non_pass_cats:
-        most_common_cat = Counter(non_pass_cats).most_common(1)[0][0]
-        
-        # Map category to filter tag
-        if 'quality' in most_common_cat.lower():
-            filter_tags.append('LowQuality')
-        elif 'depth' in most_common_cat.lower():
-            filter_tags.append('LowDepth')
-        elif 'bias' in most_common_cat.lower():
-            filter_tags.append('StrandBias')
-        elif 'germline' in most_common_cat.lower():
-            filter_tags.append('Germline')
-        elif 'artifact' in most_common_cat.lower():
-            filter_tags.append('Artifact')
-        else:
-            filter_tags.append('LowQuality')  # Default fallback
+    # If single winner, return it
+    if len(most_common) == 1:
+        return most_common[0]
     
-    return 'FAIL', filter_tags
+    # Break ties using priority: Somatic > Germline > Reference > Artifact
+    priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
+    for cls in priority:
+        if cls in most_common:
+            return cls
+    
+    # Fallback (should never reach here)
+    return most_common[0]

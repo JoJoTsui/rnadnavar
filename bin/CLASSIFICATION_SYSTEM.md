@@ -15,14 +15,16 @@ All variants are classified into one of four biological categories:
 
 ## Unified FILTER Values
 
-Each classification maps to a standardized FILTER value:
+Each classification is used directly as the FILTER value:
 
 | Classification | FILTER Value | Description |
 |---------------|--------------|-------------|
-| Somatic | PASS | All filters passed - high-confidence somatic variant |
-| Germline | GERMLINE | Variant detected in normal sample - likely germline |
-| Reference | RefCall | Reference call - no variant detected |
-| Artifact | LowQuality | Low quality variant - failed quality filters |
+| Somatic | Somatic | High-confidence somatic variant specific to tumor |
+| Germline | Germline | Germline variant detected in normal sample |
+| Reference | Reference | Reference call - no variant detected |
+| Artifact | Artifact | Low quality variant or technical artifact |
+
+**Note**: The biological category names are used directly as FILTER values in the VCF output. The `normalize_filter_value()` function returns the classification itself without conversion.
 
 ## Caller-Specific Logic
 
@@ -73,8 +75,8 @@ Core classification module with all classification logic:
 
 **Helper Functions:**
 - `get_sample_indices(vcf_obj, caller_name)` - Identifies tumor/normal sample positions
-- `normalize_filter_value(classification)` - Maps classification to unified FILTER
-- `get_unified_filter_headers()` - Returns standardized FILTER definitions
+- `normalize_filter_value(classification)` - Returns the biological classification as-is (no conversion)
+- `get_unified_filter_headers()` - Returns biological category FILTER definitions
 - `get_classification_info_headers()` - Returns classification INFO field definitions
 
 ### `vcf_utils/aggregation.py`
@@ -169,14 +171,14 @@ Output includes counts for each classification category per caller.
 
 ### FILTER Values
 
-**Standardized Filters:**
-- `PASS`: High-confidence somatic variant (Classification: Somatic)
-- `GERMLINE`: Likely germline variant (Classification: Germline)
-- `RefCall`: Reference call (Classification: Reference)
-- `LowQuality`: Failed quality filters (Classification: Artifact)
+**Biological Category Filters:**
+- `Somatic`: High-confidence somatic variant specific to tumor
+- `Germline`: Germline variant detected in normal sample
+- `Reference`: Reference call - no variant detected
+- `Artifact`: Low quality variant or technical artifact
 
-**Legacy Filters (retained for compatibility):**
-- `LowDepth`, `StrandBias`, `Artifact`, `NoConsensus`, `LowEvidenceScore`
+**Additional Filters:**
+- `NoConsensus`: Does not meet consensus threshold (overrides classification)
 
 ## Testing
 
@@ -200,17 +202,17 @@ from vcf_utils.classification import (
 # Test Strelka classification
 classification = classify_strelka_variant('PASS', 'ref', None)
 unified_filter = normalize_filter_value(classification)
-print(f"Strelka: {classification} → {unified_filter}")
+print(f"Strelka: {classification} → {unified_filter}")  # Output: Somatic → Somatic
 
 # Test DeepSomatic classification
 classification = classify_deepsomatic_variant('PASS')
 unified_filter = normalize_filter_value(classification)
-print(f"DeepSomatic: {classification} → {unified_filter}")
+print(f"DeepSomatic: {classification} → {unified_filter}")  # Output: Somatic → Somatic
 
 # Test Mutect2 classification
 classification = classify_mutect2_variant('PASS')
 unified_filter = normalize_filter_value(classification)
-print(f"Mutect2: {classification} → {unified_filter}")
+print(f"Mutect2: {classification} → {unified_filter}")  # Output: Somatic → Somatic
 ```
 
 ### Integration Test

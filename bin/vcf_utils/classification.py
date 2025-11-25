@@ -241,49 +241,42 @@ def get_sample_indices(vcf_obj, caller_name=None):
 
 def normalize_filter_value(classification):
     """
-    Convert biological classification to standardized FILTER value.
+    Return the biological classification as the normalized filter value.
     
     Args:
         classification (str): One of ['Somatic', 'Germline', 'Reference', 'Artifact']
         
     Returns:
-        str: Standardized FILTER value ('PASS', 'GERMLINE', 'RefCall', or original)
+        str: The biological classification itself (Somatic/Germline/Reference/Artifact)
     """
-    if classification == "Somatic":
-        return "PASS"
-    elif classification == "Germline":
-        return "GERMLINE"
-    elif classification == "Reference":
-        return "RefCall"
-    elif classification == "Artifact":
-        return "LowQuality"
-    else:
-        return classification
+    # Return classification as-is - no conversion needed
+    # Valid values: Somatic, Germline, Reference, Artifact
+    return classification
 
 
 def get_unified_filter_headers():
     """
-    Get standardized FILTER header lines for unified VCF output.
+    Get biological category FILTER header lines for unified VCF output.
     
     Returns:
         list: List of FILTER header line dictionaries
     """
     return [
         {
-            'ID': 'PASS',
-            'Description': 'All filters passed - high-confidence somatic variant'
+            'ID': 'Somatic',
+            'Description': 'High-confidence somatic variant specific to tumor'
         },
         {
-            'ID': 'GERMLINE',
-            'Description': 'Variant detected in normal sample - likely germline'
+            'ID': 'Germline',
+            'Description': 'Germline variant detected in normal sample'
         },
         {
-            'ID': 'RefCall',
+            'ID': 'Reference',
             'Description': 'Reference call - no variant detected'
         },
         {
-            'ID': 'LowQuality',
-            'Description': 'Low quality variant - failed quality filters'
+            'ID': 'Artifact',
+            'Description': 'Low quality variant or technical artifact'
         }
     ]
 

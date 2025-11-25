@@ -529,8 +529,8 @@ def read_variants_from_vcf(vcf_path, caller_name, modality=None,
         if classification:
             data['classification'] = classification
         
-        # Add filter category based on normalized (unified) filter
-        data['filter_category'] = categorize_filter(data['filter_normalized'])
+        # Filter category is the same as normalized filter (both are biological categories)
+        data['filter_category'] = data['filter_normalized']
         
         # Add modality if provided
         if modality:
