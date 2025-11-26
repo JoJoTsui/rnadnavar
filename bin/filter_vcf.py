@@ -28,6 +28,8 @@ def argparser():
     parser.add_argument("--filters", help="Other filters to be considered as PASS", default=["PASS"], nargs="+")
     parser.add_argument("--ref", help="FASTA reference file to extract context")
     parser.add_argument("--min_alt_reads", help="Minimum alt reads", default=2, type=int)
+    parser.add_argument("--remove_mnp", help="Filter out multi-nucleotide polymorphisms (MNPs)", action="store_true")
+    parser.add_argument("--strip_format", help="Remove FORMAT column from output VCF", action="store_true")
     return parser.parse_args()
 
 
@@ -242,6 +244,11 @@ def apply_filters(vcf_in, args, genome):
             if normalized != 'PASS' and variant.FILTER not in args.filters:
                 filters.append("vc_filter")
         
+        # MNP filter (multi-nucleotide polymorphism)
+        if args.remove_mnp:
+            if len(ref) > 1 and len(alt) > 1:
+                filters.append("mnp")
+        
         # Store variant with filter info
         filter_status = "PASS" if not filters else "RaVeX_FILTER"
         filtered_variants.append((variant, filter_status, filters))
@@ -249,7 +256,7 @@ def apply_filters(vcf_in, args, genome):
     return filtered_variants
 
 
-def write_filtered_vcf(filtered_variants, input_vcf_path, output_path):
+def write_filtered_vcf(filtered_variants, input_vcf_path, output_path, strip_format=False):
     """Write filtered VCF using pysam for proper handling"""
     
     # Open input VCF with pysam to get header
@@ -257,6 +264,27 @@ def write_filtered_vcf(filtered_variants, input_vcf_path, output_path):
     
     # Create new header
     new_header = input_vcf.header.copy()
+    
+    # Strip FORMAT fields if requested
+    if strip_format:
+        # Remove all FORMAT definitions
+        for fmt_key in list(new_header.formats.keys()):
+            new_header.formats.remove_header(fmt_key)
+        # Remove all samples
+        for sample in list(new_header.samples):
+            new_header.samples.remove(sample)
+    
+    # Ensure biological classification FILTER fields are defined
+    classification_filters = {
+        'Somatic': 'Somatic variant',
+        'Germline': 'Germline variant',
+        'Reference': 'Reference/wildtype',
+        'Artifact': 'Artifact/technical error'
+    }
+    
+    for filt, description in classification_filters.items():
+        if filt not in new_header.filters:
+            new_header.filters.add(filt, None, None, description)
     
     # Add RaVeX filter definitions (check if they already exist)
     if 'RaVeX_FILTER' not in new_header.filters:
@@ -280,7 +308,8 @@ def write_filtered_vcf(filtered_variants, input_vcf_path, output_path):
         'ig_pseudo': 'Variant in immunoglobulin or pseudogene',
         'homopolymer': 'Variant in homopolymer region',
         'vc_filter': 'Variant failed variant caller filters',
-        'not_consensus': 'Variant not in consensus'
+        'not_consensus': 'Variant not in consensus',
+        'mnp': 'Multi-nucleotide polymorphism'
     }
     
     for flag, description in filter_flags.items():
@@ -347,8 +376,8 @@ def write_filtered_vcf(filtered_variants, input_vcf_path, output_path):
             except Exception:
                 pass
         
-        # Copy FORMAT and sample data (only if defined in header)
-        if record.format:
+        # Copy FORMAT and sample data (only if defined in header and not stripped)
+        if not strip_format and record.format:
             for fmt_key in record.format.keys():
                 # Skip if not in output header
                 if fmt_key not in new_header.formats:
@@ -362,11 +391,19 @@ def write_filtered_vcf(filtered_variants, input_vcf_path, output_path):
                 except Exception:
                     pass
         
-        # Set filter
+        # CRITICAL: Preserve original FILTER field (Somatic/Germline/Reference/Artifact)
+        # Copy original FILTER values from input record
+        if hasattr(record, 'filter') and record.filter:
+            # pysam represents FILTER as VariantRecordFilter object
+            for filt in record.filter:
+                if filt != 'PASS' and filt in new_header.filters:
+                    new_record.filter.add(filt)
+        
+        # Set RaVeX filter INFO tag (not FILTER field)
         if filter_status == "PASS":
             new_record.info['RaVeX_FILTER'] = "PASS"
         else:
-            new_record.filter.add('RaVeX_FILTER')
+            # Store filter reasons in INFO field only
             new_record.info['RaVeX_FILTER'] = ";".join(filter_list)
             # Also set individual filter flags
             for flag in filter_list:
@@ -397,7 +434,7 @@ def main():
         genome.close()
     
     # Write filtered VCF using pysam
-    write_filtered_vcf(filtered_variants, args.input, args.output)
+    write_filtered_vcf(filtered_variants, args.input, args.output, strip_format=args.strip_format)
     
     # Index output
     import subprocess
