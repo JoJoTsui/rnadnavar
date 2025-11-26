@@ -567,67 +567,110 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
         record.info['FILTERS_NORMALIZED'] = '|'.join(prefixed_filters_normalized) if prefixed_filters_normalized else '.'
         record.info['FILTERS_CATEGORY'] = '|'.join(prefixed_filters_category) if prefixed_filters_category else '.'
         
-        # Determine unified biological classification (majority vote) - EXCLUDE consensus
-        actual_filters_normalized = [data['filters_normalized'][i] for i, c in enumerate(data['callers']) if not is_consensus_caller(c)]
-        
-        # Compute unified classification using majority vote
-        if actual_filters_normalized:
-            classification_counts = Counter(actual_filters_normalized)
-            max_count = max(classification_counts.values())
-            most_common = [cls for cls, count in classification_counts.items() if count == max_count]
-            
-            # Break ties using priority: Somatic > Germline > Reference > Artifact
-            priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
-            unified_classification = most_common[0]  # default
-            for cls in priority:
-                if cls in most_common:
-                    unified_classification = cls
-                    break
-            
+        # Determine unified biological classification
+        # Rescue mode (modality_map present): apply deterministic DNA/RNA consensus rule
+        # Consensus mode (no modality_map): use individual caller majority vote
+        if modality_map:
+            # Get consensus labels from DNA and RNA if present
+            dna_label = None
+            rna_label = None
+            for i, c in enumerate(data['callers']):
+                if is_consensus_caller(c):
+                    if 'DNA' in c.upper():
+                        dna_label = data['filters_normalized'][i]
+                    elif 'RNA' in c.upper():
+                        rna_label = data['filters_normalized'][i]
+            # Apply rescue consensus rules:
+            # 1) If DNA and RNA have the same label, use it
+            # 2) If one modality has a label and the other does not, use the labeled modality's label
+            # 3) Otherwise (different labels), take DNA modality's consensus label
+            unified_classification = None
+            if dna_label and rna_label:
+                if dna_label == rna_label:
+                    unified_classification = dna_label
+                else:
+                    unified_classification = dna_label
+            elif dna_label and not rna_label:
+                unified_classification = dna_label
+            elif rna_label and not dna_label:
+                unified_classification = rna_label
+            else:
+                # No consensus labels present; default to Artifact
+                unified_classification = 'Artifact'
             record.info['UNIFIED_FILTER'] = unified_classification
-            
-            # Set record FILTER field to unified classification
             record.filter.clear()
             record.filter.add(unified_classification)
         else:
-            # No actual callers (only consensus) - default to Artifact
-            record.info['UNIFIED_FILTER'] = 'Artifact'
-            record.filter.clear()
-            record.filter.add('Artifact')
+            # Within-modality consensus: majority vote over individual callers
+            actual_filters_normalized = [data['filters_normalized'][i] for i, c in enumerate(data['callers']) if not is_consensus_caller(c)]
+            if actual_filters_normalized:
+                classification_counts = Counter(actual_filters_normalized)
+                max_count = max(classification_counts.values())
+                most_common = [cls for cls, count in classification_counts.items() if count == max_count]
+                # Break ties using priority: Somatic > Germline > Reference > Artifact
+                priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
+                unified_classification = most_common[0]
+                for cls in priority:
+                    if cls in most_common:
+                        unified_classification = cls
+                        break
+                record.info['UNIFIED_FILTER'] = unified_classification
+                record.filter.clear()
+                record.filter.add(unified_classification)
+            else:
+                record.info['UNIFIED_FILTER'] = 'Artifact'
+                record.filter.clear()
+                record.filter.add('Artifact')
         
         # Compute modality-specific unified biological classifications if modality_map provided
         if modality_map:
-            # DNA unified classification
-            dna_filters = [data['filters_normalized'][i] for i, c in enumerate(data['callers']) 
-                          if not is_consensus_caller(c) and modality_map.get(c) == 'DNA']
-            if dna_filters:
-                dna_counts = Counter(dna_filters)
-                dna_max_count = max(dna_counts.values())
-                dna_most_common = [cls for cls, count in dna_counts.items() if count == dna_max_count]
-                # Priority: Somatic > Germline > Reference > Artifact
-                priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
-                dna_unified = dna_most_common[0]
-                for cls in priority:
-                    if cls in dna_most_common:
-                        dna_unified = cls
-                        break
-                record.info['UNIFIED_FILTER_DNA'] = dna_unified
+            # DNA unified classification - use DNA consensus label if available
+            dna_label = None
+            for i, c in enumerate(data['callers']):
+                if is_consensus_caller(c) and 'DNA' in c.upper():
+                    dna_label = data['filters_normalized'][i]
+                    break
+            if dna_label:
+                record.info['UNIFIED_FILTER_DNA'] = dna_label
+            else:
+                # Fallback: derive from individual DNA callers via majority vote
+                dna_filters = [data['filters_normalized'][i] for i, c in enumerate(data['callers']) 
+                               if not is_consensus_caller(c) and modality_map.get(c) == 'DNA']
+                if dna_filters:
+                    dna_counts = Counter(dna_filters)
+                    dna_max_count = max(dna_counts.values())
+                    dna_most_common = [cls for cls, count in dna_counts.items() if count == dna_max_count]
+                    priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
+                    dna_unified = dna_most_common[0]
+                    for cls in priority:
+                        if cls in dna_most_common:
+                            dna_unified = cls
+                            break
+                    record.info['UNIFIED_FILTER_DNA'] = dna_unified
             
-            # RNA unified classification
-            rna_filters = [data['filters_normalized'][i] for i, c in enumerate(data['callers']) 
-                          if not is_consensus_caller(c) and modality_map.get(c) == 'RNA']
-            if rna_filters:
-                rna_counts = Counter(rna_filters)
-                rna_max_count = max(rna_counts.values())
-                rna_most_common = [cls for cls, count in rna_counts.items() if count == rna_max_count]
-                # Priority: Somatic > Germline > Reference > Artifact
-                priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
-                rna_unified = rna_most_common[0]
-                for cls in priority:
-                    if cls in rna_most_common:
-                        rna_unified = cls
-                        break
-                record.info['UNIFIED_FILTER_RNA'] = rna_unified
+            # RNA unified classification - use RNA consensus label if available
+            rna_label = None
+            for i, c in enumerate(data['callers']):
+                if is_consensus_caller(c) and 'RNA' in c.upper():
+                    rna_label = data['filters_normalized'][i]
+                    break
+            if rna_label:
+                record.info['UNIFIED_FILTER_RNA'] = rna_label
+            else:
+                # Fallback: derive from individual RNA callers via majority vote
+                rna_filters = [data['filters_normalized'][i] for i, c in enumerate(data['callers']) 
+                               if not is_consensus_caller(c) and modality_map.get(c) == 'RNA']
+                if rna_filters:
+                    rna_counts = Counter(rna_filters)
+                    rna_max_count = max(rna_counts.values())
+                    rna_most_common = [cls for cls, count in rna_counts.items() if count == rna_max_count]
+                    priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
+                    rna_unified = rna_most_common[0]
+                    for cls in priority:
+                        if cls in rna_most_common:
+                            rna_unified = cls
+                            break
+                    record.info['UNIFIED_FILTER_RNA'] = rna_unified
         
         # Add consensus flag and override FILTER if needed
         record.info['PASSES_CONSENSUS'] = 'YES' if data['passes_consensus'] else 'NO'
