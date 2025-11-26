@@ -22,6 +22,7 @@ from vcf_utils.unified_filters import (
     add_classification_filters_to_header,
     is_multiallelic
 )
+from vcf_utils.stripped_writer import write_vcf_stripped
 
 
 def argparser():
@@ -469,7 +470,7 @@ def main():
 
     # Generate stripped output (multiallelic-filtered, FORMAT removed)
     print("\nGenerating stripped output...")
-    write_filtered_vcf(filtered_variants_stripped, args.input, args.output_stripped, strip_format=True)
+    write_vcf_stripped(filtered_variants_stripped, args.input, args.output_stripped, use_cyvcf2=True)
     print(f"✓ Stripped output written to: {args.output_stripped}")
 
     # Index outputs

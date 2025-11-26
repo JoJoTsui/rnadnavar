@@ -28,6 +28,7 @@ from vcf_utils.unified_filters import (
     is_multiallelic
 )
 from vcf_utils.io_utils import normalize_chromosome
+from vcf_utils.stripped_writer import write_vcf_stripped
 
 
 def argparser():
@@ -128,6 +129,141 @@ def load_blacklist(blacklist_path):
     return blacklist_regions
 
 
+
+    # Open input VCF
+    input_vcf = pysam.VariantFile(input_vcf_path)
+    
+    # Build header WITHOUT samples
+    header_lines = []
+    
+    # Copy all header lines except sample-related
+    for line in str(input_vcf.header).strip().split('\n'):
+        # Skip the #CHROM header line - we'll write our own
+        if line.startswith('#CHROM'):
+            continue
+        header_lines.append(line)
+    
+    # Add biological classification FILTER definitions
+    classification_filters = {
+        'Somatic': 'Somatic variant',
+        'Germline': 'Germline variant',
+        'Reference': 'Reference/wildtype',
+        'Artifact': 'Artifact/technical error'
+    }
+    
+    for filt, description in classification_filters.items():
+        filter_line = f'##FILTER=<ID={filt},Description="{description}">'
+        if filter_line not in header_lines:
+            header_lines.append(filter_line)
+    
+    # Add RaVeX filter INFO fields
+    if '##INFO=<ID=RaVeX_FILTER' not in '\n'.join(header_lines):
+        header_lines.append('##INFO=<ID=RaVeX_FILTER,Number=.,Type=String,Description="RaVeX filter reasons: semicolon-separated list of filter flags">')
+    
+    filter_flags = {
+        'min_alt_reads': 'Variant filtered due to insufficient alternate reads',
+        'gnomad': 'Variant filtered due to high gnomAD allele frequency',
+        'blacklist': 'Variant in blacklisted region',
+        'noncoding': 'Variant in noncoding region',
+        'ig_pseudo': 'Variant in immunoglobulin or pseudogene',
+        'homopolymer': 'Variant in homopolymer region',
+        'vc_filter': 'Variant failed variant caller filters',
+        'not_consensus': 'Variant not in consensus',
+        'multiallelic': 'Multiallelic site with multiple ALT alleles'
+    }
+    
+    for flag, description in filter_flags.items():
+        info_line = f'##INFO=<ID={flag},Number=0,Type=Flag,Description="{description}">'
+        if info_line not in header_lines:
+            header_lines.append(info_line)
+    
+    # Add column header WITHOUT FORMAT/sample columns
+    header_lines.append('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO')
+    
+    # Process variants and collect output lines
+    processed_count = 0
+    filtered_count = 0
+    multiallelic_count = 0
+    variant_lines = []
+    
+    for record in input_vcf:
+        # Check whitelist first
+        chrom = normalize_chromosome(record.chrom)
+        vkey = f"{chrom}:{record.pos}:{record.ref}:{record.alts[0] if record.alts else ''}"
+        
+        if whitelist_vars and vkey in whitelist_vars:
+            filters = []
+        else:
+            filters = apply_ravex_filters(
+                record, args, genome=genome,
+                blacklist_regions=blacklist_regions,
+                use_cyvcf2=False
+            )
+        
+        # Skip multiallelic if requested
+        if filter_multiallelic and is_multiallelic(record.ref, record.alts):
+            multiallelic_count += 1
+            continue
+        
+        # Build VCF line
+        chrom_str = record.contig
+        pos_str = str(record.pos)
+        id_str = record.id if record.id else '.'
+        ref_str = record.ref
+        alt_str = ','.join(record.alts) if record.alts else '.'
+        qual_str = str(record.qual) if record.qual is not None else '.'
+        
+        # Preserve original FILTER field
+        if record.filter and len(record.filter) > 0:
+            filter_str = ';'.join(record.filter.keys())
+        else:
+            filter_str = 'PASS'
+        
+        # Build INFO field
+        info_parts = []
+        
+        # Copy existing INFO fields
+        for key in record.info:
+            try:
+                value = record.info[key]
+                if value is True:
+                    info_parts.append(key)
+                elif value is not None and value != '':
+                    # Escape special characters
+                    value_str = str(value).replace(';', '%3B').replace('=', '%3D')
+                    info_parts.append(f"{key}={value_str}")
+            except Exception:
+                pass
+        
+        # Add RaVeX filter INFO
+        if not filters:
+            info_parts.append('RaVeX_FILTER=PASS')
+        else:
+            info_parts.append(f'RaVeX_FILTER={";".join(filters)}')
+            for flag in filters:
+                info_parts.append(flag)
+            filtered_count += 1
+        
+        info_str = ';'.join(info_parts) if info_parts else '.'
+        
+        # Write variant line (8 columns only - no FORMAT/sample)
+        variant_line = f"{chrom_str}\t{pos_str}\t{id_str}\t{ref_str}\t{alt_str}\t{qual_str}\t{filter_str}\t{info_str}"
+        variant_lines.append(variant_line)
+        processed_count += 1
+        
+        if processed_count % 10000 == 0:
+            print(f"  Processed {processed_count:,} variants...")
+    
+    # Write output (gzipped)
+    with gzip.open(output_path, 'wt') as f:
+        f.write('\n'.join(header_lines) + '\n')
+        f.write('\n'.join(variant_lines) + '\n')
+    
+    input_vcf.close()
+    
+    return processed_count, filtered_count, multiallelic_count
+
+
 def write_filtered_vcf(input_vcf_path, output_path, args, genome, whitelist_vars, 
                        blacklist_regions, strip_format=False, filter_multiallelic=False):
     """
@@ -143,22 +279,57 @@ def write_filtered_vcf(input_vcf_path, output_path, args, genome, whitelist_vars
         genome: pysam.FastaFile for reference (optional)
         whitelist_vars: Set of whitelisted variant IDs
         blacklist_regions: List of blacklist regions
-        strip_format: If True, remove FORMAT column
+        strip_format: If True, remove FORMAT column entirely
         filter_multiallelic: If True, filter multiallelic sites
     """
-    # Open input VCF
+    # For stripped output, delegate to unified stripped writer
+    if strip_format:
+        # Collect records with filters applied
+        input_vcf = pysam.VariantFile(input_vcf_path)
+        records_with_filters = []
+        processed_count = 0
+        filtered_count = 0
+        multiallelic_count = 0
+        
+        for record in input_vcf:
+            chrom = normalize_chromosome(record.chrom)
+            vkey = f"{chrom}:{record.pos}:{record.ref}:{record.alts[0] if record.alts else ''}"
+            
+            if whitelist_vars and vkey in whitelist_vars:
+                filters = []
+            else:
+                filters = apply_ravex_filters(
+                    record, args, genome=genome,
+                    blacklist_regions=blacklist_regions,
+                    use_cyvcf2=False
+                )
+            
+            # Skip multiallelic if requested
+            if filter_multiallelic and is_multiallelic(record.ref, record.alts):
+                multiallelic_count += 1
+                continue
+            
+            filter_status = "PASS" if not filters else "RaVeX_FILTER"
+            records_with_filters.append((record, filter_status, filters))
+            processed_count += 1
+            if filters:
+                filtered_count += 1
+            
+            if processed_count % 10000 == 0:
+                print(f"  Processed {processed_count:,} variants...")
+        
+        input_vcf.close()
+        
+        # Write using unified stripped writer
+        write_vcf_stripped(records_with_filters, input_vcf_path, output_path, use_cyvcf2=False)
+        
+        return processed_count, filtered_count, multiallelic_count
+    
+    # Standard output with FORMAT preserved
     input_vcf = pysam.VariantFile(input_vcf_path)
     
     # Create new header
     new_header = input_vcf.header.copy()
-    
-    # Strip FORMAT fields if requested
-    if strip_format:
-        # Remove all FORMAT definitions. Keep sample names in header; we will
-        # not write any FORMAT/sample data in records, which results in no
-        # FORMAT column being emitted in the output.
-        for fmt_key in list(new_header.formats.keys()):
-            new_header.formats.remove_header(fmt_key)
     
     # Add biological classification FILTER definitions
     new_header = add_classification_filters_to_header(new_header)
@@ -193,17 +364,6 @@ def write_filtered_vcf(input_vcf_path, output_path, args, genome, whitelist_vars
                 use_cyvcf2=False
             )
         
-        # Check multiallelic filtering for stripped output
-        if filter_multiallelic and is_multiallelic(record.ref, record.alts):
-            if strip_format:
-                # Skip this variant in stripped output
-                multiallelic_count += 1
-                continue
-            else:
-                # Add to filter list but don't skip
-                if "multiallelic" not in filters:
-                    filters.append("multiallelic")
-        
         # Create new record
         new_record = output_vcf.new_record(
             contig=record.contig,
@@ -225,8 +385,8 @@ def write_filtered_vcf(input_vcf_path, output_path, args, genome, whitelist_vars
             except Exception:
                 pass
         
-        # Copy FORMAT and sample data (if not stripped)
-        if not strip_format and record.format:
+        # Copy FORMAT and sample data
+        if record.format:
             for fmt_key in record.format.keys():
                 if fmt_key not in new_header.formats:
                     continue
