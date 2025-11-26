@@ -161,15 +161,18 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     versions     = versions.mix(MAF_FILTERING.out.versions)
     
     VCF_FILTERING(vcf_consensus, fasta, input_sample, realignment)
-    filtered_vcf = VCF_FILTERING.out.vcf
-    versions     = versions.mix(VCF_FILTERING.out.versions)
+    filtered_vcf          = VCF_FILTERING.out.vcf
+    filtered_vcf_stripped = VCF_FILTERING.out.vcf_stripped
+    versions              = versions.mix(VCF_FILTERING.out.versions)
     
     // Rescue VCF filtering (only if rescue workflow was run)
-    filtered_rescue_vcf = Channel.empty()
+    filtered_rescue_vcf          = Channel.empty()
+    filtered_rescue_vcf_stripped = Channel.empty()
     if (params.tools && params.tools.split(',').contains('rescue')) {
         VCF_RESCUE_FILTERING(vcf_rescue)
-        filtered_rescue_vcf = VCF_RESCUE_FILTERING.out.vcf
-        versions = versions.mix(VCF_RESCUE_FILTERING.out.versions)
+        filtered_rescue_vcf          = VCF_RESCUE_FILTERING.out.vcf
+        filtered_rescue_vcf_stripped = VCF_RESCUE_FILTERING.out.vcf_stripped
+        versions                     = versions.mix(VCF_RESCUE_FILTERING.out.versions)
     }
 
 
@@ -179,7 +182,9 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     cram_variant_calling        = cram_variant_calling
     maf                         = filtered_maf
     vcf                         = filtered_vcf
+    vcf_stripped                = filtered_vcf_stripped
     vcf_rescue                  = filtered_rescue_vcf
+    vcf_rescue_stripped         = filtered_rescue_vcf_stripped
     versions                    = versions  // channel: [ versions.yml ]
     reports                     = reports
 }

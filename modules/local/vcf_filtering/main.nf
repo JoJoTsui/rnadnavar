@@ -15,6 +15,7 @@ process VCF_FILTERING {
 
     output:
     tuple val(meta), path("*.filtered.vcf.gz"), path("*.filtered.vcf.gz.tbi"), emit: vcf
+    tuple val(meta), path("*.filtered.vcf.stripped.vcf.gz"), path("*.filtered.vcf.stripped.vcf.gz.tbi"), emit: vcf_stripped
     path "versions.yml"                                                       , emit: versions
 
     when:
@@ -31,6 +32,8 @@ process VCF_FILTERING {
     filter_vcf.py \\
         -i ${vcf} \\
         -o ${prefix}.filtered.vcf.gz \\
+        --output_stripped ${prefix}.filtered.vcf.stripped.vcf.gz \\
+        --filter_multiallelic \\
         ${whitelist_arg} \\
         ${blacklist_arg} \\
         ${ref_arg} \\

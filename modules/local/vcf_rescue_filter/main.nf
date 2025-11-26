@@ -12,6 +12,7 @@ process VCF_RESCUE_FILTER {
 
     output:
     tuple val(meta), path("*.filtered.vcf.gz"), path("*.filtered.vcf.gz.tbi"), emit: vcf
+    tuple val(meta), path("*.filtered.vcf.stripped.vcf.gz"), path("*.filtered.vcf.stripped.vcf.gz.tbi"), emit: vcf_stripped
     path "versions.yml"                                                       , emit: versions
 
     when:
@@ -20,17 +21,14 @@ process VCF_RESCUE_FILTER {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def dna_thr = task.ext.dna_thr ?: 2
-    def rna_thr = task.ext.rna_thr ?: 2
 
     """
     filter_rescue_vcf.py \\
         --input ${vcf} \\
         --output ${prefix}.filtered.vcf.gz \\
-        --dna_threshold ${dna_thr} \\
-        --rna_threshold ${rna_thr}
-    
-    tabix -p vcf ${prefix}.filtered.vcf.gz
+        --output_stripped ${prefix}.filtered.vcf.stripped.vcf.gz \\
+        --filter_multiallelic \\
+        ${args}
     
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

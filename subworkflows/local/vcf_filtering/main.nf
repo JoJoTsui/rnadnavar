@@ -13,6 +13,7 @@ workflow VCF_FILTERING {
     main:
     versions = Channel.empty()
     filtered_vcf = Channel.empty()
+    filtered_vcf_stripped = Channel.empty()
 
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate', 'variant_calling', 'annotate',
@@ -26,11 +27,13 @@ workflow VCF_FILTERING {
 
         // Run filtering
         VCF_FILTER(vcf_to_filter, fasta, whitelist, blacklist)
-        filtered_vcf = VCF_FILTER.out.vcf
-        versions = versions.mix(VCF_FILTER.out.versions)
+        filtered_vcf          = VCF_FILTER.out.vcf
+        filtered_vcf_stripped = VCF_FILTER.out.vcf_stripped
+        versions              = versions.mix(VCF_FILTER.out.versions)
     }
 
     emit:
-    vcf      = filtered_vcf     // channel: [ [meta], vcf, tbi ]
-    versions = versions         // channel: [ versions.yml ]
+    vcf          = filtered_vcf           // channel: [ [meta], vcf, tbi ]
+    vcf_stripped = filtered_vcf_stripped  // channel: [ [meta], vcf, tbi ]
+    versions     = versions               // channel: [ versions.yml ]
 }

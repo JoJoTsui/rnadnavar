@@ -10,13 +10,16 @@ workflow VCF_RESCUE_FILTERING {
     main:
     versions = Channel.empty()
     filtered_vcf = Channel.empty()
+    filtered_vcf_stripped = Channel.empty()
     
     // Apply rescue-specific filtering
     VCF_RESCUE_FILTER(vcf_rescue)
-    filtered_vcf = VCF_RESCUE_FILTER.out.vcf
-    versions = versions.mix(VCF_RESCUE_FILTER.out.versions)
+    filtered_vcf          = VCF_RESCUE_FILTER.out.vcf
+    filtered_vcf_stripped = VCF_RESCUE_FILTER.out.vcf_stripped
+    versions              = versions.mix(VCF_RESCUE_FILTER.out.versions)
     
     emit:
-    vcf      = filtered_vcf
-    versions = versions
+    vcf          = filtered_vcf
+    vcf_stripped = filtered_vcf_stripped
+    versions     = versions
 }

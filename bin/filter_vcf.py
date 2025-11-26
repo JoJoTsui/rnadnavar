@@ -16,6 +16,12 @@ sys.path.insert(0, str(script_dir))
 
 from vcf_utils.filters import normalize_filter
 from vcf_utils.io_utils import normalize_chromosome, variant_key
+from vcf_utils.unified_filters import (
+    apply_ravex_filters,
+    add_filter_info_fields,
+    add_classification_filters_to_header,
+    is_multiallelic
+)
 
 
 def argparser():
@@ -28,8 +34,8 @@ def argparser():
     parser.add_argument("--filters", help="Other filters to be considered as PASS", default=["PASS"], nargs="+")
     parser.add_argument("--ref", help="FASTA reference file to extract context")
     parser.add_argument("--min_alt_reads", help="Minimum alt reads", default=2, type=int)
-    parser.add_argument("--remove_mnp", help="Filter out multi-nucleotide polymorphisms (MNPs)", action="store_true")
-    parser.add_argument("--strip_format", help="Remove FORMAT column from output VCF", action="store_true")
+    parser.add_argument("--filter_multiallelic", help="Filter out multiallelic sites (multiple ALT alleles)", action="store_true")
+    parser.add_argument("--output_stripped", help="Output stripped VCF file (multiallelic-filtered, FORMAT-stripped). If not provided, will be <output>.stripped.vcf.gz")
     return parser.parse_args()
 
 
@@ -244,10 +250,9 @@ def apply_filters(vcf_in, args, genome):
             if normalized != 'PASS' and variant.FILTER not in args.filters:
                 filters.append("vc_filter")
         
-        # MNP filter (multi-nucleotide polymorphism)
-        if args.remove_mnp:
-            if len(ref) > 1 and len(alt) > 1:
-                filters.append("mnp")
+            # Multiallelic filter (multiple ALT alleles)
+            if args.filter_multiallelic and is_multiallelic(ref, variant.ALT):
+                filters.append("multiallelic")
         
         # Store variant with filter info
         filter_status = "PASS" if not filters else "RaVeX_FILTER"
@@ -267,12 +272,11 @@ def write_filtered_vcf(filtered_variants, input_vcf_path, output_path, strip_for
     
     # Strip FORMAT fields if requested
     if strip_format:
-        # Remove all FORMAT definitions
+        # Remove all FORMAT definitions. Keep sample names in header; we simply
+        # won't write any FORMAT/sample data in records, which results in no
+        # FORMAT column in output.
         for fmt_key in list(new_header.formats.keys()):
             new_header.formats.remove_header(fmt_key)
-        # Remove all samples
-        for sample in list(new_header.samples):
-            new_header.samples.remove(sample)
     
     # Ensure biological classification FILTER fields are defined
     classification_filters = {
@@ -309,7 +313,7 @@ def write_filtered_vcf(filtered_variants, input_vcf_path, output_path, strip_for
         'homopolymer': 'Variant in homopolymer region',
         'vc_filter': 'Variant failed variant caller filters',
         'not_consensus': 'Variant not in consensus',
-        'mnp': 'Multi-nucleotide polymorphism'
+           'multiallelic': 'Multiallelic site with multiple ALT alleles'
     }
     
     for flag, description in filter_flags.items():
@@ -420,30 +424,67 @@ def write_filtered_vcf(filtered_variants, input_vcf_path, output_path, strip_for
 
 def main():
     args = argparser()
-    
-    # Open genome if provided
+
+    # Auto-generate stripped output path if not provided
+    if not args.output_stripped:
+        from pathlib import Path
+        output_path = Path(args.output)
+        args.output_stripped = str(output_path.parent / f"{output_path.stem}.stripped.vcf.gz")
+
+    print("=" * 80)
+    print("Consensus VCF Filtering with RaVeX Rules")
+    print("=" * 80)
+    print(f"Input:             {args.input}")
+    print(f"Output (standard): {args.output}")
+    print(f"Output (stripped): {args.output_stripped}")
+
+    # Open genome if provided (optional)
     genome = None
     if args.ref:
-        genome = pysam.FastaFile(args.ref)
-    
+        try:
+            genome = pysam.FastaFile(args.ref)
+        except Exception:
+            print("Warning: Failed to open reference; continuing without it")
+            genome = None
+
     # Read and filter variants using cyvcf2
     vcf_in = VCF(args.input)
     filtered_variants = apply_filters(vcf_in, args, genome)
-    
-    if genome:
-        genome.close()
-    
-    # Write filtered VCF using pysam
-    write_filtered_vcf(filtered_variants, args.input, args.output, strip_format=args.strip_format)
-    
-    # Index output
+
+    # Generate standard output (all variants, FORMAT preserved)
+    print("\nGenerating standard output...")
+    write_filtered_vcf(filtered_variants, args.input, args.output, strip_format=False)
+    print(f"✓ Standard output written to: {args.output}")
+
+    # Re-read for stripped output
+    vcf_in = VCF(args.input)
+    filtered_variants_stripped = apply_filters(vcf_in, args, genome)
+
+    # Filter multiallelic variants for stripped output
+    if args.filter_multiallelic:
+        filtered_variants_stripped = [
+            (v, s, f) for v, s, f in filtered_variants_stripped
+            if not is_multiallelic(v.REF, v.ALT)
+        ]
+
+    # Generate stripped output (multiallelic-filtered, FORMAT removed)
+    print("\nGenerating stripped output...")
+    write_filtered_vcf(filtered_variants_stripped, args.input, args.output_stripped, strip_format=True)
+    print(f"✓ Stripped output written to: {args.output_stripped}")
+
+    # Index outputs
+    print("\nIndexing outputs...")
     import subprocess
-    try:
-        subprocess.run(['tabix', '-p', 'vcf', args.output], check=True, capture_output=True)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("Warning: Failed to index VCF")
-    
-    print(f"Done! Filtered VCF written to '{args.output}'")
+    for vcf_path in [args.output, args.output_stripped]:
+        try:
+            subprocess.run(['tabix', '-p', 'vcf', vcf_path], check=True, capture_output=True)
+            print(f"  ✓ Indexed: {vcf_path}")
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print(f"  ⚠ Warning: Failed to index {vcf_path}")
+
+    print("\n" + "=" * 80)
+    print("Filtering completed successfully!")
+    print("=" * 80)
 
 
 if __name__ == "__main__":

@@ -1,274 +1,367 @@
 #!/usr/bin/env python3
 """
-Rescue VCF filtering script with modality-aware variant classification.
+Rescue VCF Filtering Script
 
-This script processes rescued VCF files and determines variant types based on
-modality-specific caller information and filter categories.
+Applies RaVeX filtering logic to rescue VCF files while preserving the original
+FILTER field (Somatic, Germline, Reference, Artifact) from the rescue/consensus stage.
+
+This script:
+1. PRESERVES original FILTER field values (never overwrites them)
+2. Adds RaVeX filter flags to INFO field
+3. Generates dual outputs: standard + stripped (multiallelic-filtered, FORMAT-stripped)
+4. Compatible with both rescue and consensus VCFs
 """
 
 import argparse
+import pysam
 import sys
 from pathlib import Path
-from cyvcf2 import VCF, Writer
 
-# Import filter normalization functions
-import os
-sys.path.insert(0, os.path.dirname(__file__))
-from vcf_utils.filters import normalize_filter, categorize_filter
+# Add vcf_utils to path
+script_dir = Path(__file__).parent
+sys.path.insert(0, str(script_dir))
+
+from vcf_utils.unified_filters import (
+    apply_ravex_filters,
+    add_filter_info_fields,
+    add_classification_filters_to_header,
+    is_multiallelic
+)
+from vcf_utils.io_utils import normalize_chromosome
 
 
 def argparser():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
-        description='Filter rescued VCF with modality-aware variant classification',
+        description='Filter rescue/consensus VCF with RaVeX filtering logic',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     
     parser.add_argument(
-        '--input',
+        '-i', '--input',
         type=str,
         required=True,
-        help='Input rescued VCF file'
+        help='Input VCF file (rescue or consensus)'
     )
     parser.add_argument(
-        '--output',
+        '-o', '--output',
         type=str,
         required=True,
         help='Output filtered VCF file'
     )
     parser.add_argument(
-        '--dna_threshold',
-        type=int,
-        default=2,
-        help='Minimum number of DNA callers for consensus'
+        '--output_stripped',
+        type=str,
+        help='Output stripped VCF file (multiallelic-filtered, FORMAT-stripped). '
+             'If not provided, will be <output>.stripped.vcf.gz'
     )
     parser.add_argument(
-        '--rna_threshold',
+        '-g', '--gnomad_thr',
+        type=float,
+        default=0.0001,
+        help='GnomAD threshold for variants'
+    )
+    parser.add_argument(
+        '--whitelist',
+        type=str,
+        help='BED file with variants to keep (CHROM POS REF ALT)'
+    )
+    parser.add_argument(
+        '--blacklist',
+        type=str,
+        help='BED file with regions to remove (CHROM START END)'
+    )
+    parser.add_argument(
+        '--ref',
+        type=str,
+        help='FASTA reference file to extract context'
+    )
+    parser.add_argument(
+        '--min_alt_reads',
         type=int,
         default=2,
-        help='Minimum number of RNA callers for consensus'
+        help='Minimum alt reads'
+    )
+    parser.add_argument(
+        '--filter_multiallelic',
+        action='store_true',
+        help='Filter out multiallelic sites in stripped output'
     )
     
     return parser.parse_args()
 
 
-def determine_modality_variant_type(filters_normalized, filters_category, n_callers):
+def load_whitelist(whitelist_path):
+    """Load whitelist variants from BED file."""
+    whitelist_vars = set()
+    if not whitelist_path:
+        return whitelist_vars
+    
+    with open(whitelist_path) as f:
+        for line in f:
+            if line.startswith('#'):
+                continue
+            parts = line.strip().split('\t')
+            if len(parts) >= 4:
+                chrom = normalize_chromosome(parts[0])
+                var_id = f"{chrom}:{parts[1]}:{parts[2]}:{parts[3]}"
+                whitelist_vars.add(var_id)
+    
+    return whitelist_vars
+
+
+def load_blacklist(blacklist_path):
+    """Load blacklist regions from BED file."""
+    blacklist_regions = []
+    if not blacklist_path:
+        return blacklist_regions
+    
+    with open(blacklist_path) as f:
+        for line in f:
+            if line.startswith('#'):
+                continue
+            parts = line.strip().split('\t')
+            if len(parts) >= 3:
+                chrom = normalize_chromosome(parts[0])
+                blacklist_regions.append((chrom, int(parts[1]), int(parts[2])))
+    
+    return blacklist_regions
+
+
+def write_filtered_vcf(input_vcf_path, output_path, args, genome, whitelist_vars, 
+                       blacklist_regions, strip_format=False, filter_multiallelic=False):
     """
-    Determine variant type for a single modality based on caller filters.
+    Write filtered VCF with RaVeX filter tags in INFO field.
+    
+    CRITICAL: This function PRESERVES the original FILTER field and only adds
+    INFO/RaVeX_FILTER tags to indicate which filters were applied.
     
     Args:
-        filters_normalized: List of normalized filter values for this modality
-        filters_category: List of filter categories for this modality
-        n_callers: Number of callers that detected this variant in this modality
-    
-    Returns:
-        str: Variant type - 'SOMATIC', 'GERMLINE', 'REFERENCE', or 'ARTIFACT'
+        input_vcf_path: Path to input VCF
+        output_path: Path to output VCF
+        args: Command-line arguments
+        genome: pysam.FastaFile for reference (optional)
+        whitelist_vars: Set of whitelisted variant IDs
+        blacklist_regions: List of blacklist regions
+        strip_format: If True, remove FORMAT column
+        filter_multiallelic: If True, filter multiallelic sites
     """
-    if n_callers == 0:
-        return None
+    # Open input VCF
+    input_vcf = pysam.VariantFile(input_vcf_path)
     
-    # Count filter types
-    germline_count = sum(1 for f in filters_normalized if 'Germline' in f or 'germline' in f)
-    reference_count = sum(1 for f in filters_normalized if 'ReferenceCall' in f or 'reference' in f)
-    pass_count = sum(1 for f in filters_normalized if f == 'PASS')
+    # Create new header
+    new_header = input_vcf.header.copy()
     
-    # Determine variant type by majority vote
-    if germline_count >= n_callers / 2:
-        return 'GERMLINE'
-    elif reference_count >= n_callers / 2:
-        return 'REFERENCE'
-    elif pass_count >= n_callers / 2:
-        return 'SOMATIC'
-    else:
-        return 'ARTIFACT'
-
-
-def determine_final_variant_type(dna_type, rna_type, dna_consensus, rna_consensus, 
-                                  dna_n_callers, rna_n_callers, dna_threshold, rna_threshold):
-    """
-    Determine final variant type across modalities.
+    # Strip FORMAT fields if requested
+    if strip_format:
+        # Remove all FORMAT definitions. Keep sample names in header; we will
+        # not write any FORMAT/sample data in records, which results in no
+        # FORMAT column being emitted in the output.
+        for fmt_key in list(new_header.formats.keys()):
+            new_header.formats.remove_header(fmt_key)
     
-    Rules:
-    1. If DNA and RNA match, use the common type
-    2. If DNA and RNA don't match:
-       - If DNA is consensus (>= threshold), use DNA type
-       - Else if RNA is consensus (>= threshold), use RNA type
-       - Else use DNA type
+    # Add biological classification FILTER definitions
+    new_header = add_classification_filters_to_header(new_header)
     
-    Args:
-        dna_type: DNA variant type
-        rna_type: RNA variant type
-        dna_consensus: Whether DNA passes consensus
-        rna_consensus: Whether RNA passes consensus
-        dna_n_callers: Number of DNA callers
-        rna_n_callers: Number of RNA callers
-        dna_threshold: DNA consensus threshold
-        rna_threshold: RNA consensus threshold
+    # Add RaVeX filter INFO fields
+    new_header = add_filter_info_fields(new_header)
     
-    Returns:
-        str: Final variant type
-    """
-    # If only one modality has data, use that
-    if dna_type and not rna_type:
-        return dna_type
-    if rna_type and not dna_type:
-        return rna_type
+    # Create output VCF
+    output_vcf = pysam.VariantFile(output_path, 'w', header=new_header)
     
-    # If both modalities agree, use common type
-    if dna_type == rna_type:
-        return dna_type
+    # Get chromosome order for sorting
+    chrom_order = {contig: idx for idx, contig in enumerate(new_header.contigs)}
     
-    # If they disagree, use consensus logic
-    if dna_consensus and dna_n_callers >= dna_threshold:
-        return dna_type
-    elif rna_consensus and rna_n_callers >= rna_threshold:
-        return rna_type
-    else:
-        # Default to DNA type
-        return dna_type if dna_type else rna_type
-
-
-def parse_modality_filters(filters_str, modality, normalize=True):
-    """
-    Parse filter string and extract filters for specific modality.
+    # Process variants
+    processed_count = 0
+    filtered_count = 0
+    multiallelic_count = 0
     
-    Args:
-        filters_str: Filter string in format "DNA_caller:filter|RNA_caller:filter|..."
-        modality: 'DNA' or 'RNA'
-        normalize: If True, normalize filter values using filter normalization logic
+    for record in input_vcf:
+        # Check whitelist first
+        chrom = normalize_chromosome(record.chrom)
+        vkey = f"{chrom}:{record.pos}:{record.ref}:{record.alts[0] if record.alts else ''}"
+        
+        if whitelist_vars and vkey in whitelist_vars:
+            # Whitelisted - always pass
+            filters = []
+        else:
+            # Apply RaVeX filters
+            filters = apply_ravex_filters(
+                record, args, genome=genome, 
+                blacklist_regions=blacklist_regions,
+                use_cyvcf2=False
+            )
+        
+        # Check multiallelic filtering for stripped output
+        if filter_multiallelic and is_multiallelic(record.ref, record.alts):
+            if strip_format:
+                # Skip this variant in stripped output
+                multiallelic_count += 1
+                continue
+            else:
+                # Add to filter list but don't skip
+                if "multiallelic" not in filters:
+                    filters.append("multiallelic")
+        
+        # Create new record
+        new_record = output_vcf.new_record(
+            contig=record.contig,
+            start=record.start,
+            stop=record.stop,
+            alleles=record.alleles,
+            id=record.id,
+            qual=record.qual
+        )
+        
+        # Copy INFO fields
+        for key in record.info:
+            if key not in new_header.info:
+                continue
+            try:
+                value = record.info[key]
+                if value is not None and value != '':
+                    new_record.info[key] = value
+            except Exception:
+                pass
+        
+        # Copy FORMAT and sample data (if not stripped)
+        if not strip_format and record.format:
+            for fmt_key in record.format.keys():
+                if fmt_key not in new_header.formats:
+                    continue
+                try:
+                    for sample_idx, sample in enumerate(record.samples):
+                        value = record.samples[sample_idx][fmt_key]
+                        if value is not None:
+                            new_record.samples[sample_idx][fmt_key] = value
+                except Exception:
+                    pass
+        
+        # CRITICAL: Preserve original FILTER field
+        # Copy all FILTER values from input record
+        if hasattr(record, 'filter') and record.filter:
+            for filt in record.filter:
+                # Skip PASS - handled automatically
+                if filt == 'PASS':
+                    continue
+                # Only add if defined in header
+                if filt in new_header.filters:
+                    new_record.filter.add(filt)
+        
+        # Set RaVeX filter INFO tags (NOT FILTER field)
+        if not filters:
+            new_record.info['RaVeX_FILTER'] = "PASS"
+        else:
+            new_record.info['RaVeX_FILTER'] = ";".join(filters)
+            # Set individual filter flags
+            for flag in filters:
+                if flag in new_header.info:
+                    new_record.info[flag] = True
+            filtered_count += 1
+        
+        # Write variant
+        output_vcf.write(new_record)
+        processed_count += 1
+        
+        if processed_count % 10000 == 0:
+            print(f"  Processed {processed_count:,} variants...")
     
-    Returns:
-        list: List of filter values for the specified modality
-    """
-    if not filters_str or filters_str == '.':
-        return []
+    # Close files
+    output_vcf.close()
+    input_vcf.close()
     
-    filters = []
-    for item in filters_str.split('|'):
-        if ':' in item:
-            caller_part, filter_val = item.split(':', 1)
-            if caller_part.startswith(f'{modality}_'):
-                # Normalize filter if requested
-                if normalize:
-                    filter_val = normalize_filter(filter_val)
-                filters.append(filter_val)
-    
-    return filters
+    return processed_count, filtered_count, multiallelic_count
 
 
 def main():
     """Main filtering workflow."""
     args = argparser()
     
+    # Auto-generate stripped output path if not provided
+    if not args.output_stripped:
+        output_path = Path(args.output)
+        args.output_stripped = str(output_path.parent / f"{output_path.stem}.stripped.vcf.gz")
+    
     print("=" * 80)
-    print("Rescue VCF Filtering with Modality-Aware Classification")
+    print("Rescue/Consensus VCF Filtering with RaVeX Rules")
     print("=" * 80)
-    print(f"\nInput: {args.input}")
-    print(f"Output: {args.output}")
-    print(f"DNA threshold: {args.dna_threshold}")
-    print(f"RNA threshold: {args.rna_threshold}")
+    print(f"\nInput:             {args.input}")
+    print(f"Output (standard): {args.output}")
+    print(f"Output (stripped): {args.output_stripped}")
+    print(f"gnomAD threshold:  {args.gnomad_thr}")
+    print(f"Min alt reads:     {args.min_alt_reads}")
+    print(f"Filter multiallelic: {args.filter_multiallelic}")
     
-    # Open input VCF
-    vcf_in = VCF(args.input)
+    # Open genome if provided
+    genome = None
+    if args.ref:
+        genome = pysam.FastaFile(args.ref)
+        print(f"Reference:         {args.ref}")
     
-    # Add new INFO fields for modality-specific variant types
-    vcf_in.add_info_to_header({
-        'ID': 'DNA_VARIANT_TYPE',
-        'Number': '1',
-        'Type': 'String',
-        'Description': 'Variant type determined from DNA callers (SOMATIC, GERMLINE, REFERENCE, ARTIFACT)'
-    })
-    vcf_in.add_info_to_header({
-        'ID': 'RNA_VARIANT_TYPE',
-        'Number': '1',
-        'Type': 'String',
-        'Description': 'Variant type determined from RNA callers (SOMATIC, GERMLINE, REFERENCE, ARTIFACT)'
-    })
-    vcf_in.add_info_to_header({
-        'ID': 'FINAL_VARIANT_TYPE',
-        'Number': '1',
-        'Type': 'String',
-        'Description': 'Final variant type across modalities (SOMATIC, GERMLINE, REFERENCE, ARTIFACT)'
-    })
+    # Load whitelist and blacklist
+    whitelist_vars = load_whitelist(args.whitelist)
+    blacklist_regions = load_blacklist(args.blacklist)
     
-    # Add FILTER entries if not present
-    if 'SOMATIC' not in vcf_in.header_iter():
-        vcf_in.add_filter_to_header({'ID': 'SOMATIC', 'Description': 'Somatic variant'})
-    if 'GERMLINE' not in vcf_in.header_iter():
-        vcf_in.add_filter_to_header({'ID': 'GERMLINE', 'Description': 'Germline variant'})
-    if 'REFERENCE' not in vcf_in.header_iter():
-        vcf_in.add_filter_to_header({'ID': 'REFERENCE', 'Description': 'Reference call'})
-    if 'ARTIFACT' not in vcf_in.header_iter():
-        vcf_in.add_filter_to_header({'ID': 'ARTIFACT', 'Description': 'Likely artifact'})
+    if whitelist_vars:
+        print(f"Whitelist:         {len(whitelist_vars)} variants")
+    if blacklist_regions:
+        print(f"Blacklist:         {len(blacklist_regions)} regions")
     
-    # Open output VCF
-    vcf_out = Writer(args.output, vcf_in)
+    print("\n" + "=" * 80)
+    print("Processing Standard Output (all variants, FORMAT preserved)...")
+    print("=" * 80)
     
-    # Process variants
-    processed_count = 0
-    for variant in vcf_in:
-        # Extract modality-specific information
-        filters_normalized = variant.INFO.get('FILTERS_NORMALIZED', '.')
-        filters_category = variant.INFO.get('FILTERS_CATEGORY', '.')
-        
-        dna_n_callers = variant.INFO.get('N_DNA_CALLERS', 0)
-        rna_n_callers = variant.INFO.get('N_RNA_CALLERS', 0)
-        
-        passes_consensus_dna = variant.INFO.get('PASSES_CONSENSUS_DNA', 'NO') == 'YES'
-        passes_consensus_rna = variant.INFO.get('PASSES_CONSENSUS_RNA', 'NO') == 'YES'
-        
-        # Parse modality-specific filters
-        # Note: FILTERS_NORMALIZED should already be normalized, but we normalize again to be safe
-        dna_filters_normalized = parse_modality_filters(filters_normalized, 'DNA', normalize=True)
-        rna_filters_normalized = parse_modality_filters(filters_normalized, 'RNA', normalize=True)
-        
-        dna_filters_category = parse_modality_filters(filters_category, 'DNA', normalize=False)
-        rna_filters_category = parse_modality_filters(filters_category, 'RNA', normalize=False)
-        
-        # Determine modality-specific variant types
-        dna_type = determine_modality_variant_type(
-            dna_filters_normalized, dna_filters_category, dna_n_callers
-        )
-        rna_type = determine_modality_variant_type(
-            rna_filters_normalized, rna_filters_category, rna_n_callers
-        )
-        
-        # Determine final variant type
-        final_type = determine_final_variant_type(
-            dna_type, rna_type,
-            passes_consensus_dna, passes_consensus_rna,
-            dna_n_callers, rna_n_callers,
-            args.dna_threshold, args.rna_threshold
-        )
-        
-        # Update INFO fields
-        if dna_type:
-            variant.INFO['DNA_VARIANT_TYPE'] = dna_type
-        if rna_type:
-            variant.INFO['RNA_VARIANT_TYPE'] = rna_type
-        if final_type:
-            variant.INFO['FINAL_VARIANT_TYPE'] = final_type
-        
-        # Update FILTER column based on final type
-        if final_type:
-            # Always output the final type explicitly
-            variant.FILTER = [final_type]
-        
-        # Write variant
-        vcf_out.write_record(variant)
-        processed_count += 1
-        
-        if processed_count % 10000 == 0:
-            print(f"  - Processed {processed_count:,} variants...")
+    # Generate standard output
+    proc_std, filt_std, _ = write_filtered_vcf(
+        args.input, args.output, args, genome, 
+        whitelist_vars, blacklist_regions,
+        strip_format=False, filter_multiallelic=False
+    )
     
-    vcf_out.close()
-    vcf_in.close()
+    print(f"\n✓ Standard output complete:")
+    print(f"  Processed:  {proc_std:,} variants")
+    print(f"  Filtered:   {filt_std:,} variants")
+    print(f"  Output:     {args.output}")
     
-    print(f"\n{'=' * 80}")
-    print(f"Filtering completed successfully!")
-    print(f"{'=' * 80}")
-    print(f"  - Total variants processed: {processed_count:,}")
-    print(f"  - Output file: {args.output}")
+    print("\n" + "=" * 80)
+    print("Processing Stripped Output (multiallelic-filtered, FORMAT-stripped)...")
+    print("=" * 80)
+    
+    # Generate stripped output
+    proc_strip, filt_strip, multi_skip = write_filtered_vcf(
+        args.input, args.output_stripped, args, genome,
+        whitelist_vars, blacklist_regions,
+        strip_format=True, filter_multiallelic=args.filter_multiallelic
+    )
+    
+    print(f"\n✓ Stripped output complete:")
+    print(f"  Processed:       {proc_strip:,} variants")
+    print(f"  Filtered:        {filt_strip:,} variants")
+    if args.filter_multiallelic:
+        print(f"  Multiallelic skipped: {multi_skip:,} variants")
+    print(f"  Output:          {args.output_stripped}")
+    
+    # Index outputs
+    print("\n" + "=" * 80)
+    print("Indexing outputs...")
+    print("=" * 80)
+    
+    import subprocess
+    for vcf_path in [args.output, args.output_stripped]:
+        try:
+            subprocess.run(['tabix', '-p', 'vcf', vcf_path], 
+                          check=True, capture_output=True)
+            print(f"  ✓ Indexed: {vcf_path}")
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            print(f"  ⚠ Warning: Failed to index {vcf_path}")
+    
+    if genome:
+        genome.close()
+    
+    print("\n" + "=" * 80)
+    print("Filtering completed successfully!")
+    print("=" * 80)
     
     return 0
 
