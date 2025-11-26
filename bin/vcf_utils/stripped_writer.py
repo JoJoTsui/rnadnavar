@@ -118,34 +118,47 @@ def write_vcf_stripped(records, input_vcf_path, output_path, use_cyvcf2=False):
             alt_str = ','.join(variant.alts) if variant.alts else '.'
             qual_str = str(variant.qual) if variant.qual is not None else '.'
             
-            # Get original FILTER
-            if hasattr(variant, 'filter') and variant.filter and len(variant.filter) > 0:
-                filter_str = ';'.join(variant.filter.keys())
-            else:
+            # Get original FILTER - extract from raw string to preserve exact format
+            try:
+                variant_str = str(variant).strip()
+                fields = variant_str.split('\t')
+                if len(fields) > 6:
+                    filter_str = fields[6]
+                    if not filter_str or filter_str == '.':
+                        filter_str = 'PASS'
+                else:
+                    filter_str = 'PASS'
+            except Exception:
                 filter_str = 'PASS'
             
-            # Copy existing INFO fields
+            # Copy existing INFO fields from pysam
+            # Parse raw INFO string to avoid Python object string representation
             info_parts = []
-            for key in variant.info:
-                try:
-                    value = variant.info[key]
-                    if value is True:
-                        info_parts.append(key)
-                    elif value is not None and value != '':
-                        value_str = str(value).replace(';', '%3B').replace('=', '%3D')
-                        info_parts.append(f"{key}={value_str}")
-                except Exception:
-                    pass
+            try:
+                # Get the raw variant string and extract INFO field
+                variant_str = str(variant).strip()
+                fields = variant_str.split('\t')
+                if len(fields) > 7:
+                    info_str_raw = fields[7]
+                    if info_str_raw and info_str_raw != '.':
+                        # Split and add each INFO field
+                        for info_field in info_str_raw.split(';'):
+                            if info_field:
+                                info_parts.append(info_field)
+            except Exception:
+                pass
         
         # Add RaVeX filter INFO
         if filter_status == "PASS" or not filter_list:
             info_parts.append('RaVeX_FILTER=PASS')
         else:
-            # Use semicolon within the value, not as separator between INFO fields
-            ravex_filter_value = ",".join(filter_list)  # Use comma to separate multiple filter reasons
+            # Deduplicate filter list first
+            unique_filters = list(dict.fromkeys(filter_list))  # Preserve order while removing duplicates
+            # Use comma to separate multiple filter reasons (VCF standard for multi-valued String fields)
+            ravex_filter_value = ",".join(unique_filters)
             info_parts.append(f'RaVeX_FILTER={ravex_filter_value}')
-            # Add individual filter flags as separate INFO fields
-            for flag in set(filter_list):  # Use set to avoid duplicates
+            # Add individual filter flags as separate INFO fields (no duplicates)
+            for flag in unique_filters:
                 info_parts.append(flag)
         
         info_str = ';'.join(info_parts) if info_parts else '.'
