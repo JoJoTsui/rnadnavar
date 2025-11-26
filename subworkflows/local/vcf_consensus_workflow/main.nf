@@ -48,13 +48,24 @@ workflow VCF_CONSENSUS_WORKFLOW {
             }
             .groupTuple() // [metaGrouped, [vcf...], [tbi...], [caller...]]
             .map { metaGrouped, vcfs, tbis, callers ->
-                // Minimal mismatch notice; avoid verbose logging in production
-                if (metaGrouped.ncallers != callers.size()) {
-                    metaGrouped.ncallers_expected = metaGrouped.ncallers
-                    metaGrouped.ncallers = callers.size()
-                    println "[CONSENSUS WARN] Caller count mismatch id=${metaGrouped.id} expected=${metaGrouped.ncallers_expected} actual=${metaGrouped.ncallers}" 
+                // Extract the GroupKey metadata and create a mutable copy
+                def metaMutable = metaGrouped.getGroupTarget() instanceof Map ? 
+                                  metaGrouped.getGroupTarget().clone() : 
+                                  [id: metaGrouped.id, patient: metaGrouped.patient, status: metaGrouped.status]
+                
+                // Check for caller count mismatch
+                def expected_ncallers = metaGrouped.ncallers ?: metaMutable.ncallers ?: 0
+                def actual_ncallers = callers.size()
+                
+                if (expected_ncallers != actual_ncallers) {
+                    metaMutable.ncallers_expected = expected_ncallers
+                    metaMutable.ncallers = actual_ncallers
+                    println "[CONSENSUS WARN] Caller count mismatch id=${metaMutable.id} expected=${expected_ncallers} actual=${actual_ncallers}" 
+                } else {
+                    metaMutable.ncallers = actual_ncallers
                 }
-                [ metaGrouped, vcfs, tbis, callers ]
+                
+                [ metaMutable, vcfs, tbis, callers ]
             }
 
         vcf_grouped.dump(tag:"vcf_grouped_for_consensus")

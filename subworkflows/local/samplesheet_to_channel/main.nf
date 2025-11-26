@@ -60,7 +60,9 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                         error("When tool 'realigment' enabled, `normal_id` should be added to the csv for maf files.")
                         // Need to get the normal id to create the tumour_vs_normal id
                     } else {
-                        meta = meta + [id: meta.sample + "_vs_" + meta.normal_id, data_type: 'maf', variantcaller: variantcaller ?: '']
+                        // Check if sample already contains pairing format (e.g., from previous pipeline runs)
+                        def sample_id = meta.sample.contains("_vs_") ? meta.sample : meta.sample + "_vs_" + meta.normal_id
+                        meta = meta + [id: sample_id, data_type: 'maf', variantcaller: variantcaller ?: '']
                         return [ meta, maf ]
                     }
                 }
@@ -129,11 +131,15 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                     if (meta.status == 0){ // TODO: more specific checks on this is needed
                         error("Samplesheet contains vcf files with status 0, vcfs should only be for tumours (1|2).")
                     }
-                    else if (meta.normal_id == null){
-                        error("When step 'norm', `normal_id` should be added to the csv for all samples.")
-                        // Need to get the normal id to create the tumour_vs_normal id
+                    else if (meta.normal_id == null || meta.normal_id == '' || meta.normal_id == '[]'){
+                        // If normal_id is missing/empty, assume sample name already contains pairing format
+                        // This handles cases where VCFs are from previous pipeline runs
+                        meta = meta + [id: meta.sample, data_type: 'vcf', variantcaller: variantcaller ?: '']
+                        return [ meta - meta.subMap('lane'), vcf ]
                     } else {
-                        meta = meta + [id: meta.sample + "_vs_" + meta.normal_id, data_type: 'vcf', variantcaller: variantcaller ?: '']
+                        // Check if sample already contains pairing format to avoid duplication
+                        def sample_id = meta.sample.contains("_vs_") ? meta.sample : meta.sample + "_vs_" + meta.normal_id
+                        meta = meta + [id: sample_id, data_type: 'vcf', variantcaller: variantcaller ?: '']
                         return [ meta - meta.subMap('lane'), vcf ]
                     }
                 }
