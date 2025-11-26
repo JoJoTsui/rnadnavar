@@ -161,10 +161,27 @@ def classify_variant_from_record(variant, caller_name, sample_indices=None):
         return classify_mutect2_variant(filter_val)
     
     else:
-        # Unknown caller, use generic PASS/FAIL logic
-        if filter_val is None or filter_val == "." or filter_val == "PASS":
-            return "Somatic"
-        return "Artifact"
+        # Check if this is a consensus caller
+        if "consensus" in caller_lower:
+            # Consensus VCFs already have biological categories in FILTER field
+            # Use the FILTER value directly if it's a valid biological category
+            if filter_val in ["Somatic", "Germline", "Reference", "Artifact"]:
+                return filter_val
+            elif filter_val == "NoConsensus":
+                # NoConsensus is a threshold filter, not a classification
+                # This shouldn't happen in consensus VCFs that are being rescued
+                return "Artifact"
+            elif filter_val is None or filter_val == "." or filter_val == "PASS":
+                # Legacy PASS value
+                return "Somatic"
+            else:
+                # Unknown filter value
+                return "Artifact"
+        else:
+            # Unknown caller, use generic PASS/FAIL logic
+            if filter_val is None or filter_val == "." or filter_val == "PASS":
+                return "Somatic"
+            return "Artifact"
 
 
 def classify_variant_from_dict(variant_dict, caller_name):

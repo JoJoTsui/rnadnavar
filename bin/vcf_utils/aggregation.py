@@ -505,10 +505,27 @@ def read_variants_from_vcf(vcf_path, caller_name, modality=None,
         # Classify variant before creating data dict
         classification = None
         if classify_variants:
-            try:
-                classification = classify_variant_from_record(variant, caller_name, sample_indices)
-            except Exception as e:
-                classification = "Artifact"
+            # Optimization: For consensus callers, FILTER field already contains biological category
+            if "consensus" in caller_name.lower():
+                # Use FILTER field directly for consensus VCFs
+                if filter_str in ["Somatic", "Germline", "Reference", "Artifact"]:
+                    classification = filter_str
+                elif filter_str == "NoConsensus":
+                    # NoConsensus variants shouldn't be in consensus VCFs being rescued
+                    # but if they are, classify as Artifact
+                    classification = "Artifact"
+                else:
+                    # Fallback to classification function
+                    try:
+                        classification = classify_variant_from_record(variant, caller_name, sample_indices)
+                    except Exception as e:
+                        classification = "Artifact"
+            else:
+                # Regular caller - classify using caller-specific logic
+                try:
+                    classification = classify_variant_from_record(variant, caller_name, sample_indices)
+                except Exception as e:
+                    classification = "Artifact"
         
         # Create variant data
         data = {

@@ -2,7 +2,6 @@
 // VCF Consensus Workflow - Standalone VCF processing
 //
 include { VCF_CONSENSUS                            } from '../../../modules/local/vcf_consensus/main'
-include { VCF_CONSENSUS as VCF_CONSENSUS_RESCUE    } from '../../../modules/local/vcf_consensus/main'
 include { VCF_RESCUE_WORKFLOW                      } from '../vcf_rescue_workflow/main'
 
 workflow VCF_CONSENSUS_WORKFLOW {
