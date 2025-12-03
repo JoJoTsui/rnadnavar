@@ -93,7 +93,8 @@ class VCFVisualizer:
             rows=1,
             cols=2,
             subplot_titles=("DNA Modality", "RNA Modality"),
-            horizontal_spacing=0.12
+            horizontal_spacing=0.12,
+            shared_yaxes=True
         )
 
         # Plot DNA modality
@@ -240,7 +241,8 @@ class VCFVisualizer:
             rows=1,
             cols=n_mods,
             subplot_titles=available_mods,
-            horizontal_spacing=0.10
+            horizontal_spacing=0.10,
+            shared_yaxes=True
         )
 
         for i, modality in enumerate(available_mods, 1):
@@ -321,7 +323,13 @@ class VCFVisualizer:
                 if "stats" in vcf_data and "basic" in vcf_data["stats"]:
                     basic = vcf_data["stats"]["basic"]
                     classification = basic.get("classification", {})
-                    modality = "DNA" if "DNA" in modality_key else "RNA"
+                    # Explicitly detect modality to avoid misclassification
+                    if "RNA_TUMOR" in modality_key:
+                        modality = "RNA"
+                    elif "DNA_TUMOR" in modality_key:
+                        modality = "DNA"
+                    else:
+                        modality = "DNA" if modality_key.lower().startswith("dna") else "RNA"
 
                     for filter_cat in CATEGORY_ORDER:
                         count = classification.get(filter_cat, 0)
