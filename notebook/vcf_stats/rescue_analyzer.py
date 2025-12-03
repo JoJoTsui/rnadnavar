@@ -179,12 +179,12 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
             # Create stacked bar chart
             fig = go.Figure()
 
-            # Define consistent colors
+                # Define consistent colors (matching visualizer.py unified color scheme)
             CATEGORY_COLORS = {
                 "Somatic": "#636EFA",
                 "Germline": "#00CC96",
-                "Reference": "#EF553B",
-                "Artifact": "#AB63FA",
+                    "Reference": "#FFA15A",
+                    "Artifact": "#EF553B",
                 "PASS": "#636EFA",
                 "LowQual": "#EF553B",
                 "StrandBias": "#AB63FA",
@@ -229,8 +229,6 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
             )
 
             fig.show()
-
-            rescue_analysis["plot"] = fig
 
         except Exception as e:
             print(f"Error creating rescue analysis plot: {e}")

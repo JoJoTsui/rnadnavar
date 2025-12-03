@@ -167,7 +167,6 @@ class VCFVisualizer:
         )
 
         fig.show()
-        return fig
 
     def plot_variant_type_distribution(self):
         """
@@ -285,7 +284,6 @@ class VCFVisualizer:
         )
 
         fig.show()
-        return fig
 
     def plot_consensus_comparison(self):
         """
@@ -427,7 +425,6 @@ class VCFVisualizer:
         )
 
         fig.show()
-        return fig
 
     def plot_filter_status(self):
         """
@@ -590,4 +587,3 @@ class VCFVisualizer:
             fig.update_yaxes(range=[0, max_y * 1.1], row=1, col=i)
 
         fig.show()
-        return fig
