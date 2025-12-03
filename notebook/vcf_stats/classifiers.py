@@ -139,14 +139,21 @@ def classify_variant(variant, caller_name, sample_indices=None):
             normal_dp = 0
 
             # Try to get NT field (Normal Type)
-            if hasattr(variant, 'INFO') and 'NT' in variant.INFO:
+            # Note: cyvcf2's 'in' operator doesn't work reliably for INFO fields
+            # Use .get() directly and check if result is not None
+            try:
                 nt_val = variant.INFO.get('NT')
+            except:
+                nt_val = None
 
             # Get normal sample depth
             if sample_indices and 'normal' in sample_indices:
                 normal_idx = sample_indices['normal']
-                if normal_idx < len(variant.format('DP')):
-                    normal_dp = variant.format('DP')[normal_idx]
+                dp_array = variant.format('DP')
+                if dp_array is not None and len(dp_array) > normal_idx:
+                    dp_val = dp_array[normal_idx]
+                    if dp_val is not None and len(dp_val) > 0:
+                        normal_dp = dp_val[0] if dp_val[0] is not None else 0
 
             return classify_strelka_variant(filter_val, nt_val, normal_dp)
         except Exception as e:
