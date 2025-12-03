@@ -38,12 +38,12 @@ class VCFVisualizer:
         """
         self.all_stats = all_stats
 
-        # Define unified color scheme
+        # Define unified color scheme (matching original notebook)
         self.CATEGORY_COLORS = {
             "Somatic": "#636EFA",
             "Germline": "#00CC96",
-            "Reference": "#EF553B",
-            "Artifact": "#AB63FA",
+            "Reference": "#FFA15A",
+            "Artifact": "#EF553B",
             "PASS": "#636EFA",
             "LowQual": "#EF553B",
             "StrandBias": "#AB63FA",
@@ -59,114 +59,110 @@ class VCFVisualizer:
             print("Visualization libraries not available. Skipping plot.")
             return None
 
-        # Collect data
+        # Collect data - only from variant_calling category
         data = []
-        print(f"DEBUG: Starting plot_variant_counts_by_tool with {len(self.all_stats)} categories")
 
-        for category, files in self.all_stats.items():
-            for name, file_data in files.items():
-                # The correct data structure has stats nested under the file_data
-                if "stats" not in file_data:
-                    print(f"DEBUG: No 'stats' for {name}")
-                    continue
-                    
-                stats = file_data["stats"]
-                if "basic" not in stats:
-                    print(f"DEBUG: No 'basic' stats for {name}")
-                    continue
+        if "variant_calling" in self.all_stats:
+            for name, vcf_data in self.all_stats["variant_calling"].items():
+                if "stats" in vcf_data and "basic" in vcf_data["stats"]:
+                    basic = vcf_data["stats"]["basic"]
+                    classification = basic.get("classification", {})
+                    parts = name.split("_")
+                    tool = parts[0] if parts else name
+                    modality = "DNA" if "DNA_TUMOR" in name else "RNA"
 
-                basic = stats["basic"]
-                classification = basic.get("classification", {})
-                
-                # Only process files that have classification data
-                if not classification:
-                    continue
+                    # Add data for each FILTER category
+                    for filter_cat in CATEGORY_ORDER:
+                        count = classification.get(filter_cat, 0)
+                        if count > 0:
+                            data.append({
+                                "Tool": tool,
+                                "Modality": modality,
+                                "Category": filter_cat,
+                                "Count": count
+                            })
 
-                parts = name.split("_")
-                tool = parts[0] if parts else name
-                modality = "DNA" if "DNA_TUMOR" in name else "RNA"
-
-                print(f"DEBUG: {name}: classification = {classification}")
-
-                # Add data for each classification category
-                for filter_cat in CATEGORY_ORDER:
-                    count = classification.get(filter_cat, 0)
-                    if count > 0:
-                        data.append({
-                            "Tool": tool,
-                            "Modality": modality,
-                            "Category": filter_cat,
-                            "Count": count,
-                            "File": name
-                        })
-
-        print(f"DEBUG: Collected {len(data)} data entries for plotting")
-        
         if not data:
-            print("No data available for plotting.")
+            print("No data available for plotting")
             return None
 
-        # Create DataFrame
         df = pd.DataFrame(data)
 
         # Create subplots for DNA and RNA
         fig = make_subplots(
-            rows=1, cols=2,
-            subplot_titles=("DNA Tumor", "RNA Tumor"),
-            specs=[[{"secondary_y": False}, {"secondary_y": False}]]
+            rows=1,
+            cols=2,
+            subplot_titles=("DNA Modality", "RNA Modality"),
+            horizontal_spacing=0.12
         )
 
-        # Plot for each modality
-        for i, modality in enumerate(["DNA", "RNA"]):
-            col_idx = i + 1
-            modality_data = df[df["Modality"] == modality]
-
-            if modality_data.empty:
-                continue
-
-            # Get unique tools for this modality
-            tools = sorted(modality_data["Tool"].unique())
-            
-            # Create stacked bar chart
+        # Plot DNA modality
+        df_dna = df[df["Modality"] == "DNA"]
+        if not df_dna.empty:
+            tools = sorted(df_dna["Tool"].unique())
             for filter_cat in CATEGORY_ORDER:
-                y_values = []
-                for tool in tools:
-                    tool_data = modality_data[modality_data["Tool"] == tool]
-                    if not tool_data.empty:
-                        count = tool_data.iloc[0]["Count"] if tool_data["Category"].iloc[0] == filter_cat else 0
-                        y_values.append(count)
-                
-                # Only add trace if there are values
-                if any(y_values):
+                df_cat = df_dna[df_dna["Category"] == filter_cat]
+                counts = [
+                    df_cat[df_cat["Tool"] == t]["Count"].sum()
+                    if not df_cat[df_cat["Tool"] == t].empty
+                    else 0
+                    for t in tools
+                ]
+                if sum(counts) > 0:
                     fig.add_trace(
                         go.Bar(
                             name=filter_cat,
                             x=tools,
-                            y=y_values,
+                            y=counts,
                             marker_color=self.CATEGORY_COLORS.get(filter_cat, "#8A8A8A"),
-                            showlegend=(i == 0),  # Only show legend for first subplot
-                            hovertemplate=f"<b>{filter_cat}</b><br>Tool: %{{x}}<br>Count: %{{y}}"
+                            text=counts,
+                            textposition="inside",
+                            showlegend=True,
+                            legendgroup=filter_cat
                         ),
-                        row=1, col=col_idx
+                        row=1,
+                        col=1
                     )
 
-            # Update subplot layout
-            fig.update_xaxes(title_text="Variant Calling Tool", row=1, col=col_idx)
-            fig.update_yaxes(title_text="Number of Variants", row=1, col=col_idx)
+        # Plot RNA modality
+        df_rna = df[df["Modality"] == "RNA"]
+        if not df_rna.empty:
+            tools = sorted(df_rna["Tool"].unique())
+            for filter_cat in CATEGORY_ORDER:
+                df_cat = df_rna[df_rna["Category"] == filter_cat]
+                counts = [
+                    df_cat[df_cat["Tool"] == t]["Count"].sum()
+                    if not df_cat[df_cat["Tool"] == t].empty
+                    else 0
+                    for t in tools
+                ]
+                if sum(counts) > 0:
+                    fig.add_trace(
+                        go.Bar(
+                            name=filter_cat,
+                            x=tools,
+                            y=counts,
+                            marker_color=self.CATEGORY_COLORS.get(filter_cat, "#8A8A8A"),
+                            text=counts,
+                            textposition="inside",
+                            showlegend=False,
+                            legendgroup=filter_cat
+                        ),
+                        row=1,
+                        col=2
+                    )
 
-        # Update overall layout
+        fig.update_xaxes(title_text="Tool", row=1, col=1)
+        fig.update_xaxes(title_text="Tool", row=1, col=2)
+        fig.update_yaxes(title_text="Number of Variants", row=1, col=1)
+        fig.update_yaxes(title_text="Number of Variants", row=1, col=2)
+
         fig.update_layout(
-            title="Variant Counts by Tool and Modality",
+            title="Variant Counts by Tool and FILTER Category",
+            template="plotly_white",
             barmode="stack",
-            height=600,
-            width=1200,
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
-            )
+            height=500,
+            showlegend=True
         )
 
         fig.show()
@@ -174,7 +170,7 @@ class VCFVisualizer:
 
     def plot_variant_type_distribution(self):
         """
-        Plot variant type distribution (SNP vs INDEL) by FILTER category.
+        Stacked bar charts showing SNP vs INDEL distribution with FILTER categories.
         """
         if not VISUALIZATION_AVAILABLE:
             print("Visualization libraries not available. Skipping plot.")
@@ -182,60 +178,55 @@ class VCFVisualizer:
 
         data = []
 
-        # Collect variant type data from consensus and rescue categories
-        for category in ["consensus", "rescue"]:
-            if category not in self.all_stats:
-                continue
+        # Collect data from consensus VCFs for cleaner view
+        for vcf_type in ["consensus", "rescue"]:
+            if vcf_type in self.all_stats:
+                for name, vcf_data in self.all_stats[vcf_type].items():
+                    if "stats" in vcf_data and "basic" in vcf_data["stats"]:
+                        basic = vcf_data["stats"]["basic"]
+                        classification = basic.get("classification", {})
 
-            for name, file_data in self.all_stats[category].items():
-                if "stats" not in file_data or "basic" not in file_data["stats"]:
-                    continue
+                        if vcf_type == "consensus":
+                            if "DNA_TUMOR" in name:
+                                modality = "DNA Consensus"
+                            elif "RNA_TUMOR" in name:
+                                modality = "RNA Consensus"
+                            else:
+                                continue
+                        else:
+                            modality = "Rescued"
 
-                basic = file_data["stats"]["basic"]
-                classification = basic.get("classification", {})
-                snps = basic.get("snps", 0)
-                indels = basic.get("indels", 0)
+                        # Get variant types
+                        variant_types = basic.get("variant_types", {})
+                        snps = variant_types.get("SNP", 0)
+                        indels = variant_types.get("DEL", 0) + variant_types.get("INS", 0)
 
-                # Determine modality
-                if category == "consensus":
-                    modality = "DNA Consensus" if "DNA" in name else "RNA Consensus"
-                elif category == "rescue":
-                    modality = "Rescued"
-                else:
-                    continue
+                        # For each FILTER category, calculate proportional SNP/INDEL split
+                        total_vars = basic.get("total_variants", 1)
+                        for filter_cat in CATEGORY_ORDER:
+                            count = classification.get(filter_cat, 0)
+                            if count > 0:
+                                # Proportionally split into SNPs and INDELs
+                                snp_count = int(count * (snps / total_vars))
+                                indel_count = count - snp_count
 
-                # For each classification category, split by SNP/INDEL
-                # Note: We approximate the split based on overall SNP/INDEL ratio
-                total = snps + indels
-                if total == 0:
-                    continue
-
-                snp_ratio = snps / total
-                indel_ratio = indels / total
-
-                for filter_cat in CATEGORY_ORDER:
-                    count = classification.get(filter_cat, 0)
-                    if count > 0:
-                        snp_count = int(count * snp_ratio)
-                        indel_count = int(count * indel_ratio)
-
-                        if snp_count > 0:
-                            data.append({
-                                "Modality": modality,
-                                "Type": "SNP",
-                                "Category": filter_cat,
-                                "Count": snp_count
-                            })
-                        if indel_count > 0:
-                            data.append({
-                                "Modality": modality,
-                                "Type": "INDEL",
-                                "Category": filter_cat,
-                                "Count": indel_count
-                            })
+                                if snp_count > 0:
+                                    data.append({
+                                        "Modality": modality,
+                                        "Type": "SNP",
+                                        "Category": filter_cat,
+                                        "Count": snp_count
+                                    })
+                                if indel_count > 0:
+                                    data.append({
+                                        "Modality": modality,
+                                        "Type": "INDEL",
+                                        "Category": filter_cat,
+                                        "Count": indel_count
+                                    })
 
         if not data:
-            print("No variant type data available for plotting")
+            print("No data available for plotting")
             return None
 
         df = pd.DataFrame(data)
@@ -244,10 +235,6 @@ class VCFVisualizer:
         modalities = ["DNA Consensus", "RNA Consensus", "Rescued"]
         available_mods = [m for m in modalities if m in df["Modality"].values]
         n_mods = len(available_mods)
-
-        if n_mods == 0:
-            print("No modality data available")
-            return None
 
         fig = make_subplots(
             rows=1,
@@ -470,9 +457,9 @@ class VCFVisualizer:
 
                 elif category == "consensus":
                     tool = "consensus"
-                    if "DNA" in name:
+                    if "DNA_TUMOR" in name:
                         subplot_cat = "DNA"
-                    elif "RNA" in name:
+                    elif "RNA_TUMOR" in name:
                         subplot_cat = "RNA"
                     else:
                         continue
