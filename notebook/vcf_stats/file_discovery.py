@@ -47,13 +47,14 @@ class VCFFileDiscovery:
                         self.vcf_files["variant_calling"][key] = vcf_files[0]
 
         # 2. Normalized VCFs
-        normalized_dir = self.base_dir / "normalized"
-        if normalized_dir.exists():
-            for tool_modality_dir in normalized_dir.iterdir():
-                if tool_modality_dir.is_dir():
-                    for vcf_file in tool_modality_dir.glob("*.norm.vcf.gz"):
-                        key = tool_modality_dir.name
-                        self.vcf_files["normalized"][key] = vcf_file
+        for tool in TOOLS:
+            for modality in MODALITIES:
+                norm_dir = self.base_dir / "normalized" / tool / modality
+                if norm_dir.exists():
+                    vcf_files = list(norm_dir.glob("*.norm.vcf.gz"))
+                    if vcf_files:
+                        key = f"{tool}_{modality}"
+                        self.vcf_files["normalized"][key] = vcf_files[0]
 
         # 3. Annotated VCFs
         annotated_dir = self.base_dir / "annotated"
@@ -65,66 +66,24 @@ class VCFFileDiscovery:
                         self.vcf_files["annotated"][key] = vcf_file
 
         # 4. Consensus VCFs
-        consensus_dir = self.base_dir / "consensus"
+        consensus_dir = self.base_dir / "consensus" / "vcf"
         if consensus_dir.exists():
-            # Also check for consensus in subfolder
-            if not consensus_dir.is_file():
-                for consensus_subdir in consensus_dir.iterdir():
-                    if consensus_subdir.is_dir():
-                        for vcf_file in consensus_subdir.glob("*.consensus.vcf.gz"):
-                            filename = vcf_file.name
-                            # Try to extract tool and modality in different ways
-                            # Handle different naming patterns
-                            if "DNA_TUMOR_vs_DNA_NORMAL" in filename:
-                                if "deepsomatic" in filename:
-                                    key = "deepsomatic_DNA_TUMOR_vs_DNA_NORMAL"
-                                elif "strelka" in filename:
-                                    key = "strelka_DNA_TUMOR_vs_DNA_NORMAL"
-                                elif "mutect2" in filename:
-                                    key = "mutect2_DNA_TUMOR_vs_DNA_NORMAL"
-                                else:
-                                    continue
-                            elif "RNA_TUMOR_vs_DNA_NORMAL" in filename:
-                                if "deepsomatic" in filename:
-                                    key = "deepsomatic_RNA_TUMOR_vs_DNA_NORMAL"
-                                elif "strelka" in filename:
-                                    key = "strelka_RNA_TUMOR_vs_DNA_NORMAL"
-                                elif "mutect2" in filename:
-                                    key = "mutect2_RNA_TUMOR_vs_DNA_NORMAL"
-                                else:
-                                    continue
-                            else:
-                                # Try generic pattern splitting
-                                parts = filename.split('_')
-                                if len(parts) >= 3:
-                                    tool = parts[0]
-                                    modality = '_'.join(parts[1:])
-                                    key = f"{tool}_{modality}"
-                                    self.vcf_files["consensus"][key] = vcf_file
+            for modality in MODALITIES:
+                vcf_dir = consensus_dir / modality
+                if vcf_dir.exists():
+                    vcf_files = list(vcf_dir.glob("*.consensus.vcf.gz"))
+                    if vcf_files:
+                        self.vcf_files["consensus"][modality] = vcf_files[0]
 
         # 5. Rescue VCFs
         rescue_dir = self.base_dir / "rescue"
         if rescue_dir.exists():
-            for vcf_file in rescue_dir.glob("*.rescued.vcf.gz"):
-                # Try multiple filename patterns
-                filename = vcf_file.name
-                
-                # Simple pattern recognition for rescue files
-                if ".rescued.vcf.gz" in filename:
-                    # Remove .rescued.vcf.gz to get base name
-                    base_name = filename.replace(".rescued.vcf.gz", "")
-                    
-                    # Try to determine tool and modality
-                    if "DNA" in base_name:
-                        key = "DNA"
-                    elif "RNA" in base_name:
-                        key = "RNA"
-                    else:
-                        # Fall back to full name as key
-                        key = base_name
-                    
-                    # Create rescue entry
-                    self.vcf_files["rescue"][key] = vcf_file
+            for subdir in rescue_dir.iterdir():
+                if subdir.is_dir():
+                    vcf_files = list(subdir.glob("*.rescued.vcf.gz"))
+                    if vcf_files:
+                        # Use the directory name as the key (e.g., DNA_TUMOR_vs_DNA_NORMAL_rescued_RNA_TUMOR_vs_DNA_NORMAL)
+                        self.vcf_files["rescue"][subdir.name] = vcf_files[0]
 
         
 
