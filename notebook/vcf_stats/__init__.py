@@ -37,6 +37,14 @@ from .bam_validator import BAMValidator
 from .rescue_analyzer import analyze_rescue_vcf, export_rescue_analysis, create_resuce_transition_matrix
 from .tiering import tier_rescue_variants, sample_tier_representatives
 from .igv_like import IGVLikePlotter, visualize_variants_igv_like
+from .igv_reports_wrapper import (
+    create_subset_vcf,
+    generate_igv_report,
+    create_tier_summary_html,
+    visualize_rescue_variants_with_igvreports,
+    check_igv_reports_available,
+    get_alignment_index_path,
+)
 
 # Export all public classes
 __all__ = [
@@ -58,6 +66,12 @@ __all__ = [
     'sample_tier_representatives',
     'IGVLikePlotter',
     'visualize_variants_igv_like',
+    'create_subset_vcf',
+    'generate_igv_report',
+    'create_tier_summary_html',
+    'visualize_rescue_variants_with_igvreports',
+    'check_igv_reports_available',
+    'get_alignment_index_path',
     'TOOLS',
     'MODALITIES',
     'CATEGORY_ORDER'
