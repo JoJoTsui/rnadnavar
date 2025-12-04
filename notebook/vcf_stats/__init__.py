@@ -35,6 +35,8 @@ from .visualizer import VCFVisualizer
 from .statistics_aggregator import StatisticsAggregator
 from .bam_validator import BAMValidator
 from .rescue_analyzer import analyze_rescue_vcf, export_rescue_analysis, create_resuce_transition_matrix
+from .tiering import tier_rescue_variants, sample_tier_representatives
+from .igv_like import IGVLikePlotter, visualize_variants_igv_like
 
 # Export all public classes
 __all__ = [
@@ -52,6 +54,10 @@ __all__ = [
     'analyze_rescue_vcf',
     'export_rescue_analysis',
     'create_resuce_transition_matrix',
+    'tier_rescue_variants',
+    'sample_tier_representatives',
+    'IGVLikePlotter',
+    'visualize_variants_igv_like',
     'TOOLS',
     'MODALITIES',
     'CATEGORY_ORDER'
