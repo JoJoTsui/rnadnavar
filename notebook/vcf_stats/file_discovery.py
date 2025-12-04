@@ -35,9 +35,15 @@ class VCFFileDiscovery:
     def discover_vcfs(self) -> Dict[str, Dict[str, Path]]:
         """Discover all VCF files"""
         # 1. Per-tool variant calling outputs
+        # Try both modality-based structure and sample-pair structure
         for tool in TOOLS:
+            tool_dir = self.base_dir / "variant_calling" / tool
+            if not tool_dir.exists():
+                continue
+            
+            # First try modality-based structure (e.g., DNA_TUMOR, RNA_TUMOR)
             for modality in MODALITIES:
-                variant_dir = self.base_dir / "variant_calling" / tool / modality
+                variant_dir = tool_dir / modality
                 if variant_dir.exists():
                     vcf_files = list(variant_dir.glob("*.vcf.gz"))
                     # Filter out gVCF files
@@ -45,14 +51,58 @@ class VCFFileDiscovery:
                     if vcf_files:
                         key = f"{tool}_{modality}"
                         self.vcf_files["variant_calling"][key] = vcf_files[0]
+            
+            # Also try sample-pair structure (e.g., 2374372DT_vs_2374372DN)
+            for subdir in tool_dir.iterdir():
+                if subdir.is_dir() and "_vs_" in subdir.name:
+                    vcf_files = list(subdir.glob("*.vcf.gz"))
+                    # Filter out gVCF files
+                    vcf_files = [f for f in vcf_files if ".g.vcf.gz" not in str(f)]
+                    if vcf_files:
+                        # Extract modality from sample name (e.g., DT -> DNA_TUMOR)
+                        sample_pair = subdir.name
+                        # Get the tumor sample (first part before _vs_)
+                        tumor_sample = sample_pair.split("_vs_")[0]
+                        # Determine modality from suffix
+                        if tumor_sample.endswith("DT"):
+                            modality = "DNA_TUMOR"
+                        elif tumor_sample.endswith("RT"):
+                            modality = "RNA_TUMOR"
+                        else:
+                            modality = tumor_sample  # Use as-is if no recognized suffix
+                        
+                        key = f"{tool}_{modality}"
+                        self.vcf_files["variant_calling"][key] = vcf_files[0]
 
         # 2. Normalized VCFs
         for tool in TOOLS:
+            norm_tool_dir = self.base_dir / "normalized" / tool
+            if not norm_tool_dir.exists():
+                continue
+                
+            # Try modality-based structure
             for modality in MODALITIES:
-                norm_dir = self.base_dir / "normalized" / tool / modality
+                norm_dir = norm_tool_dir / modality
                 if norm_dir.exists():
                     vcf_files = list(norm_dir.glob("*.norm.vcf.gz"))
                     if vcf_files:
+                        key = f"{tool}_{modality}"
+                        self.vcf_files["normalized"][key] = vcf_files[0]
+            
+            # Also try sample-pair structure
+            for subdir in norm_tool_dir.iterdir():
+                if subdir.is_dir() and "_vs_" in subdir.name:
+                    vcf_files = list(subdir.glob("*.norm.vcf.gz"))
+                    if vcf_files:
+                        sample_pair = subdir.name
+                        tumor_sample = sample_pair.split("_vs_")[0]
+                        if tumor_sample.endswith("DT"):
+                            modality = "DNA_TUMOR"
+                        elif tumor_sample.endswith("RT"):
+                            modality = "RNA_TUMOR"
+                        else:
+                            modality = tumor_sample
+                        
                         key = f"{tool}_{modality}"
                         self.vcf_files["normalized"][key] = vcf_files[0]
 
@@ -68,11 +118,28 @@ class VCFFileDiscovery:
         # 4. Consensus VCFs
         consensus_dir = self.base_dir / "consensus" / "vcf"
         if consensus_dir.exists():
+            # Try modality-based structure
             for modality in MODALITIES:
                 vcf_dir = consensus_dir / modality
                 if vcf_dir.exists():
                     vcf_files = list(vcf_dir.glob("*.consensus.vcf.gz"))
                     if vcf_files:
+                        self.vcf_files["consensus"][modality] = vcf_files[0]
+            
+            # Also try sample-pair structure
+            for subdir in consensus_dir.iterdir():
+                if subdir.is_dir() and "_vs_" in subdir.name:
+                    vcf_files = list(subdir.glob("*.consensus.vcf.gz"))
+                    if vcf_files:
+                        sample_pair = subdir.name
+                        tumor_sample = sample_pair.split("_vs_")[0]
+                        if tumor_sample.endswith("DT"):
+                            modality = "DNA_TUMOR"
+                        elif tumor_sample.endswith("RT"):
+                            modality = "RNA_TUMOR"
+                        else:
+                            modality = tumor_sample
+                        
                         self.vcf_files["consensus"][modality] = vcf_files[0]
 
         # 5. Rescue VCFs
