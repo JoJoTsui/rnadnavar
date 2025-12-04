@@ -2,8 +2,9 @@
 """
 IGV-like BAM Visualization for Variants
 
-Generates static, lightweight IGV-like plots around variant positions
-for provided BAM/CRAM files. Uses pysam pileups and matplotlib.
+Generates static, IGV-like plots around variant positions for provided BAM/CRAM files.
+Shows reference sequence once at the top, then ordered sample tracks (DNA_NORMAL, DNA_TUMOR, RNA_TUMOR).
+Highlights mismatches against reference and exports PNG and HTML.
 """
 
 from __future__ import annotations
@@ -15,32 +16,17 @@ import pandas as pd
 
 
 class IGVLikePlotter:
-    def __init__(self, bam_files: Dict[str, Path], ref_fasta: Optional[Path] = None):
-        """
-        bam_files: mapping of sample_name -> BAM/CRAM path
-        ref_fasta: optional reference FASTA (indexed) for context
-        """
+    def __init__(self, bam_files: Dict[str, Path], ref_fasta: Path):
         self.bam_files = {k: Path(v) for k, v in bam_files.items()}
-        self.ref_fasta = Path(ref_fasta) if ref_fasta else None
+        self.ref_fasta = Path(ref_fasta)
 
         try:
             import matplotlib.pyplot as plt  # noqa: F401
             import pysam  # noqa: F401
         except ImportError as e:
             raise RuntimeError("matplotlib and pysam are required for IGV-like plotting") from e
-
-    @staticmethod
-    def _base_counts_at(pileups) -> Dict[str, int]:
-        counts = {"A": 0, "C": 0, "G": 0, "T": 0, "N": 0, "INS": 0, "DEL": 0}
-        for pr in pileups:
-            if pr.is_del:
-                counts["DEL"] += 1
-            elif pr.is_refskip:
-                continue
-            else:
-                b = pr.alignment.query_sequence[pr.query_position]
-                counts[b.upper() if b else "N"] = counts.get(b.upper() if b else "N", 0) + 1
-        return counts
+        if not self.ref_fasta.exists():
+            raise RuntimeError("Reference FASTA (indexed) is required for visualization")
 
     def plot_variant_region(
         self,
@@ -48,98 +34,139 @@ class IGVLikePlotter:
         pos: int,
         ref: str,
         alt: str,
-        window: int = 100,
+        flank: int = 60,
         samples_subset: Optional[List[str]] = None,
-        out_path: Optional[Path] = None,
+        out_png: Optional[Path] = None,
+        out_html: Optional[Path] = None,
         title: Optional[str] = None,
-    ) -> Optional[Path]:
-        """
-        Create a multi-panel plot with coverage and base counts at the variant site
-        for each selected sample.
-        """
+    ) -> Tuple[Optional[Path], Optional[Path]]:
         import matplotlib.pyplot as plt
         import pysam
 
-        start = max(1, pos - window)
-        end = pos + window
+        start = max(1, pos - flank)
+        end = pos + flank
 
         sample_names = list(self.bam_files.keys()) if samples_subset is None else [s for s in samples_subset if s in self.bam_files]
         if not sample_names:
-            return None
+            return None, None
+
+        # Enforce desired order
+        order = [s for s in ["DNA_NORMAL", "DNA_TUMOR", "RNA_TUMOR"] if s in sample_names]
+        order += [s for s in sample_names if s not in order]
+        sample_names = order
 
         n = len(sample_names)
-        fig, axes = plt.subplots(n, 1, figsize=(10, 2.4 * n), sharex=True)
-        if n == 1:
-            axes = [axes]
+        fig, axes = plt.subplots(n + 1, 1, figsize=(13, 3.0 * (n + 1)), sharex=True)
+        # Ensure axes is a list: when n+1=1, axes is a scalar Axes; when n+1>1, axes is numpy array
+        if hasattr(axes, '__len__'):
+            axes = list(axes)  # numpy array or tuple -> list
+        else:
+            axes = [axes]  # scalar Axes -> list with one element
 
-        for ax, sample in zip(axes, sample_names):
+        # Reference track at top
+        ref_ax = axes[0]
+        ref_fa = pysam.FastaFile(str(self.ref_fasta))
+        ref_seq = ref_fa.fetch(chrom, start - 1, end).upper()
+        xs = list(range(start, end + 1))
+        ref_ax.plot(xs, [0] * len(xs), alpha=0)
+        for i, base in enumerate(ref_seq):
+            x = start + i
+            ref_ax.text(x, 1.0, base, fontsize=9, ha="center", va="top", color="#37474f")
+        ref_ax.axvline(pos, color="#ef5350", linestyle="--", linewidth=1.0)
+        ref_ax.set_ylim(0, 2)
+        ref_ax.set_ylabel("REFERENCE", fontsize=10)
+        ref_ax.grid(True, axis="y", linestyle=":", alpha=0.2)
+
+        # Sample tracks
+        for ax, sample in zip(axes[1:], sample_names):
             bam_path = str(self.bam_files[sample])
             try:
                 bam = pysam.AlignmentFile(bam_path, "rb")
             except ValueError:
-                # maybe CRAM
                 bam = pysam.AlignmentFile(bam_path, "rc")
 
-            # Coverage across window
-            cov = [0] * (end - start + 1)
-            for pileupcolumn in bam.pileup(chrom, start - 1, end, truncate=True, stepper="all"):
-                idx = pileupcolumn.pos + 1 - start
-                if 0 <= idx < len(cov):
-                    cov[idx] = pileupcolumn.nsegments
-
-            # Base counts exactly at variant site
-            base_counts = {}
-            for pileupcolumn in bam.pileup(chrom, pos - 1, pos, truncate=True, stepper="all"):
-                if pileupcolumn.pos + 1 == pos:
-                    base_counts = self._base_counts_at(pileupcolumn.pileups)
-                    break
+            # Draw alignments and highlight mismatches
+            y = 1
+            for read in bam.fetch(chrom, start, end):
+                if read.is_unmapped:
+                    continue
+                coords = read.get_reference_positions(full_length=False)
+                qpos = read.get_aligned_pairs(matches_only=False)
+                if coords:
+                    ax.hlines(y, min(coords) + 1, max(coords) + 1, color="#78909c", linewidth=2, alpha=0.9)
+                for qidx, ref_idx in qpos:
+                    if qidx is None or ref_idx is None:
+                        continue
+                    ref_pos = ref_idx + 1
+                    if ref_pos < start or ref_pos > end:
+                        continue
+                    ref_base = ref_seq[ref_pos - start]
+                    read_base = read.query_sequence[qidx].upper()
+                    if read_base != ref_base:
+                        ax.scatter(ref_pos, y, color="#d32f2f", s=16, marker="s")
+                        ax.text(ref_pos, y + 0.15, read_base, fontsize=8, ha="center", color="#c62828", fontweight="bold")
+                y += 1
 
             bam.close()
 
-            # Plot coverage
-            xs = list(range(start, end + 1))
-            ax.fill_between(xs, cov, step="mid", color="#cfd8dc")
-            ax.plot(xs, cov, color="#90a4ae", linewidth=1)
-
-            # Vertical line at variant pos
-            ax.axvline(pos, color="#ef5350", linestyle="--", linewidth=1.2)
-
-            # Annotate base counts at position
-            if base_counts:
-                lbl = ", ".join([f"{k}:{v}" for k, v in base_counts.items() if v > 0])
-                ax.text(pos, max(cov) * 0.85 if cov else 1.0, lbl, fontsize=9, color="#37474f", ha="left", va="top")
-
-            ax.set_ylabel(f"{sample}\ncoverage", fontsize=9)
-            ax.grid(True, axis="y", linestyle=":", alpha=0.4)
+            ax.axvline(pos, color="#ef5350", linestyle="--", linewidth=1.0)
+            ax.set_ylabel(sample, fontsize=9)
+            ax.set_ylim(0, max(y, 3))
+            ax.grid(True, axis="y", linestyle=":", alpha=0.25)
 
         axes[-1].set_xlabel(f"{chrom}:{start}-{end}", fontsize=10)
         ttl = title or f"{chrom}:{pos} {ref}>{alt}"
-        fig.suptitle(ttl, fontsize=12)
-        fig.tight_layout(rect=[0, 0, 1, 0.96])
+        fig.suptitle(ttl, fontsize=13)
+        fig.tight_layout(rect=[0, 0, 1, 0.95])
 
-        if out_path:
-            out_path = Path(out_path)
-            out_path.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(out_path, dpi=140)
-            plt.close(fig)
-            return out_path
+        saved_png = None
+        if out_png:
+            out_png = Path(out_png)
+            out_png.parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(out_png, dpi=140)
+            saved_png = out_png
 
-        plt.show()
-        return None
+        saved_html = None
+        if out_html and saved_png:
+            out_html = Path(out_html)
+            out_html.parent.mkdir(parents=True, exist_ok=True)
+            png_name = Path(saved_png).name
+            html = """
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>{title}</title>
+    <style>
+      body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 16px; }}
+      h3 {{ margin: 8px 0 16px; }}
+      .img-wrap {{ border: 1px solid #e0e0e0; box-shadow: 0 2px 6px rgba(0,0,0,0.08); padding: 8px; }}
+    </style>
+  </head>
+  <body>
+    <h3>{title}</h3>
+    <div class="img-wrap">
+      <img src="{png_name}" alt="{title}" style="max-width: 100%; height: auto;" />
+    </div>
+  </body>
+</html>
+""".format(title=ttl, png_name=png_name)
+            out_html.write_text(html)
+
+        import matplotlib.pyplot as plt
+        plt.close(fig)
+        return saved_png, saved_html
 
 
 def visualize_variants_igv_like(
     variants: pd.DataFrame,
     bam_files: Dict[str, Path],
     output_dir: Path,
-    window: int = 100,
+    ref_fasta: Path,
+    flank: int = 60,
     samples_subset: Optional[List[str]] = None,
 ) -> List[Path]:
-    """
-    Convenience wrapper to render a list/DataFrame of variants.
-    variants must contain columns: chrom, pos, ref, alt, filter_category, tier, variant_id
-    """
-    plotter = IGVLikePlotter(bam_files)
+    plotter = IGVLikePlotter(bam_files, ref_fasta=ref_fasta)
     out_paths: List[Path] = []
     output_dir = Path(output_dir)
 
@@ -149,20 +176,22 @@ def visualize_variants_igv_like(
         tier = str(row.get("tier", "T?"))
         vid = str(row.get("variant_id", f"{chrom}:{pos}:{ref}>{alt}"))
 
-        out_path = output_dir / cat / tier / f"{vid}.png"
+        out_png = output_dir / cat / tier / f"{vid}.png"
+        out_html = output_dir / cat / tier / f"{vid}.html"
         title = f"{cat} {tier} | {chrom}:{pos} {ref}>{alt}"
 
-        saved = plotter.plot_variant_region(
+        saved_png, saved_html = plotter.plot_variant_region(
             chrom=chrom,
             pos=pos,
             ref=ref,
             alt=alt,
-            window=window,
+            flank=flank,
             samples_subset=samples_subset,
-            out_path=out_path,
+            out_png=out_png,
+            out_html=out_html,
             title=title,
         )
-        if saved:
-            out_paths.append(saved)
+        if saved_png:
+            out_paths.append(saved_png)
 
     return out_paths

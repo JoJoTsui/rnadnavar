@@ -106,6 +106,26 @@ def _parse_modalities_from_info(info: Any) -> List[str]:
     return sorted(set(modalities))
 
 
+def _per_modality_caller_counts(info: Any) -> Tuple[int, int]:
+    """
+    Parse counts of DNA-supporting callers and RNA-supporting callers from VCF INFO.
+    Returns (dna_callers, rna_callers). Fallback to 0 if not found.
+    """
+    dna, rna = 0, 0
+    try:
+        # Direct per-modality caller support count fields
+        dna_val = info.get("N_DNA_CALLERS_SUPPORT")
+        if dna_val is not None:
+            dna = int(dna_val)
+        
+        rna_val = info.get("N_RNA_CALLERS_SUPPORT")
+        if rna_val is not None:
+            rna = int(rna_val)
+    except Exception:
+        pass
+    return dna, rna
+
+
 def tier_rule(caller_support_count: int, modalities: List[str]) -> str:
     """
     Assign a tier string based on caller support and modality support.
@@ -141,6 +161,7 @@ def load_rescue_variants(rescue_vcf: Path) -> pd.DataFrame:
     for var in vcf:
         callers, n_callers = _parse_callers_from_info(var.INFO)
         modalities = _parse_modalities_from_info(var.INFO)
+        dna_callers, rna_callers = _per_modality_caller_counts(var.INFO)
         filt = var.FILTER if var.FILTER and var.FILTER != "." else "PASS"
         if not filt:
             filt = "PASS"
@@ -156,6 +177,8 @@ def load_rescue_variants(rescue_vcf: Path) -> pd.DataFrame:
             "callers": callers,
             "caller_support_count": n_callers,
             "modalities": modalities,
+            "dna_callers": dna_callers,
+            "rna_callers": rna_callers,
         })
 
     df = pd.DataFrame.from_records(records)
