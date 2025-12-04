@@ -46,6 +46,7 @@ from .igv_reports_wrapper import (
     check_igv_reports_available,
     get_alignment_index_path,
 )
+from .tier_visualizer import TierVisualizer, create_tier_visualization_report
 
 # Export all public classes
 __all__ = [
@@ -74,6 +75,8 @@ __all__ = [
     'visualize_rescue_variants_with_igvreports',
     'check_igv_reports_available',
     'get_alignment_index_path',
+    'TierVisualizer',
+    'create_tier_visualization_report',
     'TOOLS',
     'MODALITIES',
     'CATEGORY_ORDER'
