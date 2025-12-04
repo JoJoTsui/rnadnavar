@@ -39,8 +39,9 @@ from .tiering import tier_rescue_variants, sample_tier_representatives
 from .igv_like import IGVLikePlotter, visualize_variants_igv_like
 from .igv_reports_wrapper import (
     create_subset_vcf,
-    generate_igv_report,
-    create_tier_summary_html,
+    generate_igv_report_subprocess,
+    create_navigation_page,
+    organize_by_category_tier,
     visualize_rescue_variants_with_igvreports,
     check_igv_reports_available,
     get_alignment_index_path,
@@ -67,8 +68,9 @@ __all__ = [
     'IGVLikePlotter',
     'visualize_variants_igv_like',
     'create_subset_vcf',
-    'generate_igv_report',
-    'create_tier_summary_html',
+    'generate_igv_report_subprocess',
+    'create_navigation_page',
+    'organize_by_category_tier',
     'visualize_rescue_variants_with_igvreports',
     'check_igv_reports_available',
     'get_alignment_index_path',
