@@ -30,6 +30,10 @@ import time
 from pathlib import Path
 from typing import Dict, Optional
 
+# Add vcf_utils to path for imports
+script_dir = Path(__file__).parent.parent / 'bin'
+sys.path.insert(0, str(script_dir))
+
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
@@ -109,44 +113,10 @@ def validate_input_file(file_path: Path) -> None:
     except Exception as e:
         raise ValueError(f"Cannot validate REDIportal format: {e}")
 
-def validate_tools() -> Dict[str, str]:
-    """
-    Validate required tools are available.
-    
-    Returns:
-        Dictionary mapping tool names to their paths
-        
-    Raises:
-        RuntimeError: If required tools are missing
-    """
-    import shutil
-    
-    required_tools = ['bgzip', 'tabix']
-    tool_paths = {}
-    missing_tools = []
-    
-    for tool in required_tools:
-        tool_path = shutil.which(tool)
-        if tool_path:
-            tool_paths[tool] = tool_path
-            logger.info(f"✓ Found {tool}: {tool_path}")
-        else:
-            missing_tools.append(tool)
-            logger.error(f"✗ {tool} not found in system PATH")
-    
-    if missing_tools:
-        error_msg = f"Required tools not found: {missing_tools}"
-        logger.error(error_msg)
-        logger.error("Installation instructions:")
-        logger.error("  Ubuntu/Debian: apt install htslib-tools")
-        logger.error("  CentOS/RHEL: yum install htslib")
-        logger.error("  Conda: conda install htslib")
-        logger.error("  Homebrew: brew install htslib")
-        raise RuntimeError(error_msg)
-    
-    return tool_paths
+# Tool validation and conversion functions are now imported from vcf_utils
 
-def convert_rediportal_text(input_file: Path, output_prefix: str, tool_paths: Dict[str, str]) -> Path:
+# This function has been moved to vcf_utils.rediportal_converter
+def convert_rediportal_text_legacy(input_file: Path, output_prefix: str, tool_paths: Dict[str, str]) -> Path:
     """
     Convert REDIportal text format to bcftools annotation format.
     
@@ -374,7 +344,8 @@ def convert_rediportal_text(input_file: Path, output_prefix: str, tool_paths: Di
                 pass
         raise RuntimeError(f"REDIportal conversion failed: {e}")
 
-def validate_output(output_file: Path) -> None:
+# This function has been moved to vcf_utils.rediportal_converter
+def validate_output_legacy(output_file: Path) -> None:
     """
     Validate converted output file.
     
@@ -468,14 +439,16 @@ Output files:
         input_file = Path(args.input)
         validate_input_file(input_file)
         
-        # Validate tools
-        tool_paths = validate_tools()
+        # Import converter functions from vcf_utils
+        from vcf_utils.rediportal_converter import prepare_rediportal_database, validate_converted_file
         
-        # Convert file
-        output_file = convert_rediportal_text(input_file, args.output, tool_paths)
+        # Convert file using vcf_utils
+        output_file = prepare_rediportal_database(str(input_file), args.output)
         
         # Validate output
-        validate_output(output_file)
+        validation = validate_converted_file(output_file)
+        if not validation['valid']:
+            raise RuntimeError(f"Validation failed: {validation['error']}")
         
         print(f"✓ Conversion completed successfully!")
         print(f"  Output: {output_file}")

@@ -30,6 +30,10 @@ import traceback
 from pathlib import Path
 from typing import Dict, Optional, List, Any, Tuple
 
+# Add vcf_utils to path for imports
+script_dir = Path(__file__).parent
+sys.path.insert(0, str(script_dir))
+
 # Set up comprehensive logging with timestamps
 logging.basicConfig(
     level=logging.INFO,
@@ -677,8 +681,8 @@ class RNAEditingAnnotator:
         logger.info("Preparing REDIportal database with automatic format detection...")
         
         try:
-            # Import REDIportal converter
-            from rediportal_converter import detect_rediportal_format, prepare_rediportal_database
+            # Import REDIportal converter from vcf_utils
+            from vcf_utils.rediportal_converter import detect_rediportal_format, prepare_rediportal_database
             
             # Detect REDIportal format
             format_type = detect_rediportal_format(str(self.rediportal_vcf))
@@ -895,7 +899,7 @@ class RNAEditingAnnotator:
         temp_header_file = None
         
         try:
-            from rediportal_converter import detect_rediportal_format
+            from vcf_utils.rediportal_converter import detect_rediportal_format
             original_format = detect_rediportal_format(str(self.rediportal_vcf))
             
             if original_format == 'text':
@@ -1006,7 +1010,7 @@ class RNAEditingAnnotator:
         
         # Detect REDIportal format to determine annotation strategy
         try:
-            from rediportal_converter import detect_rediportal_format
+            from vcf_utils.rediportal_converter import detect_rediportal_format
             original_format = detect_rediportal_format(str(self.rediportal_vcf))
             
             if original_format == 'text':
@@ -1090,7 +1094,7 @@ class RNAEditingAnnotator:
             # Import required modules
             try:
                 import pysam
-                from rna_editing_core import (
+                from vcf_utils.rna_editing_core import (
                     is_canonical_editing_transition,
                     classify_rna_editing_evidence,
                     classify_rna_editing_biological_category,
