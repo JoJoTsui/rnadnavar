@@ -206,22 +206,23 @@ def convert_rediportal_text_legacy(input_file: Path, output_prefix: str, tool_pa
                             skipped_count += 1
                             continue
                         
-                        # Parse chromosome and position from region (format: chr1:12345)
-                        if ':' in region:
-                            chrom, pos_str = region.split(':', 1)
-                            # Validate position matches
-                            if pos_str != position:
-                                logger.debug(f"Line {line_num}: position mismatch ({pos_str} vs {position})")
-                                # Use position from region as it's more reliable
-                                position = pos_str
-                        else:
-                            logger.debug(f"Line {line_num}: invalid region format: {region}")
-                            skipped_count += 1
-                            continue
+                        # Parse chromosome and position
+                        # In REDIportal format, Region contains chromosome (e.g., "chr1") 
+                        # and Position contains the position separately
+                        chrom = region.strip()
+                        pos = position.strip()
                         
                         # Validate chromosome format
                         if not chrom.startswith('chr'):
                             chrom = f"chr{chrom}"
+                        
+                        # Validate position is numeric
+                        try:
+                            int(pos)
+                        except ValueError:
+                            logger.debug(f"Line {line_num}: invalid position format: {pos}")
+                            skipped_count += 1
+                            continue
                         
                         # Validate nucleotides
                         if ref not in ['A', 'T', 'G', 'C'] or ed not in ['A', 'T', 'G', 'C']:
@@ -239,7 +240,7 @@ def convert_rediportal_text_legacy(input_file: Path, output_prefix: str, tool_pa
                         
                         # Create bcftools annotation format line
                         # Format: CHROM POS REF ALT REDI_ACCESSION REDI_DB REDI_TYPE REDI_REPEAT REDI_FUNC REDI_STRAND
-                        annotation_line = f"{chrom}\t{position}\t{ref}\t{ed}\t{accession}\t{db}\t{rna_type}\t{repeat}\t{func}\t{strand}\n"
+                        annotation_line = f"{chrom}\t{pos}\t{ref}\t{ed}\t{accession}\t{db}\t{rna_type}\t{repeat}\t{func}\t{strand}\n"
                         temp_file.write(annotation_line)
                         processed_count += 1
                         

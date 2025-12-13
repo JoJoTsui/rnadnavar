@@ -18,12 +18,10 @@ Date: 2025-12-13
 
 import gzip
 import logging
-import os
 import subprocess
 import tempfile
-import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -241,20 +239,41 @@ def _prepare_text_format(file_path: Path, output_prefix: Optional[str] = None) -
                         repeat = fields[REDIPORTAL_COLUMNS['repeat']]
                         func = fields[REDIPORTAL_COLUMNS['Func']]
                         
-                        # Parse chromosome and position from region (format: chr1:12345)
-                        if ':' in region:
-                            chrom, pos_str = region.split(':', 1)
-                            # Validate position matches
-                            if pos_str != position:
-                                logger.warning(f"Line {line_num}: position mismatch ({pos_str} vs {position})")
-                        else:
-                            logger.warning(f"Line {line_num}: invalid region format: {region}")
+                        # Parse chromosome and position
+                        # In REDIportal format, Region contains chromosome (e.g., "chr1") 
+                        # and Position contains the position separately
+                        chrom = region.strip()
+                        pos = position.strip()
+                        
+                        # Validate chromosome format
+                        if not chrom.startswith('chr'):
+                            chrom = f"chr{chrom}"
+                        
+                        # Validate position is numeric
+                        try:
+                            int(pos)
+                        except ValueError:
+                            logger.warning(f"Line {line_num}: invalid position format: {pos}")
                             skipped_count += 1
                             continue
                         
+                        # Validate nucleotides
+                        if ref not in ['A', 'T', 'G', 'C'] or ed not in ['A', 'T', 'G', 'C']:
+                            logger.debug(f"Line {line_num}: invalid nucleotides (REF={ref}, ALT={ed})")
+                            skipped_count += 1
+                            continue
+                        
+                        # Clean up fields (replace empty with '.')
+                        accession = accession.strip() if accession.strip() else '.'
+                        db = db.strip() if db.strip() else '.'
+                        rna_type = rna_type.strip() if rna_type.strip() else '.'
+                        repeat = repeat.strip() if repeat.strip() else '.'
+                        func = func.strip() if func.strip() else '.'
+                        strand = strand.strip() if strand.strip() else '.'
+                        
                         # Create bcftools annotation format line
                         # Format: CHROM POS REF ALT REDI_ACCESSION REDI_DB REDI_TYPE REDI_REPEAT REDI_FUNC REDI_STRAND
-                        annotation_line = f"{chrom}\t{position}\t{ref}\t{ed}\t{accession}\t{db}\t{rna_type}\t{repeat}\t{func}\t{strand}\n"
+                        annotation_line = f"{chrom}\t{pos}\t{ref}\t{ed}\t{accession}\t{db}\t{rna_type}\t{repeat}\t{func}\t{strand}\n"
                         temp_file.write(annotation_line)
                         processed_count += 1
                         
@@ -292,7 +311,7 @@ def _prepare_text_format(file_path: Path, output_prefix: Optional[str] = None) -
             raise RuntimeError("Index file was not created")
         
         output_size = compressed_output.stat().st_size
-        logger.info(f"✓ REDIportal text format converted successfully")
+        logger.info("✓ REDIportal text format converted successfully")
         logger.info(f"  Output: {compressed_output} ({output_size:,} bytes)")
         logger.info(f"  Index: {index_file}")
         logger.info(f"  Entries: {processed_count:,} processed, {skipped_count:,} skipped")
