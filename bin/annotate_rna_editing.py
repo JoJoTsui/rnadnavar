@@ -902,7 +902,7 @@ class RNAEditingAnnotator:
             from vcf_utils.rediportal_converter import detect_rediportal_format
             original_format = detect_rediportal_format(str(self.rediportal_vcf))
             
-            if original_format == 'text':
+            if original_format == 'converted' or original_format == 'text':
                 # Use extended annotation format for converted text files
                 # Create temporary header file instead of using bash process substitution
                 temp_header_file = self._create_temp_header_file()
@@ -1013,7 +1013,7 @@ class RNAEditingAnnotator:
             from vcf_utils.rediportal_converter import detect_rediportal_format
             original_format = detect_rediportal_format(str(self.rediportal_vcf))
             
-            if original_format == 'text':
+            if original_format == 'converted' or original_format == 'text':
                 # For converted text format, use selective annotation to avoid conflicts
                 # Only annotate fields that don't conflict
                 available_fields = ['REDI_ACCESSION', 'REDI_DB', 'REDI_TYPE', 'REDI_REPEAT', 'REDI_FUNC', 'REDI_STRAND']
@@ -1167,7 +1167,9 @@ class RNAEditingAnnotator:
                     variant_data = self._extract_variant_data_pysam(variant)
                     
                     # Check for REDIportal match (DB flag from bcftools annotation or REDI_DB field from text format)
-                    rediportal_match = 'DB' in variant.info or 'REDI_DB' in variant.info
+                    rediportal_match = ('DB' in variant.info or 
+                                      'REDI_DB' in variant.info or 
+                                      'REDI_ACCESSION' in variant.info)
                     if rediportal_match:
                         evidence_stats['rediportal_matches'] += 1
                     
@@ -1208,9 +1210,14 @@ class RNAEditingAnnotator:
                         alleles=variant.alleles
                     )
                     
-                    # Copy all INFO fields from input
+                    # Copy all INFO fields from input with proper handling of multi-value fields
                     for key, value in variant.info.items():
-                        output_variant.info[key] = value
+                        try:
+                            output_variant.info[key] = value
+                        except Exception as e:
+                            # Handle multi-value fields that pysam has trouble with
+                            logger.debug(f"Skipping INFO field {key} due to pysam error: {e}")
+                            continue
                     
                     # Add RNA editing specific fields
                     output_variant.info['REDI_EVIDENCE'] = evidence_level
@@ -1225,7 +1232,12 @@ class RNAEditingAnnotator:
                         sample_name = list(variant.samples.keys())[0]
                         if sample_name in output_header.samples:
                             for fmt_key in variant.format.keys():
-                                output_variant.samples[sample_name][fmt_key] = variant.samples[sample_name][fmt_key]
+                                try:
+                                    output_variant.samples[sample_name][fmt_key] = variant.samples[sample_name][fmt_key]
+                                except Exception as e:
+                                    # Handle FORMAT fields that pysam has trouble with
+                                    logger.debug(f"Skipping FORMAT field {fmt_key} due to pysam error: {e}")
+                                    continue
                     
                     # Write enhanced variant
                     output_vcf.write(output_variant)
