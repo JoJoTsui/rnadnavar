@@ -5,15 +5,19 @@ results/
 .DS_Store
 testing/
 testing*
-.idea/
 null/
 test/
 res-test
 node_modules/
 .nf-test*
-.vscode*
 null/
+
+# IDE
 .trae/
+.idea/
+.kiro/
+.vscode*
+CLAUDE.md
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
@@ -26,3 +30,6 @@ __pycache__/
 # Virtual environment (if stored locally)
 .venv/
 env/
+
+# direnv
+.envrc
