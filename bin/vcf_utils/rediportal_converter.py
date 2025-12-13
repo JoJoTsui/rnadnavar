@@ -23,6 +23,8 @@ import tempfile
 from pathlib import Path
 from typing import Dict, Optional, Union
 
+from .field_mapping import REDIportalFieldMapper
+
 logger = logging.getLogger(__name__)
 
 # REDIportal TABLE1 format columns (0-based indexing)
@@ -340,17 +342,19 @@ def _prepare_text_format(file_path: Path, output_prefix: Optional[str] = None) -
                             skipped_count += 1
                             continue
                         
-                        # Clean up fields (replace empty with '.')
-                        accession = accession.strip() if accession.strip() else '.'
-                        db = db.strip() if db.strip() else '.'
-                        rna_type = rna_type.strip() if rna_type.strip() else '.'
-                        repeat = repeat.strip() if repeat.strip() else '.'
+                        # Map fields using the field mapping system
+                        mapped_accession = REDIportalFieldMapper.map_accession_field(accession)
+                        mapped_db = REDIportalFieldMapper.map_db_field(db)
+                        mapped_type = REDIportalFieldMapper.map_type_field(rna_type)
+                        mapped_repeat = REDIportalFieldMapper.map_repeat_field(repeat)
+                        mapped_strand = REDIportalFieldMapper.map_strand_field(strand)
+                        
+                        # Clean up func field (not part of the main mapping but still needed)
                         func = func.strip() if func.strip() else '.'
-                        strand = strand.strip() if strand.strip() else '.'
                         
                         # Create bcftools annotation format line
                         # Format: CHROM POS REF ALT REDI_ACCESSION REDI_DB REDI_TYPE REDI_REPEAT REDI_FUNC REDI_STRAND
-                        annotation_line = f"{chrom}\t{pos}\t{ref}\t{ed}\t{accession}\t{db}\t{rna_type}\t{repeat}\t{func}\t{strand}\n"
+                        annotation_line = f"{chrom}\t{pos}\t{ref}\t{ed}\t{mapped_accession}\t{mapped_db}\t{mapped_type}\t{mapped_repeat}\t{func}\t{mapped_strand}\n"
                         temp_file.write(annotation_line)
                         processed_count += 1
                         

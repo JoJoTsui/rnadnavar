@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """
-Standalone REDIportal Text Format Converter
+REDIportal Database to VCF Converter
 
-This script converts REDIportal TABLE1_hg38_v3.txt.gz format to bcftools-compatible
-annotation format. It can be used independently or as part of the annotation pipeline.
+This script converts REDIportal TABLE1_hg38_v3.txt.gz format to complete VCF format
+with proper headers and variant records. The output can be used directly with
+bcftools annotate as a VCF database without additional header files.
 
-SAFETY FEATURES:
-- Comprehensive input validation
-- No destructive operations on original files
-- Extensive error handling and logging
-- Atomic file operations with temporary files
-- Detailed progress reporting
+Key Features:
+- Converts REDIportal text format to complete VCF format
+- Generates proper VCF headers with INFO field definitions
+- Creates bgzip-compressed VCF with tabix indexing
+- Handles large files efficiently with streaming processing
+- Comprehensive error handling and validation
 
 Usage:
-    python scripts/convert_rediportal_text.py -i TABLE1_hg38_v3.txt.gz -o rediportal_annotations
+    python scripts/convert_rediportal_to_vcf.py -i TABLE1_hg38_v3.txt.gz -o rediportal.vcf.gz
 
 Author: RNA Editing Enhancement Pipeline
 Date: 2025-12-13
@@ -28,11 +29,13 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, TextIO
 
 # Add vcf_utils to path for imports
 script_dir = Path(__file__).parent.parent / 'bin'
 sys.path.insert(0, str(script_dir))
+
+from vcf_utils.field_mapping import REDIportalFieldMapper
 
 # Set up logging
 logging.basicConfig(
@@ -55,6 +58,33 @@ REDIPORTAL_COLUMNS = {
     'repeat': 8,
     'Func': 9
 }
+
+def validate_tools() -> Dict[str, str]:
+    """
+    Validate required tools are available.
+    
+    Returns:
+        Dictionary mapping tool names to their paths
+        
+    Raises:
+        RuntimeError: If required tools are missing
+    """
+    required_tools = ['bgzip', 'tabix']
+    tool_paths = {}
+    
+    for tool in required_tools:
+        try:
+            result = subprocess.run(['which', tool], capture_output=True, text=True)
+            if result.returncode == 0:
+                tool_paths[tool] = result.stdout.strip()
+                logger.debug(f"Found {tool}: {tool_paths[tool]}")
+            else:
+                raise RuntimeError(f"Required tool not found: {tool}")
+        except Exception as e:
+            raise RuntimeError(f"Error checking for {tool}: {e}")
+    
+    logger.info("✓ All required tools are available")
+    return tool_paths
 
 def validate_input_file(file_path: Path) -> None:
     """
@@ -113,48 +143,73 @@ def validate_input_file(file_path: Path) -> None:
     except Exception as e:
         raise ValueError(f"Cannot validate REDIportal format: {e}")
 
-# Tool validation and conversion functions are now imported from vcf_utils
-
-# This function has been moved to vcf_utils.rediportal_converter
-def convert_rediportal_text_legacy(input_file: Path, output_prefix: str, tool_paths: Dict[str, str]) -> Path:
+def write_vcf_header(output_file: TextIO) -> None:
     """
-    Convert REDIportal text format to bcftools annotation format.
+    Write complete VCF header with INFO field definitions.
+    
+    Args:
+        output_file: Output file handle
+    """
+    logger.info("Writing VCF header with INFO field definitions")
+    
+    # VCF format version
+    output_file.write("##fileformat=VCFv4.2\n")
+    
+    # Source information
+    output_file.write("##source=REDIportal_Database_Converter\n")
+    output_file.write(f"##fileDate={time.strftime('%Y%m%d')}\n")
+    
+    # Reference genome
+    output_file.write("##reference=hg38\n")
+    
+    # INFO field definitions for REDIportal data
+    info_definitions = REDIportalFieldMapper.get_info_field_definitions()
+    for field_name in ['REDI_ACCESSION', 'REDI_DB', 'REDI_TYPE', 'REDI_REPEAT', 'REDI_STRAND']:
+        output_file.write(f"{info_definitions[field_name]}\n")
+    
+    # Add REDI_FUNC which is not part of the main mapping but still used
+    output_file.write('##INFO=<ID=REDI_FUNC,Number=1,Type=String,Description="REDIportal functional annotation">\n')
+    
+    # Column header line
+    output_file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
+
+# Field mapping functions are now provided by REDIportalFieldMapper
+
+def convert_rediportal_to_vcf(input_file: Path, output_file: Path, tool_paths: Dict[str, str]) -> None:
+    """
+    Convert REDIportal text format to complete VCF format.
     
     Args:
         input_file: Path to input REDIportal file
-        output_prefix: Output file prefix
+        output_file: Path to output VCF file
         tool_paths: Dictionary of tool paths
-        
-    Returns:
-        Path to compressed annotation file
         
     Raises:
         RuntimeError: If conversion fails
     """
-    logger.info("Starting REDIportal text format conversion...")
+    logger.info("Starting REDIportal to VCF conversion...")
     start_time = time.time()
     
-    # Determine output paths
-    output_file = Path(f"{output_prefix}_annotations.txt")
-    compressed_output = Path(str(output_file) + '.gz')
-    
     # Safety check - don't overwrite existing files
-    if compressed_output.exists():
-        logger.warning(f"Output file already exists: {compressed_output}")
+    if output_file.exists():
+        logger.warning(f"Output file already exists: {output_file}")
         response = input("Overwrite existing file? (y/N): ").strip().lower()
         if response != 'y':
             logger.info("Conversion cancelled by user")
-            return compressed_output
+            return
         else:
             logger.info("Proceeding with overwrite...")
     
-    logger.info(f"Converting to: {compressed_output}")
+    logger.info(f"Converting to: {output_file}")
     
     try:
         # Create temporary file for atomic operation
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt', prefix='rediportal_') as temp_file:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.vcf', prefix='rediportal_') as temp_file:
             temp_path = Path(temp_file.name)
             logger.info(f"Using temporary file: {temp_path}")
+            
+            # Write VCF header
+            write_vcf_header(temp_file)
             
             # Process REDIportal text file
             processed_count = 0
@@ -207,8 +262,6 @@ def convert_rediportal_text_legacy(input_file: Path, output_prefix: str, tool_pa
                             continue
                         
                         # Parse chromosome and position
-                        # In REDIportal format, Region contains chromosome (e.g., "chr1") 
-                        # and Position contains the position separately
                         chrom = region.strip()
                         pos = position.strip()
                         
@@ -218,7 +271,9 @@ def convert_rediportal_text_legacy(input_file: Path, output_prefix: str, tool_pa
                         
                         # Validate position is numeric
                         try:
-                            int(pos)
+                            pos_int = int(pos)
+                            if pos_int <= 0:
+                                raise ValueError("Position must be positive")
                         except ValueError:
                             logger.debug(f"Line {line_num}: invalid position format: {pos}")
                             skipped_count += 1
@@ -230,18 +285,23 @@ def convert_rediportal_text_legacy(input_file: Path, output_prefix: str, tool_pa
                             skipped_count += 1
                             continue
                         
-                        # Clean up fields (replace empty with '.')
-                        accession = accession if accession else '.'
-                        db = db if db else '.'
-                        rna_type = rna_type if rna_type else '.'
-                        repeat = repeat if repeat else '.'
-                        func = func if func else '.'
-                        strand = strand if strand else '.'
+                        # Map fields using the field mapping system
+                        field_mappings = REDIportalFieldMapper.map_all_fields(
+                            accession, db, rna_type, repeat, strand
+                        )
                         
-                        # Create bcftools annotation format line
-                        # Format: CHROM POS REF ALT REDI_ACCESSION REDI_DB REDI_TYPE REDI_REPEAT REDI_FUNC REDI_STRAND
-                        annotation_line = f"{chrom}\t{pos}\t{ref}\t{ed}\t{accession}\t{db}\t{rna_type}\t{repeat}\t{func}\t{strand}\n"
-                        temp_file.write(annotation_line)
+                        # Add REDI_FUNC which is not part of the main mapping
+                        func_escaped = REDIportalFieldMapper.escape_info_value(func) if func else '.'
+                        if func_escaped != '.':
+                            field_mappings['REDI_FUNC'] = func_escaped
+                        
+                        # Build INFO field string
+                        info_field = REDIportalFieldMapper.build_info_string(field_mappings)
+                        
+                        # Create VCF record
+                        # Format: CHROM POS ID REF ALT QUAL FILTER INFO
+                        vcf_record = f"{chrom}\t{pos}\t.\t{ref}\t{ed}\t.\tPASS\t{info_field}\n"
+                        temp_file.write(vcf_record)
                         processed_count += 1
                         
                         # Progress reporting
@@ -262,7 +322,7 @@ def convert_rediportal_text_legacy(input_file: Path, output_prefix: str, tool_pa
                 input_handle.close()
         
         conversion_time = time.time() - start_time
-        logger.info(f"✓ Conversion completed in {conversion_time:.1f} seconds")
+        logger.info(f"✓ VCF conversion completed in {conversion_time:.1f} seconds")
         logger.info(f"  Processed: {processed_count:,} entries")
         logger.info(f"  Skipped: {skipped_count:,} entries")
         logger.info(f"  Errors: {error_count:,} entries")
@@ -271,20 +331,19 @@ def convert_rediportal_text_legacy(input_file: Path, output_prefix: str, tool_pa
             raise RuntimeError("No valid entries were processed")
         
         # Compress with bgzip
-        logger.info("Compressing annotation file with bgzip...")
+        logger.info("Compressing VCF file with bgzip...")
         compress_start = time.time()
         
-        with open(compressed_output, 'wb') as f:
+        with open(output_file, 'wb') as f:
             result = subprocess.run(
                 [tool_paths['bgzip'], '-c', str(temp_path)], 
                 stdout=f, 
                 stderr=subprocess.PIPE,
-                text=True,
                 check=True
             )
         
         compress_time = time.time() - compress_start
-        compressed_size = compressed_output.stat().st_size
+        compressed_size = output_file.stat().st_size
         logger.info(f"✓ Compression completed in {compress_time:.1f} seconds")
         logger.info(f"  Compressed size: {compressed_size:,} bytes ({compressed_size/1024/1024:.1f} MB)")
         
@@ -293,14 +352,14 @@ def convert_rediportal_text_legacy(input_file: Path, output_prefix: str, tool_pa
         index_start = time.time()
         
         result = subprocess.run(
-            [tool_paths['tabix'], '-s1', '-b2', '-e2', str(compressed_output)], 
+            [tool_paths['tabix'], '-p', 'vcf', str(output_file)], 
             capture_output=True,
             text=True,
             check=True
         )
         
         index_time = time.time() - index_start
-        index_file = Path(str(compressed_output) + '.tbi')
+        index_file = Path(str(output_file) + '.tbi')
         index_size = index_file.stat().st_size
         logger.info(f"✓ Indexing completed in {index_time:.1f} seconds")
         logger.info(f"  Index size: {index_size:,} bytes")
@@ -310,103 +369,131 @@ def convert_rediportal_text_legacy(input_file: Path, output_prefix: str, tool_pa
         logger.info("✓ Temporary files cleaned up")
         
         # Final validation
-        if not compressed_output.exists():
-            raise RuntimeError("Compressed output file was not created")
+        if not output_file.exists():
+            raise RuntimeError("Compressed VCF output file was not created")
         
         if not index_file.exists():
             raise RuntimeError("Index file was not created")
         
         total_time = time.time() - start_time
-        logger.info(f"✓ REDIportal conversion completed successfully in {total_time:.1f} seconds")
-        logger.info(f"  Output file: {compressed_output}")
+        logger.info(f"✓ REDIportal to VCF conversion completed successfully in {total_time:.1f} seconds")
+        logger.info(f"  Output VCF: {output_file}")
         logger.info(f"  Index file: {index_file}")
         logger.info(f"  Final entries: {processed_count:,}")
-        
-        return compressed_output
         
     except subprocess.CalledProcessError as e:
         logger.error(f"Command failed during conversion: {e}")
         logger.error(f"Command stderr: {e.stderr}")
-        raise RuntimeError(f"REDIportal conversion failed: {e}")
+        raise RuntimeError(f"REDIportal to VCF conversion failed: {e}")
     except Exception as e:
         logger.error(f"Unexpected error during conversion: {e}")
         # Clean up partial files
-        if compressed_output.exists():
+        if output_file.exists():
             try:
-                compressed_output.unlink()
+                output_file.unlink()
                 logger.info("Cleaned up partial output file")
             except Exception:
                 pass
-        if temp_path.exists():
+        if 'temp_path' in locals() and temp_path.exists():
             try:
                 temp_path.unlink()
                 logger.info("Cleaned up temporary file")
             except Exception:
                 pass
-        raise RuntimeError(f"REDIportal conversion failed: {e}")
+        raise RuntimeError(f"REDIportal to VCF conversion failed: {e}")
 
-# This function has been moved to vcf_utils.rediportal_converter
-def validate_output_legacy(output_file: Path) -> None:
+def validate_vcf_output(output_file: Path) -> None:
     """
-    Validate converted output file.
+    Validate converted VCF output file.
     
     Args:
-        output_file: Path to output file
+        output_file: Path to output VCF file
         
     Raises:
         RuntimeError: If validation fails
     """
-    logger.info("Validating converted output...")
+    logger.info("Validating converted VCF output...")
     
     # Check files exist
     if not output_file.exists():
-        raise RuntimeError(f"Output file does not exist: {output_file}")
+        raise RuntimeError(f"Output VCF file does not exist: {output_file}")
     
     index_file = Path(str(output_file) + '.tbi')
     if not index_file.exists():
         raise RuntimeError(f"Index file does not exist: {index_file}")
     
-    # Test file can be read
+    # Test file can be read and has proper VCF format
     try:
         result = subprocess.run(['zcat', str(output_file)], capture_output=True, text=True, timeout=30)
         if result.returncode != 0:
-            raise RuntimeError("Cannot read compressed file with zcat")
+            raise RuntimeError("Cannot read compressed VCF file with zcat")
         
         lines = result.stdout.strip().split('\n')
-        valid_lines = [line for line in lines if line.strip()]
         
-        if len(valid_lines) == 0:
-            raise RuntimeError("Output file contains no valid lines")
+        # Check VCF header
+        if not lines[0].startswith('##fileformat=VCF'):
+            raise RuntimeError("Missing VCF format header")
         
-        # Validate format of first few lines
-        for i, line in enumerate(valid_lines[:5]):
+        # Find column header line
+        header_line = None
+        variant_lines = []
+        for line in lines:
+            if line.startswith('#CHROM'):
+                header_line = line
+            elif not line.startswith('#') and line.strip():
+                variant_lines.append(line)
+        
+        if not header_line:
+            raise RuntimeError("Missing VCF column header line")
+        
+        if len(variant_lines) == 0:
+            raise RuntimeError("VCF file contains no variant records")
+        
+        # Validate format of first few variant lines
+        for i, line in enumerate(variant_lines[:5]):
             fields = line.split('\t')
-            if len(fields) < 6:
-                raise RuntimeError(f"Line {i+1} has insufficient fields: {len(fields)}")
+            if len(fields) < 8:
+                raise RuntimeError(f"Variant line {i+1} has insufficient fields: {len(fields)}")
+            
+            # Check chromosome format
+            if not fields[0].startswith('chr'):
+                raise RuntimeError(f"Invalid chromosome format in line {i+1}: {fields[0]}")
+            
+            # Check position is numeric
+            try:
+                int(fields[1])
+            except ValueError:
+                raise RuntimeError(f"Invalid position in line {i+1}: {fields[1]}")
+            
+            # Check REF and ALT are valid nucleotides
+            if fields[3] not in ['A', 'T', 'G', 'C']:
+                raise RuntimeError(f"Invalid REF nucleotide in line {i+1}: {fields[3]}")
+            if fields[4] not in ['A', 'T', 'G', 'C']:
+                raise RuntimeError(f"Invalid ALT nucleotide in line {i+1}: {fields[4]}")
         
-        logger.info(f"✓ Output validation passed: {len(valid_lines):,} lines")
+        logger.info(f"✓ VCF validation passed: {len(variant_lines):,} variant records")
         
     except subprocess.TimeoutExpired:
-        logger.warning("Output validation timed out (file may be very large)")
+        logger.warning("VCF validation timed out (file may be very large)")
     except Exception as e:
-        raise RuntimeError(f"Output validation failed: {e}")
+        raise RuntimeError(f"VCF validation failed: {e}")
 
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Convert REDIportal text format to bcftools annotation format",
+        description="Convert REDIportal text format to complete VCF format",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Basic conversion
-  python scripts/convert_rediportal_text.py -i TABLE1_hg38_v3.txt.gz -o rediportal_annotations
+  python scripts/convert_rediportal_to_vcf.py -i TABLE1_hg38_v3.txt.gz -o rediportal.vcf.gz
   
   # With verbose output
-  python scripts/convert_rediportal_text.py -i TABLE1_hg38_v3.txt.gz -o rediportal_annotations -v
+  python scripts/convert_rediportal_to_vcf.py -i TABLE1_hg38_v3.txt.gz -o rediportal.vcf.gz -v
   
 Output files:
-  - {output_prefix}_annotations.txt.gz (compressed annotation file)
-  - {output_prefix}_annotations.txt.gz.tbi (tabix index)
+  - {output}.vcf.gz (compressed VCF file)
+  - {output}.vcf.gz.tbi (tabix index)
         """
     )
     
@@ -420,8 +507,8 @@ Output files:
     parser.add_argument(
         '-o', '--output',
         required=True,
-        metavar='PREFIX',
-        help='Output file prefix'
+        metavar='FILE',
+        help='Output VCF file (will be bgzip compressed)'
     )
     
     parser.add_argument(
@@ -436,24 +523,26 @@ Output files:
         logging.getLogger().setLevel(logging.DEBUG)
     
     try:
+        # Validate tools
+        tool_paths = validate_tools()
+        
         # Validate inputs
         input_file = Path(args.input)
         validate_input_file(input_file)
         
-        # Import converter functions from vcf_utils
-        from vcf_utils.rediportal_converter import prepare_rediportal_database, validate_converted_file
-        from vcf_utils.field_mapping import REDIportalFieldMapper
+        # Ensure output has .gz extension
+        output_file = Path(args.output)
+        if not str(output_file).endswith('.gz'):
+            output_file = Path(str(output_file) + '.gz')
         
-        # Convert file using vcf_utils
-        output_file = prepare_rediportal_database(str(input_file), args.output)
+        # Convert file
+        convert_rediportal_to_vcf(input_file, output_file, tool_paths)
         
         # Validate output
-        validation = validate_converted_file(output_file)
-        if not validation['valid']:
-            raise RuntimeError(f"Validation failed: {validation['error']}")
+        validate_vcf_output(output_file)
         
-        print(f"✓ Conversion completed successfully!")
-        print(f"  Output: {output_file}")
+        print("✓ Conversion completed successfully!")
+        print(f"  Output VCF: {output_file}")
         print(f"  Index: {output_file}.tbi")
         
         sys.exit(0)
