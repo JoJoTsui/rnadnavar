@@ -41,13 +41,13 @@ REDIPORTAL_COLUMNS = {
 
 def detect_rediportal_format(file_path: str) -> str:
     """
-    Detect REDIportal database format (VCF or gzipped text).
+    Detect REDIportal database format (VCF, converted annotation, or original text).
     
     Args:
         file_path: Path to REDIportal database file
         
     Returns:
-        'vcf' for VCF format, 'text' for gzipped text format
+        'vcf' for VCF format, 'converted' for already-converted annotation format, 'text' for original text format
         
     Raises:
         FileNotFoundError: If file doesn't exist
@@ -65,24 +65,52 @@ def detect_rediportal_format(file_path: str) -> str:
         if str(file_path).endswith('.gz'):
             with gzip.open(file_path, 'rt') as f:
                 first_line = f.readline().strip()
+                second_line = f.readline().strip()
         else:
             with open(file_path, 'r') as f:
                 first_line = f.readline().strip()
+                second_line = f.readline().strip()
         
         if first_line.startswith('##fileformat=VCF'):
             logger.info("Detected VCF format")
             return 'vcf'
         elif first_line.startswith('Accession') or 'Region' in first_line:
-            logger.info("Detected REDIportal text format")
+            logger.info("Detected original REDIportal text format with header")
             return 'text'
         else:
-            # Try to parse as tab-delimited to see if it matches expected columns
+            # Check if this is already converted annotation format vs original text format
             fields = first_line.split('\t')
+            
+            if len(fields) >= 6:
+                # Check if first field looks like chromosome (converted format)
+                if fields[0].startswith('chr') and fields[1].isdigit():
+                    # Check if nucleotides are in expected positions (converted format)
+                    if len(fields) >= 4 and len(fields[2]) == 1 and len(fields[3]) == 1:
+                        if fields[2] in ['A', 'T', 'G', 'C'] and fields[3] in ['A', 'T', 'G', 'C']:
+                            logger.info("Detected already-converted annotation format")
+                            return 'converted'
+                
+                # Check if this looks like original REDIportal format (10+ columns, different structure)
+                if len(fields) >= 10:
+                    # In original format, position is in column 2, and it should be numeric
+                    try:
+                        int(fields[2])  # Position should be numeric in original format
+                        # Check if column 1 looks like chromosome region
+                        if 'chr' in fields[1] or fields[1].isdigit():
+                            logger.info("Detected original REDIportal text format (no header)")
+                            return 'text'
+                    except ValueError:
+                        pass
+            
+            # If we can't determine format clearly, default based on field count
             if len(fields) >= 10:
-                logger.info("Detected REDIportal text format (no header)")
+                logger.warning(f"Ambiguous format, defaulting to original text format. First line: {first_line[:100]}...")
                 return 'text'
+            elif len(fields) >= 6:
+                logger.warning(f"Ambiguous format, defaulting to converted format. First line: {first_line[:100]}...")
+                return 'converted'
             else:
-                raise ValueError(f"Unknown REDIportal format. First line: {first_line[:100]}...")
+                raise ValueError(f"Unknown REDIportal format. First line has {len(fields)} fields: {first_line[:100]}...")
                 
     except Exception as e:
         logger.error(f"Failed to detect REDIportal format: {e}")
@@ -112,10 +140,59 @@ def prepare_rediportal_database(file_path: str, output_prefix: Optional[str] = N
     
     if format_type == 'vcf':
         return _prepare_vcf_format(file_path, output_prefix)
+    elif format_type == 'converted':
+        return _prepare_converted_format(file_path, output_prefix)
     elif format_type == 'text':
         return _prepare_text_format(file_path, output_prefix)
     else:
         raise ValueError(f"Unsupported format: {format_type}")
+
+def _prepare_converted_format(file_path: Path, output_prefix: Optional[str] = None) -> str:
+    """
+    Prepare already-converted REDIportal annotation format.
+    
+    Args:
+        file_path: Path to converted annotation file
+        output_prefix: Optional output prefix (ignored for converted files)
+        
+    Returns:
+        Path to prepared annotation file
+    """
+    logger.info(f"Preparing already-converted REDIportal annotation format: {file_path}")
+    
+    # For already-converted format, we just need to ensure it's compressed and indexed
+    if str(file_path).endswith('.gz'):
+        # Check if index exists
+        index_file = Path(str(file_path) + '.tbi')
+        if index_file.exists():
+            logger.info("Converted annotation file is already compressed and indexed")
+            return str(file_path)
+        else:
+            logger.info("Creating index for compressed annotation file...")
+            try:
+                subprocess.run(['tabix', '-s1', '-b2', '-e2', str(file_path)], check=True)
+                logger.info(f"✓ Index created for converted file: {file_path}")
+                return str(file_path)
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(f"Failed to index converted annotation file: {e}")
+    else:
+        # Need to compress and index
+        logger.info("Compressing and indexing converted annotation file...")
+        compressed_file = Path(str(file_path) + '.gz')
+        
+        try:
+            # Compress with bgzip
+            with open(compressed_file, 'wb') as f:
+                subprocess.run(['bgzip', '-c', str(file_path)], stdout=f, check=True)
+            
+            # Index with tabix
+            subprocess.run(['tabix', '-s1', '-b2', '-e2', str(compressed_file)], check=True)
+            
+            logger.info(f"✓ Converted annotation file prepared: {compressed_file}")
+            return str(compressed_file)
+            
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Failed to prepare converted annotation file: {e}")
 
 def _prepare_vcf_format(file_path: Path, output_prefix: Optional[str] = None) -> str:
     """
