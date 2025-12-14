@@ -29,6 +29,165 @@ from typing import Dict, Any, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+# Enhanced logging configuration for bcftools operations
+class BcftoolsOperationLogger:
+    """Enhanced logging for bcftools annotation operations."""
+    
+    def __init__(self):
+        self.stats = {
+            'start_time': time.time(),
+            'command_executions': 0,
+            'successful_commands': 0,
+            'failed_commands': 0,
+            'total_stdout_lines': 0,
+            'total_stderr_lines': 0,
+            'command_history': [],
+            'error_details': [],
+            'performance_metrics': {}
+        }
+    
+    def log_command_start(self, cmd: List[str], description: str = ""):
+        """Log the start of a bcftools command execution."""
+        cmd_info = {
+            'command': ' '.join(str(x) for x in cmd),
+            'description': description,
+            'start_time': time.time(),
+            'pid': None
+        }
+        
+        self.stats['command_executions'] += 1
+        self.stats['command_history'].append(cmd_info)
+        
+        logger.info(f"Executing bcftools command: {description}")
+        logger.debug(f"Command: {cmd_info['command']}")
+        
+        return len(self.stats['command_history']) - 1  # Return index for tracking
+    
+    def log_command_completion(self, cmd_index: int, returncode: int, stdout: str, stderr: str, 
+                             execution_time: float):
+        """Log the completion of a bcftools command execution."""
+        if cmd_index < len(self.stats['command_history']):
+            cmd_info = self.stats['command_history'][cmd_index]
+            cmd_info['returncode'] = returncode
+            cmd_info['execution_time'] = execution_time
+            cmd_info['stdout_lines'] = len(stdout.split('\n')) if stdout else 0
+            cmd_info['stderr_lines'] = len(stderr.split('\n')) if stderr else 0
+            
+            self.stats['total_stdout_lines'] += cmd_info['stdout_lines']
+            self.stats['total_stderr_lines'] += cmd_info['stderr_lines']
+            
+            if returncode == 0:
+                self.stats['successful_commands'] += 1
+                logger.info(f"✓ Command completed successfully in {execution_time:.2f}s")
+                
+                # Log informational stderr (bcftools often writes progress to stderr)
+                if stderr:
+                    self._log_bcftools_stderr(stderr, is_error=False)
+                
+                # Log stdout if it contains useful information
+                if stdout and len(stdout.strip()) > 0:
+                    logger.debug(f"Command stdout ({cmd_info['stdout_lines']} lines):")
+                    for line in stdout.strip().split('\n')[:10]:  # Log first 10 lines
+                        logger.debug(f"  {line}")
+                    if cmd_info['stdout_lines'] > 10:
+                        logger.debug(f"  ... ({cmd_info['stdout_lines'] - 10} more lines)")
+            else:
+                self.stats['failed_commands'] += 1
+                error_info = {
+                    'command': cmd_info['command'],
+                    'returncode': returncode,
+                    'stderr': stderr,
+                    'stdout': stdout,
+                    'execution_time': execution_time,
+                    'timestamp': time.time()
+                }
+                self.stats['error_details'].append(error_info)
+                
+                logger.error(f"✗ Command failed with return code {returncode} after {execution_time:.2f}s")
+                logger.error(f"Command: {cmd_info['command']}")
+                
+                # Log detailed error information
+                if stderr:
+                    self._log_bcftools_stderr(stderr, is_error=True)
+                if stdout:
+                    logger.error(f"Command stdout: {stdout}")
+    
+    def _log_bcftools_stderr(self, stderr: str, is_error: bool = False):
+        """Log bcftools stderr output with appropriate level."""
+        if not stderr:
+            return
+        
+        stderr_lines = stderr.strip().split('\n')
+        
+        for line in stderr_lines:
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Classify stderr messages
+            if any(keyword in line.lower() for keyword in ['error', 'failed', 'cannot', 'invalid']):
+                logger.error(f"bcftools error: {line}")
+            elif any(keyword in line.lower() for keyword in ['warning', 'warn']):
+                logger.warning(f"bcftools warning: {line}")
+            elif any(keyword in line.lower() for keyword in ['processed', 'written', 'lines', 'records']):
+                logger.info(f"bcftools progress: {line}")
+            elif is_error:
+                logger.error(f"bcftools stderr: {line}")
+            else:
+                logger.debug(f"bcftools info: {line}")
+    
+    def log_file_operation(self, operation: str, file_path: Path, success: bool, 
+                          details: str = "", execution_time: float = 0):
+        """Log file operations (compression, indexing, etc.)."""
+        if success:
+            logger.info(f"✓ {operation} completed for {file_path.name}")
+            if execution_time > 0:
+                logger.info(f"  Time: {execution_time:.2f}s")
+            if details:
+                logger.info(f"  Details: {details}")
+        else:
+            logger.error(f"✗ {operation} failed for {file_path.name}")
+            if details:
+                logger.error(f"  Error: {details}")
+    
+    def log_performance_metrics(self):
+        """Log performance metrics for bcftools operations."""
+        total_time = time.time() - self.stats['start_time']
+        
+        logger.info("=== bcftools Performance Metrics ===")
+        logger.info(f"Total execution time: {total_time:.2f} seconds")
+        logger.info(f"Commands executed: {self.stats['command_executions']}")
+        logger.info(f"Successful commands: {self.stats['successful_commands']}")
+        logger.info(f"Failed commands: {self.stats['failed_commands']}")
+        
+        if self.stats['command_executions'] > 0:
+            success_rate = (self.stats['successful_commands'] / self.stats['command_executions']) * 100
+            logger.info(f"Success rate: {success_rate:.1f}%")
+        
+        # Log command timing breakdown
+        if self.stats['command_history']:
+            logger.info("Command execution times:")
+            for i, cmd_info in enumerate(self.stats['command_history']):
+                if 'execution_time' in cmd_info:
+                    status = "✓" if cmd_info.get('returncode', -1) == 0 else "✗"
+                    logger.info(f"  {status} {cmd_info.get('description', f'Command {i+1}')}: {cmd_info['execution_time']:.2f}s")
+        
+        # Log output statistics
+        logger.info(f"Total stdout lines captured: {self.stats['total_stdout_lines']:,}")
+        logger.info(f"Total stderr lines captured: {self.stats['total_stderr_lines']:,}")
+        
+        # Log error summary
+        if self.stats['error_details']:
+            logger.warning(f"Errors encountered: {len(self.stats['error_details'])}")
+            for error in self.stats['error_details']:
+                logger.warning(f"  Command failed: {error['command'][:100]}...")
+                logger.warning(f"    Return code: {error['returncode']}")
+                logger.warning(f"    Time: {error['execution_time']:.2f}s")
+    
+    def get_statistics(self) -> Dict:
+        """Get operation statistics dictionary."""
+        return self.stats.copy()
+
 
 class BcftoolsAnnotator:
     """
@@ -55,6 +214,9 @@ class BcftoolsAnnotator:
         # Tool paths discovered via system PATH
         self.tool_paths: Dict[str, Optional[str]] = {}
         
+        # Enhanced logging for bcftools operations
+        self.operation_logger = BcftoolsOperationLogger()
+        
         # Statistics and timing
         self.stats = {
             'start_time': time.time(),
@@ -67,6 +229,18 @@ class BcftoolsAnnotator:
         logger.info(f"Input VCF: {self.input_vcf}")
         logger.info(f"Annotation VCF: {self.annotation_vcf}")
         logger.info(f"Output VCF: {self.output_vcf}")
+        
+        # Log file sizes for diagnostics
+        try:
+            if self.input_vcf.exists():
+                input_size = self.input_vcf.stat().st_size
+                logger.info(f"Input VCF size: {input_size:,} bytes ({input_size/1024/1024:.1f} MB)")
+            
+            if self.annotation_vcf.exists():
+                annotation_size = self.annotation_vcf.stat().st_size
+                logger.info(f"Annotation VCF size: {annotation_size:,} bytes ({annotation_size/1024/1024:.1f} MB)")
+        except Exception as e:
+            logger.debug(f"Could not get file sizes: {e}")
         
         # Validate inputs and tools
         self.validate_inputs()
@@ -413,10 +587,14 @@ class BcftoolsAnnotator:
         # Build annotation command
         cmd, temp_header_file = self.build_annotation_command()
         
-        logger.info(f"Running command: {' '.join(str(x) for x in cmd)}")
+        # Log command execution start
+        cmd_index = self.operation_logger.log_command_start(cmd, "VCF-to-VCF annotation")
         
         try:
             # Run with timeout to prevent hanging
+            logger.info(f"Executing: {' '.join(str(x) for x in cmd)}")
+            logger.info("This may take several minutes for large files...")
+            
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -425,32 +603,52 @@ class BcftoolsAnnotator:
                 timeout=3600  # 1 hour timeout for large files
             )
             
-            # Log command output for diagnostics
-            if result.stdout:
-                logger.debug(f"bcftools stdout: {result.stdout}")
-            if result.stderr:
-                # bcftools often writes informational messages to stderr
-                if "lines processed" in result.stderr or "records written" in result.stderr:
-                    logger.info(f"bcftools progress: {result.stderr.strip()}")
-                else:
-                    logger.debug(f"bcftools stderr: {result.stderr}")
+            execution_time = time.time() - step_start
+            
+            # Log command completion
+            self.operation_logger.log_command_completion(
+                cmd_index, result.returncode, result.stdout, result.stderr, execution_time
+            )
+            
+            # Parse and log bcftools output statistics
+            self._parse_bcftools_output_statistics(result.stdout, result.stderr)
             
             # Clean up temporary header file if created
             if temp_header_file and temp_header_file.exists():
                 temp_header_file.unlink()
                 logger.debug(f"Cleaned up temporary header file: {temp_header_file}")
             
-            step_time = time.time() - step_start
-            self.stats['processing_steps'].append(('execute_annotation', step_time))
+            self.stats['processing_steps'].append(('execute_annotation', execution_time))
             
-            logger.info(f"✓ bcftools annotation completed successfully ({step_time:.2f}s)")
+            logger.info(f"✓ bcftools annotation completed successfully ({execution_time:.2f}s)")
             
         except subprocess.CalledProcessError as e:
+            execution_time = time.time() - step_start
+            
+            # Log command failure
+            self.operation_logger.log_command_completion(
+                cmd_index, e.returncode, e.stdout, e.stderr, execution_time
+            )
+            
             error_context = f"bcftools annotate failed with exit code {e.returncode}"
             logger.error(error_context)
             logger.error(f"Command: {' '.join(str(x) for x in cmd)}")
-            logger.error(f"stdout: {e.stdout}")
-            logger.error(f"stderr: {e.stderr}")
+            logger.error(f"Execution time: {execution_time:.2f}s")
+            
+            # Log detailed output
+            if e.stdout:
+                logger.error(f"stdout ({len(e.stdout.split())} lines):")
+                for i, line in enumerate(e.stdout.split('\n')[:20]):  # First 20 lines
+                    logger.error(f"  {i+1}: {line}")
+                if len(e.stdout.split('\n')) > 20:
+                    logger.error(f"  ... ({len(e.stdout.split('\n')) - 20} more lines)")
+            
+            if e.stderr:
+                logger.error(f"stderr ({len(e.stderr.split())} lines):")
+                for i, line in enumerate(e.stderr.split('\n')[:20]):  # First 20 lines
+                    logger.error(f"  {i+1}: {line}")
+                if len(e.stderr.split('\n')) > 20:
+                    logger.error(f"  ... ({len(e.stderr.split('\n')) - 20} more lines)")
             
             # Provide specific error guidance based on stderr content
             self._diagnose_bcftools_error(e.stderr)
@@ -458,28 +656,79 @@ class BcftoolsAnnotator:
             # Clean up temporary files on error
             if temp_header_file and temp_header_file.exists():
                 temp_header_file.unlink()
+                logger.debug("Cleaned up temporary header file after error")
             
             raise RuntimeError(f"bcftools annotate failed: {e}")
             
         except subprocess.TimeoutExpired:
-            error_msg = "bcftools annotate timed out after 1 hour"
+            execution_time = time.time() - step_start
+            error_msg = f"bcftools annotate timed out after {execution_time:.0f} seconds (limit: 3600s)"
+            
             logger.error(error_msg)
-            logger.error("This may indicate very large input files or system performance issues")
+            logger.error("This may indicate:")
+            logger.error("  - Very large input files requiring more processing time")
+            logger.error("  - System performance issues or resource constraints")
+            logger.error("  - Possible infinite loop or deadlock in bcftools")
+            logger.error("  - Insufficient memory causing excessive swapping")
+            
+            # Log system resource information if available
+            try:
+                import psutil
+                memory = psutil.virtual_memory()
+                disk = psutil.disk_usage('/')
+                logger.error(f"System memory: {memory.percent}% used ({memory.available/1024/1024/1024:.1f} GB available)")
+                logger.error(f"Disk space: {disk.percent}% used ({disk.free/1024/1024/1024:.1f} GB available)")
+            except ImportError:
+                logger.debug("psutil not available for system resource monitoring")
+            except Exception as e:
+                logger.debug(f"Could not get system resource info: {e}")
             
             # Clean up temporary files on timeout
             if temp_header_file and temp_header_file.exists():
                 temp_header_file.unlink()
+                logger.debug("Cleaned up temporary header file after timeout")
             
             raise RuntimeError(error_msg)
             
         except Exception as e:
-            logger.error(f"Unexpected error during bcftools execution: {e}")
+            execution_time = time.time() - step_start
+            logger.error(f"Unexpected error during bcftools execution after {execution_time:.2f}s: {e}")
+            logger.error(f"Error type: {type(e).__name__}")
             
             # Clean up temporary files on error
             if temp_header_file and temp_header_file.exists():
                 temp_header_file.unlink()
+                logger.debug("Cleaned up temporary header file after unexpected error")
             
             raise
+    
+    def _parse_bcftools_output_statistics(self, stdout: str, stderr: str):
+        """Parse and log statistics from bcftools output."""
+        try:
+            # Look for common bcftools statistics patterns
+            combined_output = (stdout or "") + "\n" + (stderr or "")
+            
+            # Parse lines processed
+            import re
+            lines_match = re.search(r'(\d+)\s+lines?\s+processed', combined_output, re.IGNORECASE)
+            if lines_match:
+                lines_processed = int(lines_match.group(1))
+                logger.info(f"bcftools processed {lines_processed:,} lines")
+            
+            # Parse records written
+            records_match = re.search(r'(\d+)\s+records?\s+written', combined_output, re.IGNORECASE)
+            if records_match:
+                records_written = int(records_match.group(1))
+                logger.info(f"bcftools wrote {records_written:,} records")
+            
+            # Parse annotations added
+            annotations_match = re.search(r'(\d+)\s+annotations?\s+added', combined_output, re.IGNORECASE)
+            if annotations_match:
+                annotations_added = int(annotations_match.group(1))
+                logger.info(f"bcftools added {annotations_added:,} annotations")
+            
+        except Exception as e:
+            logger.debug(f"Could not parse bcftools output statistics: {e}")
     
     def _diagnose_bcftools_error(self, stderr: str) -> None:
         """
@@ -946,15 +1195,33 @@ class BcftoolsAnnotator:
         logger.info(f"Annotation VCF: {self.annotation_vcf}")
         logger.info(f"Output VCF: {self.output_vcf}")
         
-        if self.output_vcf.exists():
-            output_size = self.output_vcf.stat().st_size
-            logger.info(f"Output file size: {output_size:,} bytes ({output_size/1024/1024:.1f} MB)")
+        # Log file size information
+        try:
+            if self.input_vcf.exists():
+                input_size = self.input_vcf.stat().st_size
+                logger.info(f"Input VCF size: {input_size:,} bytes ({input_size/1024/1024:.1f} MB)")
+            
+            if self.annotation_vcf.exists():
+                annotation_size = self.annotation_vcf.stat().st_size
+                logger.info(f"Annotation VCF size: {annotation_size:,} bytes ({annotation_size/1024/1024:.1f} MB)")
+            
+            if self.output_vcf.exists():
+                output_size = self.output_vcf.stat().st_size
+                logger.info(f"Output VCF size: {output_size:,} bytes ({output_size/1024/1024:.1f} MB)")
+        except Exception as e:
+            logger.debug(f"Could not get file size information: {e}")
         
         # Log processing step timings
         if self.stats['processing_steps']:
             logger.info("Processing step timings:")
+            total_step_time = 0
             for step_name, step_time in self.stats['processing_steps']:
-                logger.info(f"  {step_name}: {step_time:.2f}s")
+                percentage = (step_time / total_time * 100) if total_time > 0 else 0
+                logger.info(f"  {step_name}: {step_time:.2f}s ({percentage:.1f}%)")
+                total_step_time += step_time
+        
+        # Log bcftools operation performance metrics
+        self.operation_logger.log_performance_metrics()
         
         # Log tool versions used
         if 'tool_versions' in self.stats:
@@ -962,9 +1229,9 @@ class BcftoolsAnnotator:
             for tool, version in self.stats['tool_versions'].items():
                 logger.info(f"  {tool}: {version}")
         
-        # Log warnings and errors
+        # Log warnings and errors with categorization
         if self.stats['warnings']:
-            logger.info(f"Warnings encountered: {len(self.stats['warnings'])}")
+            logger.warning(f"Warnings encountered: {len(self.stats['warnings'])}")
             for warning in self.stats['warnings']:
                 logger.warning(f"  {warning}")
         
@@ -972,6 +1239,16 @@ class BcftoolsAnnotator:
             logger.error(f"Errors encountered: {len(self.stats['errors'])}")
             for error_info in self.stats['errors']:
                 logger.error(f"  {error_info}")
+        
+        # Log operation statistics from enhanced logger
+        operation_stats = self.operation_logger.get_statistics()
+        if operation_stats['command_executions'] > 0:
+            logger.info("bcftools operation summary:")
+            logger.info(f"  Commands executed: {operation_stats['command_executions']}")
+            logger.info(f"  Successful commands: {operation_stats['successful_commands']}")
+            logger.info(f"  Failed commands: {operation_stats['failed_commands']}")
+            logger.info(f"  Total stdout lines: {operation_stats['total_stdout_lines']:,}")
+            logger.info(f"  Total stderr lines: {operation_stats['total_stderr_lines']:,}")
         
         logger.info("=== Summary Complete ===")
 

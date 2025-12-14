@@ -120,6 +120,13 @@ class FilterUpdater:
             self.stats['final_filter_distribution'][new_filter] = 0
         self.stats['final_filter_distribution'][new_filter] += 1
         
+        # Log individual decisions for debugging
+        self.log_filter_decision(original_filter, new_filter, evidence_tier, 
+                               has_rediportal_match, rna_support, was_updated)
+        
+        # Log progress at regular intervals
+        self.log_processing_progress(self.stats['total_variants_processed'])
+        
         return new_filter, was_updated
     
     def process_all_variants(self, variants_data: List[Dict[str, Any]], 
@@ -187,23 +194,66 @@ class FilterUpdater:
         return stats
     
     def log_statistics(self) -> None:
-        """Log FILTER update statistics."""
+        """Log comprehensive FILTER update statistics."""
         stats = self.get_statistics()
         
         logger.info("=== FILTER Update Statistics ===")
-        logger.info(f"Total variants processed: {stats['total_variants_processed']}")
-        logger.info(f"FILTER updates to RNAedit: {stats['filter_updates_to_rnaedit']} ({stats['filter_update_rate']:.1f}%)")
-        logger.info(f"FILTER values preserved: {stats['filter_values_preserved']} ({stats['filter_preservation_rate']:.1f}%)")
+        logger.info(f"Total variants processed: {stats['total_variants_processed']:,}")
+        logger.info(f"FILTER updates to RNAedit: {stats['filter_updates_to_rnaedit']:,} ({stats['filter_update_rate']:.1f}%)")
+        logger.info(f"FILTER values preserved: {stats['filter_values_preserved']:,} ({stats['filter_preservation_rate']:.1f}%)")
         
         logger.info("Original FILTER distribution:")
-        for filter_val, count in stats['original_filter_distribution'].items():
+        for filter_val, count in sorted(stats['original_filter_distribution'].items(), key=lambda x: x[1], reverse=True):
             percentage = (count / stats['total_variants_processed'] * 100) if stats['total_variants_processed'] > 0 else 0
-            logger.info(f"  {filter_val}: {count} ({percentage:.1f}%)")
+            logger.info(f"  {filter_val}: {count:,} ({percentage:.1f}%)")
         
         logger.info("Final FILTER distribution:")
-        for filter_val, count in stats['final_filter_distribution'].items():
+        for filter_val, count in sorted(stats['final_filter_distribution'].items(), key=lambda x: x[1], reverse=True):
             percentage = (count / stats['total_variants_processed'] * 100) if stats['total_variants_processed'] > 0 else 0
-            logger.info(f"  {filter_val}: {count} ({percentage:.1f}%)")
+            logger.info(f"  {filter_val}: {count:,} ({percentage:.1f}%)")
+        
+        # Log FILTER transition analysis
+        if stats['filter_updates_to_rnaedit'] > 0:
+            logger.info("FILTER transitions to RNAedit:")
+            transitions = {}
+            
+            # Calculate transitions (this is a simplified version - in practice we'd track this)
+            for original_filter in stats['original_filter_distribution']:
+                if original_filter != 'RNAedit':  # Only count transitions TO RNAedit
+                    # Estimate transitions based on the difference
+                    original_count = stats['original_filter_distribution'][original_filter]
+                    final_count = stats['final_filter_distribution'].get(original_filter, 0)
+                    transition_count = max(0, original_count - final_count)
+                    if transition_count > 0:
+                        transitions[original_filter] = transition_count
+            
+            for original_filter, count in sorted(transitions.items(), key=lambda x: x[1], reverse=True):
+                percentage = (count / stats['filter_updates_to_rnaedit'] * 100) if stats['filter_updates_to_rnaedit'] > 0 else 0
+                logger.info(f"  {original_filter} → RNAedit: {count:,} ({percentage:.1f}%)")
+        
+        # Log efficiency metrics
+        if stats['total_variants_processed'] > 0:
+            logger.debug("=== FILTER Update Decision Details ===")
+            logger.debug("Update criteria: RNA consensus + REDIportal match + evidence tier HIGH/MEDIUM/LOW")
+            logger.debug("Preserve criteria: No RNA consensus OR no REDIportal match OR evidence tier NONE")
+    
+    def log_filter_decision(self, original_filter: str, new_filter: str, evidence_tier: str, 
+                           has_rediportal_match: bool, rna_support: int, was_updated: bool):
+        """Log individual FILTER update decisions for debugging."""
+        if logger.isEnabledFor(logging.DEBUG) and was_updated:
+            logger.debug(f"FILTER update: {original_filter} → {new_filter}")
+            logger.debug(f"  Evidence tier: {evidence_tier}, RNA support: {rna_support}")
+            logger.debug(f"  REDIportal match: {has_rediportal_match}")
+    
+    def log_processing_progress(self, processed_count: int, interval: int = 10000):
+        """Log FILTER processing progress at regular intervals."""
+        if processed_count % interval == 0:
+            logger.info(f"FILTER update progress: {processed_count:,} variants processed")
+            
+            # Log current update rate
+            current_stats = self.get_statistics()
+            if current_stats['total_variants_processed'] > 0:
+                logger.info(f"  Current update rate: {current_stats['filter_update_rate']:.1f}%")
 
 
 class FilterUpdateValidator:

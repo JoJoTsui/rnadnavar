@@ -183,7 +183,7 @@ class EvidenceTieringProcessor:
         if update_filter:
             self.stats['filter_updates'] += 1
         
-        return {
+        result = {
             'rna_support': rna_support,
             'dna_support': dna_support,
             'rna_consensus': rna_consensus,
@@ -192,6 +192,14 @@ class EvidenceTieringProcessor:
             'update_filter': update_filter,
             'new_filter': 'RNAedit' if update_filter else None
         }
+        
+        # Log individual classification decisions for debugging
+        self.log_classification_decision(variant_info, result)
+        
+        # Log progress at regular intervals
+        self.log_processing_progress(self.stats['total_variants_processed'])
+        
+        return result
     
     def get_statistics(self) -> Dict[str, Any]:
         """
@@ -216,19 +224,63 @@ class EvidenceTieringProcessor:
         return stats
     
     def log_statistics(self) -> None:
-        """Log processing statistics."""
+        """Log comprehensive processing statistics."""
         stats = self.get_statistics()
         
         logger.info("=== Evidence Tiering Statistics ===")
-        logger.info(f"Total variants processed: {stats['total_variants_processed']}")
-        logger.info(f"RNA consensus variants (>={self.min_rna_support} callers): {stats['rna_consensus_variants']} ({stats['rna_consensus_rate']:.1f}%)")
-        logger.info(f"RNA-only variants (DNA=0): {stats['rna_only_variants']} ({stats['rna_only_rate']:.1f}%)")
-        logger.info(f"FILTER updates to RNAedit: {stats['filter_updates']} ({stats['filter_update_rate']:.1f}%)")
+        logger.info(f"Total variants processed: {stats['total_variants_processed']:,}")
+        logger.info(f"RNA consensus variants (>={self.min_rna_support} callers): {stats['rna_consensus_variants']:,} ({stats['rna_consensus_rate']:.1f}%)")
+        logger.info(f"RNA-only variants (DNA=0): {stats['rna_only_variants']:,} ({stats['rna_only_rate']:.1f}%)")
+        logger.info(f"FILTER updates to RNAedit: {stats['filter_updates']:,} ({stats['filter_update_rate']:.1f}%)")
         
         logger.info("Evidence level distribution:")
         for level, count in stats['evidence_levels'].items():
             percentage = (count / stats['total_variants_processed'] * 100) if stats['total_variants_processed'] > 0 else 0
-            logger.info(f"  {level}: {count} ({percentage:.1f}%)")
+            logger.info(f"  {level}: {count:,} ({percentage:.1f}%)")
+        
+        # Log detailed classification decisions for debugging
+        if stats['total_variants_processed'] > 0:
+            logger.debug("=== Evidence Tiering Decision Details ===")
+            logger.debug(f"Classification criteria (min_rna_support={self.min_rna_support}):")
+            logger.debug("  HIGH: RNA consensus + RNA-only + REDIportal match")
+            logger.debug("  MEDIUM: RNA consensus + has DNA support + REDIportal match")
+            logger.debug("  LOW: RNA consensus + REDIportal match (fallback)")
+            logger.debug("  NONE: No RNA consensus OR no REDIportal match")
+            
+            # Calculate and log decision pathway statistics
+            rna_consensus_with_rediportal = stats['filter_updates']  # These are the ones that got updated
+            rna_consensus_without_rediportal = stats['rna_consensus_variants'] - rna_consensus_with_rediportal
+            
+            if rna_consensus_without_rediportal > 0:
+                logger.info(f"RNA consensus variants without REDIportal match: {rna_consensus_without_rediportal:,}")
+            
+            # Log efficiency metrics
+            if stats['rna_consensus_variants'] > 0:
+                rediportal_match_rate = (rna_consensus_with_rediportal / stats['rna_consensus_variants']) * 100
+                logger.info(f"REDIportal match rate among RNA consensus variants: {rediportal_match_rate:.1f}%")
+    
+    def log_classification_decision(self, variant_info: Dict[str, Any], result: Dict[str, Any]):
+        """Log individual classification decisions for debugging."""
+        if logger.isEnabledFor(logging.DEBUG):
+            chrom = variant_info.get('CHROM', 'unknown')
+            pos = variant_info.get('POS', 'unknown')
+            
+            logger.debug(f"Classification decision for {chrom}:{pos}")
+            logger.debug(f"  RNA support: {result['rna_support']}, DNA support: {result['dna_support']}")
+            logger.debug(f"  RNA consensus: {result['rna_consensus']}, RNA-only: {result['rna_only']}")
+            logger.debug(f"  Evidence tier: {result['evidence_tier']}")
+            logger.debug(f"  FILTER update: {result['update_filter']}")
+    
+    def log_processing_progress(self, processed_count: int, interval: int = 10000):
+        """Log processing progress at regular intervals."""
+        if processed_count % interval == 0:
+            logger.info(f"Evidence tiering progress: {processed_count:,} variants processed")
+            
+            # Log current statistics
+            current_stats = self.get_statistics()
+            if current_stats['total_variants_processed'] > 0:
+                logger.info(f"  Current RNA consensus rate: {current_stats['rna_consensus_rate']:.1f}%")
+                logger.info(f"  Current FILTER update rate: {current_stats['filter_update_rate']:.1f}%")
 
 
 class EvidenceTieringValidator:

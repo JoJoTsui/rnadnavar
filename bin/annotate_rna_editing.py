@@ -27,7 +27,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Dict
 
 # Add vcf_utils to path for imports
 script_dir = Path(__file__).parent
@@ -35,7 +35,7 @@ sys.path.insert(0, str(script_dir))
 
 # Import dedicated modules for RNA editing annotation
 try:
-    from vcf_utils.rediportal_converter import detect_rediportal_format, prepare_rediportal_database
+    from vcf_utils.rediportal_converter import prepare_rediportal_database
     from vcf_utils.bcftools_annotator import BcftoolsAnnotator
     from vcf_utils.evidence_tiering import create_evidence_tiering_processor
     from vcf_utils.filter_updater import create_filter_updater
@@ -495,21 +495,41 @@ class RNAEditingAnnotator:
             logger.warning("Continuing with basic annotation only")
     
     def _validate_and_index_output(self) -> None:
-        """Validate output file and create index if needed."""
+        """Validate output file and create index if needed with comprehensive checks."""
         step_start = time.time()
         logger.info("Validating output file and creating index...")
         
         try:
             # Validate output file exists and is accessible
             if not self.output_vcf.exists():
-                raise RuntimeError(f"Output file was not created: {self.output_vcf}")
+                error_msg = f"Output file was not created: {self.output_vcf}"
+                logger.error(error_msg)
+                logger.error(f"Expected output path: {self.output_vcf.absolute()}")
+                logger.error(f"Output directory exists: {self.output_vcf.parent.exists()}")
+                logger.error(f"Output directory writable: {os.access(self.output_vcf.parent, os.W_OK)}")
+                raise RuntimeError(error_msg)
             
-            # Check file size
+            # Check file size and basic properties
             file_size = self.output_vcf.stat().st_size
             if file_size == 0:
-                raise RuntimeError(f"Output file is empty: {self.output_vcf}")
+                error_msg = f"Output file is empty: {self.output_vcf}"
+                logger.error(error_msg)
+                logger.error("This may indicate:")
+                logger.error("  - Processing failed silently")
+                logger.error("  - Input file had no variants")
+                logger.error("  - Write permissions were lost during processing")
+                raise RuntimeError(error_msg)
             
-            logger.info(f"✓ Output file validated: {file_size:,} bytes")
+            # Check file permissions
+            if not os.access(self.output_vcf, os.R_OK):
+                error_msg = f"Output file is not readable: {self.output_vcf}"
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
+            
+            logger.info(f"✓ Output file validated: {file_size:,} bytes ({file_size/1024/1024:.1f} MB)")
+            
+            # Validate VCF format if possible
+            self._validate_vcf_format()
             
             # Create index if output is compressed
             if str(self.output_vcf).endswith('.gz'):
@@ -517,6 +537,9 @@ class RNAEditingAnnotator:
             
             # Set proper file permissions
             self._ensure_output_file_permissions()
+            
+            # Final integrity check
+            self._perform_output_integrity_check()
             
             step_time = time.time() - step_start
             self.stats['processing_steps'].append(('validate_and_index_output', step_time))
@@ -526,6 +549,126 @@ class RNAEditingAnnotator:
         except Exception as e:
             self._log_error("Output validation failed", e)
             raise
+    
+    def _validate_vcf_format(self) -> None:
+        """Validate that output file has proper VCF format."""
+        logger.info("Validating VCF format...")
+        
+        try:
+            # Try to read first few lines to validate VCF format
+            if str(self.output_vcf).endswith('.gz'):
+                import gzip
+                with gzip.open(self.output_vcf, 'rt') as f:
+                    first_line = f.readline().strip()
+                    header_lines = 0
+                    variant_lines = 0
+                    
+                    # Count header and variant lines (first 100 lines)
+                    f.seek(0)
+                    for i, line in enumerate(f):
+                        if i >= 100:  # Limit check to first 100 lines
+                            break
+                        line = line.strip()
+                        if line.startswith('##'):
+                            header_lines += 1
+                        elif line.startswith('#CHROM'):
+                            header_lines += 1
+                        elif line and not line.startswith('#'):
+                            variant_lines += 1
+            else:
+                with open(self.output_vcf, 'r') as f:
+                    first_line = f.readline().strip()
+                    header_lines = 0
+                    variant_lines = 0
+                    
+                    # Count header and variant lines (first 100 lines)
+                    f.seek(0)
+                    for i, line in enumerate(f):
+                        if i >= 100:  # Limit check to first 100 lines
+                            break
+                        line = line.strip()
+                        if line.startswith('##'):
+                            header_lines += 1
+                        elif line.startswith('#CHROM'):
+                            header_lines += 1
+                        elif line and not line.startswith('#'):
+                            variant_lines += 1
+            
+            # Validate VCF header
+            if not first_line.startswith('##fileformat=VCF'):
+                logger.warning(f"Output file may not have valid VCF header. First line: {first_line}")
+                self.stats['warnings'].append("Invalid VCF header format")
+            else:
+                logger.info("✓ Valid VCF format detected")
+                logger.info(f"  Header lines: {header_lines}")
+                logger.info(f"  Variant lines (sample): {variant_lines}")
+            
+        except Exception as e:
+            logger.warning(f"Could not validate VCF format: {e}")
+            self.stats['warnings'].append(f"VCF format validation failed: {e}")
+    
+    def _perform_output_integrity_check(self) -> None:
+        """Perform final integrity check on output file."""
+        logger.info("Performing output integrity check...")
+        
+        try:
+            # Check if file can be opened and basic structure is intact
+            line_count = 0
+            header_count = 0
+            variant_count = 0
+            
+            if str(self.output_vcf).endswith('.gz'):
+                import gzip
+                with gzip.open(self.output_vcf, 'rt') as f:
+                    for line in f:
+                        line_count += 1
+                        if line.startswith('##'):
+                            header_count += 1
+                        elif line.startswith('#CHROM'):
+                            header_count += 1
+                        elif line.strip() and not line.startswith('#'):
+                            variant_count += 1
+                        
+                        # Limit check to avoid processing huge files
+                        if line_count >= 10000:
+                            break
+            else:
+                with open(self.output_vcf, 'r') as f:
+                    for line in f:
+                        line_count += 1
+                        if line.startswith('##'):
+                            header_count += 1
+                        elif line.startswith('#CHROM'):
+                            header_count += 1
+                        elif line.strip() and not line.startswith('#'):
+                            variant_count += 1
+                        
+                        # Limit check to avoid processing huge files
+                        if line_count >= 10000:
+                            break
+            
+            logger.info("✓ Integrity check completed:")
+            logger.info(f"  Total lines checked: {line_count:,}")
+            logger.info(f"  Header lines: {header_count:,}")
+            logger.info(f"  Variant lines: {variant_count:,}")
+            
+            # Store counts in stats
+            self.stats['output_line_count'] = line_count
+            self.stats['output_header_count'] = header_count
+            self.stats['output_variant_count'] = variant_count
+            
+            # Validate minimum structure
+            if header_count == 0:
+                logger.warning("No VCF header lines found in output")
+                self.stats['warnings'].append("No VCF header lines in output")
+            
+            if variant_count == 0:
+                logger.warning("No variant lines found in output (first 10,000 lines)")
+                self.stats['warnings'].append("No variant lines found in output sample")
+            
+        except Exception as e:
+            logger.warning(f"Output integrity check failed: {e}")
+            self.stats['warnings'].append(f"Integrity check failed: {e}")
     
     def _extract_variant_data_pysam(self, variant) -> Dict:
         """Extract variant data from pysam.VariantRecord for evidence classification."""
@@ -660,7 +803,7 @@ class RNAEditingAnnotator:
             cmd = ['tabix', '-p', 'vcf', str(self.output_vcf)]
             logger.debug(f"Running command: {' '.join(cmd)}")
             
-            result = subprocess.run(
+            subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
@@ -719,55 +862,159 @@ class RNAEditingAnnotator:
         self.stats['errors'].append(error_info)
     
     def _generate_summary_statistics(self) -> None:
-        """Generate and log comprehensive summary statistics."""
+        """Generate and log comprehensive summary statistics with detailed metrics."""
         total_time = time.time() - self.stats['start_time']
         
         logger.info("=== RNA Editing Annotation Summary (Reorganized) ===")
-        logger.info(f"Total processing time: {total_time:.2f} seconds")
+        logger.info(f"Total processing time: {total_time:.2f} seconds ({total_time/60:.1f} minutes)")
         logger.info(f"Input VCF: {self.input_vcf}")
         logger.info(f"REDIportal VCF: {self.rediportal_vcf}")
         logger.info(f"Output VCF: {self.output_vcf}")
         
-        if self.output_vcf.exists():
-            output_size = self.output_vcf.stat().st_size
-            logger.info(f"Output file size: {output_size:,} bytes ({output_size/1024/1024:.1f} MB)")
+        # Log file size information
+        try:
+            if self.input_vcf.exists():
+                input_size = self.input_vcf.stat().st_size
+                logger.info(f"Input file size: {input_size:,} bytes ({input_size/1024/1024:.1f} MB)")
+            
+            if self.rediportal_vcf.exists():
+                rediportal_size = self.rediportal_vcf.stat().st_size
+                logger.info(f"REDIportal file size: {rediportal_size:,} bytes ({rediportal_size/1024/1024:.1f} MB)")
+            
+            if self.output_vcf.exists():
+                output_size = self.output_vcf.stat().st_size
+                logger.info(f"Output file size: {output_size:,} bytes ({output_size/1024/1024:.1f} MB)")
+                
+                # Calculate compression ratio if applicable
+                if str(self.output_vcf).endswith('.gz') and self.input_vcf.exists():
+                    compression_ratio = (output_size / input_size) * 100 if input_size > 0 else 0
+                    logger.info(f"Compression ratio: {compression_ratio:.1f}%")
+        except Exception as e:
+            logger.debug(f"Could not get file size information: {e}")
         
-        # Log processing step timings
+        # Log processing step timings with performance analysis
         if self.stats['processing_steps']:
             logger.info("Processing step timings:")
+            total_step_time = 0
             for step_name, step_time in self.stats['processing_steps']:
-                logger.info(f"  {step_name}: {step_time:.2f}s")
+                percentage = (step_time / total_time * 100) if total_time > 0 else 0
+                logger.info(f"  {step_name}: {step_time:.2f}s ({percentage:.1f}%)")
+                total_step_time += step_time
+            
+            # Log overhead time
+            overhead_time = total_time - total_step_time
+            if overhead_time > 0:
+                overhead_percentage = (overhead_time / total_time * 100) if total_time > 0 else 0
+                logger.info(f"  overhead/other: {overhead_time:.2f}s ({overhead_percentage:.1f}%)")
         
-        # Log warnings and errors
+        # Log output file statistics if available
+        if 'output_line_count' in self.stats:
+            logger.info("Output file structure:")
+            logger.info(f"  Header lines: {self.stats.get('output_header_count', 0):,}")
+            logger.info(f"  Variant lines: {self.stats.get('output_variant_count', 0):,}")
+            logger.info(f"  Total lines checked: {self.stats.get('output_line_count', 0):,}")
+        
+        # Log warnings and errors with categorization
         if self.stats['warnings']:
-            logger.info(f"Warnings encountered: {len(self.stats['warnings'])}")
+            logger.warning(f"Warnings encountered: {len(self.stats['warnings'])}")
+            warning_categories = {}
             for warning in self.stats['warnings']:
+                category = warning.split(':')[0] if ':' in warning else 'General'
+                warning_categories[category] = warning_categories.get(category, 0) + 1
                 logger.warning(f"  {warning}")
+            
+            if len(warning_categories) > 1:
+                logger.warning("Warning categories:")
+                for category, count in warning_categories.items():
+                    logger.warning(f"  {category}: {count}")
         
         if self.stats['errors']:
             logger.error(f"Errors encountered: {len(self.stats['errors'])}")
+            error_categories = {}
             for error_info in self.stats['errors']:
+                error_type = error_info.get('error_type', 'Unknown')
+                error_categories[error_type] = error_categories.get(error_type, 0) + 1
                 logger.error(f"  {error_info['context']}: {error_info['error_type']} - {error_info['error_message']}")
+            
+            if len(error_categories) > 1:
+                logger.error("Error categories:")
+                for category, count in error_categories.items():
+                    logger.error(f"  {category}: {count}")
         
         # Log evidence tiering statistics if available
         if 'evidence_tiering_stats' in self.stats:
             stats = self.stats['evidence_tiering_stats']
             logger.info("Evidence tiering statistics:")
-            logger.info(f"  Total variants processed: {stats['total_variants_processed']}")
-            logger.info(f"  RNA consensus variants: {stats['rna_consensus_variants']} ({stats['rna_consensus_rate']:.1f}%)")
-            logger.info(f"  RNA-only variants: {stats['rna_only_variants']} ({stats['rna_only_rate']:.1f}%)")
-            logger.info(f"  FILTER updates to RNAedit: {stats['filter_updates']} ({stats['filter_update_rate']:.1f}%)")
+            logger.info(f"  Total variants processed: {stats['total_variants_processed']:,}")
+            logger.info(f"  RNA consensus variants: {stats['rna_consensus_variants']:,} ({stats['rna_consensus_rate']:.1f}%)")
+            logger.info(f"  RNA-only variants: {stats['rna_only_variants']:,} ({stats['rna_only_rate']:.1f}%)")
+            logger.info(f"  FILTER updates to RNAedit: {stats['filter_updates']:,} ({stats['filter_update_rate']:.1f}%)")
+            
+            # Log evidence level distribution
+            if 'evidence_levels' in stats:
+                logger.info("  Evidence level distribution:")
+                for level, count in stats['evidence_levels'].items():
+                    percentage = (count / stats['total_variants_processed'] * 100) if stats['total_variants_processed'] > 0 else 0
+                    logger.info(f"    {level}: {count:,} ({percentage:.1f}%)")
         
         # Log FILTER update statistics if available
         if 'filter_update_stats' in self.stats:
             filter_stats = self.stats['filter_update_stats']
             logger.info("FILTER column update statistics:")
-            logger.info(f"  Total variants processed: {filter_stats['total_variants_processed']}")
-            logger.info(f"  FILTER updates to RNAedit: {filter_stats['filter_updates_to_rnaedit']} ({filter_stats['filter_update_rate']:.1f}%)")
-            logger.info(f"  FILTER values preserved: {filter_stats['filter_values_preserved']} ({filter_stats['filter_preservation_rate']:.1f}%)")
+            logger.info(f"  Total variants processed: {filter_stats['total_variants_processed']:,}")
+            logger.info(f"  FILTER updates to RNAedit: {filter_stats['filter_updates_to_rnaedit']:,} ({filter_stats['filter_update_rate']:.1f}%)")
+            logger.info(f"  FILTER values preserved: {filter_stats['filter_values_preserved']:,} ({filter_stats['filter_preservation_rate']:.1f}%)")
+            
+            # Log FILTER distribution changes
+            if 'original_filter_distribution' in filter_stats and 'final_filter_distribution' in filter_stats:
+                logger.info("  FILTER value changes:")
+                all_filters = set(filter_stats['original_filter_distribution'].keys()) | set(filter_stats['final_filter_distribution'].keys())
+                for filter_val in sorted(all_filters):
+                    original_count = filter_stats['original_filter_distribution'].get(filter_val, 0)
+                    final_count = filter_stats['final_filter_distribution'].get(filter_val, 0)
+                    change = final_count - original_count
+                    if change != 0:
+                        change_str = f"({change:+,})" if change != 0 else ""
+                        logger.info(f"    {filter_val}: {original_count:,} → {final_count:,} {change_str}")
         
-        logger.info(f"Log file: {self.log_file}")
+        # Log performance metrics
+        if total_time > 0 and 'total_variants' in self.stats and self.stats['total_variants'] > 0:
+            variants_per_second = self.stats['total_variants'] / total_time
+            logger.info(f"Processing rate: {variants_per_second:.0f} variants/second")
+        
+        # Log system resource usage if available
+        try:
+            import psutil
+            process = psutil.Process()
+            memory_info = process.memory_info()
+            logger.info(f"Peak memory usage: {memory_info.rss / 1024 / 1024:.1f} MB")
+        except ImportError:
+            logger.debug("psutil not available for memory usage reporting")
+        except Exception as e:
+            logger.debug(f"Could not get memory usage: {e}")
+        
+        # Log success/failure summary
+        success = len(self.stats['errors']) == 0
+        status = "SUCCESS" if success else "COMPLETED WITH ERRORS"
+        logger.info(f"Pipeline status: {status}")
+        
+        if self.log_file:
+            logger.info(f"Detailed log file: {self.log_file}")
+        
         logger.info("=== Summary Complete ===")
+        
+        # Log final recommendations if there were issues
+        if self.stats['warnings'] or self.stats['errors']:
+            logger.info("=== Recommendations ===")
+            if self.stats['errors']:
+                logger.info("- Review error messages above for critical issues")
+                logger.info("- Check input file formats and permissions")
+                logger.info("- Verify tool availability and versions")
+            if self.stats['warnings']:
+                logger.info("- Review warning messages for potential data quality issues")
+                logger.info("- Consider validating output with downstream tools")
+            logger.info(f"- Consult detailed log file for debugging: {self.log_file}")
+            logger.info("=== End Recommendations ===")
 
 
 def main():
