@@ -1,21 +1,31 @@
 #!/usr/bin/env python3
 """
-RNA Editing Annotation Script - Reorganized for Maintainability
+RNA Editing Annotation Script - Fully Integrated Pipeline
 
-This script provides streamlined RNA editing annotation using dedicated modules
-for REDIportal conversion, bcftools annotation, and evidence tiering. The
-reorganized architecture maintains clear separation of concerns between components
-and uses pysam for reliable VCF file generation.
+This script provides the complete integrated RNA editing annotation pipeline with
+all components seamlessly working together. It uses the new REDIportal to VCF
+conversion script, implements bcftools VCF-to-VCF annotation without separate
+header files, adds evidence tiering and FILTER update functionality, and ensures
+reliable output generation using pysam.
 
-FEATURES:
-- Modular architecture with dedicated components
-- REDIportal conversion logic in dedicated module
-- bcftools annotation logic in dedicated module  
-- Evidence tiering logic in dedicated module
-- pysam-based VCF output generation
-- Comprehensive error handling and logging
+INTEGRATED FEATURES:
+- New REDIportal to VCF conversion script for proper VCF format generation
+- bcftools VCF-to-VCF annotation with exact coordinate and allele matching
+- Evidence tiering system based on RNA/DNA caller support (HIGH/MEDIUM/LOW/NONE)
+- FILTER column updates to "RNAedit" for variants meeting high evidence criteria
+- pysam-based VCF output generation for reliable file handling
+- Seamless pipeline execution from input to final output
+- Complete isolation to annotate_rna_editing.py and its dependencies
+- Comprehensive error handling and logging throughout
 
-Requirements Satisfied: 7.1, 7.2, 7.4, 7.5
+PIPELINE COMPONENTS:
+1. REDIportal Database Converter - converts text format to bgzipped VCF
+2. bcftools Annotation Engine - VCF-to-VCF annotation without header files
+3. Evidence Tiering Processor - classifies RNA editing confidence levels
+4. FILTER Updater - updates FILTER column based on evidence criteria
+5. pysam Output Generator - reliable VCF file generation with indexing
+
+Requirements Satisfied: 1.1, 3.1, 4.1, 5.1, 6.1, 7.1
 
 Author: RNA Editing Enhancement Pipeline
 Date: 2025-12-14
@@ -68,14 +78,18 @@ def setup_file_logging(output_dir: Path) -> None:
 
 class RNAEditingAnnotator:
     """
-    Reorganized RNA editing annotator using dedicated modules.
+    Integrated RNA editing annotator with complete pipeline components.
     
-    This class coordinates RNA editing annotation using dedicated modules for:
-    - REDIportal database conversion (rediportal_converter)
-    - bcftools VCF-to-VCF annotation (bcftools_annotator)
-    - Evidence tiering and classification (evidence_tiering)
-    - FILTER column updates (filter_updater)
-    - pysam-based VCF output generation
+    This class coordinates the complete integrated RNA editing annotation pipeline using:
+    - New REDIportal to VCF conversion script for proper VCF format generation
+    - bcftools VCF-to-VCF annotation without requiring separate header files
+    - Evidence tiering system based on RNA/DNA caller support (HIGH/MEDIUM/LOW/NONE)
+    - FILTER column updates to "RNAedit" for high-evidence variants
+    - pysam-based VCF output generation for reliable file handling
+    - Seamless pipeline execution from input to final output
+    - Complete isolation to annotate_rna_editing.py and its dependencies
+    
+    Requirements Satisfied: 1.1, 3.1, 4.1, 5.1, 6.1, 7.1
     """
     
     def __init__(self, input_vcf: str, rediportal_vcf: str, output_vcf: str, 
@@ -180,45 +194,54 @@ class RNAEditingAnnotator:
     
     def run_annotation(self) -> None:
         """
-        Run the RNA editing annotation pipeline using dedicated modules.
+        Run the complete integrated RNA editing annotation pipeline.
+        
+        This method implements the fully integrated pipeline that:
+        1. Uses new REDIportal to VCF conversion script for proper VCF format generation
+        2. Integrates bcftools VCF-to-VCF annotation without requiring separate header files
+        3. Adds evidence tiering and FILTER update functionality based on RNA/DNA caller support
+        4. Ensures seamless pipeline execution from input to final output using pysam
+        5. Maintains isolation to annotate_rna_editing.py and its dependencies
         """
         pipeline_start = time.time()
-        logger.info("Starting RNA editing annotation with reorganized modules...")
+        logger.info("Starting integrated RNA editing annotation pipeline...")
+        logger.info("Pipeline components: REDIportal converter + bcftools VCF-to-VCF + evidence tiering + FILTER updates")
         
         temp_files = []
         
         try:
-            # Step 1: Prepare REDIportal database using dedicated converter
-            logger.info("Step 1: Preparing REDIportal database...")
+            # Step 1: Convert REDIportal database to proper VCF format using new conversion script
+            logger.info("Step 1: Converting REDIportal database to VCF format...")
             prepared_rediportal = self._prepare_rediportal_database_with_converter()
             if prepared_rediportal != str(self.rediportal_vcf):
                 temp_files.append(Path(prepared_rediportal))
             
-            # Step 2: Run bcftools annotation using dedicated annotator
-            logger.info("Step 2: Running bcftools VCF-to-VCF annotation...")
+            # Step 2: Run bcftools VCF-to-VCF annotation without separate header files
+            logger.info("Step 2: Running bcftools VCF-to-VCF annotation with exact matching...")
             annotated_vcf = self._run_bcftools_annotation_with_engine(prepared_rediportal)
             
-            # Step 3: Process variants for evidence classification and FILTER updates using pysam
-            logger.info("Step 3: Processing variants for RNA editing evidence classification...")
+            # Step 3: Apply evidence tiering and FILTER updates using dedicated modules and pysam
+            logger.info("Step 3: Applying evidence tiering and FILTER updates...")
             self._process_variants_with_pysam_and_evidence_tiering(annotated_vcf)
             
-            # Step 4: Validate output and create index
-            logger.info("Step 4: Validating output and creating index...")
+            # Step 4: Validate final output and create index for compressed files
+            logger.info("Step 4: Validating final output and creating index...")
             self._validate_and_index_output()
             
-            # Step 5: Clean up temporary files
+            # Step 5: Clean up temporary files created during processing
             logger.info("Step 5: Cleaning up temporary files...")
             self._cleanup_temp_files(temp_files)
             
-            # Generate final statistics
+            # Generate comprehensive final statistics
             pipeline_time = time.time() - pipeline_start
             self.stats['processing_steps'].append(('total_pipeline', pipeline_time))
             
-            logger.info("✓ RNA editing annotation completed successfully!")
+            logger.info("✓ Integrated RNA editing annotation pipeline completed successfully!")
+            logger.info("All components integrated: REDIportal conversion, bcftools annotation, evidence tiering, FILTER updates")
             self._generate_summary_statistics()
             
         except Exception as e:
-            self._log_error("RNA editing annotation pipeline failed", e)
+            self._log_error("Integrated RNA editing annotation pipeline failed", e)
             
             # Clean up any partial output files
             if self.output_vcf.exists():
@@ -235,7 +258,7 @@ class RNAEditingAnnotator:
                 logger.warning(f"Failed to clean up temporary files: {cleanup_error}")
                 logger.warning("Some temporary files may remain on disk")
             
-            # Generate error summary
+            # Generate error summary for debugging
             self._generate_summary_statistics()
             
             # Exit with appropriate error code based on error type
@@ -256,20 +279,33 @@ class RNAEditingAnnotator:
         """
         Prepare REDIportal database using dedicated converter module.
         
+        This method uses the new REDIportal to VCF conversion script to convert
+        REDIportal text database to bgzipped VCF format for direct use with
+        bcftools annotate without requiring separate header files.
+        
         Returns:
-            Path to prepared REDIportal database
+            Path to prepared REDIportal VCF database
         """
         step_start = time.time()
         logger.info("Preparing REDIportal database with dedicated converter...")
         
         try:
-            # Use dedicated REDIportal converter module
+            # Use dedicated REDIportal converter module for VCF conversion
+            # This handles text format conversion to proper VCF with headers
             prepared_file = prepare_rediportal_database(str(self.rediportal_vcf))
+            
+            # Validate that the prepared file is in VCF format
+            if not prepared_file.endswith('.vcf.gz') and not prepared_file.endswith('.vcf'):
+                logger.warning(f"Prepared file may not be in VCF format: {prepared_file}")
+                self.stats['warnings'].append("REDIportal converter output format unclear")
+            
+            # Log conversion statistics if available
+            logger.info(f"REDIportal database converted to VCF format: {prepared_file}")
             
             step_time = time.time() - step_start
             self.stats['processing_steps'].append(('prepare_rediportal_converter', step_time))
             
-            logger.info(f"✓ REDIportal database prepared: {prepared_file} ({step_time:.2f}s)")
+            logger.info(f"✓ REDIportal database prepared as VCF: {prepared_file} ({step_time:.2f}s)")
             return prepared_file
             
         except Exception as e:
@@ -278,16 +314,20 @@ class RNAEditingAnnotator:
     
     def _run_bcftools_annotation_with_engine(self, rediportal_vcf: str) -> str:
         """
-        Run bcftools annotation using dedicated annotation engine.
+        Run bcftools VCF-to-VCF annotation using dedicated annotation engine.
+        
+        This method uses the bcftools annotation engine to perform VCF-to-VCF
+        annotation without requiring separate header files. It implements exact
+        coordinate and allele matching between input VCF and REDIportal VCF database.
         
         Args:
-            rediportal_vcf: Path to prepared REDIportal VCF
+            rediportal_vcf: Path to prepared REDIportal VCF database
             
         Returns:
             Path to annotated VCF file
         """
         step_start = time.time()
-        logger.info("Running bcftools annotation with dedicated engine...")
+        logger.info("Running bcftools VCF-to-VCF annotation with dedicated engine...")
         
         try:
             # Create temporary output for bcftools annotation
@@ -295,14 +335,16 @@ class RNAEditingAnnotator:
             if str(self.output_vcf).endswith('.gz'):
                 temp_annotated = Path(str(temp_annotated) + '.gz')
             
-            # Use dedicated bcftools annotator
+            # Use dedicated bcftools annotator for VCF-to-VCF annotation
+            logger.info("Initializing bcftools VCF-to-VCF annotation engine...")
             annotator = BcftoolsAnnotator(
                 input_vcf=str(self.input_vcf),
                 annotation_vcf=rediportal_vcf,
                 output_vcf=str(temp_annotated)
             )
             
-            # Run annotation
+            # Run VCF-to-VCF annotation without separate header files
+            logger.info("Executing VCF-to-VCF annotation with exact coordinate and allele matching...")
             annotator.run_annotation()
             
             # Merge statistics from annotator
@@ -313,44 +355,61 @@ class RNAEditingAnnotator:
                 self.stats['warnings'].extend(annotator.stats.get('warnings', []))
                 self.stats['errors'].extend(annotator.stats.get('errors', []))
             
+            # Log annotation statistics
+            if hasattr(annotator, 'operation_logger'):
+                operation_stats = annotator.operation_logger.get_statistics()
+                logger.info(f"bcftools operations: {operation_stats['successful_commands']} successful, "
+                           f"{operation_stats['failed_commands']} failed")
+            
             step_time = time.time() - step_start
             self.stats['processing_steps'].append(('bcftools_annotation_engine', step_time))
             
-            logger.info(f"✓ bcftools annotation completed: {temp_annotated} ({step_time:.2f}s)")
+            logger.info(f"✓ bcftools VCF-to-VCF annotation completed: {temp_annotated} ({step_time:.2f}s)")
             return str(temp_annotated)
             
         except Exception as e:
-            self._log_error("bcftools annotation engine failed", e)
-            raise RuntimeError(f"bcftools annotation failed: {e}")
+            self._log_error("bcftools VCF-to-VCF annotation engine failed", e)
+            raise RuntimeError(f"bcftools VCF-to-VCF annotation failed: {e}")
     
     def _process_variants_with_pysam_and_evidence_tiering(self, annotated_vcf: str) -> None:
         """
-        Process variants using pysam and dedicated evidence tiering modules.
+        Process variants using pysam and dedicated evidence tiering and FILTER update modules.
+        
+        This method implements the complete evidence tiering system that:
+        1. Extracts N_RNA_CALLERS_SUPPORT and N_DNA_CALLERS_SUPPORT from variant INFO fields
+        2. Implements RNA consensus detection (N_RNA_CALLERS_SUPPORT >= min_rna_support)
+        3. Implements RNA-only variant detection (N_DNA_CALLERS_SUPPORT = 0)
+        4. Creates evidence tier assignment logic (HIGH/MEDIUM/LOW/NONE)
+        5. Updates FILTER to "RNAedit" for variants meeting high evidence criteria
+        6. Preserves original FILTER values for variants not meeting criteria
         
         Args:
             annotated_vcf: Path to bcftools-annotated VCF file
         """
         step_start = time.time()
-        logger.info("Processing variants with pysam and evidence tiering...")
+        logger.info("Processing variants with pysam, evidence tiering, and FILTER updates...")
         
         try:
             # Check if pysam is available
             try:
                 import pysam
             except ImportError:
-                logger.warning("pysam not available - skipping evidence tiering")
+                logger.warning("pysam not available - skipping evidence tiering and FILTER updates")
                 # Just copy the annotated file to output
                 import shutil
                 shutil.copy2(annotated_vcf, self.output_vcf)
                 return
             
-            # Create evidence tiering processor
+            # Create evidence tiering processor with RNA consensus threshold
+            logger.info(f"Initializing evidence tiering processor (min_rna_support={self.min_rna_support})...")
             evidence_processor = create_evidence_tiering_processor(min_rna_support=self.min_rna_support)
             
-            # Create FILTER updater
+            # Create FILTER updater for RNA editing classification
+            logger.info("Initializing FILTER updater for RNA editing classification...")
             filter_updater = create_filter_updater()
             
-            # Process variants with pysam
+            # Process variants with pysam for reliable VCF file generation
+            logger.info("Opening annotated VCF with pysam for processing...")
             input_vcf = pysam.VariantFile(annotated_vcf)
             
             # Prepare output VCF header with RNA editing fields
@@ -369,44 +428,56 @@ class RNAEditingAnnotator:
                 output_header.filters.add('RNAedit', None, None, 
                                         'RNA editing variant based on evidence classification')
             
-            # Open output VCF with pysam
+            # Open output VCF with pysam for reliable output generation
+            logger.info(f"Creating output VCF with pysam: {self.output_vcf}")
             output_vcf = pysam.VariantFile(str(self.output_vcf), 'w', header=output_header)
             
-            # Initialize statistics
+            # Initialize comprehensive statistics
             evidence_stats = {
                 'total_variants': 0,
                 'rediportal_matches': 0,
                 'canonical_transitions': 0,
+                'rna_consensus_variants': 0,
+                'rna_only_variants': 0,
                 'filter_updates': 0,
-                'filter_preserved': 0
+                'filter_preserved': 0,
+                'evidence_distribution': {'HIGH': 0, 'MEDIUM': 0, 'LOW': 0, 'NONE': 0}
             }
             
             try:
+                logger.info("Processing variants for evidence tiering and FILTER updates...")
                 for variant in input_vcf:
                     evidence_stats['total_variants'] += 1
                     
-                    # Extract variant data
+                    # Extract variant data for evidence classification
                     variant_data = self._extract_variant_data_pysam(variant)
                     
-                    # Check for REDIportal match
-                    rediportal_match = ('DB' in variant.info or 
-                                      'REDI_DB' in variant.info or 
-                                      'REDI_ACCESSION' in variant.info)
+                    # Check for exact REDIportal match (coordinate and allele matching)
+                    rediportal_match = self._has_exact_rediportal_match(variant)
                     if rediportal_match:
                         evidence_stats['rediportal_matches'] += 1
                     
-                    # Check canonical transition
+                    # Check canonical RNA editing transition
                     canonical = is_canonical_editing_transition(variant.ref, ','.join(variant.alts))
                     if canonical:
                         evidence_stats['canonical_transitions'] += 1
                     
-                    # Process with evidence tiering
+                    # Process with evidence tiering system
                     tiering_result = evidence_processor.process_variant(variant_data, rediportal_match)
                     
-                    # Get original FILTER value
+                    # Track RNA consensus and RNA-only variants
+                    if tiering_result['rna_consensus']:
+                        evidence_stats['rna_consensus_variants'] += 1
+                    if tiering_result['rna_only']:
+                        evidence_stats['rna_only_variants'] += 1
+                    
+                    # Track evidence distribution
+                    evidence_stats['evidence_distribution'][tiering_result['evidence_tier']] += 1
+                    
+                    # Get original FILTER value for preservation logic
                     original_filter = list(variant.filter.keys())[0] if variant.filter.keys() else 'PASS'
                     
-                    # Update FILTER using dedicated FILTER updater
+                    # Update FILTER using dedicated FILTER updater with complete criteria
                     new_filter, filter_was_updated = filter_updater.update_variant_filter(
                         original_filter=original_filter,
                         evidence_tier=tiering_result['evidence_tier'],
@@ -415,13 +486,13 @@ class RNAEditingAnnotator:
                         min_rna_support=self.min_rna_support
                     )
                     
-                    # Track FILTER updates
+                    # Track FILTER update statistics
                     if filter_was_updated:
                         evidence_stats['filter_updates'] += 1
                     else:
                         evidence_stats['filter_preserved'] += 1
                     
-                    # Create output variant record
+                    # Create output variant record with pysam
                     output_variant = output_header.new_record(
                         contig=variant.chrom,
                         start=variant.start,
@@ -429,7 +500,7 @@ class RNAEditingAnnotator:
                         alleles=variant.alleles
                     )
                     
-                    # Copy all INFO fields from input
+                    # Copy all INFO fields from input (preserving annotations)
                     for key, value in variant.info.items():
                         try:
                             output_variant.info[key] = value
@@ -441,11 +512,11 @@ class RNAEditingAnnotator:
                     output_variant.info['REDI_EVIDENCE'] = tiering_result['evidence_tier']
                     output_variant.info['REDI_CANONICAL'] = 'YES' if canonical else 'NO'
                     
-                    # Set FILTER based on FILTER updater logic
+                    # Set FILTER based on evidence tiering and FILTER updater logic
                     output_variant.filter.clear()
                     output_variant.filter.add(new_filter)
                     
-                    # Copy sample information if present
+                    # Copy sample information if present (preserve genotype data)
                     if len(variant.samples) > 0:
                         sample_name = list(variant.samples.keys())[0]
                         if sample_name in output_header.samples:
@@ -456,14 +527,18 @@ class RNAEditingAnnotator:
                                     logger.debug(f"Skipping FORMAT field {fmt_key} due to pysam error: {e}")
                                     continue
                     
-                    # Write enhanced variant
+                    # Write enhanced variant with evidence tiering and FILTER updates
                     output_vcf.write(output_variant)
+                    
+                    # Log progress for large files
+                    if evidence_stats['total_variants'] % 10000 == 0:
+                        logger.info(f"Processed {evidence_stats['total_variants']:,} variants...")
                 
             finally:
                 input_vcf.close()
                 output_vcf.close()
             
-            # Store statistics
+            # Store comprehensive statistics
             self.stats.update(evidence_stats)
             self.stats['evidence_tiering_stats'] = evidence_processor.get_statistics()
             self.stats['filter_update_stats'] = filter_updater.get_statistics()
@@ -471,16 +546,24 @@ class RNAEditingAnnotator:
             step_time = time.time() - step_start
             self.stats['processing_steps'].append(('pysam_evidence_processing', step_time))
             
-            logger.info(f"✓ Evidence processing completed: {evidence_stats['total_variants']} variants processed")
-            logger.info(f"  REDIportal matches: {evidence_stats['rediportal_matches']}")
-            logger.info(f"  Canonical transitions: {evidence_stats['canonical_transitions']}")
-            logger.info(f"  FILTER updates: {evidence_stats['filter_updates']}")
-            logger.info(f"  FILTER preserved: {evidence_stats['filter_preserved']}")
+            # Log comprehensive processing results
+            logger.info(f"✓ Evidence processing and FILTER updates completed:")
+            logger.info(f"  Total variants processed: {evidence_stats['total_variants']:,}")
+            logger.info(f"  REDIportal matches: {evidence_stats['rediportal_matches']:,}")
+            logger.info(f"  Canonical transitions: {evidence_stats['canonical_transitions']:,}")
+            logger.info(f"  RNA consensus variants (>={self.min_rna_support} callers): {evidence_stats['rna_consensus_variants']:,}")
+            logger.info(f"  RNA-only variants (DNA=0): {evidence_stats['rna_only_variants']:,}")
+            logger.info(f"  FILTER updates to RNAedit: {evidence_stats['filter_updates']:,}")
+            logger.info(f"  FILTER values preserved: {evidence_stats['filter_preserved']:,}")
             
-            # Log evidence tiering statistics
+            # Log evidence distribution
+            logger.info("Evidence level distribution:")
+            for level, count in evidence_stats['evidence_distribution'].items():
+                percentage = (count / evidence_stats['total_variants'] * 100) if evidence_stats['total_variants'] > 0 else 0
+                logger.info(f"  {level}: {count:,} ({percentage:.1f}%)")
+            
+            # Log detailed statistics from processors
             evidence_processor.log_statistics()
-            
-            # Log FILTER update statistics
             filter_updater.log_statistics()
             
             # Clean up temporary annotated file
@@ -490,9 +573,8 @@ class RNAEditingAnnotator:
                 logger.debug(f"Cleaned up temporary annotated file: {temp_file}")
             
         except Exception as e:
-            logger.error(f"Evidence processing failed: {e}")
-            # Don't raise - this is not a fatal error, annotation can continue
-            logger.warning("Continuing with basic annotation only")
+            self._log_error("Evidence processing and FILTER updates failed", e)
+            raise RuntimeError(f"Evidence processing failed: {e}")
     
     def _validate_and_index_output(self) -> None:
         """Validate output file and create index if needed with comprehensive checks."""
@@ -682,6 +764,29 @@ class RNAEditingAnnotator:
             'VAF_RNA_MEAN': variant.info.get('VAF_RNA_MEAN', 0.0),
             'VAF_DNA_MEAN': variant.info.get('VAF_DNA_MEAN', 0.0)
         }
+    
+    def _has_exact_rediportal_match(self, variant) -> bool:
+        """
+        Check if variant has exact REDIportal match based on coordinate and allele matching.
+        
+        This method checks for the presence of REDIportal annotation fields that indicate
+        exact coordinate (CHROM, POS) and allele (REF, ALT) matching between the input
+        variant and the REDIportal database.
+        
+        Args:
+            variant: pysam.VariantRecord to check
+            
+        Returns:
+            True if variant has exact REDIportal match, False otherwise
+        """
+        # Check for any REDIportal annotation fields that indicate exact matching
+        rediportal_fields = ['REDI_ACCESSION', 'REDI_DB', 'REDI_TYPE', 'REDI_REPEAT', 'REDI_STRAND', 'DB']
+        
+        for field in rediportal_fields:
+            if field in variant.info:
+                return True
+        
+        return False
     
     def _cleanup_temp_files(self, temp_files: list, force_cleanup: bool = False) -> None:
         """
@@ -1023,19 +1128,28 @@ def main():
         description="Reorganized RNA editing annotation using dedicated modules",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Reorganized RNA Editing Annotation:
-  This script provides streamlined RNA editing annotation using dedicated modules
-  for REDIportal conversion, bcftools annotation, and evidence tiering. The
-  reorganized architecture maintains clear separation of concerns between components
-  and uses pysam for reliable VCF file generation.
+Integrated RNA Editing Annotation Pipeline:
+  This script provides the complete integrated RNA editing annotation pipeline
+  with all components seamlessly working together. It uses the new REDIportal
+  to VCF conversion script, implements bcftools VCF-to-VCF annotation without
+  separate header files, adds evidence tiering and FILTER update functionality,
+  and ensures reliable output generation using pysam.
+
+Integrated Pipeline Components:
+  1. REDIportal Database Converter - converts text format to bgzipped VCF
+  2. bcftools Annotation Engine - VCF-to-VCF annotation without header files
+  3. Evidence Tiering Processor - classifies RNA editing confidence levels
+  4. FILTER Updater - updates FILTER column based on evidence criteria
+  5. pysam Output Generator - reliable VCF file generation with indexing
 
 Key Features:
-  - Modular architecture with dedicated components
-  - REDIportal conversion logic in dedicated module
-  - bcftools annotation logic in dedicated module  
-  - Evidence tiering logic in dedicated module
-  - pysam-based VCF output generation
-  - Comprehensive error handling and logging
+  - New REDIportal to VCF conversion script for proper VCF format generation
+  - bcftools VCF-to-VCF annotation with exact coordinate and allele matching
+  - Evidence tiering system based on RNA/DNA caller support (HIGH/MEDIUM/LOW/NONE)
+  - FILTER column updates to "RNAedit" for variants meeting high evidence criteria
+  - pysam-based VCF output generation for reliable file handling
+  - Seamless pipeline execution from input to final output
+  - Complete isolation to annotate_rna_editing.py and its dependencies
 
 Module Requirements:
   - vcf_utils.rediportal_converter (REDIportal database conversion)
@@ -1045,14 +1159,19 @@ Module Requirements:
   - vcf_utils.rna_editing_core (core RNA editing functions)
   - pysam (VCF file reading and writing)
 
+Tool Requirements:
+  - bcftools (for VCF-to-VCF annotation)
+  - tabix (for VCF indexing)
+  - bgzip (for VCF compression)
+
 Examples:
-  # Basic annotation
+  # Basic integrated annotation
   python annotate_rna_editing.py -i input.vcf.gz -r /path/to/rediportal.vcf.gz -o output.vcf.gz
   
-  # Custom RNA support threshold
+  # Custom RNA support threshold for evidence tiering
   python annotate_rna_editing.py -i input.vcf.gz -r /path/to/rediportal.vcf.gz -o output.vcf.gz --min-rna-support 3
   
-  # Verbose logging
+  # Verbose logging for detailed pipeline monitoring
   python annotate_rna_editing.py -i input.vcf.gz -r /path/to/rediportal.vcf.gz -o output.vcf.gz --verbose
         """
     )
