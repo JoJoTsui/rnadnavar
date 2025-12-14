@@ -283,7 +283,7 @@ def _prepare_converted_format(file_path: Path, output_prefix: Optional[str] = No
         else:
             logger.info("Creating index for compressed annotation file...")
             try:
-                subprocess.run(['tabix', '-s1', '-b2', '-e2', str(file_path)], check=True)
+                subprocess.run(['tabix', '-f', '-p', 'vcf', str(file_path)], check=True)
                 logger.info(f"✓ Index created for converted file: {file_path}")
                 return str(file_path)
             except subprocess.CalledProcessError as e:
@@ -299,7 +299,7 @@ def _prepare_converted_format(file_path: Path, output_prefix: Optional[str] = No
                 subprocess.run(['bgzip', '-c', str(file_path)], stdout=f, check=True)
             
             # Index with tabix
-            subprocess.run(['tabix', '-s1', '-b2', '-e2', str(compressed_file)], check=True)
+            subprocess.run(['tabix', '-f', '-p', 'vcf', str(compressed_file)], check=True)
             
             logger.info(f"✓ Converted annotation file prepared: {compressed_file}")
             return str(compressed_file)
@@ -330,7 +330,7 @@ def _prepare_vcf_format(file_path: Path, output_prefix: Optional[str] = None) ->
         else:
             logger.info("Creating index for compressed VCF...")
             try:
-                subprocess.run(['tabix', '-p', 'vcf', str(file_path)], check=True)
+                subprocess.run(['tabix', '-f', '-p', 'vcf', str(file_path)], check=True)
                 return str(file_path)
             except subprocess.CalledProcessError as e:
                 raise RuntimeError(f"Failed to index VCF: {e}")
@@ -348,7 +348,7 @@ def _prepare_vcf_format(file_path: Path, output_prefix: Optional[str] = None) ->
                 subprocess.run(['bgzip', '-c', str(file_path)], stdout=f, check=True)
             
             # Index with tabix
-            subprocess.run(['tabix', '-p', 'vcf', str(compressed_file)], check=True)
+            subprocess.run(['tabix', '-f', '-p', 'vcf', str(compressed_file)], check=True)
             
             logger.info(f"✓ VCF prepared: {compressed_file}")
             return str(compressed_file)
@@ -390,11 +390,16 @@ def _prepare_text_format(file_path: Path, output_prefix: Optional[str] = None) -
         logger.debug("Performance monitoring not available")
     
     if output_prefix:
-        output_file = Path(f"{output_prefix}_annotations.txt")
+        # If output_prefix ends with .vcf.gz, use it directly
+        if output_prefix.endswith('.vcf.gz'):
+            compressed_output = Path(output_prefix)
+            output_file = Path(output_prefix[:-3])  # Remove .gz
+        else:
+            output_file = Path(f"{output_prefix}_annotations.txt")
+            compressed_output = Path(str(output_file) + '.gz')
     else:
         output_file = file_path.parent / f"{file_path.stem}_annotations.txt"
-    
-    compressed_output = Path(str(output_file) + '.gz')
+        compressed_output = Path(str(output_file) + '.gz')
     
     # Safety check - don't overwrite existing files without explicit confirmation
     if compressed_output.exists():
@@ -438,6 +443,43 @@ def _prepare_text_format(file_path: Path, output_prefix: Optional[str] = None) -
                     input_file = open(file_path, 'r', encoding='latin-1', buffering=buffer_size)
             
             try:
+                # Write VCF header with contig definitions
+                vcf_header = """##fileformat=VCFv4.2
+##contig=<ID=chr1>
+##contig=<ID=chr2>
+##contig=<ID=chr3>
+##contig=<ID=chr4>
+##contig=<ID=chr5>
+##contig=<ID=chr6>
+##contig=<ID=chr7>
+##contig=<ID=chr8>
+##contig=<ID=chr9>
+##contig=<ID=chr10>
+##contig=<ID=chr11>
+##contig=<ID=chr12>
+##contig=<ID=chr13>
+##contig=<ID=chr14>
+##contig=<ID=chr15>
+##contig=<ID=chr16>
+##contig=<ID=chr17>
+##contig=<ID=chr18>
+##contig=<ID=chr19>
+##contig=<ID=chr20>
+##contig=<ID=chr21>
+##contig=<ID=chr22>
+##contig=<ID=chrX>
+##contig=<ID=chrY>
+##contig=<ID=chrM>
+##INFO=<ID=REDI_ACCESSION,Number=1,Type=String,Description="REDIportal accession identifier">
+##INFO=<ID=REDI_DB,Number=1,Type=String,Description="REDIportal database source">
+##INFO=<ID=REDI_TYPE,Number=1,Type=String,Description="REDIportal editing type classification">
+##INFO=<ID=REDI_REPEAT,Number=1,Type=String,Description="REDIportal repeat element annotation">
+##INFO=<ID=REDI_FUNC,Number=1,Type=String,Description="REDIportal functional annotation">
+##INFO=<ID=REDI_STRAND,Number=1,Type=String,Description="REDIportal strand information">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+"""
+                temp_file.write(vcf_header)
+                
                 for line_num, line in enumerate(input_file, 1):
                     conversion_logger.stats['total_lines_read'] += 1
                     line = line.strip()
@@ -535,9 +577,20 @@ def _prepare_text_format(file_path: Path, output_prefix: Optional[str] = None) -
                         func = func.strip() if func.strip() else '.'
                         
                         # Create bcftools annotation format line
-                        # Format: CHROM POS REF ALT REDI_ACCESSION REDI_DB REDI_TYPE REDI_REPEAT REDI_FUNC REDI_STRAND
-                        annotation_line = f"{chrom}\t{pos}\t{ref}\t{ed}\t{mapped_accession}\t{mapped_db}\t{mapped_type}\t{mapped_repeat}\t{func}\t{mapped_strand}\n"
-                        temp_file.write(annotation_line)
+                        # Create VCF record with INFO fields
+                        info_fields = [
+                            f"REDI_ACCESSION={mapped_accession}",
+                            f"REDI_DB={mapped_db}",
+                            f"REDI_TYPE={mapped_type}",
+                            f"REDI_REPEAT={mapped_repeat}",
+                            f"REDI_FUNC={func}",
+                            f"REDI_STRAND={mapped_strand}"
+                        ]
+                        info_string = ";".join(info_fields)
+                        
+                        # Format as VCF record: CHROM POS ID REF ALT QUAL FILTER INFO
+                        vcf_line = f"{chrom}\t{pos}\t.\t{ref}\t{ed}\t.\tPASS\t{info_string}\n"
+                        temp_file.write(vcf_line)
                         conversion_logger.stats['entries_processed'] += 1
                         
                         # Log progress at regular intervals with performance monitoring
@@ -571,6 +624,30 @@ def _prepare_text_format(file_path: Path, output_prefix: Optional[str] = None) -
         
         # Log conversion completion statistics
         conversion_logger.log_conversion_statistics()
+        
+        # Sort VCF file before compression (required for tabix indexing)
+        logger.info("Sorting VCF file for tabix compatibility...")
+        sorting_start = time.time()
+        
+        try:
+            # Create sorted temporary file
+            sorted_temp_path = temp_path.parent / f"{temp_path.stem}_sorted{temp_path.suffix}"
+            
+            # Use bcftools sort for proper VCF sorting
+            sort_cmd = ['bcftools', 'sort', '-o', str(sorted_temp_path), str(temp_path)]
+            subprocess.run(sort_cmd, check=True, capture_output=True, text=True)
+            
+            # Replace original temp file with sorted version
+            temp_path.unlink()
+            sorted_temp_path.rename(temp_path)
+            
+            sorting_time = time.time() - sorting_start
+            logger.info(f"✓ VCF sorting completed ({sorting_time:.2f}s)")
+            
+        except subprocess.CalledProcessError as e:
+            logger.error(f"VCF sorting failed: {e}")
+            logger.error(f"bcftools stderr: {e.stderr}")
+            raise RuntimeError(f"VCF sorting failed: {e}")
         
         # Compress with bgzip using optimized settings for large files
         logger.info("Compressing annotation file with performance optimization...")
@@ -615,7 +692,7 @@ def _prepare_text_format(file_path: Path, output_prefix: Optional[str] = None) -
         indexing_start = time.time()
         try:
             subprocess.run(
-                ['tabix', '-s1', '-b2', '-e2', str(compressed_output)], 
+                ['tabix', '-f', '-p', 'vcf', str(compressed_output)], 
                 capture_output=True,
                 text=True,
                 check=True,
