@@ -373,21 +373,34 @@ class RNAEditingAnnotator:
     
     def _process_variants_with_pysam_and_evidence_tiering(self, annotated_vcf: str) -> None:
         """
-        Process variants using pysam and dedicated evidence tiering and FILTER update modules.
+        Process variants using pysam and dedicated evidence tiering and FILTER update modules with performance optimization.
         
-        This method implements the complete evidence tiering system that:
+        This method implements the complete evidence tiering system with performance optimizations for large VCF files:
         1. Extracts N_RNA_CALLERS_SUPPORT and N_DNA_CALLERS_SUPPORT from variant INFO fields
         2. Implements RNA consensus detection (N_RNA_CALLERS_SUPPORT >= min_rna_support)
         3. Implements RNA-only variant detection (N_DNA_CALLERS_SUPPORT = 0)
         4. Creates evidence tier assignment logic (HIGH/MEDIUM/LOW/NONE)
         5. Updates FILTER to "RNAedit" for variants meeting high evidence criteria
         6. Preserves original FILTER values for variants not meeting criteria
+        7. Uses memory-efficient processing for large datasets
+        8. Provides performance monitoring and optimization
         
         Args:
             annotated_vcf: Path to bcftools-annotated VCF file
         """
         step_start = time.time()
-        logger.info("Processing variants with pysam, evidence tiering, and FILTER updates...")
+        logger.info("Processing variants with pysam, evidence tiering, FILTER updates, and performance optimization...")
+        
+        # Initialize performance monitoring for large VCF processing
+        try:
+            from vcf_utils.performance_optimizer import MemoryMonitor, StreamingProcessor
+            memory_monitor = MemoryMonitor(max_memory_mb=6000)  # 6GB limit for variant processing
+            use_performance_monitoring = True
+            logger.info("Performance monitoring enabled for variant processing")
+        except ImportError:
+            memory_monitor = None
+            use_performance_monitoring = False
+            logger.debug("Performance monitoring not available")
         
         try:
             # Check if pysam is available
@@ -445,7 +458,12 @@ class RNAEditingAnnotator:
             }
             
             try:
-                logger.info("Processing variants for evidence tiering and FILTER updates...")
+                logger.info("Processing variants for evidence tiering and FILTER updates with performance optimization...")
+                
+                # Monitor memory at processing start
+                if memory_monitor:
+                    memory_monitor.check_memory("variant processing start")
+                
                 for variant in input_vcf:
                     evidence_stats['total_variants'] += 1
                     
@@ -530,13 +548,29 @@ class RNAEditingAnnotator:
                     # Write enhanced variant with evidence tiering and FILTER updates
                     output_vcf.write(output_variant)
                     
-                    # Log progress for large files
+                    # Performance monitoring and optimization for large files
                     if evidence_stats['total_variants'] % 10000 == 0:
-                        logger.info(f"Processed {evidence_stats['total_variants']:,} variants...")
+                        elapsed_time = time.time() - step_start
+                        rate = evidence_stats['total_variants'] / elapsed_time if elapsed_time > 0 else 0
+                        logger.info(f"Processed {evidence_stats['total_variants']:,} variants ({rate:.0f} variants/sec)...")
+                        
+                        # Memory monitoring and optimization
+                        if memory_monitor:
+                            memory_stats = memory_monitor.check_memory(f"processed {evidence_stats['total_variants']:,} variants")
+                            
+                            # Force garbage collection every 50K variants for memory management
+                            if evidence_stats['total_variants'] % 50000 == 0:
+                                freed_mb = memory_monitor.force_garbage_collection("periodic cleanup during variant processing")
+                                if freed_mb > 5:  # Log if significant memory was freed
+                                    logger.info(f"Freed {freed_mb:.1f} MB during variant processing")
                 
             finally:
                 input_vcf.close()
                 output_vcf.close()
+                
+                # Final memory check
+                if memory_monitor:
+                    memory_monitor.check_memory("variant processing end")
             
             # Store comprehensive statistics
             self.stats.update(evidence_stats)
