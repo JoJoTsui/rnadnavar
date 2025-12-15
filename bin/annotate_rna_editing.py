@@ -50,6 +50,11 @@ try:
     from vcf_utils.evidence_tiering import create_evidence_tiering_processor
     from vcf_utils.filter_updater import create_filter_updater
     from vcf_utils.rna_editing_core import is_canonical_editing_transition
+    from vcf_utils.error_handler import (
+        ErrorHandler, ResourceMonitor, timeout_handler, 
+        create_graceful_fallback, validate_tool_availability, 
+        check_file_accessibility
+    )
     MODULES_AVAILABLE = True
 except ImportError as e:
     logging.warning(f"Some RNA editing modules not available: {e}")
@@ -99,6 +104,10 @@ class RNAEditingAnnotator:
         self.output_vcf = Path(output_vcf)
         self.min_rna_support = min_rna_support
         
+        # Initialize comprehensive error handling and resource monitoring
+        self.error_handler = ErrorHandler(temp_dir=self.output_vcf.parent)
+        self.resource_monitor = ResourceMonitor(max_memory_mb=8000, max_disk_gb=50)
+        
         # Statistics and timing
         self.stats = {
             'start_time': time.time(),
@@ -112,7 +121,7 @@ class RNAEditingAnnotator:
         # Set up file logging
         self.log_file = setup_file_logging(self.output_vcf)
         
-        logger.info("=== RNA Editing Annotation Pipeline Started (Reorganized) ===")
+        logger.info("=== RNA Editing Annotation Pipeline Started (Enhanced) ===")
         logger.info(f"Input VCF: {self.input_vcf}")
         logger.info(f"REDIportal VCF: {self.rediportal_vcf}")
         logger.info(f"Output VCF: {self.output_vcf}")
@@ -123,45 +132,69 @@ class RNAEditingAnnotator:
             logger.error("Required RNA editing modules are not available")
             raise RuntimeError("RNA editing modules not available - cannot proceed")
         
-        # Validate inputs
+        # Validate tool availability
+        required_tools = ['python', 'bcftools', 'tabix', 'bgzip']
+        available_tools, missing_tools = validate_tool_availability(required_tools)
+        
+        if missing_tools:
+            logger.error(f"Missing required tools: {missing_tools}")
+            logger.error("Please ensure all required tools are installed and available in PATH")
+            raise RuntimeError(f"Required tools not available: {missing_tools}")
+        else:
+            logger.info(f"All required tools are available: {available_tools}")
+        
+        # Validate inputs with comprehensive error handling
         try:
             self.validate_inputs()
         except Exception as e:
-            self._log_error("Initialization failed", e)
-            raise
+            # Use error handler for graceful error management
+            fallback_action = lambda: create_graceful_fallback(
+                self.input_vcf, self.output_vcf, "initialization failure"
+            )
+            
+            if not self.error_handler.handle_error(e, "initialization", fallback_action):
+                self._log_error("Initialization failed", e)
+                raise
     
     def validate_inputs(self) -> None:
-        """Validate input files exist and are accessible with detailed diagnostics."""
+        """Validate input files exist and are accessible with comprehensive error handling."""
         step_start = time.time()
-        logger.info("Validating input files...")
+        logger.info("Validating input files with comprehensive checks...")
+        
+        # Monitor resources at validation start
+        resource_stats = self.resource_monitor.check_resources("input validation start")
+        logger.debug(f"Resource stats at validation start: {resource_stats}")
         
         try:
-            # Check input VCF existence and accessibility
-            if not self.input_vcf.exists():
-                error_msg = f"Input VCF not found: {self.input_vcf}"
-                logger.error(error_msg)
-                logger.error(f"Current working directory: {os.getcwd()}")
-                logger.error(f"Absolute path attempted: {self.input_vcf.absolute()}")
-                raise FileNotFoundError(error_msg)
+            # Use comprehensive file accessibility checker
+            files_to_check = [self.input_vcf, self.rediportal_vcf]
+            file_status = check_file_accessibility(files_to_check)
             
-            if not self.rediportal_vcf.exists():
-                error_msg = f"REDIportal VCF not found: {self.rediportal_vcf}"
-                logger.error(error_msg)
-                logger.error(f"Absolute path attempted: {self.rediportal_vcf.absolute()}")
-                raise FileNotFoundError(error_msg)
+            # Check each file status
+            for file_path, status in file_status.items():
+                if status != "OK":
+                    if "does not exist" in status:
+                        error_msg = f"File not found: {file_path}"
+                        logger.error(error_msg)
+                        logger.error(f"Current working directory: {os.getcwd()}")
+                        logger.error(f"Absolute path: {Path(file_path).absolute()}")
+                        raise FileNotFoundError(error_msg)
+                    elif "not readable" in status:
+                        error_msg = f"Cannot read file: {file_path}"
+                        logger.error(error_msg)
+                        raise PermissionError(error_msg)
+                    elif "empty" in status:
+                        error_msg = f"File is empty: {file_path}"
+                        logger.error(error_msg)
+                        raise ValueError(error_msg)
+                    else:
+                        error_msg = f"File validation failed for {file_path}: {status}"
+                        logger.error(error_msg)
+                        raise RuntimeError(error_msg)
+                else:
+                    logger.debug(f"✓ File validated: {file_path}")
             
-            # Check file permissions with detailed diagnostics
-            if not os.access(self.input_vcf, os.R_OK):
-                error_msg = f"Cannot read input VCF: {self.input_vcf}"
-                logger.error(error_msg)
-                raise PermissionError(error_msg)
-                
-            if not os.access(self.rediportal_vcf, os.R_OK):
-                error_msg = f"Cannot read REDIportal VCF: {self.rediportal_vcf}"
-                logger.error(error_msg)
-                raise PermissionError(error_msg)
-            
-            # Check output directory accessibility
+            # Check output directory accessibility with enhanced error handling
             output_dir = self.output_vcf.parent
             if not output_dir.exists():
                 logger.info(f"Creating output directory: {output_dir}")
@@ -178,11 +211,27 @@ class RNAEditingAnnotator:
                 logger.error(error_msg)
                 raise PermissionError(error_msg)
             
-            # Log file sizes for diagnostics
+            # Log file sizes and resource implications
             input_size = self.input_vcf.stat().st_size
             rediportal_size = self.rediportal_vcf.stat().st_size
+            total_input_size = input_size + rediportal_size
+            
             logger.info(f"Input VCF size: {input_size:,} bytes ({input_size/1024/1024:.1f} MB)")
             logger.info(f"REDIportal VCF size: {rediportal_size:,} bytes ({rediportal_size/1024/1024:.1f} MB)")
+            logger.info(f"Total input size: {total_input_size:,} bytes ({total_input_size/1024/1024:.1f} MB)")
+            
+            # Estimate resource requirements based on file sizes
+            estimated_memory_mb = max(500, (total_input_size / 1024 / 1024) * 2)  # 2x input size
+            estimated_disk_gb = max(2, (total_input_size / 1024 / 1024 / 1024) * 3)  # 3x input size
+            
+            logger.info(f"Estimated memory requirement: {estimated_memory_mb:.0f} MB")
+            logger.info(f"Estimated disk requirement: {estimated_disk_gb:.1f} GB")
+            
+            # Check if we have sufficient resources
+            if resource_stats['disk_free_gb'] < estimated_disk_gb:
+                warning_msg = f"Low disk space: {resource_stats['disk_free_gb']:.1f} GB available, {estimated_disk_gb:.1f} GB estimated needed"
+                logger.warning(warning_msg)
+                self.stats['warnings'].append(warning_msg)
             
             step_time = time.time() - step_start
             self.stats['processing_steps'].append(('validate_inputs', step_time))
