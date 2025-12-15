@@ -5,10 +5,9 @@ channels:
   - defaults
 dependencies:
   - python=3.9
-  - pysam=0.22.0
+  - pysam=0.22.1
   - bcftools=1.21
-  - tabix=1.21
-  - bgzip=1.21
+  - htslib=1.21
   - psutil=5.9.0
   - pip
   - pip:
