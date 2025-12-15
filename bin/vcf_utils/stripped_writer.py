@@ -51,6 +51,28 @@ def write_vcf_stripped(records, input_vcf_path, output_path, use_cyvcf2=False):
         if filter_line not in header_lines:
             header_lines.append(filter_line)
     
+    # Add RNA editing INFO fields if not present
+    rna_editing_info_fields = {
+        'REDI_ACCESSION': ('1', 'String', 'REDIportal accession identifier'),
+        'REDI_DB': ('1', 'String', 'REDIportal database source'),
+        'REDI_TYPE': ('1', 'String', 'REDIportal editing type classification'),
+        'REDI_REPEAT': ('1', 'String', 'REDIportal repeat element annotation'),
+        'REDI_FUNC': ('1', 'String', 'REDIportal functional annotation'),
+        'REDI_STRAND': ('1', 'String', 'REDIportal strand information'),
+        'REDI_EVIDENCE': ('1', 'String', 'RNA editing evidence level (HIGH, MEDIUM, LOW, NONE)'),
+        'REDI_CANONICAL': ('1', 'String', 'Canonical A>G or T>C transition (YES/NO)')
+    }
+    
+    for field, (number, type_str, description) in rna_editing_info_fields.items():
+        info_line = f'##INFO=<ID={field},Number={number},Type={type_str},Description="{description}">'
+        if info_line not in header_lines:
+            header_lines.append(info_line)
+    
+    # Add RNAedit filter to header if not present
+    rnaedit_filter_line = '##FILTER=<ID=RNAedit,Description="RNA editing variant based on evidence classification">'
+    if rnaedit_filter_line not in header_lines:
+        header_lines.append(rnaedit_filter_line)
+    
     # Add RaVeX filter INFO fields
     if '##INFO=<ID=RaVeX_FILTER' not in '\n'.join(header_lines):
         header_lines.append('##INFO=<ID=RaVeX_FILTER,Number=.,Type=String,Description="RaVeX filter reasons: semicolon-separated list of filter flags">')

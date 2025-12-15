@@ -3,13 +3,15 @@
 Rescue VCF Filtering Script
 
 Applies RaVeX filtering logic to rescue VCF files while preserving the original
-FILTER field (Somatic, Germline, Reference, Artifact) from the rescue/consensus stage.
+FILTER field (Somatic, Germline, Reference, Artifact) from the rescue/consensus stage
+and RNA editing annotations (REDI_* INFO fields and RNAedit FILTER values).
 
 This script:
 1. PRESERVES original FILTER field values (never overwrites them)
-2. Adds RaVeX filter flags to INFO field
-3. Generates dual outputs: standard + stripped (multiallelic-filtered, FORMAT-stripped)
-4. Compatible with both rescue and consensus VCFs
+2. PRESERVES RNA editing annotations (REDI_* INFO fields and RNAedit FILTER)
+3. Adds RaVeX filter flags to INFO field
+4. Generates dual outputs: standard + stripped (multiallelic-filtered, FORMAT-stripped)
+5. Compatible with both rescue and consensus VCFs, with or without RNA editing annotations
 """
 
 import argparse
@@ -34,7 +36,7 @@ from vcf_utils.stripped_writer import write_vcf_stripped
 def argparser():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
-        description='Filter rescue/consensus VCF with RaVeX filtering logic',
+        description='Filter rescue/consensus VCF with RaVeX filtering logic while preserving RNA editing annotations',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     
@@ -42,7 +44,7 @@ def argparser():
         '-i', '--input',
         type=str,
         required=True,
-        help='Input VCF file (rescue or consensus)'
+        help='Input VCF file (rescue or consensus, with or without RNA editing annotations)'
     )
     parser.add_argument(
         '-o', '--output',
@@ -129,148 +131,49 @@ def load_blacklist(blacklist_path):
     return blacklist_regions
 
 
-
-    # Open input VCF
-    input_vcf = pysam.VariantFile(input_vcf_path)
+def add_rna_editing_header_fields(header):
+    """
+    Add RNA editing INFO and FILTER field definitions to VCF header if not present.
     
-    # Build header WITHOUT samples
-    header_lines = []
+    Args:
+        header: pysam.VariantHeader object
     
-    # Copy all header lines except sample-related
-    for line in str(input_vcf.header).strip().split('\n'):
-        # Skip the #CHROM header line - we'll write our own
-        if line.startswith('#CHROM'):
-            continue
-        header_lines.append(line)
-    
-    # Add biological classification FILTER definitions
-    classification_filters = {
-        'Somatic': 'Somatic variant',
-        'Germline': 'Germline variant',
-        'Reference': 'Reference/wildtype',
-        'Artifact': 'Artifact/technical error'
+    Returns:
+        pysam.VariantHeader: Updated header
+    """
+    # Add RNA editing INFO fields if not present
+    rna_editing_info_fields = {
+        'REDI_ACCESSION': ('1', 'String', 'REDIportal accession identifier'),
+        'REDI_DB': ('1', 'String', 'REDIportal database source'),
+        'REDI_TYPE': ('1', 'String', 'REDIportal editing type classification'),
+        'REDI_REPEAT': ('1', 'String', 'REDIportal repeat element annotation'),
+        'REDI_FUNC': ('1', 'String', 'REDIportal functional annotation'),
+        'REDI_STRAND': ('1', 'String', 'REDIportal strand information'),
+        'REDI_EVIDENCE': ('1', 'String', 'RNA editing evidence level (HIGH, MEDIUM, LOW, NONE)'),
+        'REDI_CANONICAL': ('1', 'String', 'Canonical A>G or T>C transition (YES/NO)')
     }
     
-    for filt, description in classification_filters.items():
-        filter_line = f'##FILTER=<ID={filt},Description="{description}">'
-        if filter_line not in header_lines:
-            header_lines.append(filter_line)
+    for field, (number, type_str, description) in rna_editing_info_fields.items():
+        if field not in header.info:
+            header.info.add(field, number, type_str, description)
     
-    # Add RaVeX filter INFO fields
-    if '##INFO=<ID=RaVeX_FILTER' not in '\n'.join(header_lines):
-        header_lines.append('##INFO=<ID=RaVeX_FILTER,Number=.,Type=String,Description="RaVeX filter reasons: semicolon-separated list of filter flags">')
+    # Add RNAedit filter to header if not present
+    if 'RNAedit' not in header.filters:
+        header.filters.add('RNAedit', None, None, 
+                          'RNA editing variant based on evidence classification')
     
-    filter_flags = {
-        'min_alt_reads': 'Variant filtered due to insufficient alternate reads',
-        'gnomad': 'Variant filtered due to high gnomAD allele frequency',
-        'blacklist': 'Variant in blacklisted region',
-        'noncoding': 'Variant in noncoding region',
-        'ig_pseudo': 'Variant in immunoglobulin or pseudogene',
-        'homopolymer': 'Variant in homopolymer region',
-        'vc_filter': 'Variant failed variant caller filters',
-        'not_consensus': 'Variant not in consensus',
-        'multiallelic': 'Multiallelic site with multiple ALT alleles'
-    }
-    
-    for flag, description in filter_flags.items():
-        info_line = f'##INFO=<ID={flag},Number=0,Type=Flag,Description="{description}">'
-        if info_line not in header_lines:
-            header_lines.append(info_line)
-    
-    # Add column header WITHOUT FORMAT/sample columns
-    header_lines.append('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO')
-    
-    # Process variants and collect output lines
-    processed_count = 0
-    filtered_count = 0
-    multiallelic_count = 0
-    variant_lines = []
-    
-    for record in input_vcf:
-        # Check whitelist first
-        chrom = normalize_chromosome(record.chrom)
-        vkey = f"{chrom}:{record.pos}:{record.ref}:{record.alts[0] if record.alts else ''}"
-        
-        if whitelist_vars and vkey in whitelist_vars:
-            filters = []
-        else:
-            filters = apply_ravex_filters(
-                record, args, genome=genome,
-                blacklist_regions=blacklist_regions,
-                use_cyvcf2=False
-            )
-        
-        # Skip multiallelic if requested
-        if filter_multiallelic and is_multiallelic(record.ref, record.alts):
-            multiallelic_count += 1
-            continue
-        
-        # Build VCF line
-        chrom_str = record.contig
-        pos_str = str(record.pos)
-        id_str = record.id if record.id else '.'
-        ref_str = record.ref
-        alt_str = ','.join(record.alts) if record.alts else '.'
-        qual_str = str(record.qual) if record.qual is not None else '.'
-        
-        # Preserve original FILTER field
-        if record.filter and len(record.filter) > 0:
-            filter_str = ';'.join(record.filter.keys())
-        else:
-            filter_str = 'PASS'
-        
-        # Build INFO field
-        info_parts = []
-        
-        # Copy existing INFO fields
-        for key in record.info:
-            try:
-                value = record.info[key]
-                if value is True:
-                    info_parts.append(key)
-                elif value is not None and value != '':
-                    # Escape special characters
-                    value_str = str(value).replace(';', '%3B').replace('=', '%3D')
-                    info_parts.append(f"{key}={value_str}")
-            except Exception:
-                pass
-        
-        # Add RaVeX filter INFO
-        if not filters:
-            info_parts.append('RaVeX_FILTER=PASS')
-        else:
-            info_parts.append(f'RaVeX_FILTER={";".join(filters)}')
-            for flag in filters:
-                info_parts.append(flag)
-            filtered_count += 1
-        
-        info_str = ';'.join(info_parts) if info_parts else '.'
-        
-        # Write variant line (8 columns only - no FORMAT/sample)
-        variant_line = f"{chrom_str}\t{pos_str}\t{id_str}\t{ref_str}\t{alt_str}\t{qual_str}\t{filter_str}\t{info_str}"
-        variant_lines.append(variant_line)
-        processed_count += 1
-        
-        if processed_count % 10000 == 0:
-            print(f"  Processed {processed_count:,} variants...")
-    
-    # Write output (gzipped)
-    with gzip.open(output_path, 'wt') as f:
-        f.write('\n'.join(header_lines) + '\n')
-        f.write('\n'.join(variant_lines) + '\n')
-    
-    input_vcf.close()
-    
-    return processed_count, filtered_count, multiallelic_count
+    return header
 
 
 def write_filtered_vcf(input_vcf_path, output_path, args, genome, whitelist_vars, 
                        blacklist_regions, strip_format=False, filter_multiallelic=False):
     """
-    Write filtered VCF with RaVeX filter tags in INFO field.
+    Write filtered VCF with RaVeX filter tags in INFO field while preserving RNA editing annotations.
     
-    CRITICAL: This function PRESERVES the original FILTER field and only adds
-    INFO/RaVeX_FILTER tags to indicate which filters were applied.
+    CRITICAL: This function PRESERVES:
+    - Original FILTER field values (including RNAedit)
+    - All RNA editing INFO fields (REDI_*)
+    - Only adds INFO/RaVeX_FILTER tags to indicate which filters were applied
     
     Args:
         input_vcf_path: Path to input VCF
@@ -334,14 +237,14 @@ def write_filtered_vcf(input_vcf_path, output_path, args, genome, whitelist_vars
     # Add biological classification FILTER definitions
     new_header = add_classification_filters_to_header(new_header)
     
+    # Add RNA editing header fields (if not already present)
+    new_header = add_rna_editing_header_fields(new_header)
+    
     # Add RaVeX filter INFO fields
     new_header = add_filter_info_fields(new_header)
     
     # Create output VCF
     output_vcf = pysam.VariantFile(output_path, 'w', header=new_header)
-    
-    # Get chromosome order for sorting
-    chrom_order = {contig: idx for idx, contig in enumerate(new_header.contigs)}
     
     # Process variants
     processed_count = 0
@@ -374,7 +277,7 @@ def write_filtered_vcf(input_vcf_path, output_path, args, genome, whitelist_vars
             qual=record.qual
         )
         
-        # Copy INFO fields
+        # Copy ALL INFO fields (including RNA editing fields)
         for key in record.info:
             if key not in new_header.info:
                 continue
@@ -398,8 +301,7 @@ def write_filtered_vcf(input_vcf_path, output_path, args, genome, whitelist_vars
                 except Exception:
                     pass
         
-        # CRITICAL: Preserve original FILTER field
-        # Copy all FILTER values from input record
+        # CRITICAL: Preserve ALL original FILTER field values (including RNAedit)
         if hasattr(record, 'filter') and record.filter:
             for filt in record.filter:
                 # Skip PASS - handled automatically
@@ -445,6 +347,7 @@ def main():
     
     print("=" * 80)
     print("Rescue/Consensus VCF Filtering with RaVeX Rules")
+    print("RNA Editing Annotation Preservation Enabled")
     print("=" * 80)
     print(f"\nInput:             {args.input}")
     print(f"Output (standard): {args.output}")
@@ -521,6 +424,7 @@ def main():
     
     print("\n" + "=" * 80)
     print("Filtering completed successfully!")
+    print("RNA editing annotations preserved in output files.")
     print("=" * 80)
     
     return 0
