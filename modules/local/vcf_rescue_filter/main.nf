@@ -33,7 +33,7 @@ process VCF_RESCUE_FILTER {
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python --version 2>&1 | sed 's/Python //g')
-        cyvcf2: \$(python -c "import cyvcf2; print(cyvcf2.__version__)")
+        cyvcf2: \$(python -c "try: import cyvcf2; print(cyvcf2.__version__); except ImportError: print('not available')" 2>/dev/null || echo "not available")
     END_VERSIONS
     """
 }

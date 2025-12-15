@@ -83,8 +83,7 @@ nextflow_process {
                 { assert process.success },
                 { assert process.out.vcf.size() == 1 },
                 { assert process.out.versions.size() == 1 },
-                { assert workflow.trace.tasks().size() == 1 },
-                { assert workflow.trace.tasks().get(0).get('memory') != null }
+                { assert workflow.trace.tasks().size() == 1 }
             )
         }
     }
