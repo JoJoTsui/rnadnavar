@@ -18,6 +18,7 @@ include { VCF_CONSENSUS_WORKFLOW                          } from '../vcf_consens
 include { MAF_FILTERING                                   } from '../maf_filtering/main'
 include { VCF_FILTERING                                   } from '../vcf_filtering/main'
 include { VCF_RESCUE_FILTERING                            } from '../vcf_rescue_filtering/main'
+include { VCF_RESCUE_POST_PROCESSING                     } from '../vcf_rescue_post_processing/main'
 
 
 workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
@@ -47,6 +48,10 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     dna_varcall_mafs                // to repeat rescue consensus
     realignment                     // bool: true/false
     no_intervals
+    rediportal_vcf                  // channel: [optional]  REDIportal database VCF
+    rediportal_tbi                  // channel: [optional]  REDIportal database index
+    min_rna_support                 // val: minimum RNA caller support threshold
+    enable_rna_annotation           // val: boolean to enable/disable RNA editing annotation
 
     main:
     reports   = Channel.empty()
@@ -165,14 +170,20 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     filtered_vcf_stripped = VCF_FILTERING.out.vcf_stripped
     versions              = versions.mix(VCF_FILTERING.out.versions)
     
-    // Rescue VCF filtering (only if rescue workflow was run)
+    // Rescue VCF post-processing (only if rescue workflow was run)
     filtered_rescue_vcf          = Channel.empty()
     filtered_rescue_vcf_stripped = Channel.empty()
     if (params.tools && params.tools.split(',').contains('rescue')) {
-        VCF_RESCUE_FILTERING(vcf_rescue)
-        filtered_rescue_vcf          = VCF_RESCUE_FILTERING.out.vcf
-        filtered_rescue_vcf_stripped = VCF_RESCUE_FILTERING.out.vcf_stripped
-        versions                     = versions.mix(VCF_RESCUE_FILTERING.out.versions)
+        VCF_RESCUE_POST_PROCESSING(
+            vcf_rescue,
+            rediportal_vcf,
+            rediportal_tbi,
+            min_rna_support,
+            enable_rna_annotation
+        )
+        filtered_rescue_vcf          = VCF_RESCUE_POST_PROCESSING.out.vcf
+        filtered_rescue_vcf_stripped = VCF_RESCUE_POST_PROCESSING.out.vcf_stripped
+        versions                     = versions.mix(VCF_RESCUE_POST_PROCESSING.out.versions)
     }
 
 

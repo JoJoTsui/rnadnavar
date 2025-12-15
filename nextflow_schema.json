@@ -348,6 +348,35 @@
                     "type": "string",
                     "description": "Path to GFF3 annotation file.",
                     "help_text": "This parameter must be specified if `--genome` or `--gtf` are not specified."
+                },
+                "rediportal_vcf": {
+                    "type": "string",
+                    "format": "file-path",
+                    "fa_icon": "fas fa-file",
+                    "description": "Path to REDIportal database in VCF format.",
+                    "help_text": "REDIportal database file containing known RNA editing sites in bgzipped VCF format with tabix index. Required when enable_rna_annotation is true."
+                },
+                "rediportal_tbi": {
+                    "type": "string",
+                    "format": "file-path",
+                    "fa_icon": "fas fa-file",
+                    "description": "Path to REDIportal database tabix index.",
+                    "help_text": "Tabix index file for the REDIportal VCF database. If not provided, will be generated automatically from the REDIportal VCF file."
+                },
+                "enable_rna_annotation": {
+                    "type": "boolean",
+                    "default": false,
+                    "fa_icon": "fas fa-dna",
+                    "description": "Enable RNA editing annotation of rescue variants.",
+                    "help_text": "When enabled, rescue VCF files will be annotated with RNA editing sites from the REDIportal database before filtering."
+                },
+                "min_rna_support": {
+                    "type": "integer",
+                    "default": 2,
+                    "minimum": 1,
+                    "fa_icon": "fas fa-filter",
+                    "description": "Minimum RNA caller support threshold for evidence tiering.",
+                    "help_text": "Minimum number of RNA callers required to support a variant for evidence classification during RNA editing annotation."
                 }
             },
             "help_text": "The pipeline config files come bundled with paths to the Illumina iGenomes reference index files.\nThe configuration is set up to use the AWS-iGenomes resource\ncf https://ewels.github.io/AWS-iGenomes/."

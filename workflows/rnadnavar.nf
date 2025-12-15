@@ -153,6 +153,12 @@ workflow RNADNAVAR {
 
     reports = reports.mix(BAM_ALIGN.out.reports)
     versions = versions.mix(BAM_ALIGN.out.versions)
+    // RNA editing parameters
+    rediportal_vcf          = params.rediportal_vcf ? Channel.fromPath(params.rediportal_vcf).collect() : Channel.empty()
+    rediportal_tbi          = params.rediportal_tbi ? Channel.fromPath(params.rediportal_tbi).collect() : Channel.empty()
+    min_rna_support         = params.min_rna_support ?: 2
+    enable_rna_annotation   = params.enable_rna_annotation ?: false
+
     // 5 MAIN STEPS: GATK PREPROCESING - VARIANT CALLING - NORMALIZATION - CONSENSUS - ANNOTATION
     BAM_PROCESSING(
         input_sample,
@@ -180,6 +186,10 @@ workflow RNADNAVAR {
         null,
         false,
         params.no_intervals,
+        rediportal_vcf,
+        rediportal_tbi,
+        min_rna_support,
+        enable_rna_annotation,
     )
     filtered_maf = BAM_PROCESSING.out.maf
     reports = reports.mix(BAM_PROCESSING.out.reports)
@@ -231,6 +241,10 @@ workflow RNADNAVAR {
             PREPARE_REALIGNMENT.out.dna_varcall_mafs,
             true,
             true,
+            rediportal_vcf,
+            rediportal_tbi,
+            min_rna_support,
+            enable_rna_annotation,
         )
 
         reports = reports.mix(REALIGNMENT.out.reports)
