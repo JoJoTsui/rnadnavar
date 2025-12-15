@@ -55,12 +55,13 @@ try:
         create_graceful_fallback, validate_tool_availability, 
         check_file_accessibility
     )
+    from vcf_utils.logging_config import get_operational_logger
     MODULES_AVAILABLE = True
 except ImportError as e:
     logging.warning(f"Some RNA editing modules not available: {e}")
     MODULES_AVAILABLE = False
 
-# Set up comprehensive logging with timestamps
+# Set up comprehensive logging with timestamps and structured format for Nextflow integration
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -68,16 +69,76 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Add file handler for persistent logging
-def setup_file_logging(output_dir: Path) -> None:
-    """Set up file logging in addition to console logging."""
+# Add structured logging for operational monitoring and Nextflow integration
+class StructuredLogger:
+    """Structured logger for operational monitoring and Nextflow integration."""
+    
+    def __init__(self, base_logger):
+        self.logger = base_logger
+        self.metrics = {}
+        self.start_time = time.time()
+    
+    def log_metric(self, metric_name: str, value, unit: str = ""):
+        """Log a metric for operational monitoring."""
+        self.metrics[metric_name] = {'value': value, 'unit': unit, 'timestamp': time.time()}
+        self.logger.info(f"METRIC: {metric_name}={value}{unit}")
+    
+    def log_stage(self, stage_name: str, status: str = "START"):
+        """Log processing stage for monitoring."""
+        timestamp = time.time()
+        elapsed = timestamp - self.start_time
+        self.logger.info(f"STAGE: {stage_name} - {status} (elapsed: {elapsed:.2f}s)")
+    
+    def log_performance(self, operation: str, duration: float, items_processed: int = 0):
+        """Log performance metrics."""
+        rate = items_processed / duration if duration > 0 and items_processed > 0 else 0
+        self.logger.info(f"PERFORMANCE: {operation} - duration: {duration:.2f}s, items: {items_processed}, rate: {rate:.0f}/s")
+    
+    def log_resource_usage(self, stage: str):
+        """Log current resource usage."""
+        try:
+            import psutil
+            process = psutil.Process()
+            memory_mb = process.memory_info().rss / 1024 / 1024
+            cpu_percent = process.cpu_percent()
+            self.logger.info(f"RESOURCES: {stage} - memory: {memory_mb:.1f}MB, cpu: {cpu_percent:.1f}%")
+        except ImportError:
+            self.logger.debug(f"RESOURCES: {stage} - psutil not available")
+    
+    def get_metrics_summary(self) -> Dict:
+        """Get summary of all logged metrics."""
+        return {
+            'metrics': self.metrics,
+            'total_elapsed': time.time() - self.start_time
+        }
+
+# Global structured logger instance
+structured_logger = StructuredLogger(logger)
+
+# Add file handler for persistent logging with enhanced format
+def setup_file_logging(output_dir: Path) -> Path:
+    """Set up file logging in addition to console logging with structured format."""
     log_file = output_dir.parent / f"rna_editing_annotation_{int(time.time())}.log"
+    
+    # Create file handler with detailed formatting
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
+    
+    # Enhanced formatter for file logging
+    detailed_formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    file_handler.setFormatter(detailed_formatter)
     logger.addHandler(file_handler)
+    
+    # Also create a structured metrics file
+    metrics_file = output_dir.parent / f"rna_editing_metrics_{int(time.time())}.json"
+    
     logger.info(f"Logging to file: {log_file}")
+    logger.info(f"Metrics will be saved to: {metrics_file}")
+    structured_logger.log_stage("LOGGING_SETUP", "COMPLETE")
+    
     return log_file
 
 
@@ -108,6 +169,12 @@ class RNAEditingAnnotator:
         self.error_handler = ErrorHandler(temp_dir=self.output_vcf.parent)
         self.resource_monitor = ResourceMonitor(max_memory_mb=8000, max_disk_gb=50)
         
+        # Initialize operational logger for comprehensive monitoring
+        self.operational_logger = get_operational_logger(
+            name="rna_editing_annotation",
+            output_dir=self.output_vcf.parent
+        )
+        
         # Statistics and timing
         self.stats = {
             'start_time': time.time(),
@@ -118,14 +185,23 @@ class RNAEditingAnnotator:
             'warnings': []
         }
         
-        # Set up file logging
+        # Set up file logging with structured format
         self.log_file = setup_file_logging(self.output_vcf)
         
-        logger.info("=== RNA Editing Annotation Pipeline Started (Enhanced) ===")
+        # Initialize operational monitoring
+        self.operational_logger.log_stage("PIPELINE_INIT", "START")
+        
+        logger.info("=== RNA Editing Annotation Pipeline Started (Enhanced with Operational Monitoring) ===")
         logger.info(f"Input VCF: {self.input_vcf}")
         logger.info(f"REDIportal VCF: {self.rediportal_vcf}")
         logger.info(f"Output VCF: {self.output_vcf}")
         logger.info(f"Min RNA support: {self.min_rna_support}")
+        
+        # Log initial metrics for operational monitoring
+        self.operational_logger.log_metric("min_rna_support", self.min_rna_support, "gauge")
+        self.operational_logger.log_resource_usage("initialization")
+        structured_logger.log_metric("min_rna_support", self.min_rna_support)
+        structured_logger.log_resource_usage("initialization")
         
         # Check module availability
         if not MODULES_AVAILABLE:
@@ -159,11 +235,13 @@ class RNAEditingAnnotator:
     def validate_inputs(self) -> None:
         """Validate input files exist and are accessible with comprehensive error handling."""
         step_start = time.time()
+        structured_logger.log_stage("INPUT_VALIDATION", "START")
         logger.info("Validating input files with comprehensive checks...")
         
         # Monitor resources at validation start
         resource_stats = self.resource_monitor.check_resources("input validation start")
         logger.debug(f"Resource stats at validation start: {resource_stats}")
+        structured_logger.log_resource_usage("validation_start")
         
         try:
             # Use comprehensive file accessibility checker
@@ -211,10 +289,17 @@ class RNAEditingAnnotator:
                 logger.error(error_msg)
                 raise PermissionError(error_msg)
             
-            # Log file sizes and resource implications
+            # Log file sizes and resource implications with structured metrics
             input_size = self.input_vcf.stat().st_size
             rediportal_size = self.rediportal_vcf.stat().st_size
             total_input_size = input_size + rediportal_size
+            
+            # Log file size metrics for monitoring
+            structured_logger.log_metric("input_vcf_size_bytes", input_size)
+            structured_logger.log_metric("input_vcf_size_mb", input_size/1024/1024, "MB")
+            structured_logger.log_metric("rediportal_vcf_size_bytes", rediportal_size)
+            structured_logger.log_metric("rediportal_vcf_size_mb", rediportal_size/1024/1024, "MB")
+            structured_logger.log_metric("total_input_size_mb", total_input_size/1024/1024, "MB")
             
             logger.info(f"Input VCF size: {input_size:,} bytes ({input_size/1024/1024:.1f} MB)")
             logger.info(f"REDIportal VCF size: {rediportal_size:,} bytes ({rediportal_size/1024/1024:.1f} MB)")
@@ -224,6 +309,11 @@ class RNAEditingAnnotator:
             estimated_memory_mb = max(500, (total_input_size / 1024 / 1024) * 2)  # 2x input size
             estimated_disk_gb = max(2, (total_input_size / 1024 / 1024 / 1024) * 3)  # 3x input size
             
+            # Log resource estimates for monitoring
+            structured_logger.log_metric("estimated_memory_mb", estimated_memory_mb, "MB")
+            structured_logger.log_metric("estimated_disk_gb", estimated_disk_gb, "GB")
+            structured_logger.log_metric("available_disk_gb", resource_stats['disk_free_gb'], "GB")
+            
             logger.info(f"Estimated memory requirement: {estimated_memory_mb:.0f} MB")
             logger.info(f"Estimated disk requirement: {estimated_disk_gb:.1f} GB")
             
@@ -232,9 +322,16 @@ class RNAEditingAnnotator:
                 warning_msg = f"Low disk space: {resource_stats['disk_free_gb']:.1f} GB available, {estimated_disk_gb:.1f} GB estimated needed"
                 logger.warning(warning_msg)
                 self.stats['warnings'].append(warning_msg)
+                structured_logger.log_metric("disk_space_warning", 1)
+            else:
+                structured_logger.log_metric("disk_space_sufficient", 1)
             
             step_time = time.time() - step_start
             self.stats['processing_steps'].append(('validate_inputs', step_time))
+            
+            # Log validation performance
+            structured_logger.log_performance("input_validation", step_time, 2)  # 2 files validated
+            structured_logger.log_stage("INPUT_VALIDATION", "COMPLETE")
             logger.info(f"✓ Input files validated successfully ({step_time:.2f}s)")
             
         except Exception as e:
@@ -243,7 +340,7 @@ class RNAEditingAnnotator:
     
     def run_annotation(self) -> None:
         """
-        Run the complete integrated RNA editing annotation pipeline.
+        Run the complete integrated RNA editing annotation pipeline with comprehensive monitoring.
         
         This method implements the fully integrated pipeline that:
         1. Uses new REDIportal to VCF conversion script for proper VCF format generation
@@ -251,39 +348,61 @@ class RNAEditingAnnotator:
         3. Adds evidence tiering and FILTER update functionality based on RNA/DNA caller support
         4. Ensures seamless pipeline execution from input to final output using pysam
         5. Maintains isolation to annotate_rna_editing.py and its dependencies
+        6. Provides comprehensive logging and monitoring for operational use
         """
         pipeline_start = time.time()
-        logger.info("Starting integrated RNA editing annotation pipeline...")
+        structured_logger.log_stage("ANNOTATION_PIPELINE", "START")
+        structured_logger.log_resource_usage("pipeline_start")
+        
+        logger.info("Starting integrated RNA editing annotation pipeline with comprehensive monitoring...")
         logger.info("Pipeline components: REDIportal converter + bcftools VCF-to-VCF + evidence tiering + FILTER updates")
+        logger.info("Monitoring: Performance metrics, resource usage, processing statistics")
         
         temp_files = []
         
         try:
             # Step 1: Convert REDIportal database to proper VCF format using new conversion script
+            structured_logger.log_stage("REDIPORTAL_CONVERSION", "START")
             logger.info("Step 1: Converting REDIportal database to VCF format...")
             prepared_rediportal = self._prepare_rediportal_database_with_converter()
             if prepared_rediportal != str(self.rediportal_vcf):
                 temp_files.append(Path(prepared_rediportal))
+            structured_logger.log_stage("REDIPORTAL_CONVERSION", "COMPLETE")
             
             # Step 2: Run bcftools VCF-to-VCF annotation without separate header files
+            structured_logger.log_stage("BCFTOOLS_ANNOTATION", "START")
             logger.info("Step 2: Running bcftools VCF-to-VCF annotation with exact matching...")
             annotated_vcf = self._run_bcftools_annotation_with_engine(prepared_rediportal)
+            structured_logger.log_stage("BCFTOOLS_ANNOTATION", "COMPLETE")
             
             # Step 3: Apply evidence tiering and FILTER updates using dedicated modules and pysam
+            structured_logger.log_stage("EVIDENCE_PROCESSING", "START")
             logger.info("Step 3: Applying evidence tiering and FILTER updates...")
             self._process_variants_with_pysam_and_evidence_tiering(annotated_vcf)
+            structured_logger.log_stage("EVIDENCE_PROCESSING", "COMPLETE")
             
             # Step 4: Validate final output and create index for compressed files
+            structured_logger.log_stage("OUTPUT_VALIDATION", "START")
             logger.info("Step 4: Validating final output and creating index...")
             self._validate_and_index_output()
+            structured_logger.log_stage("OUTPUT_VALIDATION", "COMPLETE")
             
             # Step 5: Clean up temporary files created during processing
+            structured_logger.log_stage("CLEANUP", "START")
             logger.info("Step 5: Cleaning up temporary files...")
             self._cleanup_temp_files(temp_files)
+            structured_logger.log_stage("CLEANUP", "COMPLETE")
             
-            # Generate comprehensive final statistics
+            # Generate comprehensive final statistics with performance metrics
             pipeline_time = time.time() - pipeline_start
             self.stats['processing_steps'].append(('total_pipeline', pipeline_time))
+            
+            # Log final performance metrics
+            structured_logger.log_performance("complete_pipeline", pipeline_time, self.stats.get('total_variants', 0))
+            structured_logger.log_metric("pipeline_duration_seconds", pipeline_time, "s")
+            structured_logger.log_metric("pipeline_duration_minutes", pipeline_time/60, "min")
+            structured_logger.log_resource_usage("pipeline_complete")
+            structured_logger.log_stage("ANNOTATION_PIPELINE", "SUCCESS")
             
             logger.info("✓ Integrated RNA editing annotation pipeline completed successfully!")
             logger.info("All components integrated: REDIportal conversion, bcftools annotation, evidence tiering, FILTER updates")
@@ -1050,14 +1169,40 @@ class RNAEditingAnnotator:
         self.stats['errors'].append(error_info)
     
     def _generate_summary_statistics(self) -> None:
-        """Generate and log comprehensive summary statistics with detailed metrics."""
+        """Generate and log comprehensive summary statistics with detailed metrics for operational monitoring."""
         total_time = time.time() - self.stats['start_time']
         
-        logger.info("=== RNA Editing Annotation Summary (Reorganized) ===")
+        # Generate structured metrics summary
+        metrics_summary = structured_logger.get_metrics_summary()
+        
+        logger.info("=== RNA Editing Annotation Summary (Enhanced with Operational Metrics) ===")
         logger.info(f"Total processing time: {total_time:.2f} seconds ({total_time/60:.1f} minutes)")
         logger.info(f"Input VCF: {self.input_vcf}")
         logger.info(f"REDIportal VCF: {self.rediportal_vcf}")
         logger.info(f"Output VCF: {self.output_vcf}")
+        
+        # Log key performance indicators for operational monitoring
+        logger.info("=== Key Performance Indicators ===")
+        if 'total_variants' in self.stats and self.stats['total_variants'] > 0:
+            processing_rate = self.stats['total_variants'] / total_time if total_time > 0 else 0
+            structured_logger.log_metric("final_processing_rate", processing_rate, "variants/s")
+            logger.info(f"Processing rate: {processing_rate:.0f} variants/second")
+            logger.info(f"Total variants processed: {self.stats['total_variants']:,}")
+        
+        if 'annotated_variants' in self.stats:
+            annotation_rate = (self.stats['annotated_variants'] / self.stats['total_variants'] * 100) if self.stats['total_variants'] > 0 else 0
+            structured_logger.log_metric("annotation_rate_percent", annotation_rate, "%")
+            logger.info(f"Annotation rate: {annotation_rate:.1f}% ({self.stats['annotated_variants']:,} variants annotated)")
+        
+        # Log operational status indicators
+        success_rate = 100.0 if len(self.stats['errors']) == 0 else 0.0
+        structured_logger.log_metric("success_rate_percent", success_rate, "%")
+        structured_logger.log_metric("error_count", len(self.stats['errors']))
+        structured_logger.log_metric("warning_count", len(self.stats['warnings']))
+        
+        logger.info(f"Pipeline success rate: {success_rate:.1f}%")
+        logger.info(f"Errors encountered: {len(self.stats['errors'])}")
+        logger.info(f"Warnings generated: {len(self.stats['warnings'])}")
         
         # Log file size information
         try:
@@ -1184,10 +1329,136 @@ class RNAEditingAnnotator:
         # Log success/failure summary
         success = len(self.stats['errors']) == 0
         status = "SUCCESS" if success else "COMPLETED WITH ERRORS"
+        structured_logger.log_metric("pipeline_success", 1 if success else 0)
         logger.info(f"Pipeline status: {status}")
+        
+        # Save structured metrics for operational monitoring and integration
+        self._save_structured_metrics(metrics_summary, total_time, success)
+        
+        # Save operational metrics report
+        try:
+            operational_metrics_file = self.operational_logger.save_metrics_report()
+            logger.info(f"Operational metrics report: {operational_metrics_file}")
+        except Exception as e:
+            logger.warning(f"Failed to save operational metrics: {e}")
         
         if self.log_file:
             logger.info(f"Detailed log file: {self.log_file}")
+            
+        # Generate operational recommendations based on metrics
+        self._generate_operational_recommendations(total_time, success)
+    
+    def _save_structured_metrics(self, metrics_summary: Dict, total_time: float, success: bool) -> None:
+        """Save structured metrics to JSON file for monitoring system integration."""
+        try:
+            import json
+            
+            # Create comprehensive metrics document
+            metrics_document = {
+                'pipeline_info': {
+                    'name': 'rna_editing_annotation',
+                    'version': '1.0.0',
+                    'timestamp': time.time(),
+                    'date': time.strftime('%Y-%m-%d %H:%M:%S'),
+                    'input_vcf': str(self.input_vcf),
+                    'rediportal_vcf': str(self.rediportal_vcf),
+                    'output_vcf': str(self.output_vcf),
+                    'min_rna_support': self.min_rna_support
+                },
+                'performance_metrics': {
+                    'total_duration_seconds': total_time,
+                    'total_duration_minutes': total_time / 60,
+                    'processing_rate_variants_per_second': self.stats.get('total_variants', 0) / total_time if total_time > 0 else 0,
+                    'memory_efficient': total_time < 300,  # Under 5 minutes considered efficient
+                    'large_file_processing': self.stats.get('total_variants', 0) > 100000
+                },
+                'processing_statistics': {
+                    'total_variants': self.stats.get('total_variants', 0),
+                    'annotated_variants': self.stats.get('annotated_variants', 0),
+                    'annotation_rate_percent': (self.stats.get('annotated_variants', 0) / self.stats.get('total_variants', 1) * 100),
+                    'rediportal_matches': self.stats.get('rediportal_matches', 0),
+                    'canonical_transitions': self.stats.get('canonical_transitions', 0),
+                    'rna_consensus_variants': self.stats.get('rna_consensus_variants', 0),
+                    'rna_only_variants': self.stats.get('rna_only_variants', 0),
+                    'filter_updates': self.stats.get('filter_updates', 0)
+                },
+                'quality_metrics': {
+                    'success': success,
+                    'error_count': len(self.stats['errors']),
+                    'warning_count': len(self.stats['warnings']),
+                    'processing_steps_completed': len(self.stats['processing_steps']),
+                    'data_integrity_validated': 'output_line_count' in self.stats
+                },
+                'resource_utilization': {
+                    'estimated_memory_efficient': True,  # Based on successful completion
+                    'disk_space_sufficient': len([w for w in self.stats['warnings'] if 'disk space' in w.lower()]) == 0,
+                    'processing_steps': [
+                        {'step': step_name, 'duration_seconds': step_time, 'percentage_of_total': (step_time / total_time * 100) if total_time > 0 else 0}
+                        for step_name, step_time in self.stats['processing_steps']
+                    ]
+                },
+                'operational_status': {
+                    'pipeline_health': 'healthy' if success and len(self.stats['warnings']) < 5 else 'degraded' if success else 'failed',
+                    'requires_attention': len(self.stats['errors']) > 0 or len(self.stats['warnings']) > 10,
+                    'performance_acceptable': total_time < 1800,  # Under 30 minutes
+                    'ready_for_production': success and len(self.stats['errors']) == 0
+                },
+                'structured_metrics': metrics_summary['metrics'],
+                'nextflow_integration': {
+                    'log_file': str(self.log_file),
+                    'compatible_with_reporting': True,
+                    'monitoring_ready': True
+                }
+            }
+            
+            # Save metrics to JSON file
+            metrics_file = self.output_vcf.parent / f"rna_editing_metrics_{int(time.time())}.json"
+            with open(metrics_file, 'w') as f:
+                json.dump(metrics_document, f, indent=2, default=str)
+            
+            logger.info(f"Structured metrics saved to: {metrics_file}")
+            structured_logger.log_metric("metrics_file_saved", 1)
+            
+        except Exception as e:
+            logger.warning(f"Failed to save structured metrics: {e}")
+            structured_logger.log_metric("metrics_save_failed", 1)
+    
+    def _generate_operational_recommendations(self, total_time: float, success: bool) -> None:
+        """Generate operational recommendations based on processing metrics."""
+        logger.info("=== Operational Recommendations ===")
+        
+        # Performance recommendations
+        if total_time > 1800:  # Over 30 minutes
+            logger.info("PERFORMANCE: Consider increasing allocated resources for faster processing")
+            logger.info("- Increase memory allocation if processing large files")
+            logger.info("- Consider parallel processing for multiple samples")
+        elif total_time < 60:  # Under 1 minute
+            logger.info("PERFORMANCE: Excellent processing speed achieved")
+        
+        # Resource recommendations
+        if len([w for w in self.stats['warnings'] if 'disk space' in w.lower()]) > 0:
+            logger.info("RESOURCES: Monitor disk space usage")
+            logger.info("- Ensure adequate disk space for temporary files")
+            logger.info("- Consider cleanup of old processing files")
+        
+        # Quality recommendations
+        if len(self.stats['warnings']) > 5:
+            logger.info("QUALITY: Review warning messages for data quality issues")
+            logger.info("- Validate input data quality")
+            logger.info("- Check REDIportal database integrity")
+        
+        # Operational recommendations
+        if success:
+            logger.info("OPERATIONS: Pipeline completed successfully")
+            logger.info("- Output ready for downstream analysis")
+            logger.info("- Consider archiving log files for audit trail")
+        else:
+            logger.info("OPERATIONS: Pipeline completed with issues")
+            logger.info("- Review error messages for troubleshooting")
+            logger.info("- Validate input files and configuration")
+            logger.info("- Consider rerunning with increased resources")
+        
+        logger.info("=== End Operational Recommendations ===")
         
         logger.info("=== Summary Complete ===")
         

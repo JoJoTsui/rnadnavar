@@ -402,6 +402,42 @@
                     "description": "Additional arguments for RNA editing annotation script.",
                     "help_text": "Provide additional command-line arguments to pass to the annotate_rna_editing.py script.",
                     "hidden": true
+                },
+                "rna_annotation_log_level": {
+                    "type": "string",
+                    "default": "INFO",
+                    "enum": ["DEBUG", "INFO", "WARNING", "ERROR"],
+                    "fa_icon": "fas fa-list-alt",
+                    "description": "Logging level for RNA editing annotation process.",
+                    "help_text": "Set the logging verbosity level for RNA editing annotation. DEBUG provides the most detailed output, INFO provides standard operational information, WARNING shows only warnings and errors, ERROR shows only errors."
+                },
+                "rna_annotation_verbose": {
+                    "type": "boolean",
+                    "default": false,
+                    "fa_icon": "fas fa-volume-up",
+                    "description": "Enable verbose logging for RNA editing annotation.",
+                    "help_text": "When enabled, provides detailed logging output for troubleshooting and monitoring RNA editing annotation process."
+                },
+                "rna_annotation_enable_metrics": {
+                    "type": "boolean",
+                    "default": true,
+                    "fa_icon": "fas fa-chart-line",
+                    "description": "Enable metrics collection for RNA editing annotation.",
+                    "help_text": "When enabled, collects performance metrics, processing statistics, and operational data for monitoring and reporting."
+                },
+                "rna_annotation_enable_performance": {
+                    "type": "boolean",
+                    "default": true,
+                    "fa_icon": "fas fa-tachometer-alt",
+                    "description": "Enable performance monitoring for RNA editing annotation.",
+                    "help_text": "When enabled, monitors processing performance, resource usage, and timing metrics for operational optimization."
+                },
+                "rna_annotation_save_reports": {
+                    "type": "boolean",
+                    "default": false,
+                    "fa_icon": "fas fa-file-alt",
+                    "description": "Save detailed monitoring reports for RNA editing annotation.",
+                    "help_text": "When enabled, saves comprehensive monitoring reports including metrics, performance data, and operational statistics to the reports directory."
                 }
             },
             "help_text": "The pipeline config files come bundled with paths to the Illumina iGenomes reference index files.\nThe configuration is set up to use the AWS-iGenomes resource\ncf https://ewels.github.io/AWS-iGenomes/."
