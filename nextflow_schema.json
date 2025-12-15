@@ -377,6 +377,31 @@
                     "fa_icon": "fas fa-filter",
                     "description": "Minimum RNA caller support threshold for evidence tiering.",
                     "help_text": "Minimum number of RNA callers required to support a variant for evidence classification during RNA editing annotation."
+                },
+                "rna_annotation_memory": {
+                    "type": "string",
+                    "default": "4.GB",
+                    "fa_icon": "fas fa-memory",
+                    "pattern": "^\\d+(\\.\\d+)?\\.?\\s*(K|M|G|T)?B$",
+                    "description": "Memory allocation for RNA editing annotation process.",
+                    "help_text": "Specify the amount of memory to allocate for the RNA editing annotation process. Use standard memory units (e.g., 4.GB, 8.GB).",
+                    "hidden": true
+                },
+                "rna_annotation_cpus": {
+                    "type": "integer",
+                    "default": 2,
+                    "minimum": 1,
+                    "fa_icon": "fas fa-microchip",
+                    "description": "CPU allocation for RNA editing annotation process.",
+                    "help_text": "Specify the number of CPUs to allocate for the RNA editing annotation process.",
+                    "hidden": true
+                },
+                "rna_annotation_args": {
+                    "type": "string",
+                    "fa_icon": "fas fa-terminal",
+                    "description": "Additional arguments for RNA editing annotation script.",
+                    "help_text": "Provide additional command-line arguments to pass to the annotate_rna_editing.py script.",
+                    "hidden": true
                 }
             },
             "help_text": "The pipeline config files come bundled with paths to the Illumina iGenomes reference index files.\nThe configuration is set up to use the AWS-iGenomes resource\ncf https://ewels.github.io/AWS-iGenomes/."
@@ -1061,6 +1086,24 @@
         },
         {
             "$ref": "#/$defs/generic_options"
+        },
+        {
+            "if": {
+                "properties": {
+                    "enable_rna_annotation": {
+                        "const": true
+                    }
+                }
+            },
+            "then": {
+                "required": ["rediportal_vcf"],
+                "properties": {
+                    "rediportal_vcf": {
+                        "type": "string",
+                        "format": "file-path"
+                    }
+                }
+            }
         }
     ]
 }
