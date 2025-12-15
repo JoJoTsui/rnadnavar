@@ -18,7 +18,7 @@ include { VCF_CONSENSUS_WORKFLOW                          } from '../vcf_consens
 include { MAF_FILTERING                                   } from '../maf_filtering/main'
 include { VCF_FILTERING                                   } from '../vcf_filtering/main'
 include { VCF_RESCUE_FILTERING                            } from '../vcf_rescue_filtering/main'
-include { VCF_RESCUE_POST_PROCESSING                     } from '../vcf_rescue_post_processing/main'
+include { VCF_RESCUE_POST_PROCESSING                      } from '../vcf_rescue_post_processing/main'
 
 
 workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
