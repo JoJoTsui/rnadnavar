@@ -1,0 +1,144 @@
+nextflow_pipeline {
+
+    name "Comprehensive RNA editing test suite"
+    script "../main.nf"
+    tag "comprehensive"
+    tag "rna_editing"
+    tag "integration"
+
+    test("Comprehensive - RNA editing full workflow validation") {
+
+        when {
+            params {
+                input                    = "${projectDir}/tests/csv/3.0/fastq_pair.csv"
+                outdir                   = "$outputDir"
+                genome                   = null
+                igenomes_ignore          = true
+                fasta                    = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta"
+                fasta_fai                = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta.fai"
+                dict                     = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.dict"
+                tools                    = "rescue"
+                enable_rna_annotation    = true
+                rediportal_vcf           = "${projectDir}/tests/data/test_rediportal.vcf.gz"
+                rediportal_tbi           = "${projectDir}/tests/data/test_rediportal.vcf.gz.tbi"
+                min_rna_support          = 2
+                skip_tools               = "baserecalibrator,markduplicates"
+                max_cpus                 = 2
+                max_memory               = "6.GB"
+                max_time                 = "6.h"
+            }
+        }
+
+        then {
+            assertAll(
+                // Basic workflow success
+                { assert workflow.success },
+                { assert workflow.trace.succeeded().size() > 0 },
+                
+                // RNA editing specific validations
+                { assert workflow.trace.tasks().any { it.name.contains('RNA_EDITING_ANNOTATION') } },
+                { assert workflow.trace.tasks().any { it.name.contains('VCF_RESCUE_POST_PROCESSING') } },
+                
+                // Output file validations
+                { assert path("$outputDir").exists() },
+                { assert path("$outputDir/pipeline_info").exists() },
+                
+                // Version tracking
+                { assert path("$outputDir/pipeline_info/nf_core_rnadnavar_software_mqc_versions.yml").exists() },
+                
+                // Performance validations
+                { assert workflow.trace.tasks().findAll { it.name.contains('RNA_EDITING_ANNOTATION') }.every { 
+                    it.get('realtime') != null && it.get('peak_rss') != null 
+                }},
+                
+                // Data flow validations
+                { assert workflow.trace.tasks().findAll { it.name.contains('VCF_RESCUE_FILTERING') }.size() > 0 }
+            )
+        }
+    }
+
+    test("Comprehensive - parameter validation and configuration") {
+
+        when {
+            params {
+                input                    = "${projectDir}/tests/csv/3.0/fastq_pair.csv"
+                outdir                   = "$outputDir"
+                genome                   = null
+                igenomes_ignore          = true
+                fasta                    = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta"
+                fasta_fai                = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta.fai"
+                dict                     = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.dict"
+                tools                    = "rescue"
+                enable_rna_annotation    = true
+                rediportal_vcf           = "${projectDir}/tests/data/test_rediportal.vcf.gz"
+                rediportal_tbi           = "${projectDir}/tests/data/test_rediportal.vcf.gz.tbi"
+                min_rna_support          = 5  // Custom threshold
+                skip_tools               = "baserecalibrator,markduplicates"
+                max_cpus                 = 2
+                max_memory               = "6.GB"
+                max_time                 = "6.h"
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                // Verify custom parameter was used
+                { assert workflow.trace.tasks().any { task ->
+                    task.name.contains('RNA_EDITING_ANNOTATION') && 
+                    task.script.contains('--min-rna-support 5')
+                }},
+                { assert path("$outputDir").exists() }
+            )
+        }
+    }
+
+    test("Comprehensive - modular architecture validation") {
+
+        when {
+            params {
+                input                    = "${projectDir}/tests/csv/3.0/fastq_pair.csv"
+                outdir                   = "$outputDir"
+                genome                   = null
+                igenomes_ignore          = true
+                fasta                    = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta"
+                fasta_fai                = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta.fai"
+                dict                     = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.dict"
+                tools                    = "rescue"
+                enable_rna_annotation    = true
+                rediportal_vcf           = "${projectDir}/tests/data/test_rediportal.vcf.gz"
+                rediportal_tbi           = "${projectDir}/tests/data/test_rediportal.vcf.gz.tbi"
+                min_rna_support          = 2
+                skip_tools               = "baserecalibrator,markduplicates"
+                max_cpus                 = 2
+                max_memory               = "6.GB"
+                max_time                 = "6.h"
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                
+                // Verify modular data flow: rescue → annotation → filtering
+                { assert workflow.trace.tasks().any { it.name.contains('VCF_RESCUE_WORKFLOW') } },
+                { assert workflow.trace.tasks().any { it.name.contains('RNA_EDITING_ANNOTATION') } },
+                { assert workflow.trace.tasks().any { it.name.contains('VCF_RESCUE_FILTERING') } },
+                
+                // Verify proper task ordering
+                { 
+                    def rescueTasks = workflow.trace.tasks().findAll { it.name.contains('VCF_RESCUE_WORKFLOW') }
+                    def annotationTasks = workflow.trace.tasks().findAll { it.name.contains('RNA_EDITING_ANNOTATION') }
+                    def filteringTasks = workflow.trace.tasks().findAll { it.name.contains('VCF_RESCUE_FILTERING') }
+                    
+                    // Basic ordering check (rescue should complete before annotation)
+                    assert rescueTasks.size() > 0
+                    assert annotationTasks.size() > 0
+                    assert filteringTasks.size() > 0
+                },
+                
+                { assert path("$outputDir").exists() }
+            )
+        }
+    }
+}

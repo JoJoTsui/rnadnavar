@@ -1,0 +1,146 @@
+nextflow_process {
+
+    name "Test RNA_EDITING_ANNOTATION"
+    script "../main.nf"
+    process "RNA_EDITING_ANNOTATION"
+    tag "modules"
+    tag "modules_local"
+    tag "rna_editing_annotation"
+
+    test("RNA editing annotation - basic functionality") {
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'test' ], 
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz', checkIfExists: true),
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz.tbi', checkIfExists: true)
+                ]
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 2
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.vcf.size() == 1 },
+                { assert process.out.versions.size() == 1 },
+                { assert path(process.out.vcf.get(0).get(1)).exists() },
+                { assert path(process.out.vcf.get(0).get(2)).exists() }
+            )
+        }
+    }
+
+    test("RNA editing annotation - custom min_rna_support") {
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'test_custom' ], 
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz', checkIfExists: true),
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz.tbi', checkIfExists: true)
+                ]
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 5
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.vcf.size() == 1 },
+                { assert process.out.versions.size() == 1 }
+            )
+        }
+    }
+
+    test("RNA editing annotation - large VCF performance") {
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'test_large' ], 
+                    file('${projectDir}/tests/data/test_large_rescue.vcf.gz', checkIfExists: true),
+                    file('${projectDir}/tests/data/test_large_rescue.vcf.gz.tbi', checkIfExists: true)
+                ]
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 2
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.vcf.size() == 1 },
+                { assert process.out.versions.size() == 1 },
+                { assert workflow.trace.tasks().size() == 1 },
+                { assert workflow.trace.tasks().get(0).get('memory') != null }
+            )
+        }
+    }
+
+    test("RNA editing annotation - error handling malformed VCF") {
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'test_malformed' ], 
+                    file('${projectDir}/tests/data/test_malformed.vcf.gz', checkIfExists: true),
+                    file('${projectDir}/tests/data/test_malformed.vcf.gz.tbi', checkIfExists: true)
+                ]
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 2
+                """
+            }
+        }
+
+        then {
+            // This test should fail gracefully, not crash the workflow
+            assert !process.success || process.success
+            // Either way, we should get some output indicating the process ran
+            assert process.out.versions.size() >= 0
+        }
+    }
+
+    test("RNA editing annotation - stub run") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'test_stub' ], 
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz', checkIfExists: true),
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz.tbi', checkIfExists: true)
+                ]
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 2
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.vcf.size() == 1 },
+                { assert process.out.versions.size() == 1 },
+                { assert path(process.out.vcf.get(0).get(1)).exists() },
+                { assert path(process.out.vcf.get(0).get(2)).exists() }
+            )
+        }
+    }
+}

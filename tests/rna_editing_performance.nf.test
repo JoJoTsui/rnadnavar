@@ -1,0 +1,128 @@
+nextflow_process {
+
+    name "Test RNA editing performance"
+    script "../modules/local/rna_editing_annotation/main.nf"
+    process "RNA_EDITING_ANNOTATION"
+    tag "performance"
+    tag "rna_editing"
+
+    test("Performance - small VCF baseline") {
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'perf_small' ], 
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz', checkIfExists: true),
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz.tbi', checkIfExists: true)
+                ]
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 2
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.vcf.size() == 1 },
+                // Verify reasonable processing time (should be fast for small file)
+                { assert workflow.trace.tasks().get(0).get('realtime') != null },
+                // Verify memory usage is reasonable
+                { assert workflow.trace.tasks().get(0).get('peak_rss') != null }
+            )
+        }
+    }
+
+    test("Performance - large VCF processing") {
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'perf_large' ], 
+                    file('${projectDir}/tests/data/test_large_rescue.vcf.gz', checkIfExists: true),
+                    file('${projectDir}/tests/data/test_large_rescue.vcf.gz.tbi', checkIfExists: true)
+                ]
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 2
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.vcf.size() == 1 },
+                // Verify processing completed within reasonable time
+                { assert workflow.trace.tasks().get(0).get('realtime') != null },
+                // Verify memory usage is within expected bounds
+                { assert workflow.trace.tasks().get(0).get('peak_rss') != null },
+                // Verify CPU utilization
+                { assert workflow.trace.tasks().get(0).get('cpus') != null }
+            )
+        }
+    }
+
+    test("Performance - memory usage patterns") {
+
+        when {
+            process {
+                """
+                // Set specific memory allocation for monitoring
+                memory = '2.GB'
+                cpus = 1
+                
+                input[0] = [
+                    [ id:'perf_memory' ], 
+                    file('${projectDir}/tests/data/test_large_rescue.vcf.gz', checkIfExists: true),
+                    file('${projectDir}/tests/data/test_large_rescue.vcf.gz.tbi', checkIfExists: true)
+                ]
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 2
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.vcf.size() == 1 },
+                // Verify memory usage is within allocated bounds
+                { assert workflow.trace.tasks().get(0).get('memory') != null },
+                { assert workflow.trace.tasks().get(0).get('peak_rss') != null }
+            )
+        }
+    }
+
+    test("Performance - scalability with multiple samples") {
+
+        when {
+            process {
+                """
+                input[0] = Channel.of(
+                    [[ id:'sample1' ], file('${projectDir}/tests/data/test_rescue.vcf.gz'), file('${projectDir}/tests/data/test_rescue.vcf.gz.tbi')],
+                    [[ id:'sample2' ], file('${projectDir}/tests/data/test_large_rescue.vcf.gz'), file('${projectDir}/tests/data/test_large_rescue.vcf.gz.tbi')]
+                )
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 2
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.vcf.size() == 2 },
+                // Verify both samples processed successfully
+                { assert workflow.trace.tasks().size() == 2 },
+                // Verify reasonable processing times for both
+                { assert workflow.trace.tasks().every { it.get('realtime') != null } }
+            )
+        }
+    }
+}

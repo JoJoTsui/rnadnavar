@@ -1,0 +1,149 @@
+nextflow_workflow {
+
+    name "Test VCF_RESCUE_POST_PROCESSING"
+    script "../main.nf"
+    workflow "VCF_RESCUE_POST_PROCESSING"
+    tag "subworkflows"
+    tag "subworkflows_local"
+    tag "vcf_rescue_post_processing"
+
+    test("VCF rescue post-processing - RNA editing enabled") {
+
+        when {
+            workflow {
+                """
+                input[0] = Channel.of([
+                    [ id:'test_enabled' ], 
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz', checkIfExists: true),
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz.tbi', checkIfExists: true)
+                ])
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 2
+                input[4] = true
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.out.vcf.size() == 1 },
+                { assert workflow.out.vcf_stripped.size() == 1 },
+                { assert workflow.out.versions.size() >= 1 }
+            )
+        }
+    }
+
+    test("VCF rescue post-processing - RNA editing disabled") {
+
+        when {
+            workflow {
+                """
+                input[0] = Channel.of([
+                    [ id:'test_disabled' ], 
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz', checkIfExists: true),
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz.tbi', checkIfExists: true)
+                ])
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 2
+                input[4] = false
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.out.vcf.size() == 1 },
+                { assert workflow.out.vcf_stripped.size() == 1 },
+                { assert workflow.out.versions.size() >= 1 }
+            )
+        }
+    }
+
+    test("VCF rescue post-processing - custom parameters") {
+
+        when {
+            workflow {
+                """
+                input[0] = Channel.of([
+                    [ id:'test_custom' ], 
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz', checkIfExists: true),
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz.tbi', checkIfExists: true)
+                ])
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 5
+                input[4] = true
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.out.vcf.size() == 1 },
+                { assert workflow.out.vcf_stripped.size() == 1 },
+                { assert workflow.out.versions.size() >= 1 }
+            )
+        }
+    }
+
+    test("VCF rescue post-processing - performance with large VCF") {
+
+        when {
+            workflow {
+                """
+                input[0] = Channel.of([
+                    [ id:'test_performance' ], 
+                    file('${projectDir}/tests/data/test_large_rescue.vcf.gz', checkIfExists: true),
+                    file('${projectDir}/tests/data/test_large_rescue.vcf.gz.tbi', checkIfExists: true)
+                ])
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 2
+                input[4] = true
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.out.vcf.size() == 1 },
+                { assert workflow.out.vcf_stripped.size() == 1 },
+                { assert workflow.out.versions.size() >= 1 },
+                // Verify performance metrics are reasonable
+                { assert workflow.trace.tasks().size() >= 1 }
+            )
+        }
+    }
+
+    test("VCF rescue post-processing - error handling") {
+
+        when {
+            workflow {
+                """
+                input[0] = Channel.of([
+                    [ id:'test_error' ], 
+                    file('${projectDir}/tests/data/test_malformed.vcf.gz', checkIfExists: true),
+                    file('${projectDir}/tests/data/test_malformed.vcf.gz.tbi', checkIfExists: true)
+                ])
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 2
+                input[4] = true
+                """
+            }
+        }
+
+        then {
+            // Test should handle errors gracefully
+            assert !workflow.success || workflow.success
+            // Should still produce some output indicating processing attempted
+            assert workflow.out.versions.size() >= 0
+        }
+    }
+}

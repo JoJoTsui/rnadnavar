@@ -1,0 +1,106 @@
+nextflow_pipeline {
+
+    name "Test RNA editing integration"
+    script "../main.nf"
+    tag "pipeline"
+    tag "rna_editing"
+    tag "integration"
+
+    test("Pipeline with RNA editing enabled") {
+
+        when {
+            params {
+                input                    = "${projectDir}/tests/csv/3.0/fastq_pair.csv"
+                outdir                   = "$outputDir"
+                genome                   = null
+                igenomes_ignore          = true
+                fasta                    = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta"
+                fasta_fai                = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta.fai"
+                dict                     = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.dict"
+                tools                    = "rescue"
+                enable_rna_annotation    = true
+                rediportal_vcf           = "${projectDir}/tests/data/test_rediportal.vcf.gz"
+                rediportal_tbi           = "${projectDir}/tests/data/test_rediportal.vcf.gz.tbi"
+                min_rna_support          = 2
+                skip_tools               = "baserecalibrator,markduplicates"
+                max_cpus                 = 2
+                max_memory               = "6.GB"
+                max_time                 = "6.h"
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.trace.succeeded().size() > 0 },
+                // Check that RNA editing annotation was included in the workflow
+                { assert workflow.trace.tasks().any { it.name.contains('RNA_EDITING_ANNOTATION') } },
+                // Verify output files exist
+                { assert path("$outputDir").exists() }
+            )
+        }
+    }
+
+    test("Pipeline with RNA editing disabled") {
+
+        when {
+            params {
+                input                    = "${projectDir}/tests/csv/3.0/fastq_pair.csv"
+                outdir                   = "$outputDir"
+                genome                   = null
+                igenomes_ignore          = true
+                fasta                    = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta"
+                fasta_fai                = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta.fai"
+                dict                     = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.dict"
+                tools                    = "rescue"
+                enable_rna_annotation    = false
+                skip_tools               = "baserecalibrator,markduplicates"
+                max_cpus                 = 2
+                max_memory               = "6.GB"
+                max_time                 = "6.h"
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.trace.succeeded().size() > 0 },
+                // Check that RNA editing annotation was NOT included in the workflow
+                { assert !workflow.trace.tasks().any { it.name.contains('RNA_EDITING_ANNOTATION') } },
+                // Verify output files exist
+                { assert path("$outputDir").exists() }
+            )
+        }
+    }
+
+    test("Pipeline backward compatibility - no RNA editing parameters") {
+
+        when {
+            params {
+                input                    = "${projectDir}/tests/csv/3.0/fastq_pair.csv"
+                outdir                   = "$outputDir"
+                genome                   = null
+                igenomes_ignore          = true
+                fasta                    = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta"
+                fasta_fai                = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta.fai"
+                dict                     = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.dict"
+                tools                    = "rescue"
+                skip_tools               = "baserecalibrator,markduplicates"
+                max_cpus                 = 2
+                max_memory               = "6.GB"
+                max_time                 = "6.h"
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.trace.succeeded().size() > 0 },
+                // Should work without RNA editing parameters (backward compatibility)
+                { assert !workflow.trace.tasks().any { it.name.contains('RNA_EDITING_ANNOTATION') } },
+                // Verify output files exist
+                { assert path("$outputDir").exists() }
+            )
+        }
+    }
+}
