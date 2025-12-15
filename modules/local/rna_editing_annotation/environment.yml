@@ -1,0 +1,11 @@
+name: rna_editing_annotation
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - bioconda::pysam=0.22.0
+  - bioconda::bcftools=1.21
+  - bioconda::tabix=1.21
+  - conda-forge::python=3.11
+  - conda-forge::pandas=2.0.3

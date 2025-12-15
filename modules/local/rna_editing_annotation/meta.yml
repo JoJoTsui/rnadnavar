@@ -1,0 +1,59 @@
+name: "rna_editing_annotation"
+description: Annotate VCF files with RNA editing sites from REDIportal database
+keywords:
+  - rna editing
+  - annotation
+  - vcf
+  - rediportal
+  - variant calling
+tools:
+  - "annotate_rna_editing":
+      description: "RNA editing annotation pipeline"
+      homepage: "https://github.com/nf-core/rnadnavar"
+      documentation: "https://github.com/nf-core/rnadnavar/blob/master/docs/README.md"
+      licence: ["MIT"]
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - vcf:
+      type: file
+      description: Input VCF file (can be compressed)
+      pattern: "*.{vcf,vcf.gz}"
+  - tbi:
+      type: file
+      description: Tabix index for input VCF
+      pattern: "*.{tbi,csi}"
+  - rediportal_vcf:
+      type: file
+      description: REDIportal database in VCF format
+      pattern: "*.{vcf,vcf.gz}"
+  - rediportal_tbi:
+      type: file
+      description: Tabix index for REDIportal VCF
+      pattern: "*.{tbi,csi}"
+  - min_rna_support:
+      type: integer
+      description: Minimum RNA caller support threshold
+output:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - vcf:
+      type: file
+      description: RNA editing annotated VCF file
+      pattern: "*.vcf.gz"
+  - tbi:
+      type: file
+      description: Tabix index for annotated VCF file
+      pattern: "*.vcf.gz.tbi"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@nf-core/rnadnavar"
