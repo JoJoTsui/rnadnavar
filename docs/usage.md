@@ -100,6 +100,98 @@ nextflow run nf-core/rnadnavar --input ./samplesheet.csv --outdir ./results --ge
 
 This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.
 
+### RNA Editing Annotation
+
+The pipeline includes optional RNA editing annotation functionality that can annotate rescue VCF files with known RNA editing sites from the REDIportal database. This feature is particularly useful for distinguishing true somatic mutations from RNA editing events in RNA-seq data.
+
+#### Basic RNA Editing Annotation Usage
+
+To enable RNA editing annotation, use the following parameters:
+
+```bash
+nextflow run nf-core/rnadnavar \
+    --input ./samplesheet.csv \
+    --outdir ./results \
+    --genome GRCh38 \
+    --enable_rna_annotation \
+    --rediportal_vcf /path/to/REDIportal_hg38_v3.vcf.gz \
+    -profile docker
+```
+
+#### RNA Editing Parameters
+
+| Parameter | Description | Default | Required |
+|-----------|-------------|---------|----------|
+| `--enable_rna_annotation` | Enable RNA editing annotation of rescue variants | `false` | No |
+| `--rediportal_vcf` | Path to REDIportal database in VCF format | `null` | Yes (when annotation enabled) |
+| `--rediportal_tbi` | Path to REDIportal database tabix index | `null` | No (auto-generated if missing) |
+| `--min_rna_support` | Minimum RNA caller support threshold for evidence tiering | `2` | No |
+| `--rna_annotation_memory` | Memory allocation for RNA annotation | `4.GB` | No |
+| `--rna_annotation_cpus` | CPU allocation for RNA annotation | `2` | No |
+
+#### Advanced RNA Editing Configuration
+
+For more control over the RNA editing annotation process:
+
+```bash
+nextflow run nf-core/rnadnavar \
+    --input ./samplesheet.csv \
+    --outdir ./results \
+    --genome GRCh38 \
+    --enable_rna_annotation \
+    --rediportal_vcf /path/to/REDIportal_hg38_v3.vcf.gz \
+    --min_rna_support 3 \
+    --rna_annotation_memory 8.GB \
+    --rna_annotation_cpus 4 \
+    --rna_annotation_log_level DEBUG \
+    --rna_annotation_enable_metrics \
+    -profile docker
+```
+
+#### REDIportal Database Setup
+
+The REDIportal database should be in bgzipped VCF format with a tabix index. You can download and prepare the database as follows:
+
+```bash
+# Download REDIportal database (example for human hg38)
+wget http://srv00.recas.ba.infn.it/webshare/ATLAS/donwload/TABLE1_hg38.txt.gz
+
+# Convert to VCF format using the provided conversion script
+python scripts/convert_rediportal_to_vcf.py \
+    --input TABLE1_hg38.txt.gz \
+    --output REDIportal_hg38_v3.vcf.gz \
+    --genome hg38
+
+# Index the VCF file
+tabix -p vcf REDIportal_hg38_v3.vcf.gz
+```
+
+#### RNA Editing Annotation Output
+
+When RNA editing annotation is enabled, the pipeline will:
+
+1. **Annotate rescue VCF files** with RNA editing information from REDIportal
+2. **Add INFO fields** including:
+   - `REDI_GENE`: Gene name from REDIportal
+   - `REDI_REGION`: Genomic region type
+   - `REDI_STRAND`: Strand information
+   - `REDI_EDIT_TYPE`: Type of RNA editing (e.g., A-to-G)
+3. **Apply evidence tiering** based on RNA/DNA caller support:
+   - `HIGH`: Strong evidence from multiple callers
+   - `MEDIUM`: Moderate evidence
+   - `LOW`: Limited evidence
+   - `NONE`: No supporting evidence
+4. **Update FILTER field** with `RNAedit` for confirmed RNA editing sites
+
+#### Integration with Workflow Steps
+
+RNA editing annotation is automatically integrated into the workflow when enabled:
+
+- **Rescue workflow** → **RNA editing annotation** → **VCF filtering** → **Output**
+- The annotation step occurs between VCF rescue generation and filtering
+- All existing workflow functionality is preserved
+- Backward compatibility is maintained when annotation is disabled
+
 Note that the pipeline will create the following files in your working directory:
 
 ```bash
@@ -243,6 +335,24 @@ Whilst the default requirements set within the pipeline will hopefully work for 
 
 To change the resource requests, please see the [max resources](https://nf-co.re/docs/usage/configuration#max-resources) and [tuning workflow resources](https://nf-co.re/docs/usage/configuration#tuning-workflow-resources) section of the nf-core website.
 
+#### RNA Editing Annotation Configuration
+
+For RNA editing annotation, an example configuration file is provided at `conf/rna_editing_example.config` that demonstrates various configuration options for different use cases:
+
+```bash
+# Use the example configuration
+nextflow run nf-core/rnadnavar -c conf/rna_editing_example.config --input samplesheet.csv --outdir results
+
+# Or use specific profiles for different dataset sizes
+nextflow run nf-core/rnadnavar -profile rna_editing_large --input samplesheet.csv --outdir results
+```
+
+The example configuration includes:
+- Basic RNA editing annotation setup
+- Resource allocation for different dataset sizes
+- Cluster-specific configurations (SLURM, PBS, AWS, GCP)
+- Debugging and development settings
+
 ### Custom Containers
 
 In some cases, you may wish to change the container or conda environment used by a pipeline steps for a particular tool. By default, nf-core pipelines use containers and software from the [biocontainers](https://biocontainers.pro/) or [bioconda](https://bioconda.github.io/) projects. However, in some cases the pipeline specified version maybe out of date.
@@ -288,3 +398,65 @@ NXF_OPTS='-Xms1g -Xmx4g'
 - If you get this error `TypeError: '<=' not supported between instances of 'str' and 'int'` in the `FILTERING` process it might be that `vcf2maf` failed to pass the information from vcf to maf because the id in the vcf differs from sample id provided in samplesheet. Please make sure they both match.
 
 - **Java ConcurrentModificationException**: This critical error has been resolved in recent updates. If you encounter this issue, please ensure you're using the latest version of the pipeline.
+
+#### RNA Editing Annotation Troubleshooting
+
+**RNA Editing Annotation Issues:**
+
+- **Missing REDIportal database**: If `--enable_rna_annotation` is true but `--rediportal_vcf` is not provided, the pipeline will fail with a parameter validation error. Ensure you provide a valid REDIportal VCF file.
+
+- **REDIportal database format issues**: The REDIportal database must be in bgzipped VCF format with a tabix index. If you have the database in text format, use the conversion script:
+  ```bash
+  python scripts/convert_rediportal_to_vcf.py --input TABLE1_hg38.txt.gz --output REDIportal_hg38_v3.vcf.gz --genome hg38
+  tabix -p vcf REDIportal_hg38_v3.vcf.gz
+  ```
+
+- **Memory issues during annotation**: If the RNA editing annotation process runs out of memory, increase the memory allocation:
+  ```bash
+  --rna_annotation_memory 8.GB
+  ```
+
+- **Slow annotation performance**: For large VCF files, consider increasing CPU allocation and enabling performance optimizations:
+  ```bash
+  --rna_annotation_cpus 4
+  --rna_annotation_enable_performance
+  ```
+
+- **Missing tabix index**: If the REDIportal tabix index is missing, the pipeline will attempt to generate it automatically. Ensure the VCF file is properly formatted and bgzipped.
+
+- **Coordinate system mismatch**: Ensure the REDIportal database matches your reference genome build (hg19/GRCh37 vs hg38/GRCh38). Mismatched coordinates will result in no annotations.
+
+- **Empty annotation results**: If no RNA editing sites are annotated, check:
+  - REDIportal database contains sites overlapping your variants
+  - Coordinate systems match between input VCF and REDIportal database
+  - VCF files are properly formatted and indexed
+
+- **Annotation process hangs**: If the annotation process appears to hang, check:
+  - Available disk space for temporary files
+  - Memory allocation is sufficient
+  - Input files are not corrupted
+  - Enable verbose logging: `--rna_annotation_log_level DEBUG`
+
+**Performance Optimization:**
+
+- **Large datasets**: For processing large rescue VCF files, consider:
+  ```bash
+  --rna_annotation_memory 16.GB
+  --rna_annotation_cpus 8
+  --rna_annotation_enable_performance
+  ```
+
+- **Resource monitoring**: Enable comprehensive logging to monitor resource usage:
+  ```bash
+  --rna_annotation_enable_metrics
+  --rna_annotation_verbose
+  --rna_annotation_save_reports
+  ```
+
+**Debugging Steps:**
+
+1. **Check input files**: Verify that both input VCF and REDIportal database are properly formatted and indexed
+2. **Enable verbose logging**: Use `--rna_annotation_log_level DEBUG` for detailed processing information
+3. **Check resource allocation**: Ensure sufficient memory and CPU resources are allocated
+4. **Validate coordinates**: Confirm that genome builds match between input data and REDIportal database
+5. **Test with small dataset**: Try annotation with a subset of variants to isolate issues

@@ -77,6 +77,9 @@ BaseRecalibrator` and `GATK ApplyBQSR`)
 - Filtering of MAF files applying optional gnomad,
   whitelisting and blacklisting (enabled with `--tools`
   adding `filtering`)
+- RNA editing annotation of rescue variants with REDIportal
+  database to distinguish true somatic mutations from RNA
+  editing events (enabled with `--enable_rna_annotation`)
 - Realignment step where reads from regions where a variant
   was found will be extracted and re-processed, only for
   RNA due to higher levels of background noise (enabled
