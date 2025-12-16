@@ -564,14 +564,17 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
             if not is_consensus_caller(caller):  # Skip consensus callers
                 prefixed_caller = prefix_caller(caller, modality_map)
                 if i < len(data['filters_original']):
-                    # Escape VCF special characters properly
-                    filter_val = str(data['filters_original'][i]).replace('=', '%3D').replace(',', '%2C')
+                    # Use proper VCF escaping for FILTER values (critical for Strelka compound filters like "LowDepth;LowEVS")
+                    from vcf_utils.vcf_escaping import escape_filter_for_info
+                    filter_val = escape_filter_for_info(data['filters_original'][i])
                     prefixed_filters_original.append(f"{prefixed_caller}:{filter_val}")
                 if i < len(data['filters_normalized']):
-                    filter_val = str(data['filters_normalized'][i]).replace('=', '%3D').replace(',', '%2C')
+                    from vcf_utils.vcf_escaping import escape_filter_for_info
+                    filter_val = escape_filter_for_info(data['filters_normalized'][i])
                     prefixed_filters_normalized.append(f"{prefixed_caller}:{filter_val}")
                 if i < len(data['filters_category']):
-                    filter_val = str(data['filters_category'][i]).replace('=', '%3D').replace(',', '%2C')
+                    from vcf_utils.vcf_escaping import escape_filter_for_info
+                    filter_val = escape_filter_for_info(data['filters_category'][i])
                     prefixed_filters_category.append(f"{prefixed_caller}:{filter_val}")
         
         record.info['FILTERS_ORIGINAL'] = '|'.join(prefixed_filters_original) if prefixed_filters_original else '.'

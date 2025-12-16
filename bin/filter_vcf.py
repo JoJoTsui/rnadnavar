@@ -408,8 +408,8 @@ def write_filtered_vcf(filtered_variants, input_vcf_path, output_path, strip_for
         if filter_status == "PASS":
             new_record.info['RaVeX_FILTER'] = "PASS"
         else:
-            # Store filter reasons in INFO field only
-            new_record.info['RaVeX_FILTER'] = ";".join(filter_list)
+            # Store filter reasons in INFO field only (use comma separator for multi-valued String fields)
+            new_record.info['RaVeX_FILTER'] = ",".join(filter_list)
             # Also set individual filter flags
             for flag in filter_list:
                 if flag in new_header.info:

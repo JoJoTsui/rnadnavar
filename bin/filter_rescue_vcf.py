@@ -324,7 +324,8 @@ def write_filtered_vcf(input_vcf_path, output_path, args, genome, whitelist_vars
         if not filters:
             new_record.info['RaVeX_FILTER'] = "PASS"
         else:
-            new_record.info['RaVeX_FILTER'] = ";".join(filters)
+            # Use comma to separate multiple filter reasons (VCF standard for multi-valued String fields)
+            new_record.info['RaVeX_FILTER'] = ",".join(filters)
             # Set individual filter flags
             for flag in filters:
                 if flag in new_header.info:
