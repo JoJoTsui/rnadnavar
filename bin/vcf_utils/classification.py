@@ -397,7 +397,18 @@ def compute_unified_classification_rescue(variant_data, modality_map):
             individual_callers.append(caller)
             if i < len(variant_data['filters_normalized']):
                 individual_filters.append(variant_data['filters_normalized'][i])
+    # Get individual callers by modality
+    dna_callers = []
+    rna_callers = []
     
+    for i, caller in enumerate(individual_callers):
+        modality = modality_map.get(caller, 'UNKNOWN')
+        if modality == 'DNA' and i < len(individual_filters):
+            dna_callers.append(individual_filters[i])
+        elif modality == 'RNA' and i < len(individual_filters):
+            rna_callers.append(individual_filters[i])
+    # print(f'DNA: {dna_consensus_label}\tRNA: {rna_consensus_label}')
+    # print(individual_filters)
     # Step 2: Apply cross-modality consensus rules if both available
     if dna_consensus_label and rna_consensus_label:
         # Both modalities have consensus
@@ -409,12 +420,21 @@ def compute_unified_classification_rescue(variant_data, modality_map):
             return 'Artifact'
         elif dna_consensus_label != 'Artifact' and rna_consensus_label != 'Artifact':
             # Cross-modality disagreement on non-Artifact classifications
-            return 'Artifact'
-        elif rna_consensus_label != 'Artifact':
+            if len(dna_callers) >= 2 and len(rna_callers) >= 2:
+                return 'Artifact'
+            elif len(dna_callers) >= 2:
+                return dna_consensus_label
+            elif len(rna_callers) >= 2:
+                return rna_consensus_label
+            else:
+                return 'NoConsensus'
+        elif rna_consensus_label != 'Artifact' and len(rna_callers) >= 2:
             # One modality is Artifact, other is not - use DNA priority
             return rna_consensus_label
-        else:
+        elif dna_consensus_label != 'Artifact' and len(dna_callers) >= 2:
             return dna_consensus_label
+        else:
+            return 'Artifact'
     
     # Step 3: Single modality consensus - check for cross-modality support from individual callers
     elif dna_consensus_label and not rna_consensus_label:
@@ -425,16 +445,6 @@ def compute_unified_classification_rescue(variant_data, modality_map):
     
     # Step 4: No consensus labels - analyze individual caller patterns
     else:
-        # Get individual callers by modality
-        dna_callers = []
-        rna_callers = []
-        
-        for i, caller in enumerate(individual_callers):
-            modality = modality_map.get(caller, 'UNKNOWN')
-            if modality == 'DNA' and i < len(individual_filters):
-                dna_callers.append(individual_filters[i])
-            elif modality == 'RNA' and i < len(individual_filters):
-                rna_callers.append(individual_filters[i])
         
         # Check if we have sufficient cross-modality support
         has_dna_support = len(dna_callers) > 0

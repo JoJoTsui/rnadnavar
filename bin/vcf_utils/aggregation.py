@@ -516,7 +516,7 @@ def read_variants_from_vcf(vcf_path, caller_name, modality=None,
                 elif filter_str == "NoConsensus":
                     # NoConsensus variants shouldn't be in consensus VCFs being rescued
                     # but if they are, classify as Artifact
-                    classification = "Artifact"
+                    classification = "NoConsensus"
                 else:
                     # Fallback to classification function
                     try:
