@@ -121,6 +121,27 @@ def main():
         print(f"Error: RNA consensus VCF not found: {rna_consensus_path}", file=sys.stderr)
         sys.exit(1)
     
+    # Input validation
+    if args.snv_thr <= 0 or args.indel_thr <= 0:
+        print("ERROR: Consensus thresholds must be > 0", file=sys.stderr)
+        sys.exit(1)
+    
+    # Validate sample consistency between DNA and RNA VCFs
+    try:
+        from cyvcf2 import VCF
+        dna_vcf_temp = VCF(str(dna_consensus_path))
+        rna_vcf_temp = VCF(str(rna_consensus_path))
+        
+        dna_samples = set(dna_vcf_temp.samples) if dna_vcf_temp.samples else set()
+        rna_samples = set(rna_vcf_temp.samples) if rna_vcf_temp.samples else set()
+        
+        if dna_samples and rna_samples and dna_samples != rna_samples:
+            print(f"WARNING: Sample mismatch between DNA and RNA VCFs")
+            print(f"  DNA samples: {dna_samples}")
+            print(f"  RNA samples: {rna_samples}")
+    except Exception as e:
+        print(f"WARNING: Could not validate sample consistency: {e}")
+    
     print("\nInput files:")
     print(f"  - DNA consensus: {dna_consensus_path}")
     print(f"  - RNA consensus: {rna_consensus_path}")
@@ -160,7 +181,7 @@ def main():
     print("=" * 80)
     dna_consensus = read_variants_from_vcf(
         str(dna_consensus_path),
-        'dna_consensus',
+        'DNA_consensus',
         modality='DNA'
     )
     print(f"  - Loaded {len(dna_consensus):,} variants from DNA consensus")
@@ -171,7 +192,7 @@ def main():
     print("=" * 80)
     rna_consensus = read_variants_from_vcf(
         str(rna_consensus_path),
-        'rna_consensus',
+        'RNA_consensus',
         modality='RNA'
     )
     print(f"  - Loaded {len(rna_consensus):,} variants from RNA consensus")
@@ -215,13 +236,22 @@ def main():
         ('RNA_consensus', rna_consensus, 'RNA')
     ]
     
-    # Add individual DNA callers WITH prefix as key to avoid modality_map collisions
-    for caller_name, variants in dna_caller_variants.items():
-        all_collections.append((f'DNA_{caller_name}', variants, 'DNA'))
+    # Helper function to safely add modality prefix (prevents double-prefixing)
+    def safe_prefix_caller(caller_name, modality):
+        """Safely add modality prefix to caller name, preventing double-prefixing."""
+        if caller_name.startswith(f'{modality}_'):
+            return caller_name  # Already prefixed
+        return f'{modality}_{caller_name}'
     
-    # Add individual RNA callers WITH prefix as key to avoid modality_map collisions
+    # Add individual DNA callers WITH safe prefix as key to avoid modality_map collisions
+    for caller_name, variants in dna_caller_variants.items():
+        prefixed_name = safe_prefix_caller(caller_name, 'DNA')
+        all_collections.append((prefixed_name, variants, 'DNA'))
+    
+    # Add individual RNA callers WITH safe prefix as key to avoid modality_map collisions
     for caller_name, variants in rna_caller_variants.items():
-        all_collections.append((f'RNA_{caller_name}', variants, 'RNA'))
+        prefixed_name = safe_prefix_caller(caller_name, 'RNA')
+        all_collections.append((prefixed_name, variants, 'RNA'))
     
     print(f"  - Total variant sources: {len(all_collections)}")
     print(f"    - DNA sources: {1 + len(dna_caller_variants)} (1 consensus + {len(dna_caller_variants)} callers)")

@@ -277,8 +277,11 @@ def extract_genotype_info(variant, caller):
             except Exception:
                 pass
 
+    except (KeyError, IndexError, ValueError, TypeError) as e:
+        print(f"Warning: Data format error extracting genotype info from {caller}: {e}")
     except Exception as e:
-        print(f"Warning: Error extracting genotype info from {caller}: {e}")
+        print(f"Error: Unexpected error extracting genotype info from {caller}: {e}")
+        # Don't re-raise for genotype extraction as it's not critical
     
     return info
 

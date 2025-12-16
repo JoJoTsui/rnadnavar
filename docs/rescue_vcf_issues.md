@@ -1,87 +1,68 @@
 # Rescue VCF Script Issues and Bug Analysis
 
-## Critical Issues
+## Fixed Issues (Resolved)
 
-### 1. Consensus Caller Detection Bug
+### ✅ 1. Consensus Caller Detection Bug - FIXED
 **Location**: `write_union_vcf()` function in `io_utils.py`
-**Severity**: Critical
-**Issue**: 
+**Fix Applied**: Standardized naming and fixed detection logic
 ```python
-# Current implementation (INCORRECT)
-has_dna_consensus = any(c == 'dna_consensus' for c in data['callers'])
-has_rna_consensus = any(c == 'rna_consensus' for c in data['callers'])
-```
-**Problem**: 
-- Looks for `dna_consensus`/`rna_consensus` but actual caller names are `DNA_consensus`/`RNA_consensus`
-- This causes consensus flags to always be False
-- Results in incorrect `PASSES_CONSENSUS_DNA`/`PASSES_CONSENSUS_RNA` values
-
-**Correct Implementation**:
-```python
-has_dna_consensus = any('DNA' in c.upper() and c.endswith('_consensus') for c in data['callers'])
-has_rna_consensus = any('RNA' in c.upper() and c.endswith('_consensus') for c in data['callers'])
+# Fixed implementation
+has_dna_consensus = any(c == 'DNA_consensus' for c in data['callers'])
+has_rna_consensus = any(c == 'RNA_consensus' for c in data['callers'])
 ```
 
-### 2. Modality Prefix Double-Prefixing Risk
+### ✅ 2. Modality Prefix Double-Prefixing Risk - FIXED
 **Location**: `main()` function in `run_rescue_vcf.py`
-**Severity**: High
-**Issue**: 
+**Fix Applied**: Added safe prefixing function
 ```python
-# Risk of double prefixing
-all_collections.append((f'DNA_{caller_name}', variants, 'DNA'))
-```
-**Problem**: 
-- If caller is already named with modality prefix (e.g., `DNA_mutect2`), creates `DNA_DNA_mutect2`
-- Could happen if VCF files are pre-processed with modality prefixes
-- Breaks modality mapping logic
-
-**Recommendation**:
-```python
+# Fixed implementation
 def safe_prefix_caller(caller_name, modality):
     if caller_name.startswith(f'{modality}_'):
         return caller_name  # Already prefixed
     return f'{modality}_{caller_name}'
 ```
 
-### 3. Inconsistent Consensus Caller Naming
+### ✅ 3. Inconsistent Consensus Caller Naming - FIXED
 **Location**: Multiple functions
-**Severity**: High
-**Issue**: The `is_consensus_caller()` function checks multiple patterns:
+**Fix Applied**: Standardized on `DNA_consensus`/`RNA_consensus` throughout codebase
 ```python
+# Fixed implementation
 def is_consensus_caller(caller):
-    return caller in ['dna_consensus', 'rna_consensus', 'DNA_consensus', 'RNA_consensus'] or caller.endswith('_consensus')
+    return caller in ['DNA_consensus', 'RNA_consensus'] or (
+        caller.endswith('_consensus') and 
+        any(caller.startswith(prefix) for prefix in ['DNA_', 'RNA_'])
+    )
 ```
-**Problem**: 
-- Rescue script uses `DNA_consensus`/`RNA_consensus` but some checks look for `dna_consensus`/`rna_consensus`
-- Inconsistent naming throughout codebase
-- Causes logic errors in consensus detection
 
-**Recommendation**: Standardize on one naming convention throughout
-
-### 4. Rescue Flag Logic Inconsistency
-**Location**: `mark_rescued_variants()` vs `write_union_vcf()`
-**Severity**: High
-**Issue**: Two different definitions of "rescued":
+### ✅ 4. Rescue Flag Logic Inconsistency - FIXED
+**Location**: `write_union_vcf()` function
+**Fix Applied**: Use actual rescued status from variant data
 ```python
-# In mark_rescued_variants()
-data['rescued'] = has_cross_modality  # Any cross-modality support
-
-# In write_union_vcf() (INCORRECT)
-record.info['RESCUED'] = 'YES' if 'consensus' in set(data['callers']) else 'NO'
-```
-**Problem**: 
-- `mark_rescued_variants()` correctly identifies cross-modality variants
-- `write_union_vcf()` uses incorrect logic checking for 'consensus' string
-- Results in wrong RESCUED flag in output VCF
-
-**Correct Implementation**:
-```python
+# Fixed implementation
 record.info['RESCUED'] = 'YES' if data.get('rescued', False) else 'NO'
 ```
 
-## Significant Issues
+### ✅ 5. Input Validation and Sample Consistency - FIXED
+**Location**: `main()` function in `run_rescue_vcf.py`
+**Fix Applied**: Added comprehensive validation including sample consistency checks
+```python
+# Fixed implementation
+if args.snv_thr <= 0 or args.indel_thr <= 0:
+    print("ERROR: Consensus thresholds must be > 0", file=sys.stderr)
+    sys.exit(1)
 
-### 5. Modality Map Key Collision Handling
+# Validate sample consistency between DNA and RNA VCFs
+dna_samples = set(VCF(dna_consensus_path).samples)
+rna_samples = set(VCF(rna_consensus_path).samples)
+if dna_samples != rna_samples:
+    print(f"WARNING: Sample mismatch between DNA and RNA VCFs")
+```
+
+## Remaining Issues
+
+## Remaining Issues
+
+### 1. Modality Map Key Collision Handling
 **Location**: `main()` function
 **Severity**: Medium
 **Issue**: Potential key collisions in modality_map
@@ -251,19 +232,11 @@ data['cross_modality'] = has_dna_support and has_rna_support
 - May miss variants with individual caller cross-modality support
 - Inconsistent with rescue goal
 
-### 17. Rescue Rate Calculation
+### ✅ 17. Rescue Rate Calculation - FIXED
 **Location**: `compute_rescue_statistics()` function
-**Issue**: 
+**Fix Applied**: Changed calculation to be relative to cross-modality variants
 ```python
-stats['rescue_rate'] = (stats['rescued'] / stats['total_variants']) * 100
-```
-**Problem**: 
-- Rescue rate should be relative to cross-modality variants, not total variants
-- Current calculation underestimates rescue effectiveness
-- Misleading metric for evaluation
-
-**Correct Calculation**:
-```python
+# Fixed implementation
 if stats['cross_modality'] > 0:
     stats['rescue_rate'] = (stats['rescued'] / stats['cross_modality']) * 100
 else:

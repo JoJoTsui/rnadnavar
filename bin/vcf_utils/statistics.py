@@ -136,9 +136,9 @@ def compute_rescue_statistics(variant_data, dna_variants, rna_variants):
         else:
             stats['indels'] += 1
     
-    # Calculate rescue rate
-    if stats['total_variants'] > 0:
-        stats['rescue_rate'] = (stats['rescued'] / stats['total_variants']) * 100
+    # Calculate rescue rate (should be relative to cross-modality variants, not total)
+    if stats['cross_modality'] > 0:
+        stats['rescue_rate'] = (stats['rescued'] / stats['cross_modality']) * 100
     else:
         stats['rescue_rate'] = 0.0
     

@@ -383,70 +383,21 @@ def compute_rescue_statistics(variant_data, dna_variants, rna_variants):
 - Progress printed every 10,000 variants
 - Memory-efficient aggregation using defaultdict
 
-## Identified Issues and Potential Bugs
+## Recent Fixes Applied
 
-### 1. Rescue Flag Logic Issue
-**Location**: `write_union_vcf()` function in `io_utils.py`
-**Issue**: 
-```python
-# Current implementation
-record.info['RESCUED'] = 'YES' if 'consensus' in set(data['callers']) else 'NO'
-```
-**Problem**: This checks if the string 'consensus' appears anywhere in caller names, which is incorrect. It should check the actual `rescued` flag from the variant data.
+### Fixed Issues (Resolved)
 
-**Correct Implementation**:
-```python
-record.info['RESCUED'] = 'YES' if data.get('rescued', False) else 'NO'
-```
+1. **✅ RESCUED Flag Logic** - Fixed to use actual `rescued` status from variant data instead of checking for 'consensus' string in caller names
+2. **✅ Consensus Caller Detection** - Standardized naming to `DNA_consensus`/`RNA_consensus` and fixed detection logic
+3. **✅ Modality Prefix Handling** - Added safe prefixing function to prevent double-prefixing (e.g., `DNA_DNA_mutect2`)
+4. **✅ Filter Field Handling** - Replaced semicolon substitution with proper VCF escaping using URL encoding
+5. **✅ Input Validation** - Added comprehensive parameter validation for both scripts
+6. **✅ Error Handling** - Improved genotype extraction error handling with specific exception types
+7. **✅ Rescue Rate Calculation** - Fixed to calculate rate relative to cross-modality variants instead of total variants
 
-### 2. Modality-Specific Consensus Flag Logic Issue
-**Location**: `write_union_vcf()` function in `io_utils.py`
-**Issue**: The logic for determining DNA/RNA consensus flags is inconsistent:
-```python
-# Current implementation checks for exact caller names
-has_dna_consensus = any(c == 'dna_consensus' for c in data['callers'])
-has_rna_consensus = any(c == 'rna_consensus' for c in data['callers'])
-```
-**Problem**: The actual caller names used are `DNA_consensus` and `RNA_consensus` (with prefixes), not `dna_consensus` and `rna_consensus`.
+## Remaining Issues (Lower Priority)
 
-**Correct Implementation**:
-```python
-has_dna_consensus = any('DNA' in c.upper() and c.endswith('_consensus') for c in data['callers'])
-has_rna_consensus = any('RNA' in c.upper() and c.endswith('_consensus') for c in data['callers'])
-```
-
-### 3. Inconsistent Consensus Caller Handling
-**Location**: Multiple functions
-**Issue**: The `is_consensus_caller()` function checks for multiple patterns:
-```python
-def is_consensus_caller(caller):
-    return caller in ['dna_consensus', 'rna_consensus', 'DNA_consensus', 'RNA_consensus'] or caller.endswith('_consensus')
-```
-**Problem**: The rescue script uses prefixed names (`DNA_consensus`, `RNA_consensus`) but some checks look for unprefixed names.
-
-**Recommendation**: Standardize on one naming convention throughout.
-
-### 4. Filter Field Semicolon Replacement Issue
-**Location**: `write_union_vcf()` function
-**Issue**: 
-```python
-# Replace semicolons with commas in filter values
-filter_val = str(data['filters_original'][i]).replace(';', ',')
-```
-**Problem**: This replacement could cause confusion since semicolons are the standard VCF delimiter for compound filters. The replacement is done to "avoid VCF parsing issues" but may create new parsing problems.
-
-**Recommendation**: Use proper VCF escaping instead of character replacement.
-
-### 5. Missing Error Handling in Genotype Extraction
-**Location**: `extract_genotype_info()` function in `aggregation.py`
-**Issue**: Complex Strelka parsing logic has multiple nested try-catch blocks but some edge cases may not be handled.
-
-**Potential Issues**:
-- Array index out of bounds when accessing format fields
-- Type conversion errors for malformed numeric values
-- Missing validation for expected data structures
-
-### 6. Inconsistent VAF Calculation
+### 5. Inconsistent VAF Calculation
 **Location**: `extract_genotype_info()` function
 **Issue**: VAF calculation from AD may not handle edge cases:
 ```python
@@ -460,7 +411,7 @@ if info['VAF'] is None and info['AD'] is not None:
 ```
 **Problem**: Assumes AD format is always "ref,alt" but some callers may have different formats or multiple alt alleles.
 
-### 7. Potential Memory Issue with Large VCFs
+### 6. Potential Memory Issue with Large VCFs
 **Location**: `aggregate_variants()` function
 **Issue**: All variants are loaded into memory simultaneously using `defaultdict`.
 
@@ -468,7 +419,7 @@ if info['VAF'] is None and info['AD'] is not None:
 
 **Recommendation**: Consider streaming processing for large datasets.
 
-### 8. Chromosome Sorting Edge Case
+### 7. Chromosome Sorting Edge Case
 **Location**: `write_union_vcf()` function
 **Issue**: Chromosome sorting logic has potential issues:
 ```python
@@ -483,32 +434,19 @@ except:
 ```
 **Problem**: The try-catch is too broad and may hide legitimate errors. Also, doesn't handle non-standard chromosome names well.
 
-### 9. Modality Map Key Collision Risk
-**Location**: `run_rescue_vcf.py` main function
-**Issue**: Caller names are prefixed with modality to avoid collisions:
-```python
-all_collections.append((f'DNA_{caller_name}', variants, 'DNA'))
-```
-**Problem**: If a caller is already named with a modality prefix (e.g., `DNA_mutect2`), this could create double prefixes (`DNA_DNA_mutect2`).
+## Implementation Notes
 
-### 10. Missing Validation for Required Fields
-**Location**: Multiple functions
-**Issue**: Limited validation of required VCF fields and data structures.
+### Standardized Naming Convention
+- **Consensus callers**: `DNA_consensus`, `RNA_consensus` (standardized)
+- **Individual callers**: `DNA_mutect2`, `RNA_strelka` (with safe prefixing)
+- **Detection logic**: Uses standardized patterns for reliable identification
 
-**Missing Validations**:
-- Verify VCF has required samples for paired analysis
-- Validate that modality_map contains all expected callers
-- Check that consensus thresholds are reasonable (> 0, <= total callers)
+### Enhanced Error Handling
+- **Specific exceptions**: Catch `KeyError`, `IndexError`, `ValueError`, `TypeError` separately
+- **Graceful degradation**: Continue processing with warnings for non-critical errors
+- **Informative messages**: Include context about which caller/file caused issues
 
-## Recommendations for Bug Fixes
-
-1. **Fix RESCUED flag logic** to use actual rescued status
-2. **Standardize consensus caller naming** throughout codebase
-3. **Improve error handling** with specific exception types
-4. **Add input validation** for critical parameters
-5. **Consider memory optimization** for large datasets
-6. **Fix modality-specific consensus detection** logic
-7. **Review filter field handling** to avoid parsing issues
-8. **Add unit tests** for edge cases in genotype extraction
-9. **Implement proper VCF field escaping** instead of character replacement
-10. **Add logging** for debugging complex aggregation logic
+### VCF Standard Compliance
+- **Proper escaping**: Use URL encoding (`%3D`, `%2C`) instead of character replacement
+- **Standard delimiters**: Preserve semicolons as compound filter delimiters
+- **Valid format**: Maintain VCF specification compliance

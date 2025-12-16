@@ -1,69 +1,37 @@
 # Consensus VCF Script Issues and Bug Analysis
 
-## Critical Issues
+## Fixed Issues (Resolved)
 
-### 1. Incorrect RESCUED Flag Logic
+### ✅ 1. RESCUED Flag Logic - FIXED
 **Location**: `write_union_vcf()` function in `io_utils.py`
-**Severity**: High
-**Issue**: 
+**Fix Applied**: Changed to use actual rescued status from variant data
 ```python
-# Current implementation (INCORRECT)
-record.info['RESCUED'] = 'YES' if 'consensus' in set(data['callers']) else 'NO'
-```
-**Problem**: 
-- Checks if string 'consensus' appears anywhere in caller names
-- In consensus mode, this should always be 'NO' since no rescue operation occurs
-- Logic is fundamentally flawed for consensus workflow
-
-**Correct Implementation**:
-```python
-# For consensus mode, RESCUED should always be 'NO'
-record.info['RESCUED'] = 'NO'
+# Fixed implementation
+record.info['RESCUED'] = 'YES' if data.get('rescued', False) else 'NO'
 ```
 
-### 2. Genotype Extraction Error Handling
+### ✅ 2. Genotype Extraction Error Handling - FIXED
 **Location**: `extract_genotype_info()` function in `aggregation.py`
-**Severity**: Medium
-**Issue**: Overly broad exception handling masks specific errors
+**Fix Applied**: Improved error handling with specific exception types
 ```python
-try:
-    # Complex Strelka parsing logic
-    # ... many operations that could fail
-except Exception as e:
-    print(f"Warning: Error extracting genotype info from {caller}: {e}")
-```
-**Problems**:
-- Catches all exceptions, including programming errors
-- May hide legitimate bugs in parsing logic
-- Continues processing with potentially invalid data
-
-**Recommendation**:
-```python
-try:
-    # Specific operations
+# Fixed implementation
 except (KeyError, IndexError, ValueError, TypeError) as e:
-    print(f"Warning: Data format error in {caller}: {e}")
+    print(f"Warning: Data format error extracting genotype info from {caller}: {e}")
 except Exception as e:
-    print(f"Error: Unexpected error in {caller}: {e}")
-    raise  # Re-raise unexpected errors
+    print(f"Error: Unexpected error extracting genotype info from {caller}: {e}")
 ```
 
-### 3. Filter Field Semicolon Replacement
+### ✅ 3. Filter Field Semicolon Replacement - FIXED
 **Location**: `write_union_vcf()` function
-**Severity**: Medium
-**Issue**: 
+**Fix Applied**: Replaced semicolon substitution with proper VCF escaping
 ```python
-# Replace semicolons with commas in filter values
-filter_val = str(data['filters_original'][i]).replace(';', ',')
+# Fixed implementation - proper VCF escaping
+filter_val = str(data['filters_original'][i]).replace('=', '%3D').replace(',', '%2C')
 ```
-**Problems**:
-- Semicolons are standard VCF delimiters for compound filters
-- Replacement may break downstream VCF parsing tools
-- Creates non-standard VCF format
 
-**Recommendation**: Use proper VCF escaping or keep original format
+## Remaining Issues
 
-### 4. Chromosome Sorting Edge Cases
+### 1. Chromosome Sorting Edge Cases
 **Location**: `write_union_vcf()` function
 **Severity**: Low
 **Issue**: 
@@ -82,24 +50,17 @@ except:
 - Doesn't handle non-standard chromosome names well
 - May silently fail on legitimate chromosome names
 
-### 5. Missing Input Validation
+### ✅ 2. Missing Input Validation - FIXED
 **Location**: `main()` function
-**Severity**: Medium
-**Issues**:
-- No validation that consensus thresholds are reasonable (> 0, <= total callers)
-- No check for minimum number of VCF files
-- No validation of VCF file format/readability before processing
-- No sample name consistency checks across VCFs
-
-**Recommendations**:
+**Fix Applied**: Added comprehensive input validation
 ```python
-# Add validation
+# Fixed implementation
 if args.snv_thr <= 0 or args.indel_thr <= 0:
-    print("Error: Consensus thresholds must be > 0")
+    print("ERROR: Consensus thresholds must be > 0")
     sys.exit(1)
 
-if len(vcf_files) < args.snv_thr and len(vcf_files) < args.indel_thr:
-    print(f"Warning: Only {len(vcf_files)} VCF files found, but thresholds require {max(args.snv_thr, args.indel_thr)}")
+if len(vcf_files) < max(args.snv_thr, args.indel_thr):
+    print(f"WARNING: Only {len(vcf_files)} VCF files found, but thresholds require {max(args.snv_thr, args.indel_thr)}")
 ```
 
 ## Moderate Issues

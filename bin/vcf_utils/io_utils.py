@@ -448,10 +448,21 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
         
         return caller
     
+    # Helper function to safely add modality prefix (prevents double-prefixing)
+    def safe_prefix_caller(caller_name, modality):
+        """Safely add modality prefix to caller name, preventing double-prefixing."""
+        if caller_name.startswith(f'{modality}_'):
+            return caller_name  # Already prefixed
+        return f'{modality}_{caller_name}'
+    
     # Helper function to check if caller is a consensus caller
     def is_consensus_caller(caller):
         """Check if caller is a consensus caller."""
-        return caller in ['dna_consensus', 'rna_consensus', 'DNA_consensus', 'RNA_consensus'] or caller.endswith('_consensus')
+        # Standardized naming: DNA_consensus, RNA_consensus
+        return caller in ['DNA_consensus', 'RNA_consensus'] or (
+            caller.endswith('_consensus') and 
+            any(caller.startswith(prefix) for prefix in ['DNA_', 'RNA_'])
+        )
     
     # Create output header with rescue fields if modality_map is provided
     include_rescue_fields = modality_map is not None
@@ -545,7 +556,7 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
             record.info['N_RNA_CALLERS_SUPPORT'] = rna_callers_support
         
         # Prefix filter fields with caller names (with modality prefix) - EXCLUDE consensus
-        # Note: Replace semicolons in filter values with commas to avoid VCF parsing issues
+        # Note: Use proper VCF escaping for special characters instead of replacement
         prefixed_filters_original = []
         prefixed_filters_normalized = []
         prefixed_filters_category = []
@@ -553,14 +564,14 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
             if not is_consensus_caller(caller):  # Skip consensus callers
                 prefixed_caller = prefix_caller(caller, modality_map)
                 if i < len(data['filters_original']):
-                    # Replace semicolons with commas in filter values
-                    filter_val = str(data['filters_original'][i]).replace(';', ',')
+                    # Escape VCF special characters properly
+                    filter_val = str(data['filters_original'][i]).replace('=', '%3D').replace(',', '%2C')
                     prefixed_filters_original.append(f"{prefixed_caller}:{filter_val}")
                 if i < len(data['filters_normalized']):
-                    filter_val = str(data['filters_normalized'][i]).replace(';', ',')
+                    filter_val = str(data['filters_normalized'][i]).replace('=', '%3D').replace(',', '%2C')
                     prefixed_filters_normalized.append(f"{prefixed_caller}:{filter_val}")
                 if i < len(data['filters_category']):
-                    filter_val = str(data['filters_category'][i]).replace(';', ',')
+                    filter_val = str(data['filters_category'][i]).replace('=', '%3D').replace(',', '%2C')
                     prefixed_filters_category.append(f"{prefixed_caller}:{filter_val}")
         
         record.info['FILTERS_ORIGINAL'] = '|'.join(prefixed_filters_original) if prefixed_filters_original else '.'
@@ -681,9 +692,9 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
         
         # Add modality-specific consensus flags if modality_map provided
         if modality_map:
-            # Check if DNA consensus or RNA consensus is in the callers
-            has_dna_consensus = any(c == 'dna_consensus' for c in data['callers'])
-            has_rna_consensus = any(c == 'rna_consensus' for c in data['callers'])
+            # Check if DNA consensus or RNA consensus is in the callers (fixed naming)
+            has_dna_consensus = any(c == 'DNA_consensus' for c in data['callers'])
+            has_rna_consensus = any(c == 'RNA_consensus' for c in data['callers'])
             
             # Check if there are any DNA or RNA callers in this variant
             has_dna_callers = any(not is_consensus_caller(c) and modality_map.get(c) == 'DNA' for c in data['callers'])
@@ -694,8 +705,8 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
             if has_rna_consensus or has_rna_callers:
                 record.info['PASSES_CONSENSUS_RNA'] = 'YES' if has_rna_consensus else 'NO'
 
-        # Rescue indicator
-        record.info['RESCUED'] = 'YES' if 'consensus' in set(data['callers']) else 'NO'
+        # Rescue indicator - use actual rescued status from variant data
+        record.info['RESCUED'] = 'YES' if data.get('rescued', False) else 'NO'
         
         # Add modality-specific fields if modality_map is provided
         if modality_map:

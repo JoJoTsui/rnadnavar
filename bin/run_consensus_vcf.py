@@ -66,6 +66,15 @@ def main():
         print(f"ERROR: No VCF files found in {input_dir}")
         sys.exit(1)
     
+    # Input validation
+    if args.snv_thr <= 0 or args.indel_thr <= 0:
+        print("ERROR: Consensus thresholds must be > 0")
+        sys.exit(1)
+    
+    if len(vcf_files) < max(args.snv_thr, args.indel_thr):
+        print(f"WARNING: Only {len(vcf_files)} VCF files found, but thresholds require {max(args.snv_thr, args.indel_thr)}")
+        print("Some variants may not meet consensus thresholds")
+    
     print(f"\nProcessing {len(vcf_files)} VCF files with callers: {', '.join(vcf_files.keys())}")
     print(f"SNV consensus threshold: {args.snv_thr}")
     print(f"Indel consensus threshold: {args.indel_thr}")
