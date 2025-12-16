@@ -48,12 +48,14 @@ The classification system has been enhanced to handle inconsistent classificatio
 
 ### Key Changes in Classification Logic
 
-#### 1. New Artifact Category (Consensus Mode)
-In consensus mode, variants are now classified as **Artifact** if:
-- They have ≥2 callers detecting the variant BUT
-- The callers have inconsistent biological classifications
+#### 1. Enhanced Majority Vote Logic (Consensus Mode)
+In consensus mode, variants now use **majority vote** with threshold checking:
+- Find the most frequent classification among callers
+- If majority count ≥ threshold AND no tie → Use majority classification
+- If majority count < threshold → NoConsensus
+- If tie in majority vote → Artifact (disagreement indicates inconsistency)
 
-**Example**: If mutect2 classifies a variant as "Somatic" but strelka classifies it as "Germline", the final classification becomes "Artifact" due to inconsistency.
+**Example**: If mutect2 and deepsomatic classify as "Somatic" but strelka classifies as "Reference" (threshold=2), the final classification becomes "Somatic" (2 ≥ threshold, clear majority).
 
 #### 2. New NoConsensus Category (Rescue Mode)  
 In rescue mode, variants are classified as **NoConsensus** if:
@@ -369,9 +371,10 @@ def aggregate_genotypes(genotypes_by_caller, callers_order):
 
 ### FILTER Assignment Logic - UPDATED
 1. **Consensus Mode**: 
-   - If variant doesn't meet consensus threshold → NoConsensus
-   - If ≥2 callers detect variant but have inconsistent classifications → Artifact
-   - Otherwise use majority vote with priority: Somatic > Germline > Reference > Artifact
+   - Find majority classification among callers
+   - If majority count < threshold → NoConsensus
+   - If clear majority ≥ threshold → Use majority classification
+   - If tie in majority vote → Artifact (disagreement)
 2. **Rescue Mode**: 
    - If DNA has 'Artifact' and RNA has 'Artifact' → Artifact
    - If DNA and RNA have different non-Artifact classifications → Artifact

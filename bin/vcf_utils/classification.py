@@ -303,22 +303,21 @@ def get_unified_filter_headers():
     ]
 
 
-def compute_unified_classification_consensus(variant_data, snv_threshold, indel_threshold, debug=False):
+def compute_unified_classification_consensus(variant_data, snv_threshold, indel_threshold):
     """
     Compute unified biological classification for consensus mode.
     
     CORRECTED logic for consensus mode:
-    1. Check if variant meets consensus threshold based on caller count
-    2. If meets threshold but callers disagree -> Artifact  
-    3. If meets threshold and callers agree -> Use agreed classification
-    4. If doesn't meet threshold -> NoConsensus
-    5. Future: Check quality-based Artifact rules (low AD/DP)
+    1. Check if total caller count meets threshold
+    2. If not enough callers -> NoConsensus
+    3. If enough callers -> Use majority vote among classifications
+    4. If clear majority -> Use majority classification
+    5. If tie -> Artifact (disagreement indicates inconsistency)
     
     Args:
         variant_data (dict): Aggregated variant data with 'callers', 'filters_normalized', 'is_snv'
         snv_threshold (int): SNV consensus threshold
         indel_threshold (int): Indel consensus threshold
-        debug (bool): Enable debug output
     
     Returns:
         str: Unified biological classification
@@ -327,57 +326,37 @@ def compute_unified_classification_consensus(variant_data, snv_threshold, indel_
     
     # Get individual caller classifications (exclude consensus callers)
     individual_filters = []
-    individual_callers = []
     for i, caller in enumerate(variant_data['callers']):
         if not caller.endswith('_consensus'):
             if i < len(variant_data['filters_normalized']):
                 individual_filters.append(variant_data['filters_normalized'][i])
-                individual_callers.append(caller)
     
-    if debug:
-        print(f"DEBUG: Individual callers: {individual_callers}")
-        print(f"DEBUG: Individual filters: {individual_filters}")
-    
-    if not individual_filters:
-        if debug:
-            print("DEBUG: No individual callers -> NoConsensus")
-        return 'NoConsensus'  # No individual callers
-    
-    # Determine required threshold based on variant type
-    required_threshold = snv_threshold if variant_data.get('is_snv', True) else indel_threshold
+    # Check if we have enough callers for consensus
     caller_count = len(individual_filters)
+    required_threshold = snv_threshold if variant_data.get('is_snv', True) else indel_threshold
     
-    if debug:
-        print(f"DEBUG: Caller count: {caller_count}, Required threshold: {required_threshold}")
-    
-    # Check if variant meets consensus threshold
     if caller_count < required_threshold:
-        if debug:
-            print(f"DEBUG: Below threshold -> NoConsensus")
-        return 'NoConsensus'
+        return 'NoConsensus'  # Not enough callers
     
-    # Check for classification consistency among callers
-    unique_classifications = set(individual_filters)
+    # Use majority vote to determine classification
+    classification_counts = Counter(individual_filters)
     
-    if debug:
-        print(f"DEBUG: Unique classifications: {unique_classifications}")
+    # Find the most frequent classification(s)
+    max_count = max(classification_counts.values())
+    majority_classifications = [cls for cls, count in classification_counts.items() if count == max_count]
     
-    if len(unique_classifications) == 1:
-        # All callers agree - use the agreed classification
-        agreed_classification = list(unique_classifications)[0]
-        
-        if debug:
-            print(f"DEBUG: All callers agree -> {agreed_classification}")
+    # Check if there's a clear majority (no tie)
+    if len(majority_classifications) == 1:
+        # Clear majority - use the majority classification
+        majority_classification = majority_classifications[0]
         
         # Future extension point: Add quality-based Artifact rules here
-        # if is_low_quality_artifact(variant_data, agreed_classification):
+        # if is_low_quality_artifact(variant_data, majority_classification):
         #     return 'Artifact'
         
-        return agreed_classification
+        return majority_classification
     else:
-        # Callers disagree - mark as Artifact due to inconsistency
-        if debug:
-            print(f"DEBUG: Callers disagree -> Artifact")
+        # Tie between classifications - mark as Artifact due to disagreement
         return 'Artifact'
 
 

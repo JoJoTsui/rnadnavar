@@ -145,14 +145,21 @@ def compute_unified_classification_consensus(variant_data, snv_threshold, indel_
     if not individual_filters:
         return 'Artifact'
     
-    # 3. NEW: Check for inconsistent classifications if ≥2 callers
-    if len(individual_filters) >= 2:
-        unique_classifications = set(individual_filters)
-        # If multiple different classifications, mark as Artifact
-        if len(unique_classifications) > 1:
-            return 'Artifact'
+    # 2. Check if enough callers for consensus
+    if caller_count < required_threshold:
+        return 'NoConsensus'
     
-    # 4. Use majority vote with priority: Somatic > Germline > Reference > Artifact
+    # 3. Use majority vote among classifications
+    classification_counts = Counter(individual_filters)
+    max_count = max(classification_counts.values())
+    majority_classifications = [cls for cls, count in classification_counts.items() if count == max_count]
+    
+    if len(majority_classifications) == 1:
+        # Clear majority
+        return majority_classifications[0]
+    else:
+        # Tie in majority vote - indicates disagreement
+        return 'Artifact'
     classification_counts = Counter(individual_filters)
     max_count = max(classification_counts.values())
     most_common = [cls for cls, count in classification_counts.items() if count == max_count]
@@ -166,9 +173,10 @@ def compute_unified_classification_consensus(variant_data, snv_threshold, indel_
 ```
 
 #### Key Changes:
-1. **NoConsensus Priority**: Variants not meeting consensus threshold are immediately classified as NoConsensus
-2. **Inconsistency Detection**: Variants with ≥2 callers having different classifications are marked as Artifact
-3. **Enhanced Artifact Category**: Now includes both low-quality variants AND inconsistent classifications
+1. **Caller Count Check**: Total caller count must meet the required threshold
+2. **Clear Majority Logic**: If clear majority among callers → Use majority classification
+3. **Tie Handling**: When majority vote ties → Artifact (indicates disagreement/inconsistency)
+4. **NoConsensus**: When total caller count < threshold → NoConsensus (insufficient callers)
 
 ### 8. Statistics Computation
 ```python
