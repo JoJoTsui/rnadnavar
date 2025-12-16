@@ -213,37 +213,50 @@ def compute_rescue_statistics(variant_data, dna_variants, rna_variants):
     return stats
 ```
 
-### 12. Unified Filter Computation (Rescue Mode)
+### 12. Unified Filter Computation (Rescue Mode) - UPDATED
 ```python
-# Rescue mode uses deterministic DNA/RNA consensus rule
-def compute_unified_filter_rescue(variant_data):
+def compute_unified_classification_rescue(variant_data, modality_map):
     # Get consensus labels from DNA and RNA if present
     dna_label = None
     rna_label = None
     
     for i, caller in enumerate(variant_data['callers']):
-        if is_consensus_caller(caller):
+        if caller.endswith('_consensus'):
             if 'DNA' in caller.upper():
                 dna_label = variant_data['filters_normalized'][i]
             elif 'RNA' in caller.upper():
                 rna_label = variant_data['filters_normalized'][i]
     
-    # Apply rescue consensus rules:
-    # 1) If DNA and RNA have same label, use it
-    # 2) If one modality has label and other doesn't, use the labeled modality
-    # 3) If different labels, take DNA modality's consensus label
+    # Apply NEW rescue consensus rules:
     if dna_label and rna_label:
+        # Both DNA and RNA consensus available
         if dna_label == rna_label:
-            unified_classification = dna_label
+            # Same classification - use it
+            return dna_label
+        elif dna_label == 'Artifact' and rna_label == 'Artifact':
+            # Both are Artifact
+            return 'Artifact'
+        elif dna_label != 'Artifact' and rna_label != 'Artifact':
+            # Different non-Artifact classifications - inconsistent
+            return 'Artifact'
         else:
-            unified_classification = dna_label  # DNA takes priority
+            # One is Artifact, other is not - take DNA priority
+            return dna_label
     elif dna_label and not rna_label:
-        unified_classification = dna_label
+        # Only DNA consensus available
+        return dna_label
     elif rna_label and not dna_label:
-        unified_classification = rna_label
+        # Only RNA consensus available
+        return rna_label
     else:
-        unified_classification = 'Artifact'  # No consensus labels present
+        # No consensus labels present
+        return 'NoConsensus'
 ```
+
+#### Key Changes:
+1. **Enhanced Artifact Logic**: Cross-modality inconsistency (e.g., DNA=Somatic, RNA=Germline) → Artifact
+2. **NoConsensus Category**: No consensus labels available → NoConsensus (instead of Artifact)
+3. **Consistent Artifact Handling**: Both DNA and RNA having Artifact → Artifact
 
 ### 13. Output VCF Generation with Rescue Fields
 ```python
@@ -327,11 +340,13 @@ rescued = has_dna_support and has_rna_support
 - May rescue variants that failed consensus in one modality
 - Can identify additional cross-modality variants
 
-### Unified Filter Priority (Rescue Mode)
+### Unified Filter Priority (Rescue Mode) - UPDATED
 1. If DNA and RNA consensus agree → use agreed classification
-2. If only one modality has consensus → use that classification  
-3. If DNA and RNA consensus disagree → **DNA takes priority**
-4. If no consensus labels → default to 'Artifact'
+2. If both DNA and RNA are 'Artifact' → Artifact
+3. If DNA and RNA have different non-Artifact classifications → **Artifact** (inconsistent)
+4. If only one modality has consensus → use that classification  
+5. If one is Artifact and other is not → **DNA takes priority**
+6. If no consensus labels → **NoConsensus** (instead of Artifact)
 
 ### Additional INFO Fields (Rescue Mode Only)
 - **Modality tracking**: `MODALITIES`, `CALLERS_BY_MODALITY`

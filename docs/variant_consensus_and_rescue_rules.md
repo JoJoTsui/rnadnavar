@@ -12,6 +12,14 @@ This document defines the exact rules and logic for variant consensus calling wi
 - **Caller**: Individual variant calling algorithm (mutect2, strelka, deepsomatic)
 - **Consensus Caller**: Aggregated results from within-modality consensus (dna_consensus, rna_consensus)
 
+### Biological Classification Categories
+All variants are classified into exactly one biological category:
+1. **Somatic**: High-confidence somatic variants specific to tumor
+2. **Germline**: Germline variants detected in normal sample  
+3. **Reference**: Reference calls (no variant detected)
+4. **Artifact**: Low quality variants, technical artifacts, OR variants with inconsistent classifications across callers (consensus mode)
+5. **NoConsensus**: Variants that don't meet consensus thresholds or don't fit other categories (rescue mode)
+
 ### Variant Key Generation
 Variants are uniquely identified by normalized genomic coordinates:
 ```python
@@ -34,14 +42,30 @@ def is_snv(ref, alt_list):
     return True
 ```
 
-## Biological Classification System
+## Updated Biological Classification System
 
-### Classification Categories
-All variants are classified into exactly one biological category:
-1. **Somatic**: High-confidence somatic variants specific to tumor
-2. **Germline**: Germline variants detected in normal sample  
-3. **Reference**: Reference calls (no variant detected)
-4. **Artifact**: Low quality variants or technical artifacts
+The classification system has been enhanced to handle inconsistent classifications and consensus thresholds:
+
+### Key Changes in Classification Logic
+
+#### 1. New Artifact Category (Consensus Mode)
+In consensus mode, variants are now classified as **Artifact** if:
+- They have ≥2 callers detecting the variant BUT
+- The callers have inconsistent biological classifications
+
+**Example**: If mutect2 classifies a variant as "Somatic" but strelka classifies it as "Germline", the final classification becomes "Artifact" due to inconsistency.
+
+#### 2. New NoConsensus Category (Rescue Mode)  
+In rescue mode, variants are classified as **NoConsensus** if:
+- No DNA or RNA consensus labels are available, OR
+- The variant doesn't fit into Somatic, Germline, Reference, or Artifact categories
+
+#### 3. Enhanced Artifact Logic (Rescue Mode)
+In rescue mode, variants are classified as **Artifact** if:
+- Both DNA and RNA consensus have 'Artifact' classification, OR
+- DNA and RNA have different non-Artifact classifications (inconsistent)
+
+**Example**: If DNA consensus is "Somatic" but RNA consensus is "Germline", the final classification becomes "Artifact" due to cross-modality inconsistency.
 
 ### Caller-Specific Classification Rules
 
@@ -129,11 +153,15 @@ def determine_consensus(variant_data, snv_threshold, indel_threshold):
     return passes_consensus
 ```
 
-### Unified Filter Computation (Consensus Mode)
-For within-modality consensus, use majority vote across individual callers:
+### Unified Filter Computation (Consensus Mode) - UPDATED
+For within-modality consensus, new logic handles inconsistent classifications:
 ```python
-def compute_unified_filter_consensus(variant_data):
-    # Exclude consensus callers, use only individual callers
+def compute_unified_classification_consensus(variant_data, snv_threshold, indel_threshold):
+    # 1. Check consensus threshold first
+    if not variant_data.get('passes_consensus', False):
+        return 'NoConsensus'
+    
+    # 2. Get individual caller classifications (exclude consensus callers)
     individual_filters = [
         variant_data['filters_normalized'][i] 
         for i, caller in enumerate(variant_data['callers']) 
@@ -143,12 +171,18 @@ def compute_unified_filter_consensus(variant_data):
     if not individual_filters:
         return 'Artifact'
     
-    # Count classifications
+    # 3. NEW: Check for inconsistent classifications if ≥2 callers
+    if len(individual_filters) >= 2:
+        unique_classifications = set(individual_filters)
+        # If multiple different classifications, mark as Artifact
+        if len(unique_classifications) > 1:
+            return 'Artifact'
+    
+    # 4. Use majority vote with priority: Somatic > Germline > Reference > Artifact
     classification_counts = Counter(individual_filters)
     max_count = max(classification_counts.values())
     most_common = [cls for cls, count in classification_counts.items() if count == max_count]
     
-    # Break ties using priority: Somatic > Germline > Reference > Artifact
     priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
     for cls in priority:
         if cls in most_common:
@@ -198,10 +232,10 @@ def mark_rescued_variants(variant_data, dna_consensus_keys, rna_consensus_keys):
     return variant_data
 ```
 
-### Unified Filter Computation (Rescue Mode)
-For cross-modality rescue, use deterministic DNA/RNA consensus rule:
+### Unified Filter Computation (Rescue Mode) - UPDATED
+For cross-modality rescue, enhanced logic handles inconsistent classifications:
 ```python
-def compute_unified_filter_rescue(variant_data):
+def compute_unified_classification_rescue(variant_data, modality_map):
     # Get consensus labels from DNA and RNA if present
     dna_label = None
     rna_label = None
@@ -213,21 +247,30 @@ def compute_unified_filter_rescue(variant_data):
             elif 'RNA' in caller.upper():
                 rna_label = variant_data['filters_normalized'][i]
     
-    # Apply rescue consensus rules:
-    # 1) If DNA and RNA have same label, use it
-    # 2) If one modality has label and other doesn't, use the labeled modality
-    # 3) If different labels, take DNA modality's consensus label
+    # Apply NEW rescue consensus rules:
     if dna_label and rna_label:
+        # Both DNA and RNA consensus available
         if dna_label == rna_label:
+            # Same classification - use it
             return dna_label
+        elif dna_label == 'Artifact' and rna_label == 'Artifact':
+            # Both are Artifact
+            return 'Artifact'
+        elif dna_label != 'Artifact' and rna_label != 'Artifact':
+            # Different non-Artifact classifications - inconsistent
+            return 'Artifact'
         else:
-            return dna_label  # DNA takes priority
+            # One is Artifact, other is not - take DNA priority
+            return dna_label
     elif dna_label and not rna_label:
+        # Only DNA consensus available
         return dna_label
     elif rna_label and not dna_label:
+        # Only RNA consensus available
         return rna_label
     else:
-        return 'Artifact'  # No consensus labels present
+        # No consensus labels present
+        return 'NoConsensus'
 ```
 
 ## Genotype Aggregation Rules
@@ -317,17 +360,24 @@ def aggregate_genotypes(genotypes_by_caller, callers_order):
 
 ## Output FILTER Field Rules
 
-### Biological Category FILTER Values
+### Biological Category FILTER Values - UPDATED
 - **Somatic**: High-confidence somatic variant specific to tumor
 - **Germline**: Germline variant detected in normal sample
 - **Reference**: Reference call - no variant detected
-- **Artifact**: Low quality variant or technical artifact
-- **NoConsensus**: Does not meet consensus threshold (overrides biological classification)
+- **Artifact**: Low quality variant, technical artifact, OR variants with inconsistent classifications across callers
+- **NoConsensus**: Does not meet consensus threshold or does not fit other classification categories
 
-### FILTER Assignment Logic
-1. **Consensus Mode**: Use unified biological classification from majority vote
-2. **Rescue Mode**: Use deterministic DNA/RNA consensus rule
-3. **NoConsensus Override**: If variant doesn't meet consensus threshold, set FILTER=NoConsensus
+### FILTER Assignment Logic - UPDATED
+1. **Consensus Mode**: 
+   - If variant doesn't meet consensus threshold → NoConsensus
+   - If ≥2 callers detect variant but have inconsistent classifications → Artifact
+   - Otherwise use majority vote with priority: Somatic > Germline > Reference > Artifact
+2. **Rescue Mode**: 
+   - If DNA has 'Artifact' and RNA has 'Artifact' → Artifact
+   - If DNA and RNA have different non-Artifact classifications → Artifact
+   - If no consensus labels available → NoConsensus
+   - Otherwise use DNA/RNA consensus rule with DNA priority for conflicts
+3. **Priority Order**: Somatic > Germline > Reference > Artifact > NoConsensus
 
 ## Statistical Reporting
 

@@ -142,7 +142,9 @@ def main():
         out_file, 
         args.output_format, 
         all_callers,
-        modality_map=None
+        modality_map=None,
+        snv_threshold=args.snv_thr,
+        indel_threshold=args.indel_thr
     )
     
     print(f"\n{'='*60}")

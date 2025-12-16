@@ -128,28 +128,47 @@ def aggregate_genotypes(genotypes_by_caller, callers_order):
     }
 ```
 
-### 7. Unified Filter Computation (Consensus Mode)
+### 7. Unified Filter Computation (Consensus Mode) - UPDATED
 ```python
-# Use majority vote across individual callers (exclude consensus callers)
-actual_filters_normalized = [
-    data['filters_normalized'][i] 
-    for i, c in enumerate(data['callers']) 
-    if not is_consensus_caller(c)
-]
-
-if actual_filters_normalized:
-    classification_counts = Counter(actual_filters_normalized)
+def compute_unified_classification_consensus(variant_data, snv_threshold, indel_threshold):
+    # 1. Check consensus threshold first
+    if not variant_data.get('passes_consensus', False):
+        return 'NoConsensus'
+    
+    # 2. Get individual caller classifications (exclude consensus callers)
+    individual_filters = [
+        variant_data['filters_normalized'][i] 
+        for i, caller in enumerate(variant_data['callers']) 
+        if not caller.endswith('_consensus')
+    ]
+    
+    if not individual_filters:
+        return 'Artifact'
+    
+    # 3. NEW: Check for inconsistent classifications if ≥2 callers
+    if len(individual_filters) >= 2:
+        unique_classifications = set(individual_filters)
+        # If multiple different classifications, mark as Artifact
+        if len(unique_classifications) > 1:
+            return 'Artifact'
+    
+    # 4. Use majority vote with priority: Somatic > Germline > Reference > Artifact
+    classification_counts = Counter(individual_filters)
     max_count = max(classification_counts.values())
     most_common = [cls for cls, count in classification_counts.items() if count == max_count]
     
-    # Break ties using priority: Somatic > Germline > Reference > Artifact
     priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
-    unified_classification = most_common[0]
     for cls in priority:
         if cls in most_common:
-            unified_classification = cls
-            break
+            return cls
+    
+    return most_common[0]  # Fallback
 ```
+
+#### Key Changes:
+1. **NoConsensus Priority**: Variants not meeting consensus threshold are immediately classified as NoConsensus
+2. **Inconsistency Detection**: Variants with ≥2 callers having different classifications are marked as Artifact
+3. **Enhanced Artifact Category**: Now includes both low-quality variants AND inconsistent classifications
 
 ### 8. Statistics Computation
 ```python
@@ -224,11 +243,12 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file,
 - All callers treated as same modality
 - No modality-specific INFO fields generated
 
-### Biological Classification Priority
+### Biological Classification Priority - UPDATED
 1. **Somatic** (highest priority in tie-breaking)
 2. **Germline**
 3. **Reference** 
-4. **Artifact** (lowest priority)
+4. **Artifact** (includes inconsistent classifications)
+5. **NoConsensus** (lowest priority - threshold not met)
 
 ### INFO Fields Generated (Consensus Mode)
 - Caller tracking: `N_CALLERS`, `CALLERS`, `N_SUPPORT_CALLERS`, `CALLERS_SUPPORT`
@@ -237,9 +257,9 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file,
 - Quality stats: `QUAL_MEAN/MIN/MAX`
 - Genotype stats: `CONSENSUS_GT`, `GT_BY_CALLER`, `DP_MEAN/MIN/MAX`, `VAF_MEAN/MIN/MAX`
 
-### FILTER Values Used
+### FILTER Values Used - UPDATED
 - **Somatic**: High-confidence somatic variants
 - **Germline**: Germline variants
 - **Reference**: Reference calls
-- **Artifact**: Low-quality variants
-- **NoConsensus**: Variants below consensus threshold (overrides biological classification)
+- **Artifact**: Low-quality variants OR variants with inconsistent classifications across callers
+- **NoConsensus**: Variants below consensus threshold or not fitting other categories

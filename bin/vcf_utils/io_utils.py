@@ -360,17 +360,15 @@ def create_output_header(template_header, sample_name, include_rescue_fields=Fal
     add_filter_safe(new_header, 'Somatic', None, None, 'High-confidence somatic variant specific to tumor')
     add_filter_safe(new_header, 'Germline', None, None, 'Germline variant detected in normal sample')
     add_filter_safe(new_header, 'Reference', None, None, 'Reference call - no variant detected')
-    add_filter_safe(new_header, 'Artifact', None, None, 'Low quality variant or technical artifact')
-    
-    # Additional filter for consensus threshold
-    add_filter_safe(new_header, 'NoConsensus', None, None, 'Does not meet consensus threshold (overrides classification)')
+    add_filter_safe(new_header, 'Artifact', None, None, 'Low quality variant, technical artifact, or inconsistent classifications across callers')
+    add_filter_safe(new_header, 'NoConsensus', None, None, 'Does not meet consensus threshold or does not fit other classification categories')
     
     return new_header
 
 
 
 def write_union_vcf(variant_data, template_header, sample_name, out_file, output_format, 
-                    all_callers, modality_map=None):
+                    all_callers, modality_map=None, snv_threshold=2, indel_threshold=2):
     """
     Write union VCF with all variants and aggregated information using pysam.
     
@@ -394,6 +392,10 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
             CROSS_MODALITY, DP_DNA_MEAN, DP_RNA_MEAN, VAF_DNA_MEAN, VAF_RNA_MEAN).
             Caller names will be prefixed with modality (e.g., DNA_mutect2).
             Default: None
+        snv_threshold (int, optional): SNV consensus threshold for classification logic.
+            Default: 2
+        indel_threshold (int, optional): Indel consensus threshold for classification logic.
+            Default: 2
     
     Returns:
         int: Number of variants written to the output file.
@@ -581,60 +583,19 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
         record.info['FILTERS_NORMALIZED'] = '|'.join(prefixed_filters_normalized) if prefixed_filters_normalized else '.'
         record.info['FILTERS_CATEGORY'] = '|'.join(prefixed_filters_category) if prefixed_filters_category else '.'
         
-        # Determine unified biological classification
-        # Rescue mode (modality_map present): apply deterministic DNA/RNA consensus rule
-        # Consensus mode (no modality_map): use individual caller majority vote
+        # Determine unified biological classification using new classification functions
+        from vcf_utils.classification import compute_unified_classification_consensus, compute_unified_classification_rescue
+        
         if modality_map:
-            # Get consensus labels from DNA and RNA if present
-            dna_label = None
-            rna_label = None
-            for i, c in enumerate(data['callers']):
-                if is_consensus_caller(c):
-                    if 'DNA' in c.upper():
-                        dna_label = data['filters_normalized'][i]
-                    elif 'RNA' in c.upper():
-                        rna_label = data['filters_normalized'][i]
-            # Apply rescue consensus rules:
-            # 1) If DNA and RNA have the same label, use it
-            # 2) If one modality has a label and the other does not, use the labeled modality's label
-            # 3) Otherwise (different labels), take DNA modality's consensus label
-            unified_classification = None
-            if dna_label and rna_label:
-                if dna_label == rna_label:
-                    unified_classification = dna_label
-                else:
-                    unified_classification = dna_label
-            elif dna_label and not rna_label:
-                unified_classification = dna_label
-            elif rna_label and not dna_label:
-                unified_classification = rna_label
-            else:
-                # No consensus labels present; default to Artifact
-                unified_classification = 'Artifact'
-            record.info['UNIFIED_FILTER'] = unified_classification
-            record.filter.clear()
-            record.filter.add(unified_classification)
+            # Rescue mode: use new rescue classification logic
+            unified_classification = compute_unified_classification_rescue(data, modality_map)
         else:
-            # Within-modality consensus: majority vote over individual callers
-            actual_filters_normalized = [data['filters_normalized'][i] for i, c in enumerate(data['callers']) if not is_consensus_caller(c)]
-            if actual_filters_normalized:
-                classification_counts = Counter(actual_filters_normalized)
-                max_count = max(classification_counts.values())
-                most_common = [cls for cls, count in classification_counts.items() if count == max_count]
-                # Break ties using priority: Somatic > Germline > Reference > Artifact
-                priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
-                unified_classification = most_common[0]
-                for cls in priority:
-                    if cls in most_common:
-                        unified_classification = cls
-                        break
-                record.info['UNIFIED_FILTER'] = unified_classification
-                record.filter.clear()
-                record.filter.add(unified_classification)
-            else:
-                record.info['UNIFIED_FILTER'] = 'Artifact'
-                record.filter.clear()
-                record.filter.add('Artifact')
+            # Consensus mode: use new consensus classification logic
+            unified_classification = compute_unified_classification_consensus(data, snv_threshold, indel_threshold)
+        
+        record.info['UNIFIED_FILTER'] = unified_classification
+        record.filter.clear()
+        record.filter.add(unified_classification)
         
         # Compute modality-specific unified biological classifications if modality_map provided
         if modality_map:

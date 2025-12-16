@@ -353,7 +353,9 @@ def main():
         out_file,
         args.output_format,
         all_caller_names,
-        modality_map=modality_map
+        modality_map=modality_map,
+        snv_threshold=args.snv_thr,
+        indel_threshold=args.indel_thr
     )
     
     print("\n" + "=" * 80)

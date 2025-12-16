@@ -6,7 +6,8 @@ Provides unified classification of variants from different callers into biologic
 - Somatic: High-confidence somatic variants
 - Germline: Variants present in normal sample
 - Reference: Reference calls (no variant)
-- Artifact: Low-quality or failed filter variants
+- Artifact: Low-quality or failed filter variants, OR variants with inconsistent classifications across callers (consensus mode)
+- NoConsensus: Variants that don't meet consensus thresholds or don't fit other categories (rescue mode)
 
 This module standardizes variant classification across Strelka, DeepSomatic, and Mutect2.
 """
@@ -293,9 +294,122 @@ def get_unified_filter_headers():
         },
         {
             'ID': 'Artifact',
-            'Description': 'Low quality variant or technical artifact'
+            'Description': 'Low quality variant, technical artifact, or inconsistent classifications across callers'
+        },
+        {
+            'ID': 'NoConsensus',
+            'Description': 'Does not meet consensus threshold or does not fit other classification categories'
         }
     ]
+
+
+def compute_unified_classification_consensus(variant_data, snv_threshold, indel_threshold):
+    """
+    Compute unified biological classification for consensus mode.
+    
+    New logic for consensus mode:
+    1. If variant doesn't meet consensus threshold -> NoConsensus
+    2. If ≥2 callers detect variant but have inconsistent classifications -> Artifact
+    3. Otherwise use majority vote with priority: Somatic > Germline > Reference > Artifact
+    
+    Args:
+        variant_data (dict): Aggregated variant data with 'callers', 'filters_normalized', 
+                           'is_snv', and 'passes_consensus' fields
+        snv_threshold (int): SNV consensus threshold
+        indel_threshold (int): Indel consensus threshold
+    
+    Returns:
+        str: Unified biological classification
+    """
+    from collections import Counter
+    
+    # Check consensus threshold first
+    if not variant_data.get('passes_consensus', False):
+        return 'NoConsensus'
+    
+    # Get individual caller classifications (exclude consensus callers)
+    individual_filters = []
+    for i, caller in enumerate(variant_data['callers']):
+        if not caller.endswith('_consensus'):
+            if i < len(variant_data['filters_normalized']):
+                individual_filters.append(variant_data['filters_normalized'][i])
+    
+    if not individual_filters:
+        return 'Artifact'
+    
+    # Check for inconsistent classifications if ≥2 callers
+    if len(individual_filters) >= 2:
+        unique_classifications = set(individual_filters)
+        # If multiple different classifications, mark as Artifact
+        if len(unique_classifications) > 1:
+            return 'Artifact'
+    
+    # Use majority vote with priority
+    classification_counts = Counter(individual_filters)
+    max_count = max(classification_counts.values())
+    most_common = [cls for cls, count in classification_counts.items() if count == max_count]
+    
+    # Break ties using priority: Somatic > Germline > Reference > Artifact
+    priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
+    for cls in priority:
+        if cls in most_common:
+            return cls
+    
+    return most_common[0]  # Fallback
+
+
+def compute_unified_classification_rescue(variant_data, modality_map):
+    """
+    Compute unified biological classification for rescue mode.
+    
+    New logic for rescue mode:
+    1. Use DNA/RNA consensus labels if available (DNA priority for conflicts)
+    2. If DNA has 'Artifact' and RNA has 'Artifact' -> Artifact
+    3. If DNA and RNA have different non-Artifact classifications -> Artifact
+    4. If no consensus labels available -> NoConsensus
+    
+    Args:
+        variant_data (dict): Aggregated variant data with 'callers' and 'filters_normalized'
+        modality_map (dict): Maps caller names to modalities ('DNA' or 'RNA')
+    
+    Returns:
+        str: Unified biological classification
+    """
+    # Get consensus labels from DNA and RNA if present
+    dna_label = None
+    rna_label = None
+    
+    for i, caller in enumerate(variant_data['callers']):
+        if caller.endswith('_consensus'):
+            if 'DNA' in caller.upper():
+                dna_label = variant_data['filters_normalized'][i]
+            elif 'RNA' in caller.upper():
+                rna_label = variant_data['filters_normalized'][i]
+    
+    # Apply rescue consensus rules:
+    if dna_label and rna_label:
+        # Both DNA and RNA consensus available
+        if dna_label == rna_label:
+            # Same classification - use it
+            return dna_label
+        elif dna_label == 'Artifact' and rna_label == 'Artifact':
+            # Both are Artifact
+            return 'Artifact'
+        elif dna_label != 'Artifact' and rna_label != 'Artifact':
+            # Different non-Artifact classifications - inconsistent
+            return 'Artifact'
+        else:
+            # One is Artifact, other is not - take DNA priority
+            return dna_label
+    elif dna_label and not rna_label:
+        # Only DNA consensus available
+        return dna_label
+    elif rna_label and not dna_label:
+        # Only RNA consensus available
+        return rna_label
+    else:
+        # No consensus labels present
+        return 'NoConsensus'
 
 
 def get_classification_info_headers():
@@ -310,7 +424,7 @@ def get_classification_info_headers():
             'ID': 'VC',
             'Number': '1',
             'Type': 'String',
-            'Description': 'Variant Classification: Somatic, Germline, Reference, or Artifact'
+            'Description': 'Variant Classification: Somatic, Germline, Reference, Artifact, or NoConsensus'
         },
         {
             'ID': 'VC_CALLERS',
