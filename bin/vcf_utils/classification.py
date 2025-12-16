@@ -303,70 +303,95 @@ def get_unified_filter_headers():
     ]
 
 
-def compute_unified_classification_consensus(variant_data, snv_threshold, indel_threshold):
+def compute_unified_classification_consensus(variant_data, snv_threshold, indel_threshold, debug=False):
     """
     Compute unified biological classification for consensus mode.
     
-    New logic for consensus mode:
-    1. If variant doesn't meet consensus threshold -> NoConsensus
-    2. If ≥2 callers detect variant but have inconsistent classifications -> Artifact
-    3. Otherwise use majority vote with priority: Somatic > Germline > Reference > Artifact
+    CORRECTED logic for consensus mode:
+    1. Check if variant meets consensus threshold based on caller count
+    2. If meets threshold but callers disagree -> Artifact  
+    3. If meets threshold and callers agree -> Use agreed classification
+    4. If doesn't meet threshold -> NoConsensus
+    5. Future: Check quality-based Artifact rules (low AD/DP)
     
     Args:
-        variant_data (dict): Aggregated variant data with 'callers', 'filters_normalized', 
-                           'is_snv', and 'passes_consensus' fields
+        variant_data (dict): Aggregated variant data with 'callers', 'filters_normalized', 'is_snv'
         snv_threshold (int): SNV consensus threshold
         indel_threshold (int): Indel consensus threshold
+        debug (bool): Enable debug output
     
     Returns:
         str: Unified biological classification
     """
     from collections import Counter
     
-    # Check consensus threshold first
-    if not variant_data.get('passes_consensus', False):
-        return 'NoConsensus'
-    
     # Get individual caller classifications (exclude consensus callers)
     individual_filters = []
+    individual_callers = []
     for i, caller in enumerate(variant_data['callers']):
         if not caller.endswith('_consensus'):
             if i < len(variant_data['filters_normalized']):
                 individual_filters.append(variant_data['filters_normalized'][i])
+                individual_callers.append(caller)
+    
+    if debug:
+        print(f"DEBUG: Individual callers: {individual_callers}")
+        print(f"DEBUG: Individual filters: {individual_filters}")
     
     if not individual_filters:
+        if debug:
+            print("DEBUG: No individual callers -> NoConsensus")
+        return 'NoConsensus'  # No individual callers
+    
+    # Determine required threshold based on variant type
+    required_threshold = snv_threshold if variant_data.get('is_snv', True) else indel_threshold
+    caller_count = len(individual_filters)
+    
+    if debug:
+        print(f"DEBUG: Caller count: {caller_count}, Required threshold: {required_threshold}")
+    
+    # Check if variant meets consensus threshold
+    if caller_count < required_threshold:
+        if debug:
+            print(f"DEBUG: Below threshold -> NoConsensus")
+        return 'NoConsensus'
+    
+    # Check for classification consistency among callers
+    unique_classifications = set(individual_filters)
+    
+    if debug:
+        print(f"DEBUG: Unique classifications: {unique_classifications}")
+    
+    if len(unique_classifications) == 1:
+        # All callers agree - use the agreed classification
+        agreed_classification = list(unique_classifications)[0]
+        
+        if debug:
+            print(f"DEBUG: All callers agree -> {agreed_classification}")
+        
+        # Future extension point: Add quality-based Artifact rules here
+        # if is_low_quality_artifact(variant_data, agreed_classification):
+        #     return 'Artifact'
+        
+        return agreed_classification
+    else:
+        # Callers disagree - mark as Artifact due to inconsistency
+        if debug:
+            print(f"DEBUG: Callers disagree -> Artifact")
         return 'Artifact'
-    
-    # Check for inconsistent classifications if ≥2 callers
-    if len(individual_filters) >= 2:
-        unique_classifications = set(individual_filters)
-        # If multiple different classifications, mark as Artifact
-        if len(unique_classifications) > 1:
-            return 'Artifact'
-    
-    # Use majority vote with priority
-    classification_counts = Counter(individual_filters)
-    max_count = max(classification_counts.values())
-    most_common = [cls for cls, count in classification_counts.items() if count == max_count]
-    
-    # Break ties using priority: Somatic > Germline > Reference > Artifact
-    priority = ['Somatic', 'Germline', 'Reference', 'Artifact']
-    for cls in priority:
-        if cls in most_common:
-            return cls
-    
-    return most_common[0]  # Fallback
 
 
 def compute_unified_classification_rescue(variant_data, modality_map):
     """
     Compute unified biological classification for rescue mode.
     
-    New logic for rescue mode:
-    1. Use DNA/RNA consensus labels if available (DNA priority for conflicts)
-    2. If DNA has 'Artifact' and RNA has 'Artifact' -> Artifact
-    3. If DNA and RNA have different non-Artifact classifications -> Artifact
-    4. If no consensus labels available -> NoConsensus
+    CORRECTED logic for rescue mode:
+    1. First check if we have consensus labels from each modality
+    2. If both modalities have consensus -> Apply cross-modality rules
+    3. If only one modality has consensus -> Use that consensus
+    4. If no consensus labels -> Check individual caller patterns
+    5. Single callers or insufficient cross-modality support -> NoConsensus
+    6. Future: Add quality-based Artifact rules
     
     Args:
         variant_data (dict): Aggregated variant data with 'callers' and 'filters_normalized'
@@ -375,41 +400,132 @@ def compute_unified_classification_rescue(variant_data, modality_map):
     Returns:
         str: Unified biological classification
     """
-    # Get consensus labels from DNA and RNA if present
-    dna_label = None
-    rna_label = None
+    # Step 1: Extract consensus labels from DNA and RNA modalities
+    dna_consensus_label = None
+    rna_consensus_label = None
     
     for i, caller in enumerate(variant_data['callers']):
         if caller.endswith('_consensus'):
             if 'DNA' in caller.upper():
-                dna_label = variant_data['filters_normalized'][i]
+                dna_consensus_label = variant_data['filters_normalized'][i]
             elif 'RNA' in caller.upper():
-                rna_label = variant_data['filters_normalized'][i]
+                rna_consensus_label = variant_data['filters_normalized'][i]
     
-    # Apply rescue consensus rules:
-    if dna_label and rna_label:
-        # Both DNA and RNA consensus available
-        if dna_label == rna_label:
-            # Same classification - use it
-            return dna_label
-        elif dna_label == 'Artifact' and rna_label == 'Artifact':
-            # Both are Artifact
+    # Step 2: Apply cross-modality consensus rules
+    if dna_consensus_label and rna_consensus_label:
+        # Both modalities have consensus
+        if dna_consensus_label == rna_consensus_label:
+            # Agreement across modalities - use agreed classification
+            return dna_consensus_label
+        elif dna_consensus_label == 'Artifact' and rna_consensus_label == 'Artifact':
+            # Both modalities are Artifact
             return 'Artifact'
-        elif dna_label != 'Artifact' and rna_label != 'Artifact':
-            # Different non-Artifact classifications - inconsistent
+        elif dna_consensus_label != 'Artifact' and rna_consensus_label != 'Artifact':
+            # Cross-modality disagreement on non-Artifact classifications
             return 'Artifact'
         else:
-            # One is Artifact, other is not - take DNA priority
-            return dna_label
-    elif dna_label and not rna_label:
-        # Only DNA consensus available
-        return dna_label
-    elif rna_label and not dna_label:
-        # Only RNA consensus available
-        return rna_label
+            # One modality is Artifact, other is not - use DNA priority
+            return dna_consensus_label
+    
+    # Step 3: Single modality consensus available
+    elif dna_consensus_label and not rna_consensus_label:
+        return dna_consensus_label
+    elif rna_consensus_label and not dna_consensus_label:
+        return rna_consensus_label
+    
+    # Step 4: No consensus labels - analyze individual caller patterns
     else:
-        # No consensus labels present
-        return 'NoConsensus'
+        # Get individual callers by modality (exclude consensus callers)
+        dna_callers = []
+        rna_callers = []
+        
+        for i, caller in enumerate(variant_data['callers']):
+            if not caller.endswith('_consensus'):
+                modality = modality_map.get(caller, 'UNKNOWN')
+                if modality == 'DNA' and i < len(variant_data['filters_normalized']):
+                    dna_callers.append(variant_data['filters_normalized'][i])
+                elif modality == 'RNA' and i < len(variant_data['filters_normalized']):
+                    rna_callers.append(variant_data['filters_normalized'][i])
+        
+        # Check if we have sufficient cross-modality support
+        has_dna_support = len(dna_callers) > 0
+        has_rna_support = len(rna_callers) > 0
+        
+        if not (has_dna_support and has_rna_support):
+            # Insufficient cross-modality support
+            return 'NoConsensus'
+        
+        # Check for cross-modality consistency
+        dna_classifications = set(dna_callers)
+        rna_classifications = set(rna_callers)
+        
+        # If both modalities have consistent internal classifications
+        if len(dna_classifications) == 1 and len(rna_classifications) == 1:
+            dna_class = list(dna_classifications)[0]
+            rna_class = list(rna_classifications)[0]
+            
+            if dna_class == rna_class:
+                # Cross-modality agreement
+                # Future extension point: Add quality-based Artifact rules here
+                # if is_low_quality_artifact(variant_data, dna_class):
+                #     return 'Artifact'
+                return dna_class
+            else:
+                # Cross-modality disagreement
+                return 'Artifact'
+        else:
+            # Internal inconsistency within modalities
+            return 'Artifact'
+
+
+def is_low_quality_artifact(variant_data, proposed_classification, min_dp=10, min_vaf=0.05):
+    """
+    Future extension: Check if variant should be classified as Artifact based on quality metrics.
+    
+    This function provides a framework for quality-based Artifact classification that can be
+    enabled in the future. Currently returns False (disabled) but can be extended with:
+    - Low allelic depth (AD) thresholds
+    - Low total depth (DP) thresholds  
+    - Low variant allele frequency (VAF) thresholds
+    - Strand bias metrics
+    - Mapping quality thresholds
+    
+    Args:
+        variant_data (dict): Aggregated variant data with genotype information
+        proposed_classification (str): The classification that would be assigned
+        min_dp (int): Minimum depth threshold (default: 10)
+        min_vaf (float): Minimum VAF threshold (default: 0.05)
+    
+    Returns:
+        bool: True if variant should be classified as Artifact based on quality
+    """
+    # Currently disabled - return False to use proposed_classification
+    # Future implementation could check:
+    
+    # # Skip quality checks for Reference calls (expected to have low VAF)
+    # if proposed_classification == 'Reference':
+    #     return False
+    # 
+    # # Get aggregated genotype statistics
+    # gt_agg = variant_data.get('gt_aggregated', {})
+    # 
+    # # Check depth thresholds
+    # mean_dp = gt_agg.get('dp_mean')
+    # if mean_dp is not None and mean_dp < min_dp:
+    #     return True
+    # 
+    # # Check VAF thresholds for non-Reference calls
+    # mean_vaf = gt_agg.get('vaf_mean')
+    # if mean_vaf is not None and mean_vaf < min_vaf:
+    #     return True
+    # 
+    # # Future: Add more quality checks here
+    # # - Strand bias detection
+    # # - Mapping quality thresholds
+    # # - Allelic depth ratios
+    # # - Base quality scores
+    
+    return False
 
 
 def get_classification_info_headers():

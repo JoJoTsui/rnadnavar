@@ -647,12 +647,12 @@ def write_union_vcf(variant_data, template_header, sample_name, out_file, output
                             break
                     record.info['UNIFIED_FILTER_RNA'] = rna_unified
         
-        # Add consensus flag and override FILTER if needed
+        # Add consensus flag for informational purposes (but don't override FILTER)
+        # The FILTER field is now set by the classification functions above
         record.info['PASSES_CONSENSUS'] = 'YES' if data['passes_consensus'] else 'NO'
-        if not data['passes_consensus']:
-            # Override FILTER with NoConsensus if variant doesn't meet threshold
-            record.filter.clear()
-            record.filter.add('NoConsensus')
+        
+        # Note: We no longer override FILTER here because the classification functions
+        # already handle NoConsensus assignment based on more sophisticated logic
         
         # Add modality-specific consensus flags if modality_map provided
         if modality_map:
