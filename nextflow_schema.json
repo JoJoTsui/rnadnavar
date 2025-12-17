@@ -531,14 +531,6 @@
                     "fa_icon": "fas fa-tachometer-alt",
                     "description": "Enable performance metrics collection.",
                     "help_text": "When enabled, collects performance metrics, processing statistics, and operational data for monitoring and reporting."
-                },
-                "cosmic_gnomad_temp_dir": {
-                    "type": "string",
-                    "default": "/tmp",
-                    "fa_icon": "fas fa-folder-open",
-                    "description": "Temporary directory for COSMIC/gnomAD processing.",
-                    "help_text": "Directory for temporary files during annotation processing. Should have sufficient space for intermediate files.",
-                    "hidden": true
                 }
             }
         },
