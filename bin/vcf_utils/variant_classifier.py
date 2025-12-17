@@ -265,36 +265,19 @@ class VariantClassifier:
             logger.debug(f"Classified as Somatic Rescue: {result.evidence_summary}")
             return result
         
-        # Rule 4: No classification criteria met → Preserve original or assign based on quality
+        # Rule 4: No classification criteria met → PRESERVE ORIGINAL FILTER (Conservative approach)
         self.stats['unchanged_count'] += 1
         
-        # Determine classification based on original filter and evidence quality
-        if evidence.original_filter in ["PASS", "Somatic"]:
-            # If originally passed but doesn't meet new criteria, check evidence quality
-            if (evidence.dna_caller_support > 0 or evidence.rna_caller_support > 0):
-                classification = "Somatic"  # Some evidence, keep as somatic
-                confidence = "Low"
-            else:
-                classification = "Artifact"  # No caller support
-                confidence = "Medium"
-        elif evidence.original_filter in ["Germline"]:
-            classification = "Germline"
-            confidence = "Low"
-        elif evidence.original_filter in ["Artifact", "LowQuality", "LowDepth"]:
-            classification = "Artifact"
-            confidence = "Medium"
-        else:
-            classification = "Artifact"  # Default for unknown filters
-            confidence = "Low"
-        
+        # Conservative approach: Only change FILTER when there's strong evidence
+        # Otherwise, preserve the original classification
         result = ClassificationResult(
-            classification=classification,
-            confidence=confidence,
-            evidence_summary=f"No strong evidence, based on original filter: {evidence.original_filter}",
+            classification=evidence.original_filter,  # Keep original FILTER unchanged
+            confidence="Unchanged",
+            evidence_summary=f"Insufficient evidence for reclassification, preserving original: {evidence.original_filter}",
             rescue_flag=False
         )
         
-        logger.debug(f"Preserved/assigned classification: {result.classification} ({result.evidence_summary})")
+        logger.debug(f"Preserved original classification: {result.classification} ({result.evidence_summary})")
         return result
     
     def classify_variant_from_info(self, variant_info: Dict[str, Any]) -> ClassificationResult:

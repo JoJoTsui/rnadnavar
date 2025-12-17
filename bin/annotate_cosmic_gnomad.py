@@ -363,23 +363,32 @@ class CosmicGnomadAnnotator:
                         classification_result = self.classifier.classify_variant_from_info(variant_info)
                         new_classification = classification_result.classification
                         
-                        # Update FILTER field based on classification
-                        if new_classification == "Germline":
+                        # Conservative approach: Only update FILTER when there's strong evidence
+                        # Otherwise preserve original FILTER and add INFO flags for rescue cases
+                        
+                        if new_classification == "Germline" and original_filter != "Germline":
+                            # Strong evidence for germline - update FILTER
                             record.filter.clear()
                             record.filter.add("Germline")
-                        elif new_classification == "Somatic":
+                            logger.debug(f"Updated {record.chrom}:{record.pos} to Germline based on population frequency")
+                            
+                        elif new_classification == "Somatic" and classification_result.rescue_flag:
+                            # Somatic rescue case - update FILTER and add INFO flag
                             record.filter.clear()
                             record.filter.add("Somatic")
-                            # Add rescue flag if applicable (log instead of adding to avoid header issues)
-                            if classification_result.rescue_flag:
-                                logger.info(f"Variant {record.chrom}:{record.pos} rescued through cross-modality support")
-                                # Note: Somatic_Rescue flag not added to VCF to avoid header complications
-                        elif new_classification == "Artifact":
+                            logger.info(f"Variant {record.chrom}:{record.pos} rescued to Somatic through cross-modality support")
+                            # Note: Could add INFO flag here if header allows
+                            
+                        elif new_classification == "Somatic" and original_filter != "Somatic" and classification_result.confidence == "High":
+                            # High-confidence somatic (unanimous callers) - update FILTER
                             record.filter.clear()
-                            record.filter.add("Artifact")
+                            record.filter.add("Somatic")
+                            logger.debug(f"Updated {record.chrom}:{record.pos} to Somatic based on unanimous caller support")
+                            
                         else:
-                            # Keep original filter for unclassified variants
-                            pass
+                            # Insufficient evidence for reclassification - preserve original FILTER
+                            logger.debug(f"Preserving original FILTER {original_filter} for {record.chrom}:{record.pos} - insufficient evidence")
+                            # Keep original filter unchanged
                         
                         # Track new FILTER
                         final_filter = record.filter.keys()[0] if record.filter.keys() else 'PASS'
