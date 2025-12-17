@@ -21,7 +21,7 @@ Date: 2025-12-17
 """
 
 import logging
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -218,17 +218,23 @@ class VariantClassifier:
             self.stats['germline_count'] += 1
             self.stats['evidence_distribution']['population_frequency'] += 1
             
+            # Determine if this is a rescue (non-Germline → Germline)
+            is_rescue = evidence.original_filter.lower() != "germline"
+            
             result = ClassificationResult(
                 classification="Germline",
                 confidence="High",
                 evidence_summary=f"Population frequency {evidence.population_frequency:.4f} > {self.germline_freq_threshold}",
-                rescue_flag=False
+                rescue_flag=is_rescue  # Rescue if changing from non-Germline to Germline
             )
             
-            logger.debug(f"Classified as Germline: {result.evidence_summary}")
+            if is_rescue:
+                logger.debug(f"Germline Rescue: {evidence.original_filter} → Germline ({result.evidence_summary})")
+            else:
+                logger.debug(f"Confirmed Germline: {result.evidence_summary}")
             return result
         
-        # Rule 2: Unanimous DNA caller support → High-confidence Somatic
+        # Rule 2: Unanimous DNA caller support → High-confidence Somatic (if not already Somatic)
         if (evidence.total_dna_callers > 0 and 
             evidence.dna_caller_support >= self.somatic_consensus_threshold and
             evidence.dna_caller_support == evidence.total_dna_callers):
@@ -236,17 +242,23 @@ class VariantClassifier:
             self.stats['somatic_count'] += 1
             self.stats['evidence_distribution']['dna_consensus'] += 1
             
+            # Determine if this is a rescue (non-Somatic → Somatic)
+            is_rescue = evidence.original_filter.lower() != "somatic"
+            
             result = ClassificationResult(
                 classification="Somatic",
                 confidence="High",
                 evidence_summary=f"Unanimous DNA caller support ({evidence.dna_caller_support}/{evidence.total_dna_callers})",
-                rescue_flag=False
+                rescue_flag=is_rescue  # Rescue if changing from non-Somatic to Somatic
             )
             
-            logger.debug(f"Classified as Somatic: {result.evidence_summary}")
+            if is_rescue:
+                logger.debug(f"Somatic Rescue (unanimous): {evidence.original_filter} → Somatic ({result.evidence_summary})")
+            else:
+                logger.debug(f"Confirmed Somatic: {result.evidence_summary}")
             return result
         
-        # Rule 3: Cross-modality support + COSMIC recurrence → Somatic Rescue
+        # Rule 3: Cross-modality support + COSMIC recurrence → Somatic Rescue (if not already Somatic)
         if (evidence.has_cross_modality and 
             evidence.cosmic_recurrence is not None and
             evidence.cosmic_recurrence >= self.cosmic_recurrence_threshold):
@@ -255,14 +267,20 @@ class VariantClassifier:
             self.stats['evidence_distribution']['cross_modality'] += 1
             self.stats['evidence_distribution']['cosmic_recurrence'] += 1
             
+            # Determine if this is a rescue (non-Somatic → Somatic)
+            is_rescue = evidence.original_filter.lower() != "somatic"
+            
             result = ClassificationResult(
                 classification="Somatic",
                 confidence="Medium",
                 evidence_summary=f"Cross-modality support (DNA:{evidence.dna_caller_support}, RNA:{evidence.rna_caller_support}) + COSMIC recurrence {evidence.cosmic_recurrence}",
-                rescue_flag=True
+                rescue_flag=is_rescue  # Rescue if changing from non-Somatic to Somatic
             )
             
-            logger.debug(f"Classified as Somatic Rescue: {result.evidence_summary}")
+            if is_rescue:
+                logger.debug(f"Somatic Rescue (cross-modality): {evidence.original_filter} → Somatic ({result.evidence_summary})")
+            else:
+                logger.debug(f"Confirmed Somatic: {result.evidence_summary}")
             return result
         
         # Rule 4: No classification criteria met → PRESERVE ORIGINAL FILTER (Conservative approach)
@@ -518,7 +536,7 @@ Examples:
             for i, result in enumerate(results):
                 logger.info(f"  Variant {i+1}: {result.classification} ({result.confidence}) - {result.evidence_summary}")
                 if result.rescue_flag:
-                    logger.info(f"    RESCUE FLAG SET")
+                    logger.info("    RESCUE FLAG SET")
             
             classifier.log_classification_summary()
             
