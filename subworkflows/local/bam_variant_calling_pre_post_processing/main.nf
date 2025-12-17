@@ -52,6 +52,11 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     rediportal_tbi                  // channel: [optional]  REDIportal database index
     min_rna_support                 // val: minimum RNA caller support threshold
     enable_rna_annotation           // val: boolean to enable/disable RNA editing annotation
+    cosmic_vcf                      // channel: [optional]  COSMIC database VCF
+    cosmic_tbi                      // channel: [optional]  COSMIC database index
+    gnomad_dir                      // channel: [optional]  gnomAD database directory
+    enable_cosmic_gnomad_annotation // val: boolean to enable/disable COSMIC/gnomAD annotation
+    cosmic_gnomad_verbose           // val: boolean to enable verbose logging
 
     main:
     reports   = Channel.empty()
@@ -179,7 +184,12 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
             rediportal_vcf,
             rediportal_tbi,
             min_rna_support,
-            enable_rna_annotation
+            enable_rna_annotation,
+            cosmic_vcf,
+            cosmic_tbi,
+            gnomad_dir,
+            enable_cosmic_gnomad_annotation,
+            cosmic_gnomad_verbose
         )
         filtered_rescue_vcf          = VCF_RESCUE_POST_PROCESSING.out.vcf
         filtered_rescue_vcf_stripped = VCF_RESCUE_POST_PROCESSING.out.vcf_stripped

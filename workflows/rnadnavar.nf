@@ -159,6 +159,13 @@ workflow RNADNAVAR {
     min_rna_support         = params.min_rna_support ?: 2
     enable_rna_annotation   = params.enable_rna_annotation ?: false
 
+    // COSMIC/gnomAD annotation parameters
+    cosmic_vcf                      = params.cosmic_database ? Channel.fromPath(params.cosmic_database).collect() : Channel.empty()
+    cosmic_tbi                      = params.cosmic_database ? Channel.fromPath(params.cosmic_database + '.tbi').collect() : Channel.empty()
+    gnomad_dir                      = params.gnomad_database ? Channel.fromPath(params.gnomad_database).collect() : Channel.empty()
+    enable_cosmic_gnomad_annotation = params.enable_cosmic_gnomad_annotation ?: true
+    cosmic_gnomad_verbose           = params.cosmic_gnomad_verbose ?: false
+
     // 5 MAIN STEPS: GATK PREPROCESING - VARIANT CALLING - NORMALIZATION - CONSENSUS - ANNOTATION
     BAM_PROCESSING(
         input_sample,
@@ -190,6 +197,11 @@ workflow RNADNAVAR {
         rediportal_tbi,
         min_rna_support,
         enable_rna_annotation,
+        cosmic_vcf,
+        cosmic_tbi,
+        gnomad_dir,
+        enable_cosmic_gnomad_annotation,
+        cosmic_gnomad_verbose,
     )
     filtered_maf = BAM_PROCESSING.out.maf
     reports = reports.mix(BAM_PROCESSING.out.reports)
@@ -245,6 +257,11 @@ workflow RNADNAVAR {
             rediportal_tbi,
             min_rna_support,
             enable_rna_annotation,
+            cosmic_vcf,
+            cosmic_tbi,
+            gnomad_dir,
+            enable_cosmic_gnomad_annotation,
+            cosmic_gnomad_verbose,
         )
 
         reports = reports.mix(REALIGNMENT.out.reports)
