@@ -22,6 +22,11 @@ nextflow_workflow {
                 input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
                 input[3] = 2
                 input[4] = true
+                input[5] = Channel.empty()  // cosmic_vcf (not provided)
+                input[6] = Channel.empty()  // cosmic_tbi (not provided)
+                input[7] = Channel.empty()  // gnomad_dir (not provided)
+                input[8] = false            // enable_cosmic_gnomad_annotation (disabled for this test)
+                input[9] = false            // cosmic_gnomad_verbose
                 """
             }
         }
@@ -68,7 +73,12 @@ nextflow_workflow {
                 input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
                 input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
                 input[3] = 2
-                input[4] = false  // RNA editing disabled
+                input[4] = false            // RNA editing disabled
+                input[5] = Channel.empty()  // cosmic_vcf (not provided)
+                input[6] = Channel.empty()  // cosmic_tbi (not provided)
+                input[7] = Channel.empty()  // gnomad_dir (not provided)
+                input[8] = false            // enable_cosmic_gnomad_annotation (disabled for this test)
+                input[9] = false            // cosmic_gnomad_verbose
                 """
             }
         }
@@ -108,8 +118,13 @@ nextflow_workflow {
                 ])
                 input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
                 input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
-                input[3] = 5  // Custom min_rna_support threshold
+                input[3] = 5                // Custom min_rna_support threshold
                 input[4] = true
+                input[5] = Channel.empty()  // cosmic_vcf (not provided)
+                input[6] = Channel.empty()  // cosmic_tbi (not provided)
+                input[7] = Channel.empty()  // gnomad_dir (not provided)
+                input[8] = false            // enable_cosmic_gnomad_annotation (disabled for this test)
+                input[9] = false            // cosmic_gnomad_verbose
                 """
             }
         }
@@ -147,6 +162,11 @@ nextflow_workflow {
                 input[2] = file('nonexistent_rediportal.vcf.gz.tbi')
                 input[3] = 2
                 input[4] = true
+                input[5] = Channel.empty()  // cosmic_vcf (not provided)
+                input[6] = Channel.empty()  // cosmic_tbi (not provided)
+                input[7] = Channel.empty()  // gnomad_dir (not provided)
+                input[8] = false            // enable_cosmic_gnomad_annotation (disabled for this test)
+                input[9] = false            // cosmic_gnomad_verbose
                 """
             }
         }
@@ -190,6 +210,11 @@ nextflow_workflow {
                 input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
                 input[3] = 2
                 input[4] = true
+                input[5] = Channel.empty()  // cosmic_vcf (not provided)
+                input[6] = Channel.empty()  // cosmic_tbi (not provided)
+                input[7] = Channel.empty()  // gnomad_dir (not provided)
+                input[8] = false            // enable_cosmic_gnomad_annotation (disabled for this test)
+                input[9] = false            // cosmic_gnomad_verbose
                 """
             }
         }
@@ -226,6 +251,11 @@ nextflow_workflow {
                 input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
                 input[3] = 2
                 input[4] = true
+                input[5] = Channel.empty()  // cosmic_vcf (not provided)
+                input[6] = Channel.empty()  // cosmic_tbi (not provided)
+                input[7] = Channel.empty()  // gnomad_dir (not provided)
+                input[8] = false            // enable_cosmic_gnomad_annotation (disabled for this test)
+                input[9] = false            // cosmic_gnomad_verbose
                 """
             }
         }
@@ -254,6 +284,53 @@ nextflow_workflow {
                 // Verify outputs are properly structured
                 { assert workflow.out.vcf.size() == 1 },
                 { assert workflow.out.vcf_stripped.size() == 1 }
+            )
+        }
+    }
+
+    test("Final integration - both annotations disabled") {
+
+        when {
+            workflow {
+                """
+                input[0] = Channel.of([
+                    [ id:'test_sample' ], 
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz', checkIfExists: true),
+                    file('${projectDir}/tests/data/test_rescue.vcf.gz.tbi', checkIfExists: true)
+                ])
+                input[1] = file('${projectDir}/tests/data/test_rediportal.vcf.gz', checkIfExists: true)
+                input[2] = file('${projectDir}/tests/data/test_rediportal.vcf.gz.tbi', checkIfExists: true)
+                input[3] = 2
+                input[4] = false            // RNA editing disabled
+                input[5] = Channel.empty()  // cosmic_vcf (not provided)
+                input[6] = Channel.empty()  // cosmic_tbi (not provided)
+                input[7] = Channel.empty()  // gnomad_dir (not provided)
+                input[8] = false            // enable_cosmic_gnomad_annotation (disabled)
+                input[9] = false            // cosmic_gnomad_verbose
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                // Should succeed with both annotations disabled
+                { assert workflow.success },
+                { assert workflow.trace.succeeded().size() > 0 },
+                
+                // Should NOT execute either annotation
+                { assert !workflow.trace.tasks().any { it.name.contains('COSMIC_GNOMAD_ANNOTATION') } },
+                { assert !workflow.trace.tasks().any { it.name.contains('RNA_EDITING_ANNOTATION') } },
+                
+                // Should still execute VCF rescue filtering
+                { assert workflow.trace.tasks().any { it.name.contains('VCF_RESCUE_FILTERING') } },
+                
+                // Should produce outputs
+                { assert workflow.out.vcf.size() == 1 },
+                { assert workflow.out.vcf_stripped.size() == 1 },
+                { assert workflow.out.versions.size() > 0 },
+                
+                // Verify no task failures
+                { assert workflow.trace.failed().size() == 0 }
             )
         }
     }

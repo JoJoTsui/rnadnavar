@@ -67,31 +67,18 @@ workflow VCF_RESCUE_POST_PROCESSING {
     if (enable_cosmic_gnomad_annotation) {
         log.info "Starting COSMIC/gnomAD annotation process..."
         
-        try {
-            COSMIC_GNOMAD_ANNOTATION(
-                vcf_rescue,
-                cosmic_vcf ?: file('NO_FILE'),
-                cosmic_tbi ?: file('NO_FILE'),
-                gnomad_dir ?: file('NO_FILE'),
-                cosmic_gnomad_verbose
-            )
-            
-            // Check if annotation completed successfully
-            vcf_after_cosmic_gnomad = COSMIC_GNOMAD_ANNOTATION.out.vcf
-            versions = versions.mix(COSMIC_GNOMAD_ANNOTATION.out.versions)
-            
-            log.info "COSMIC/gnomAD annotation completed successfully"
-            
-        } catch (Exception e) {
-            log.error "COSMIC/gnomAD annotation failed: ${e.getMessage()}"
-            log.warn "Implementing graceful fallback - proceeding with original rescue VCF"
-            
-            // Graceful fallback to original rescue VCF on annotation failure
-            vcf_after_cosmic_gnomad = vcf_rescue
-            
-            // Log fallback action for monitoring
-            log.info "Graceful fallback implemented - workflow continues with unannotated VCF"
-        }
+        COSMIC_GNOMAD_ANNOTATION(
+            vcf_rescue,
+            cosmic_vcf,
+            cosmic_tbi,
+            gnomad_dir,
+            cosmic_gnomad_verbose
+        )
+        
+        vcf_after_cosmic_gnomad = COSMIC_GNOMAD_ANNOTATION.out.vcf
+        versions = versions.mix(COSMIC_GNOMAD_ANNOTATION.out.versions)
+        
+        log.info "COSMIC/gnomAD annotation completed successfully"
     } else {
         log.info "COSMIC/gnomAD annotation disabled - proceeding to RNA annotation"
         vcf_after_cosmic_gnomad = vcf_rescue
@@ -101,71 +88,30 @@ workflow VCF_RESCUE_POST_PROCESSING {
     if (enable_rna_annotation) {
         log.info "Starting RNA editing annotation process..."
         
-        try {
-            RNA_EDITING_ANNOTATION(
-                vcf_after_cosmic_gnomad,
-                rediportal_vcf,
-                rediportal_tbi,
-                min_rna_support
-            )
-            
-            // Check if annotation completed successfully
-            vcf_for_filtering = RNA_EDITING_ANNOTATION.out.vcf
-            versions = versions.mix(RNA_EDITING_ANNOTATION.out.versions)
-            
-            log.info "RNA editing annotation completed successfully"
-            
-        } catch (Exception e) {
-            log.error "RNA editing annotation failed: ${e.getMessage()}"
-            log.warn "Implementing graceful fallback - proceeding with COSMIC/gnomAD annotated VCF"
-            
-            // Graceful fallback to COSMIC/gnomAD annotated VCF on RNA annotation failure
-            vcf_for_filtering = vcf_after_cosmic_gnomad
-            
-            // Log fallback action for monitoring
-            log.info "Graceful fallback implemented - workflow continues with COSMIC/gnomAD annotated VCF"
-        }
+        RNA_EDITING_ANNOTATION(
+            vcf_after_cosmic_gnomad,
+            rediportal_vcf,
+            rediportal_tbi,
+            min_rna_support
+        )
+        
+        vcf_for_filtering = RNA_EDITING_ANNOTATION.out.vcf
+        versions = versions.mix(RNA_EDITING_ANNOTATION.out.versions)
+        
+        log.info "RNA editing annotation completed successfully"
     } else {
         log.info "RNA editing annotation disabled - proceeding directly to filtering"
         vcf_for_filtering = vcf_after_cosmic_gnomad
     }
     
-    // Validate input to filtering step
-    vcf_for_filtering
-        .ifEmpty { 
-            log.error "No VCF files available for filtering step"
-            error "VCF rescue post-processing failed: no input files for filtering"
-        }
-        .subscribe { meta, vcf, tbi ->
-            log.debug "Filtering input validated for sample: ${meta.id}"
-            log.debug "VCF file: ${vcf}"
-            log.debug "Index file: ${tbi}"
-        }
-    
-    // Rescue VCF filtering with error handling
+    // Rescue VCF filtering
     log.info "Starting VCF rescue filtering process..."
     
-    try {
-        VCF_RESCUE_FILTERING(vcf_for_filtering)
-        
-        versions = versions.mix(VCF_RESCUE_FILTERING.out.versions)
-        
-        log.info "VCF rescue filtering completed successfully"
-        
-        // Validate filtering outputs
-        VCF_RESCUE_FILTERING.out.vcf
-            .ifEmpty {
-                log.error "VCF rescue filtering produced no output files"
-                error "VCF rescue filtering failed: no output files generated"
-            }
-            .subscribe { meta, vcf, tbi ->
-                log.debug "Filtering output validated for sample: ${meta.id}"
-            }
-            
-    } catch (Exception e) {
-        log.error "VCF rescue filtering failed: ${e.getMessage()}"
-        error "VCF rescue post-processing failed at filtering step: ${e.getMessage()}"
-    }
+    VCF_RESCUE_FILTERING(vcf_for_filtering)
+    
+    versions = versions.mix(VCF_RESCUE_FILTERING.out.versions)
+    
+    log.info "VCF rescue filtering completed successfully"
     
     // Final validation and logging
     log.info "VCF rescue post-processing workflow completed"
