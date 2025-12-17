@@ -33,7 +33,7 @@ process RNA_EDITING_ANNOTATION {
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python --version 2>&1 | sed 's/Python //g')
-        pysam: \$(python -c "try: import pysam; print(pysam.__version__); except ImportError: print('not available')" 2>/dev/null || echo "not available")
+        pysam: \$(python -c "import pysam; print(pysam.__version__);" 2>/dev/null || echo "not available")
         bcftools: \$(bcftools --version 2>&1 | head -n1 | sed 's/^.*bcftools //; s/ .*\$//' || echo "not available")
     END_VERSIONS
     """
