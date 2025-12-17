@@ -14,11 +14,8 @@ process RNA_EDITING_ANNOTATION {
     val min_rna_support
 
     output:
-    tuple val(meta), path("*.vcf.gz"), path("*.vcf.gz.tbi"), emit: vcf
+    tuple val(meta), path("*.rna_annotated.vcf.gz"), path("*.rna_annotated.vcf.gz.tbi"), emit: vcf
     path "versions.yml", emit: versions
-
-    when:
-    task.ext.when == null || task.ext.when
 
     script:
     def args = task.ext.args ?: ''

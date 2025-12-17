@@ -32,40 +32,27 @@ workflow VCF_RESCUE_POST_PROCESSING {
     log.info "Min RNA support threshold: ${min_rna_support}"
     log.info "REDIportal VCF provided: ${rediportal_vcf ? 'Yes' : 'No'}"
     
-    // Validate input parameters with comprehensive error handling
-    if (enable_cosmic_gnomad_annotation) {
-        // Validate database availability
-        if (!cosmic_vcf && !gnomad_dir) {
-            log.warn "COSMIC/gnomAD annotation enabled but no databases provided"
-            log.warn "Disabling COSMIC/gnomAD annotation and proceeding with RNA annotation"
-            enable_cosmic_gnomad_annotation = false
-        } else {
-            log.info "COSMIC/gnomAD annotation will be performed"
-            if (cosmic_vcf) log.info "  - COSMIC database: ${cosmic_vcf}"
-            if (gnomad_dir) log.info "  - gnomAD database: ${gnomad_dir}"
-        }
-    }
+    // Determine actual execution flags based on input validation
+    def run_cosmic_gnomad = enable_cosmic_gnomad_annotation && (cosmic_vcf || gnomad_dir)
+    def run_rna_annotation = enable_rna_annotation && rediportal_vcf
+    def validated_min_rna_support = (min_rna_support < 1) ? 2 : min_rna_support
     
-    if (enable_rna_annotation) {
-        // Validate REDIportal database availability
-        if (!rediportal_vcf) {
-            log.warn "RNA annotation enabled but REDIportal VCF not provided"
-            log.warn "Disabling RNA annotation and proceeding with direct filtering"
-            enable_rna_annotation = false
-        } else {
-            log.info "RNA editing annotation will be performed using REDIportal database"
-        }
-        
-        // Validate min_rna_support parameter
-        if (min_rna_support < 1) {
-            log.warn "Invalid min_rna_support value: ${min_rna_support}. Setting to default value of 2"
-            min_rna_support = 2
-        }
+    // Log validation results
+    if (enable_cosmic_gnomad_annotation && !run_cosmic_gnomad) {
+        log.warn "COSMIC/gnomAD annotation enabled but no databases provided - skipping"
+    }
+    if (enable_rna_annotation && !run_rna_annotation) {
+        log.warn "RNA annotation enabled but REDIportal VCF not provided - skipping"
+    }
+    if (min_rna_support < 1) {
+        log.warn "Invalid min_rna_support value: ${min_rna_support}. Using default value of 2"
     }
     
     // COSMIC/gnomAD annotation (conditional with error handling)
-    if (enable_cosmic_gnomad_annotation) {
-        log.info "Starting COSMIC/gnomAD annotation process..."
+    if (run_cosmic_gnomad) {
+        log.info "COSMIC/gnomAD annotation will be performed"
+        if (cosmic_vcf) log.info "  - COSMIC database: ${cosmic_vcf}"
+        if (gnomad_dir) log.info "  - gnomAD database: ${gnomad_dir}"
         
         COSMIC_GNOMAD_ANNOTATION(
             vcf_rescue,
@@ -77,48 +64,31 @@ workflow VCF_RESCUE_POST_PROCESSING {
         
         vcf_after_cosmic_gnomad = COSMIC_GNOMAD_ANNOTATION.out.vcf
         versions = versions.mix(COSMIC_GNOMAD_ANNOTATION.out.versions)
-        
-        log.info "COSMIC/gnomAD annotation completed successfully"
     } else {
-        log.info "COSMIC/gnomAD annotation disabled - proceeding to RNA annotation"
         vcf_after_cosmic_gnomad = vcf_rescue
     }
 
     // RNA editing annotation (conditional with error handling)
-    if (enable_rna_annotation) {
-        log.info "Starting RNA editing annotation process..."
+    if (run_rna_annotation) {
+        log.info "RNA editing annotation will be performed using REDIportal database"
         
         RNA_EDITING_ANNOTATION(
             vcf_after_cosmic_gnomad,
             rediportal_vcf,
             rediportal_tbi,
-            min_rna_support
+            validated_min_rna_support
         )
         
         vcf_for_filtering = RNA_EDITING_ANNOTATION.out.vcf
         versions = versions.mix(RNA_EDITING_ANNOTATION.out.versions)
-        
-        log.info "RNA editing annotation completed successfully"
     } else {
-        log.info "RNA editing annotation disabled - proceeding directly to filtering"
         vcf_for_filtering = vcf_after_cosmic_gnomad
     }
     
-    // Rescue VCF filtering
-    log.info "Starting VCF rescue filtering process..."
-    
+    // Rescue VCF filtering (always executed)
     VCF_RESCUE_FILTERING(vcf_for_filtering)
     
     versions = versions.mix(VCF_RESCUE_FILTERING.out.versions)
-    
-    log.info "VCF rescue filtering completed successfully"
-    
-    // Final validation and logging
-    log.info "VCF rescue post-processing workflow completed"
-    log.info "Output channels:"
-    log.info "  - Filtered VCF: available"
-    log.info "  - Stripped VCF: available" 
-    log.info "  - Versions: collected"
 
     emit:
     vcf                 = VCF_RESCUE_FILTERING.out.vcf
