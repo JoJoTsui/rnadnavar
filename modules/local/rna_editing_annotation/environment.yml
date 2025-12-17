@@ -9,6 +9,3 @@ dependencies:
   - bcftools=1.21
   - htslib=1.21
   - psutil=5.9.0
-  - pip
-  - pip:
-    - argparse
