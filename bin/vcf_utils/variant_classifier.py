@@ -116,8 +116,8 @@ class VariantClassifier:
         evidence = ClassificationEvidence()
         
         # Extract population frequency from gnomAD
-        # Try multiple gnomAD frequency fields in order of preference
-        freq_fields = ['GNOMAD_FAF95', 'GNOMAD_AF', 'AF', 'faf95']
+        # Try multiple gnomAD frequency fields in order of preference (prioritize renamed fields)
+        freq_fields = ['GNOMAD_AF', 'GNOMAD_FAF95', 'AF', 'faf95']
         for field in freq_fields:
             if field in variant_info and variant_info[field] is not None:
                 try:
@@ -140,8 +140,8 @@ class VariantClassifier:
                     logger.debug(f"Could not parse frequency field {field}: {e}")
                     continue
         
-        # Extract COSMIC recurrence
-        cosmic_fields = ['GENOME_SCREEN_SAMPLE_COUNT', 'COSMIC_CNT', 'COSMIC_ID']
+        # Extract COSMIC recurrence (prioritize renamed fields)
+        cosmic_fields = ['COSMIC_CNT', 'GENOME_SCREEN_SAMPLE_COUNT', 'COSMIC_ID']
         for field in cosmic_fields:
             if field in variant_info and variant_info[field] is not None:
                 try:

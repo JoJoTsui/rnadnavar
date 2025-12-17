@@ -380,12 +380,12 @@ class GnomadAnnotator:
                 timeout=120  # Reduced timeout for indexing
             )
             
-            # Optimized annotation with specific field selection for performance
+            # Optimized annotation with field renaming for clear identification
             logger.debug(f"Annotating chromosome {chromosome} with gnomAD...")
             annotate_cmd = [
                 'bcftools', 'annotate',
                 '-a', str(gnomad_file),
-                '-c', 'CHROM,POS,REF,ALT,INFO/AF',  # Only extract AF field (faf95_popmax not always available)
+                '-c', 'CHROM,POS,REF,ALT,INFO/GNOMAD_AF:=INFO/AF',  # Rename AF to GNOMAD_AF for clarity
                 '-O', 'z',
                 '--threads', '2',  # Use threads for compression
                 '-o', str(chr_output),

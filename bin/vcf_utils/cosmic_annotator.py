@@ -199,12 +199,12 @@ class CosmicAnnotator:
         # Get available COSMIC annotation fields
         cosmic_fields = self.get_cosmic_annotation_fields()
         
-        # Use VCF-to-VCF annotation with specific field selection to avoid conflicts
-        # Extract only essential COSMIC fields to prevent header conflicts
+        # Use VCF-to-VCF annotation with field renaming for clear identification
+        # Extract COSMIC fields and rename them with COSMIC_ prefix for clarity
         cmd = [
             'bcftools', 'annotate',
             '-a', str(self.cosmic_vcf),
-            '-c', 'CHROM,POS,REF,ALT,INFO/GENOME_SCREEN_SAMPLE_COUNT',  # Extract specific COSMIC fields
+            '-c', 'CHROM,POS,REF,ALT,INFO/COSMIC_CNT:=INFO/GENOME_SCREEN_SAMPLE_COUNT,INFO/COSMIC_ID:=ID',
             '-o', str(self.output_vcf),
             str(self.input_vcf)
         ]
