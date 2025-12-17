@@ -88,6 +88,10 @@ workflow PIPELINE_INITIALISATION {
         params.star_index,
         params.hisat2_index,
         params.whitelist,
+        params.rediportal_vcf,
+        params.rediportal_tbi,
+        params.cosmic_database,
+        params.gnomad_database,
     ]
 
 
@@ -159,6 +163,7 @@ workflow PIPELINE_COMPLETION {
 // Check and validate pipeline parameters
 def validateInputParameters() {
     genomeExistsError()
+    validateCosmicGnomadParameters()
 }
 
 // Exit pipeline if incorrect --genome key provided
@@ -166,6 +171,55 @@ def genomeExistsError() {
     if (params.genomes && params.genome && !params.genomes.containsKey(params.genome)) {
         def error_string = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" + "  Genome '${params.genome}' not found in any config files provided to the pipeline.\n" + "  Currently, the available genome keys are:\n" + "  ${params.genomes.keySet().join(", ")}\n" + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
         error(error_string)
+    }
+}
+
+// Validate COSMIC/gnomAD annotation parameters
+def validateCosmicGnomadParameters() {
+    if (params.enable_cosmic_gnomad_annotation) {
+        // Check that at least one database is provided
+        if (!params.cosmic_database && !params.gnomad_database) {
+            def error_string = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" + 
+                "  COSMIC/gnomAD annotation is enabled but no databases are provided.\n" + 
+                "  Please provide at least one of:\n" + 
+                "    --cosmic_database: Path to COSMIC VCF database file\n" + 
+                "    --gnomad_database: Path to gnomAD database directory\n" + 
+                "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            error(error_string)
+        }
+        
+        // Validate threshold parameters
+        if (params.cosmic_gnomad_germline_freq_threshold && (params.cosmic_gnomad_germline_freq_threshold < 0 || params.cosmic_gnomad_germline_freq_threshold > 1)) {
+            def error_string = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" + 
+                "  Invalid germline frequency threshold: ${params.cosmic_gnomad_germline_freq_threshold}\n" + 
+                "  Value must be between 0 and 1.\n" + 
+                "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            error(error_string)
+        }
+        
+        if (params.cosmic_gnomad_somatic_consensus_threshold && params.cosmic_gnomad_somatic_consensus_threshold < 1) {
+            def error_string = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" + 
+                "  Invalid somatic consensus threshold: ${params.cosmic_gnomad_somatic_consensus_threshold}\n" + 
+                "  Value must be a positive integer.\n" + 
+                "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            error(error_string)
+        }
+        
+        if (params.cosmic_gnomad_cosmic_recurrence_threshold && params.cosmic_gnomad_cosmic_recurrence_threshold < 1) {
+            def error_string = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" + 
+                "  Invalid COSMIC recurrence threshold: ${params.cosmic_gnomad_cosmic_recurrence_threshold}\n" + 
+                "  Value must be a positive integer.\n" + 
+                "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            error(error_string)
+        }
+        
+        if (params.cosmic_gnomad_workers && params.cosmic_gnomad_workers < 1) {
+            def error_string = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" + 
+                "  Invalid number of workers: ${params.cosmic_gnomad_workers}\n" + 
+                "  Value must be a positive integer.\n" + 
+                "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            error(error_string)
+        }
     }
 }
 //

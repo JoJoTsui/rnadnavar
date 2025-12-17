@@ -1200,6 +1200,9 @@
             "$ref": "#/$defs/reference_genome_options"
         },
         {
+            "$ref": "#/$defs/cosmic_gnomad_annotation"
+        },
+        {
             "$ref": "#/$defs/alignment_options"
         },
         {
@@ -1239,6 +1242,25 @@
                         "format": "file-path"
                     }
                 }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "enable_cosmic_gnomad_annotation": {
+                        "const": true
+                    }
+                }
+            },
+            "then": {
+                "anyOf": [
+                    {
+                        "required": ["cosmic_database"]
+                    },
+                    {
+                        "required": ["gnomad_database"]
+                    }
+                ]
             }
         }
     ]
