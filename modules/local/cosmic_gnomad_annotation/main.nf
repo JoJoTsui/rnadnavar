@@ -15,9 +15,16 @@ process COSMIC_GNOMAD_ANNOTATION {
     val verbose_logging
 
     output:
-    tuple val(meta), path("*.vcf.gz"), path("*.vcf.gz.tbi"), emit: vcf
-    path "versions.yml", emit: versions
+    tuple val(meta), path("*.cosmic_gnomad_annotated.vcf.gz"), path("*.cosmic_gnomad_annotated.vcf.gz.tbi"), emit: vcf
+    path "*.cosmic.vcf.gz", emit: cosmic_intermediate, optional: true
+    path "*.cosmic.vcf.gz.tbi", emit: cosmic_intermediate_idx, optional: true
+    path "*.gnomad.vcf.gz", emit: gnomad_intermediate, optional: true
+    path "*.gnomad.vcf.gz.tbi", emit: gnomad_intermediate_idx, optional: true
+    path "*.final.vcf.gz", emit: final_classified, optional: true
+    path "*.final.vcf.gz.tbi", emit: final_classified_idx, optional: true
     path "*_stats.json", emit: stats, optional: true
+    path "*performance_metrics.json", emit: performance, optional: true
+    path "versions.yml", emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -29,14 +36,17 @@ process COSMIC_GNOMAD_ANNOTATION {
     def cosmic_arg = cosmic_vcf && cosmic_vcf.name != 'NO_FILE' ? "--cosmic ${cosmic_vcf}" : ''
     def gnomad_arg = gnomad_dir && gnomad_dir.name != 'NO_FILE' ? "--gnomad ${gnomad_dir}" : ''
     def stats_output = verbose_logging ? "--stats-output ${prefix}_stats.json" : ''
+    
+    // Only add workers argument if not already in args to avoid duplicates
+    def workers_arg = args.contains('--workers') ? '' : "--workers ${task.cpus}"
 
     """
     annotate_cosmic_gnomad.py \\
         --input ${vcf} \\
         ${cosmic_arg} \\
         ${gnomad_arg} \\
-        --output ${prefix}.vcf.gz \\
-        --workers ${task.cpus} \\
+        --output ${prefix}.cosmic_gnomad_annotated.vcf.gz \\
+        ${workers_arg} \\
         ${verbose} \\
         ${stats_output} \\
         ${args}
@@ -53,10 +63,18 @@ process COSMIC_GNOMAD_ANNOTATION {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     def stats_file = verbose_logging ? "${prefix}_stats.json" : ''
+    def performance_file = verbose_logging ? "${prefix}_performance_metrics.json" : ''
     """
     touch ${prefix}.cosmic_gnomad_annotated.vcf.gz
     touch ${prefix}.cosmic_gnomad_annotated.vcf.gz.tbi
+    touch ${prefix}.cosmic.vcf.gz
+    touch ${prefix}.cosmic.vcf.gz.tbi
+    touch ${prefix}.gnomad.vcf.gz
+    touch ${prefix}.gnomad.vcf.gz.tbi
+    touch ${prefix}.final.vcf.gz
+    touch ${prefix}.final.vcf.gz.tbi
     ${stats_file ? "touch ${stats_file}" : ''}
+    ${performance_file ? "touch ${performance_file}" : ''}
     
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

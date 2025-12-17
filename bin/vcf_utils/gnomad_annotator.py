@@ -24,8 +24,9 @@ import subprocess
 import os
 import time
 import glob
+import psutil
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, List, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ class GnomadAnnotator:
     data and handles chromosome-specific annotation workflows.
     """
     
-    def __init__(self, input_vcf: str, gnomad_dir: str, output_vcf: str, max_workers: int = 4):
+    def __init__(self, input_vcf: str, gnomad_dir: str, output_vcf: str, max_workers: int = None):
         """
         Initialize gnomAD annotator.
         
@@ -48,12 +49,17 @@ class GnomadAnnotator:
             input_vcf: Path to input VCF file to be annotated
             gnomad_dir: Path to gnomAD database directory containing chromosome-split files
             output_vcf: Path to output annotated VCF file
-            max_workers: Maximum number of parallel workers for chromosome processing
+            max_workers: Maximum number of parallel workers (None for auto-optimization)
         """
         self.input_vcf = Path(input_vcf)
         self.gnomad_dir = Path(gnomad_dir)
         self.output_vcf = Path(output_vcf)
-        self.max_workers = max_workers
+        
+        # Auto-optimize worker count if not specified
+        if max_workers is None:
+            self.max_workers = self._optimize_worker_count()
+        else:
+            self.max_workers = max_workers
         
         # Statistics and timing
         self.stats = {
@@ -78,6 +84,36 @@ class GnomadAnnotator:
         
         # Discover gnomAD chromosome files
         self.gnomad_files = self.discover_gnomad_files()
+    
+    def _optimize_worker_count(self) -> int:
+        """
+        Automatically determine optimal worker count based on system resources.
+        
+        Returns:
+            Optimal number of workers for parallel processing
+        """
+        try:
+            # Get system resources
+            cpu_count = psutil.cpu_count(logical=True)
+            memory_gb = psutil.virtual_memory().total / (1024**3)
+            
+            # Conservative memory estimate: ~2GB per worker for gnomAD processing
+            memory_limited_workers = max(1, int(memory_gb / 2))
+            
+            # CPU-based workers: use 75% of available cores for I/O bound tasks
+            cpu_limited_workers = max(1, int(cpu_count * 0.75))
+            
+            # Take the minimum to avoid resource exhaustion
+            optimal_workers = min(memory_limited_workers, cpu_limited_workers, 16)  # Cap at 16
+            
+            logger.info(f"Auto-optimized worker count: {optimal_workers} "
+                       f"(CPU cores: {cpu_count}, Memory: {memory_gb:.1f}GB)")
+            
+            return optimal_workers
+            
+        except Exception as e:
+            logger.warning(f"Failed to auto-optimize worker count: {e}, using default 4")
+            return 4
     
     def validate_inputs(self) -> None:
         """Validate input files exist and are accessible."""
@@ -282,7 +318,7 @@ class GnomadAnnotator:
     
     def annotate_chromosome(self, chromosome: str, gnomad_file: Path, temp_dir: Path) -> Tuple[str, Path]:
         """
-        Annotate variants for a specific chromosome using gnomAD data.
+        Annotate variants for a specific chromosome using gnomAD data with performance optimizations.
         
         Args:
             chromosome: Chromosome name (e.g., '1', 'X', 'M')
@@ -292,52 +328,66 @@ class GnomadAnnotator:
         Returns:
             Tuple of (chromosome, path to annotated chromosome VCF)
         """
-        logger.info(f"Processing chromosome {chromosome} with gnomAD annotation...")
+        chr_start_time = time.time()
+        logger.debug(f"Processing chromosome {chromosome} with gnomAD annotation...")
         
         try:
-            # Create chromosome-specific temporary files
+            # Create chromosome-specific temporary files with optimized naming
             chr_input = temp_dir / f"input_chr{chromosome}.vcf.gz"
             chr_output = temp_dir / f"annotated_chr{chromosome}.vcf.gz"
             
-            # Extract chromosome from input VCF
+            # Optimized chromosome extraction with streaming
             logger.debug(f"Extracting chromosome {chromosome} from input VCF...")
             extract_cmd = [
                 'bcftools', 'view',
                 '-r', f"chr{chromosome},{chromosome}",  # Handle both chr1 and 1 formats
                 '-O', 'z',
+                '--threads', '2',  # Use 2 threads for compression
                 '-o', str(chr_input),
                 str(self.input_vcf)
             ]
             
-            subprocess.run(
+            extract_result = subprocess.run(
                 extract_cmd,
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=600  # 10 minute timeout per chromosome
+                timeout=300  # Reduced timeout for extraction
             )
             
-            # Check if chromosome has any variants
-            if not chr_input.exists() or chr_input.stat().st_size < 100:  # Minimal VCF header size
-                logger.info(f"No variants found for chromosome {chromosome}, skipping...")
+            # Quick check for variants without full file size check
+            if not chr_input.exists():
+                logger.debug(f"No variants found for chromosome {chromosome}, skipping...")
                 return chromosome, None
             
-            # Index extracted chromosome VCF
+            # Check variant count efficiently
+            count_cmd = ['bcftools', 'view', '-H', str(chr_input)]
+            count_result = subprocess.run(count_cmd, capture_output=True, text=True, timeout=60)
+            variant_count = len([line for line in count_result.stdout.split('\n') if line.strip()])
+            
+            if variant_count == 0:
+                logger.debug(f"No variants found for chromosome {chromosome}, skipping...")
+                return chromosome, None
+            
+            logger.debug(f"Chromosome {chromosome}: {variant_count} variants to annotate")
+            
+            # Index extracted chromosome VCF with parallel compression
             subprocess.run(
                 ['tabix', '-p', 'vcf', str(chr_input)],
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=300
+                timeout=120  # Reduced timeout for indexing
             )
             
-            # Annotate with gnomAD
+            # Optimized annotation with specific field selection for performance
             logger.debug(f"Annotating chromosome {chromosome} with gnomAD...")
             annotate_cmd = [
                 'bcftools', 'annotate',
                 '-a', str(gnomad_file),
-                '-c', 'CHROM,POS,REF,ALT,INFO',  # Copy all INFO fields from gnomAD
+                '-c', 'CHROM,POS,REF,ALT,INFO/AF,INFO/faf95_popmax',  # Only extract essential fields
                 '-O', 'z',
+                '--threads', '2',  # Use threads for compression
                 '-o', str(chr_output),
                 str(chr_input)
             ]
@@ -347,7 +397,7 @@ class GnomadAnnotator:
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=1800  # 30 minute timeout per chromosome annotation
+                timeout=900  # Reduced timeout per chromosome
             )
             
             # Index annotated chromosome VCF
@@ -356,7 +406,7 @@ class GnomadAnnotator:
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=300
+                timeout=120
             )
             
             # Parse annotation statistics
@@ -367,20 +417,31 @@ class GnomadAnnotator:
                 if annotations_match:
                     annotations_added = int(annotations_match.group(1))
             
-            logger.info(f"✓ Chromosome {chromosome} annotated successfully ({annotations_added:,} annotations)")
+            chr_time = time.time() - chr_start_time
+            logger.info(f"✓ Chromosome {chromosome}: {annotations_added:,} annotations in {chr_time:.1f}s")
             
             return chromosome, chr_output
             
         except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to annotate chromosome {chromosome}: {e}")
-            logger.error(f"Command stderr: {e.stderr}")
-            raise RuntimeError(f"Chromosome {chromosome} annotation failed: {e}")
+            chr_time = time.time() - chr_start_time
+            error_msg = f"Chromosome {chromosome} annotation failed after {chr_time:.1f}s: {e}"
+            logger.error(error_msg)
+            if e.stderr:
+                logger.error(f"Command stderr: {e.stderr}")
+            # Immediate exit on failure - no graceful fallback
+            raise RuntimeError(error_msg)
         except subprocess.TimeoutExpired:
-            logger.error(f"Timeout while annotating chromosome {chromosome}")
-            raise RuntimeError(f"Chromosome {chromosome} annotation timed out")
+            chr_time = time.time() - chr_start_time
+            error_msg = f"Chromosome {chromosome} annotation timed out after {chr_time:.1f}s"
+            logger.error(error_msg)
+            # Immediate exit on timeout - no graceful fallback
+            raise RuntimeError(error_msg)
         except Exception as e:
-            logger.error(f"Unexpected error annotating chromosome {chromosome}: {e}")
-            raise
+            chr_time = time.time() - chr_start_time
+            error_msg = f"Unexpected error annotating chromosome {chromosome} after {chr_time:.1f}s: {e}"
+            logger.error(error_msg)
+            # Immediate exit on any error - no graceful fallback
+            raise RuntimeError(error_msg)
     
     def merge_annotated_chromosomes(self, annotated_files: List[Path], temp_dir: Path) -> None:
         """

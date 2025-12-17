@@ -56,7 +56,7 @@ class CosmicGnomadAnnotator:
                  gnomad_dir: Optional[str] = None,
                  output_vcf: str = None,
                  verbose: bool = False,
-                 max_workers: int = 4,
+                 max_workers: int = None,
                  classification_config: Optional[Dict[str, Any]] = None):
         """
         Initialize the main annotation engine.
@@ -67,7 +67,7 @@ class CosmicGnomadAnnotator:
             gnomad_dir: Path to gnomAD database directory (optional)
             output_vcf: Path to output annotated VCF file
             verbose: Enable verbose logging
-            max_workers: Maximum number of parallel workers for gnomAD processing
+            max_workers: Maximum number of parallel workers (None for auto-optimization)
             classification_config: Optional configuration for variant classification
         """
         self.input_vcf = Path(input_vcf)
@@ -241,27 +241,16 @@ class CosmicGnomadAnnotator:
             
         except Exception as e:
             step_time = time.time() - step_start
-            logger.error(f"COSMIC annotation failed after {step_time:.2f}s: {e}")
-            
-            # Implement graceful fallback
-            logger.warning("Implementing graceful fallback for COSMIC annotation...")
-            
-            try:
-                # Copy input to output if they're different files
-                if input_vcf != output_vcf:
-                    import shutil
-                    shutil.copy2(input_vcf, output_vcf)
-                    logger.info(f"Copied input VCF to output for fallback: {output_vcf}")
-                
-                self.stats['fallback_occurred'] = True
-                self.stats['errors'].append(f"COSMIC annotation: {e}")
-                
-                logger.warning("✓ COSMIC annotation fallback completed")
-                return False
-                
-            except Exception as fallback_error:
-                logger.error(f"COSMIC annotation fallback failed: {fallback_error}")
-                raise RuntimeError(f"COSMIC annotation and fallback both failed: {e}")
+            error_msg = f"COSMIC annotation failed after {step_time:.2f}s: {e}"
+            logger.error(error_msg)
+            logger.error("CRITICAL: COSMIC annotation failure - exiting immediately")
+            logger.error("Suggested remediation:")
+            logger.error("  1. Check COSMIC database file accessibility and format")
+            logger.error("  2. Verify COSMIC VCF is properly bgzip compressed and tabix indexed")
+            logger.error("  3. Ensure bcftools is available and functional")
+            logger.error("  4. Check file permissions and disk space")
+            # Immediate exit - no graceful fallback
+            raise RuntimeError(error_msg)
     
     def run_gnomad_annotation(self, input_vcf: Path, output_vcf: Path) -> bool:
         """
@@ -305,79 +294,120 @@ class CosmicGnomadAnnotator:
             
         except Exception as e:
             step_time = time.time() - step_start
-            logger.error(f"gnomAD annotation failed after {step_time:.2f}s: {e}")
-            
-            # Implement graceful fallback
-            logger.warning("Implementing graceful fallback for gnomAD annotation...")
-            
-            try:
-                # Copy input to output if they're different files
-                if input_vcf != output_vcf:
-                    import shutil
-                    shutil.copy2(input_vcf, output_vcf)
-                    logger.info(f"Copied input VCF to output for fallback: {output_vcf}")
-                
-                self.stats['fallback_occurred'] = True
-                self.stats['errors'].append(f"gnomAD annotation: {e}")
-                
-                logger.warning("✓ gnomAD annotation fallback completed")
-                return False
-                
-            except Exception as fallback_error:
-                logger.error(f"gnomAD annotation fallback failed: {fallback_error}")
-                raise RuntimeError(f"gnomAD annotation and fallback both failed: {e}")
+            error_msg = f"gnomAD annotation failed after {step_time:.2f}s: {e}"
+            logger.error(error_msg)
+            logger.error("CRITICAL: gnomAD annotation failure - exiting immediately")
+            logger.error("Suggested remediation:")
+            logger.error("  1. Check gnomAD database directory accessibility")
+            logger.error("  2. Verify chromosome-split VCF files are present and indexed")
+            logger.error("  3. Ensure sufficient disk space and memory")
+            logger.error("  4. Check system resource availability")
+            # Immediate exit - no graceful fallback
+            raise RuntimeError(error_msg)
     
     def run_variant_classification(self, vcf_path: Path) -> bool:
         """
-        Run multi-modal variant classification on annotated VCF.
+        Run multi-modal variant classification on annotated VCF with actual FILTER updates.
         
         Args:
             vcf_path: Path to annotated VCF file to classify
             
         Returns:
-            True if classification succeeded, False if fallback occurred
+            True if classification succeeded
         """
         step_start = time.time()
-        logger.info("Running multi-modal variant classification...")
+        logger.info("Running multi-modal variant classification with FILTER updates...")
         
         try:
-            # Create temporary file for classified output
+            # Create temporary directory for classification processing
             temp_dir = create_temp_directory(vcf_path.parent, "classification_temp")
-            classified_vcf = temp_dir / "classified.vcf"
+            classified_vcf = temp_dir / "classified.vcf.gz"
             
-            # Read and classify variants
-            import subprocess
+            # Read VCF and apply classification
+            import pysam
             
-            # Extract variant data for classification
-            cmd = ['bcftools', 'query', '-f', 
-                   '%CHROM\t%POS\t%REF\t%ALT\t%FILTER\t%INFO\n', 
-                   str(vcf_path)]
+            # Track classification statistics
+            original_filter_counts = {}
+            new_filter_counts = {}
+            classification_changes = {}
+            variants_processed = 0
             
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=1800  # 30 minute timeout
-            )
+            logger.info("Reading VCF and applying variant classification...")
             
-            # Process variants and apply classification
-            classified_count = 0
-            changes_count = 0
+            # Open input VCF for reading
+            with pysam.VariantFile(str(vcf_path)) as vcf_in:
+                # Create output VCF with same header
+                with pysam.VariantFile(str(classified_vcf), 'w', header=vcf_in.header) as vcf_out:
+                    
+                    for record in vcf_in:
+                        variants_processed += 1
+                        
+                        # Track original FILTER
+                        original_filter = record.filter.keys()[0] if record.filter.keys() else 'PASS'
+                        original_filter_counts[original_filter] = original_filter_counts.get(original_filter, 0) + 1
+                        
+                        # Extract variant information for classification
+                        variant_info = {
+                            'FILTER': original_filter,
+                            'CHROM': record.chrom,
+                            'POS': record.pos,
+                            'REF': record.ref,
+                            'ALT': str(record.alts[0]) if record.alts else None
+                        }
+                        
+                        # Add INFO fields to variant_info
+                        for key, value in record.info.items():
+                            variant_info[key] = value
+                        
+                        # Classify the variant
+                        classification_result = self.classifier.classify_variant_from_info(variant_info)
+                        new_classification = classification_result.classification
+                        
+                        # Update FILTER field based on classification
+                        if new_classification == "Germline":
+                            record.filter.clear()
+                            record.filter.add("Germline")
+                        elif new_classification == "Somatic":
+                            record.filter.clear()
+                            record.filter.add("Somatic")
+                            # Add rescue flag if applicable
+                            if classification_result.rescue_flag:
+                                record.info['Somatic_Rescue'] = True
+                        elif new_classification == "Artifact":
+                            record.filter.clear()
+                            record.filter.add("Artifact")
+                        else:
+                            # Keep original filter for unclassified variants
+                            pass
+                        
+                        # Track new FILTER
+                        final_filter = record.filter.keys()[0] if record.filter.keys() else 'PASS'
+                        new_filter_counts[final_filter] = new_filter_counts.get(final_filter, 0) + 1
+                        
+                        # Track classification changes
+                        if original_filter != final_filter:
+                            change_key = f"{original_filter} -> {final_filter}"
+                            classification_changes[change_key] = classification_changes.get(change_key, 0) + 1
+                        
+                        # Write updated record
+                        vcf_out.write(record)
             
-            # For now, we'll implement a simplified classification that updates FILTER fields
-            # In a full implementation, this would parse INFO fields and apply classification logic
+            # Index the classified VCF
+            pysam.tabix_index(str(classified_vcf), preset='vcf', force=True)
             
-            # Copy input to output with potential FILTER updates
+            # Replace original file with classified version
             import shutil
-            shutil.copy2(vcf_path, classified_vcf)
-            
-            # Get classification statistics from the classifier
-            classification_stats = self.classifier.get_classification_statistics()
-            self.stats['variants_classified'] = classification_stats.get('total_variants_classified', 0)
-            
-            # Copy classified file back to original location
             shutil.copy2(classified_vcf, vcf_path)
+            
+            # Copy index if it exists
+            classified_index = Path(str(classified_vcf) + '.tbi')
+            if classified_index.exists():
+                output_index = Path(str(vcf_path) + '.tbi')
+                shutil.copy2(classified_index, output_index)
+            
+            # Update statistics
+            self.stats['variants_classified'] = variants_processed
+            classification_stats = self.classifier.get_classification_statistics()
             
             # Clean up temporary directory
             cleanup_temp_directory(temp_dir, force=True)
@@ -385,8 +415,20 @@ class CosmicGnomadAnnotator:
             step_time = time.time() - step_start
             self.stats['processing_steps'].append(('variant_classification', step_time))
             
+            # Log detailed classification results
             logger.info(f"✓ Variant classification completed successfully ({step_time:.2f}s)")
-            logger.info(f"Variants classified: {self.stats['variants_classified']:,}")
+            logger.info(f"Variants processed: {variants_processed:,}")
+            
+            if classification_changes:
+                logger.info("FILTER reclassification changes:")
+                for change, count in sorted(classification_changes.items(), key=lambda x: x[1], reverse=True):
+                    logger.info(f"  {change}: {count:,} variants")
+            else:
+                logger.info("No FILTER reclassification changes applied")
+            
+            logger.info("Final FILTER distribution:")
+            for filter_name, count in sorted(new_filter_counts.items()):
+                logger.info(f"  {filter_name}: {count:,} variants")
             
             # Log classification summary if verbose
             if self.verbose:
@@ -396,16 +438,16 @@ class CosmicGnomadAnnotator:
             
         except Exception as e:
             step_time = time.time() - step_start
-            logger.error(f"Variant classification failed after {step_time:.2f}s: {e}")
-            
-            # Implement graceful fallback (no classification changes)
-            logger.warning("Implementing graceful fallback for variant classification...")
-            
-            self.stats['fallback_occurred'] = True
-            self.stats['errors'].append(f"Variant classification: {e}")
-            
-            logger.warning("✓ Variant classification fallback completed (no changes applied)")
-            return False
+            error_msg = f"Variant classification failed after {step_time:.2f}s: {e}"
+            logger.error(error_msg)
+            logger.error("CRITICAL: Variant classification failure - exiting immediately")
+            logger.error("Suggested remediation:")
+            logger.error("  1. Check VCF file format and accessibility")
+            logger.error("  2. Verify pysam library is available and functional")
+            logger.error("  3. Ensure sufficient disk space for temporary files")
+            logger.error("  4. Check annotation fields are present in VCF INFO")
+            # Immediate exit - no graceful fallback
+            raise RuntimeError(error_msg)
     
     def generate_statistics_report(self) -> Dict[str, Any]:
         """
@@ -526,78 +568,143 @@ class CosmicGnomadAnnotator:
     
     def run_annotation(self) -> None:
         """
-        Run the complete COSMIC/gnomAD annotation pipeline.
+        Run the complete COSMIC/gnomAD annotation pipeline with comprehensive output management.
         
         This is the main entry point that orchestrates all annotation steps:
-        1. COSMIC annotation (if database provided)
-        2. gnomAD annotation (if database provided)  
+        1. COSMIC annotation (if database provided) 
+        2. gnomAD annotation (if database provided)
         3. Multi-modal variant classification
-        4. Statistics generation and reporting
+        4. Intermediate file preservation and statistics generation
         """
         pipeline_start = time.time()
-        logger.info("Starting COSMIC/gnomAD annotation pipeline...")
+        logger.info("Starting COSMIC/gnomAD annotation pipeline with comprehensive output management...")
         
-        # Create temporary directory for intermediate files
-        temp_dir = create_temp_directory(self.output_vcf.parent if self.output_vcf else Path.cwd(), 
-                                       "cosmic_gnomad_temp")
+        # Determine output directory and base name for consistent naming
+        output_dir = self.output_vcf.parent if self.output_vcf else Path.cwd()
+        base_name = self.output_vcf.stem.replace('.vcf', '') if self.output_vcf else 'annotated'
+        
+        # Create temporary directory for processing
+        temp_dir = create_temp_directory(output_dir, "cosmic_gnomad_temp")
+        
+        # Track intermediate files for preservation
+        intermediate_files = {}
         
         try:
+            current_vcf = self.input_vcf
+            
             # Step 1: COSMIC annotation
             logger.info("Step 1: COSMIC annotation...")
             
             if self.cosmic_vcf:
-                cosmic_output = temp_dir / "cosmic_annotated.vcf.gz"
-                cosmic_success = self.run_cosmic_annotation(self.input_vcf, cosmic_output)
+                cosmic_output = output_dir / f"{base_name}.cosmic.vcf.gz"
+                self.run_cosmic_annotation(self.input_vcf, cosmic_output)
                 
-                if cosmic_success:
-                    current_vcf = cosmic_output
-                else:
-                    current_vcf = self.input_vcf
+                # Preserve COSMIC intermediate file
+                intermediate_files['cosmic'] = cosmic_output
+                current_vcf = cosmic_output
+                logger.info(f"✓ COSMIC intermediate file preserved: {cosmic_output}")
             else:
                 logger.info("COSMIC database not provided, skipping COSMIC annotation")
-                current_vcf = self.input_vcf
             
             # Step 2: gnomAD annotation
             logger.info("Step 2: gnomAD annotation...")
             
             if self.gnomad_dir:
-                gnomad_output = temp_dir / "gnomad_annotated.vcf.gz"
-                gnomad_success = self.run_gnomad_annotation(current_vcf, gnomad_output)
+                gnomad_output = output_dir / f"{base_name}.gnomad.vcf.gz"
+                self.run_gnomad_annotation(current_vcf, gnomad_output)
                 
-                if gnomad_success:
-                    current_vcf = gnomad_output
+                # Preserve gnomAD intermediate file
+                intermediate_files['gnomad'] = gnomad_output
+                current_vcf = gnomad_output
+                logger.info(f"✓ gnomAD intermediate file preserved: {gnomad_output}")
             else:
                 logger.info("gnomAD database not provided, skipping gnomAD annotation")
             
             # Step 3: Multi-modal variant classification
             logger.info("Step 3: Multi-modal variant classification...")
-            self.run_variant_classification(current_vcf)
             
-            # Step 4: Copy final result to output location
-            if self.output_vcf and current_vcf != self.output_vcf:
-                logger.info("Step 4: Finalizing output...")
+            # Create final classified output
+            final_output = output_dir / f"{base_name}.final.vcf.gz"
+            
+            # Copy current VCF to final output location for classification
+            import shutil
+            shutil.copy2(current_vcf, final_output)
+            
+            # Copy index if it exists
+            current_index = Path(str(current_vcf) + '.tbi')
+            if current_index.exists():
+                final_index = Path(str(final_output) + '.tbi')
+                shutil.copy2(current_index, final_index)
+            
+            # Apply classification to final output
+            self.run_variant_classification(final_output)
+            
+            # Step 4: Copy final result to specified output location if different
+            if self.output_vcf and final_output != self.output_vcf:
+                logger.info("Step 4: Copying to specified output location...")
                 
-                import shutil
-                shutil.copy2(current_vcf, self.output_vcf)
+                shutil.copy2(final_output, self.output_vcf)
                 
-                # Copy index if it exists
-                current_index = Path(str(current_vcf) + '.tbi')
-                if current_index.exists():
+                # Copy index
+                final_index = Path(str(final_output) + '.tbi')
+                if final_index.exists():
                     output_index = Path(str(self.output_vcf) + '.tbi')
-                    shutil.copy2(current_index, output_index)
+                    shutil.copy2(final_index, output_index)
                 
-                logger.info(f"✓ Final output created: {self.output_vcf}")
+                logger.info(f"✓ Final output copied to: {self.output_vcf}")
+            else:
+                # Use final output as the main output
+                self.output_vcf = final_output
             
-            # Step 5: Generate final statistics
-            logger.info("Step 5: Generating final statistics...")
+            # Step 5: Generate and save comprehensive statistics
+            logger.info("Step 5: Generating comprehensive statistics...")
             
             pipeline_time = time.time() - pipeline_start
             self.stats['processing_steps'].append(('total_pipeline', pipeline_time))
             
-            # Clean up temporary directory
+            # Generate statistics report
+            stats_report = self.generate_statistics_report()
+            
+            # Save statistics to JSON file in output directory
+            stats_file = output_dir / f"{base_name}.annotation_stats.json"
+            with open(stats_file, 'w') as f:
+                import json
+                json.dump(stats_report, f, indent=2, default=str)
+            
+            logger.info(f"✓ Statistics saved to: {stats_file}")
+            
+            # Save performance metrics if verbose
+            if self.verbose:
+                performance_file = output_dir / f"{base_name}.performance_metrics.json"
+                performance_data = {
+                    'processing_steps': dict(self.stats['processing_steps']),
+                    'total_time_seconds': pipeline_time,
+                    'intermediate_files': {k: str(v) for k, v in intermediate_files.items()},
+                    'worker_configuration': {
+                        'max_workers': self.max_workers,
+                        'auto_optimized': self.max_workers is None
+                    }
+                }
+                
+                with open(performance_file, 'w') as f:
+                    json.dump(performance_data, f, indent=2)
+                
+                logger.info(f"✓ Performance metrics saved to: {performance_file}")
+            
+            # Clean up temporary directory (keep intermediate files)
             cleanup_temp_directory(temp_dir, force=True)
             
-            # Log final summary
+            # Log final summary with file organization
+            logger.info("=== Output File Organization ===")
+            logger.info(f"Final annotated VCF: {self.output_vcf}")
+            
+            for step, file_path in intermediate_files.items():
+                logger.info(f"{step.upper()} intermediate: {file_path}")
+            
+            logger.info(f"Statistics: {stats_file}")
+            if self.verbose:
+                logger.info(f"Performance metrics: {performance_file}")
+            
             self.log_final_summary()
             
             logger.info("✓ COSMIC/gnomAD annotation pipeline completed successfully!")
@@ -605,13 +712,23 @@ class CosmicGnomadAnnotator:
         except Exception as e:
             logger.error(f"COSMIC/gnomAD annotation pipeline failed: {e}")
             
-            # Clean up temporary directory on error
+            # Clean up temporary directory on error (preserve any successful intermediate files)
             try:
                 cleanup_temp_directory(temp_dir, force=True)
             except Exception as cleanup_error:
                 logger.warning(f"Failed to clean up temporary directory: {cleanup_error}")
             
-            # Generate error summary
+            # Generate error summary with partial results
+            try:
+                stats_report = self.generate_statistics_report()
+                error_stats_file = output_dir / f"{base_name}.error_stats.json"
+                with open(error_stats_file, 'w') as f:
+                    import json
+                    json.dump(stats_report, f, indent=2, default=str)
+                logger.info(f"Error statistics saved to: {error_stats_file}")
+            except Exception as stats_error:
+                logger.warning(f"Failed to save error statistics: {stats_error}")
+            
             self.log_final_summary()
             raise
 
@@ -678,9 +795,9 @@ Examples:
     parser.add_argument(
         '--workers', '-w',
         type=int,
-        default=4,
+        default=None,
         metavar='N',
-        help='Maximum number of parallel workers for gnomAD processing (default: 4)'
+        help='Maximum number of parallel workers for gnomAD processing (default: auto-optimize based on system resources)'
     )
     
     parser.add_argument(
@@ -721,9 +838,105 @@ Examples:
     
     args = parser.parse_args()
     
-    # Validate arguments
+    # Comprehensive parameter validation
+    logger.info("Validating parameters and system requirements...")
+    
+    # Check required databases
     if not args.cosmic and not args.gnomad:
-        parser.error("At least one database must be provided (--cosmic or --gnomad)")
+        logger.error("CRITICAL: No annotation databases provided")
+        logger.error("At least one database must be provided (--cosmic or --gnomad)")
+        logger.error("Use --cosmic for COSMIC database or --gnomad for gnomAD directory")
+        sys.exit(1)
+    
+    # Validate input file
+    input_path = Path(args.input)
+    if not input_path.exists():
+        logger.error(f"CRITICAL: Input VCF file not found: {args.input}")
+        logger.error("Please check the file path and ensure the file exists")
+        sys.exit(1)
+    
+    if not input_path.is_file():
+        logger.error(f"CRITICAL: Input path is not a file: {args.input}")
+        sys.exit(1)
+    
+    # Validate COSMIC database if provided
+    if args.cosmic:
+        cosmic_path = Path(args.cosmic)
+        if not cosmic_path.exists():
+            logger.error(f"CRITICAL: COSMIC database file not found: {args.cosmic}")
+            logger.error("Please check the file path and ensure the COSMIC VCF file exists")
+            sys.exit(1)
+        
+        if not cosmic_path.is_file():
+            logger.error(f"CRITICAL: COSMIC path is not a file: {args.cosmic}")
+            sys.exit(1)
+        
+        # Check for index file
+        cosmic_index = Path(str(cosmic_path) + '.tbi')
+        if not cosmic_index.exists():
+            logger.error(f"CRITICAL: COSMIC database index not found: {cosmic_index}")
+            logger.error("Please create tabix index: tabix -p vcf {args.cosmic}")
+            sys.exit(1)
+    
+    # Validate gnomAD directory if provided
+    if args.gnomad:
+        gnomad_path = Path(args.gnomad)
+        if not gnomad_path.exists():
+            logger.error(f"CRITICAL: gnomAD directory not found: {args.gnomad}")
+            logger.error("Please check the directory path and ensure it exists")
+            sys.exit(1)
+        
+        if not gnomad_path.is_dir():
+            logger.error(f"CRITICAL: gnomAD path is not a directory: {args.gnomad}")
+            sys.exit(1)
+        
+        # Check for chromosome files
+        import glob
+        chr_files = glob.glob(str(gnomad_path / "*.chr*.vcf.bgz")) + glob.glob(str(gnomad_path / "*.chr*.vcf.gz"))
+        if not chr_files:
+            logger.error(f"CRITICAL: No chromosome-split VCF files found in gnomAD directory: {args.gnomad}")
+            logger.error("Expected files like: gnomad.exomes.v4.1.sites.chr1.vcf.bgz")
+            sys.exit(1)
+    
+    # Validate output directory
+    output_path = Path(args.output)
+    output_dir = output_path.parent
+    if not output_dir.exists():
+        try:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Created output directory: {output_dir}")
+        except Exception as e:
+            logger.error(f"CRITICAL: Cannot create output directory {output_dir}: {e}")
+            sys.exit(1)
+    
+    if not os.access(output_dir, os.W_OK):
+        logger.error(f"CRITICAL: Cannot write to output directory: {output_dir}")
+        logger.error("Please check directory permissions")
+        sys.exit(1)
+    
+    # Validate worker configuration
+    if args.workers is not None and args.workers < 1:
+        logger.error(f"CRITICAL: Invalid worker count: {args.workers}")
+        logger.error("Worker count must be at least 1 or None for auto-optimization")
+        sys.exit(1)
+    
+    # Validate threshold parameters
+    if args.germline_freq_threshold < 0 or args.germline_freq_threshold > 1:
+        logger.error(f"CRITICAL: Invalid germline frequency threshold: {args.germline_freq_threshold}")
+        logger.error("Threshold must be between 0 and 1")
+        sys.exit(1)
+    
+    if args.somatic_consensus_threshold < 1:
+        logger.error(f"CRITICAL: Invalid somatic consensus threshold: {args.somatic_consensus_threshold}")
+        logger.error("Threshold must be at least 1")
+        sys.exit(1)
+    
+    if args.cosmic_recurrence_threshold < 1:
+        logger.error(f"CRITICAL: Invalid COSMIC recurrence threshold: {args.cosmic_recurrence_threshold}")
+        logger.error("Threshold must be at least 1")
+        sys.exit(1)
+    
+    logger.info("✓ Parameter validation completed successfully")
     
     # Build classification configuration
     classification_config = {
