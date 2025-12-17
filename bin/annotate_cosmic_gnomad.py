@@ -370,9 +370,10 @@ class CosmicGnomadAnnotator:
                         elif new_classification == "Somatic":
                             record.filter.clear()
                             record.filter.add("Somatic")
-                            # Add rescue flag if applicable
+                            # Add rescue flag if applicable (log instead of adding to avoid header issues)
                             if classification_result.rescue_flag:
-                                record.info['Somatic_Rescue'] = True
+                                logger.info(f"Variant {record.chrom}:{record.pos} rescued through cross-modality support")
+                                # Note: Somatic_Rescue flag not added to VCF to avoid header complications
                         elif new_classification == "Artifact":
                             record.filter.clear()
                             record.filter.add("Artifact")
@@ -581,7 +582,11 @@ class CosmicGnomadAnnotator:
         
         # Determine output directory and base name for consistent naming
         output_dir = self.output_vcf.parent if self.output_vcf else Path.cwd()
-        base_name = self.output_vcf.stem.replace('.vcf', '') if self.output_vcf else 'annotated'
+        # Extract base name from output file, handling Nextflow naming patterns
+        if self.output_vcf:
+            base_name = self.output_vcf.name.replace('.cosmic_gnomad_annotated.vcf.gz', '').replace('.vcf.gz', '').replace('.vcf', '')
+        else:
+            base_name = 'annotated'
         
         # Create temporary directory for processing
         temp_dir = create_temp_directory(output_dir, "cosmic_gnomad_temp")

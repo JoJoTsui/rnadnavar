@@ -385,7 +385,7 @@ class GnomadAnnotator:
             annotate_cmd = [
                 'bcftools', 'annotate',
                 '-a', str(gnomad_file),
-                '-c', 'CHROM,POS,REF,ALT,INFO/AF,INFO/faf95_popmax',  # Only extract essential fields
+                '-c', 'CHROM,POS,REF,ALT,INFO/AF',  # Only extract AF field (faf95_popmax not always available)
                 '-O', 'z',
                 '--threads', '2',  # Use threads for compression
                 '-o', str(chr_output),

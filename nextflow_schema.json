@@ -505,7 +505,7 @@
                 },
                 "cosmic_gnomad_workers": {
                     "type": "integer",
-                    "default": 4,
+                    "default": 12,
                     "fa_icon": "fas fa-cogs",
                     "description": "Number of parallel workers for gnomAD processing.",
                     "help_text": "Maximum number of parallel workers for chromosome-based gnomAD annotation processing."

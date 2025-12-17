@@ -126,6 +126,10 @@ class VariantClassifier:
                         # Handle comma-separated values (take maximum)
                         freq_values = [float(x) for x in freq_value.split(',') if x.strip()]
                         evidence.population_frequency = max(freq_values) if freq_values else None
+                    elif isinstance(freq_value, (list, tuple)):
+                        # Handle list/tuple values (take maximum)
+                        freq_values = [float(x) for x in freq_value if x is not None]
+                        evidence.population_frequency = max(freq_values) if freq_values else None
                     else:
                         evidence.population_frequency = float(freq_value)
                     
@@ -137,7 +141,7 @@ class VariantClassifier:
                     continue
         
         # Extract COSMIC recurrence
-        cosmic_fields = ['COSMIC_CNT', 'GENOME_SCREEN_SAMPLE_COUNT', 'COSMIC_ID']
+        cosmic_fields = ['GENOME_SCREEN_SAMPLE_COUNT', 'COSMIC_CNT', 'COSMIC_ID']
         for field in cosmic_fields:
             if field in variant_info and variant_info[field] is not None:
                 try:
