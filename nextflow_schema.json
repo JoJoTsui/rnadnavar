@@ -442,6 +442,106 @@
             },
             "help_text": "The pipeline config files come bundled with paths to the Illumina iGenomes reference index files.\nThe configuration is set up to use the AWS-iGenomes resource\ncf https://ewels.github.io/AWS-iGenomes/."
         },
+        "cosmic_gnomad_annotation": {
+            "title": "COSMIC/gnomAD Annotation",
+            "type": "object",
+            "description": "Parameters for COSMIC and gnomAD database annotation",
+            "default": "",
+            "fa_icon": "fas fa-database",
+            "properties": {
+                "enable_cosmic_gnomad_annotation": {
+                    "type": "boolean",
+                    "default": true,
+                    "fa_icon": "fas fa-toggle-on",
+                    "description": "Enable COSMIC and gnomAD database annotation.",
+                    "help_text": "When enabled, annotates variants with COSMIC cancer mutation data and gnomAD population frequencies for improved variant classification."
+                },
+                "cosmic_database": {
+                    "type": "string",
+                    "fa_icon": "fas fa-file",
+                    "description": "Path to COSMIC VCF database file.",
+                    "help_text": "COSMIC database file containing curated somatic mutation data in bgzipped VCF format with tabix index. Optional - if not provided, COSMIC annotation will be skipped."
+                },
+                "gnomad_database": {
+                    "type": "string",
+                    "fa_icon": "fas fa-folder",
+                    "description": "Path to gnomAD database directory.",
+                    "help_text": "Directory containing chromosome-split gnomAD VCF files for population frequency annotation. Optional - if not provided, gnomAD annotation will be skipped."
+                },
+                "cosmic_gnomad_verbose": {
+                    "type": "boolean",
+                    "default": false,
+                    "fa_icon": "fas fa-info-circle",
+                    "description": "Enable verbose logging for COSMIC/gnomAD annotation.",
+                    "help_text": "When enabled, provides detailed logging output and generates comprehensive statistics for troubleshooting and monitoring."
+                },
+                "cosmic_gnomad_save_stats": {
+                    "type": "boolean",
+                    "default": false,
+                    "fa_icon": "fas fa-chart-bar",
+                    "description": "Save detailed statistics for COSMIC/gnomAD annotation.",
+                    "help_text": "When enabled, saves comprehensive annotation statistics and metrics to the reports directory."
+                },
+                "cosmic_gnomad_germline_freq_threshold": {
+                    "type": "number",
+                    "default": 0.001,
+                    "fa_icon": "fas fa-percentage",
+                    "description": "Population frequency threshold for germline classification.",
+                    "help_text": "Variants with population frequency above this threshold will be classified as germline regardless of other evidence."
+                },
+                "cosmic_gnomad_somatic_consensus_threshold": {
+                    "type": "integer",
+                    "default": 3,
+                    "fa_icon": "fas fa-users",
+                    "description": "Minimum caller support for high-confidence somatic classification.",
+                    "help_text": "Number of variant callers required to support a variant for high-confidence somatic classification."
+                },
+                "cosmic_gnomad_cosmic_recurrence_threshold": {
+                    "type": "integer",
+                    "default": 5,
+                    "fa_icon": "fas fa-repeat",
+                    "description": "Minimum COSMIC recurrence for rescue classification.",
+                    "help_text": "Minimum number of samples in COSMIC database required for somatic rescue classification."
+                },
+                "cosmic_gnomad_workers": {
+                    "type": "integer",
+                    "default": 4,
+                    "fa_icon": "fas fa-cogs",
+                    "description": "Number of parallel workers for gnomAD processing.",
+                    "help_text": "Maximum number of parallel workers for chromosome-based gnomAD annotation processing."
+                },
+                "cosmic_gnomad_args": {
+                    "type": "string",
+                    "fa_icon": "fas fa-terminal",
+                    "description": "Additional arguments for COSMIC/gnomAD annotation.",
+                    "help_text": "Additional command-line arguments to pass to the COSMIC/gnomAD annotation script.",
+                    "hidden": true
+                },
+                "cosmic_gnomad_log_level": {
+                    "type": "string",
+                    "default": "INFO",
+                    "enum": ["DEBUG", "INFO", "WARNING", "ERROR"],
+                    "fa_icon": "fas fa-list",
+                    "description": "Logging verbosity level for COSMIC/gnomAD annotation.",
+                    "help_text": "Set the logging verbosity level. DEBUG provides the most detailed output, INFO provides standard operational information."
+                },
+                "cosmic_gnomad_enable_metrics": {
+                    "type": "boolean",
+                    "default": true,
+                    "fa_icon": "fas fa-tachometer-alt",
+                    "description": "Enable performance metrics collection.",
+                    "help_text": "When enabled, collects performance metrics, processing statistics, and operational data for monitoring and reporting."
+                },
+                "cosmic_gnomad_temp_dir": {
+                    "type": "string",
+                    "default": "/tmp",
+                    "fa_icon": "fas fa-folder-open",
+                    "description": "Temporary directory for COSMIC/gnomAD processing.",
+                    "help_text": "Directory for temporary files during annotation processing. Should have sufficient space for intermediate files.",
+                    "hidden": true
+                }
+            }
+        },
         "fastq_preprocessing": {
             "title": "FASTQ Preprocessing",
             "type": "object",
