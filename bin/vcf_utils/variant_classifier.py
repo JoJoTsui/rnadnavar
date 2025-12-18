@@ -38,6 +38,7 @@ class ClassificationEvidence:
     total_rna_callers: int = 0
     has_cross_modality: bool = False
     original_filter: str = "PASS"
+    artifact_protected: bool = False
 
 
 @dataclass
@@ -199,9 +200,71 @@ class VariantClassifier:
         
         return evidence
     
-    def classify_variant(self, evidence: ClassificationEvidence) -> ClassificationResult:
+    def _check_artifact_protection(self, evidence: ClassificationEvidence, variant_info: Dict[str, Any]) -> bool:
         """
-        Classify variant based on multi-modal evidence.
+        Check if variant should be protected from germline reclassification due to artifact status.
+        
+        Protection Rule: If both DNA and RNA modalities are classified as Artifact,
+        preserve the Artifact classification to maintain stringent germline calling.
+        
+        Args:
+            evidence: ClassificationEvidence object
+            variant_info: Dictionary containing variant INFO field values
+            
+        Returns:
+            True if variant should be protected from germline reclassification
+        """
+        # Check if original filter is Artifact
+        if evidence.original_filter.lower() != "artifact":
+            return False
+        
+        # Extract modality-specific filter information
+        dna_artifact_count = 0
+        rna_artifact_count = 0
+        
+        # Check UNIFIED_FILTER_DNA and UNIFIED_FILTER_RNA fields
+        dna_filter = variant_info.get('UNIFIED_FILTER_DNA', '').lower()
+        rna_filter = variant_info.get('UNIFIED_FILTER_RNA', '').lower()
+        
+        if dna_filter == 'artifact':
+            dna_artifact_count += 1
+        if rna_filter == 'artifact':
+            rna_artifact_count += 1
+        
+        # Alternative: Check individual caller filters if unified filters not available
+        if dna_artifact_count == 0 and rna_artifact_count == 0:
+            filters_normalized = variant_info.get('FILTERS_NORMALIZED', '')
+            if isinstance(filters_normalized, str) and filters_normalized:
+                # Parse format: MODALITY_caller:filter|...
+                for filter_entry in filters_normalized.split('|'):
+                    if ':' in filter_entry:
+                        caller_info, filter_value = filter_entry.split(':', 1)
+                        if filter_value.lower() == 'artifact':
+                            if caller_info.startswith('DNA_'):
+                                dna_artifact_count += 1
+                            elif caller_info.startswith('RNA_'):
+                                rna_artifact_count += 1
+        
+        # Protection logic: Both modalities must be Artifact
+        both_modalities_artifact = (
+            dna_artifact_count > 0 and rna_artifact_count > 0 and
+            evidence.total_dna_callers > 0 and evidence.total_rna_callers > 0
+        )
+        
+        if both_modalities_artifact:
+            logger.debug("Artifact protection activated: Both DNA and RNA modalities classified as Artifact")
+            return True
+        
+        return False
+    
+    def classify_variant(self, evidence: ClassificationEvidence, variant_info: Optional[Dict[str, Any]] = None) -> ClassificationResult:
+        """
+        Classify variant based on multi-modal evidence with proper rule priority.
+        
+        Classification Rule Priority:
+        1. Somatic rules (unanimous DNA callers, cross-modality + COSMIC)
+        2. Germline rules (population frequency)
+        3. Conservative preservation of original classification
         
         Args:
             evidence: ClassificationEvidence object with variant evidence
@@ -211,30 +274,7 @@ class VariantClassifier:
         """
         self.stats['total_classified'] += 1
         
-        # Rule 1: Population frequency > threshold → Germline (highest priority)
-        if (evidence.population_frequency is not None and 
-            evidence.population_frequency > self.germline_freq_threshold):
-            
-            self.stats['germline_count'] += 1
-            self.stats['evidence_distribution']['population_frequency'] += 1
-            
-            # Determine if this is a rescue (non-Germline → Germline)
-            is_rescue = evidence.original_filter.lower() != "germline"
-            
-            result = ClassificationResult(
-                classification="Germline",
-                confidence="High",
-                evidence_summary=f"Population frequency {evidence.population_frequency:.4f} > {self.germline_freq_threshold}",
-                rescue_flag=is_rescue  # Rescue if changing from non-Germline to Germline
-            )
-            
-            if is_rescue:
-                logger.debug(f"Germline Rescue: {evidence.original_filter} → Germline ({result.evidence_summary})")
-            else:
-                logger.debug(f"Confirmed Germline: {result.evidence_summary}")
-            return result
-        
-        # Rule 2: Unanimous DNA caller support → High-confidence Somatic (if not already Somatic)
+        # Rule 1: Unanimous DNA caller support → High-confidence Somatic (Priority: Highest)
         if (evidence.total_dna_callers > 0 and 
             evidence.dna_caller_support >= self.somatic_consensus_threshold and
             evidence.dna_caller_support == evidence.total_dna_callers):
@@ -258,7 +298,7 @@ class VariantClassifier:
                 logger.debug(f"Confirmed Somatic: {result.evidence_summary}")
             return result
         
-        # Rule 3: Cross-modality support + COSMIC recurrence → Somatic Rescue (if not already Somatic)
+        # Rule 2: Cross-modality support + COSMIC recurrence → Somatic Rescue (Priority: High)
         if (evidence.has_cross_modality and 
             evidence.cosmic_recurrence is not None and
             evidence.cosmic_recurrence >= self.cosmic_recurrence_threshold):
@@ -281,6 +321,45 @@ class VariantClassifier:
                 logger.debug(f"Somatic Rescue (cross-modality): {evidence.original_filter} → Somatic ({result.evidence_summary})")
             else:
                 logger.debug(f"Confirmed Somatic: {result.evidence_summary}")
+            return result
+        
+        # Rule 3: Population frequency > threshold → Germline (Priority: Medium, after somatic rules)
+        # With artifact protection: Don't reclassify if both DNA & RNA modalities are Artifact
+        if (evidence.population_frequency is not None and 
+            evidence.population_frequency > self.germline_freq_threshold):
+            
+            # Check artifact protection before germline reclassification (only if variant_info available)
+            if variant_info and self._check_artifact_protection(evidence, variant_info):
+                # Preserve Artifact classification due to stringent germline calling requirements
+                self.stats['unchanged_count'] += 1
+                
+                result = ClassificationResult(
+                    classification=evidence.original_filter,  # Keep Artifact
+                    confidence="Protected",
+                    evidence_summary=f"Artifact protection: Both DNA & RNA modalities are Artifact, preserving despite population frequency {evidence.population_frequency:.4f}",
+                    rescue_flag=False
+                )
+                
+                logger.debug(f"Artifact protection applied: {result.evidence_summary}")
+                return result
+            
+            self.stats['germline_count'] += 1
+            self.stats['evidence_distribution']['population_frequency'] += 1
+            
+            # Determine if this is a rescue (non-Germline → Germline)
+            is_rescue = evidence.original_filter.lower() != "germline"
+            
+            result = ClassificationResult(
+                classification="Germline",
+                confidence="High",
+                evidence_summary=f"Population frequency {evidence.population_frequency:.4f} > {self.germline_freq_threshold}",
+                rescue_flag=is_rescue  # Rescue if changing from non-Germline to Germline
+            )
+            
+            if is_rescue:
+                logger.debug(f"Germline Rescue: {evidence.original_filter} → Germline ({result.evidence_summary})")
+            else:
+                logger.debug(f"Confirmed Germline: {result.evidence_summary}")
             return result
         
         # Rule 4: No classification criteria met → PRESERVE ORIGINAL FILTER (Conservative approach)
@@ -309,7 +388,7 @@ class VariantClassifier:
             ClassificationResult with classification and supporting information
         """
         evidence = self.extract_evidence(variant_info)
-        result = self.classify_variant(evidence)
+        result = self.classify_variant(evidence, variant_info)
         
         # Track classification changes
         original_filter = evidence.original_filter

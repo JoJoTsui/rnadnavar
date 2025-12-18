@@ -26,17 +26,17 @@ import time
 import json
 import argparse
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional
 
 # Import utility modules
 sys.path.insert(0, str(Path(__file__).parent))
 from vcf_utils.cosmic_annotator import CosmicAnnotator
 from vcf_utils.gnomad_annotator import GnomadAnnotator
-from vcf_utils.variant_classifier import VariantClassifier, create_variant_classifier
+from vcf_utils.variant_classifier import create_variant_classifier
 from vcf_utils.annotation_utils import (
     validate_vcf_file, create_temp_directory, cleanup_temp_directory,
     get_vcf_statistics, format_file_size, format_duration,
-    log_annotation_summary, check_tool_availability
+    check_tool_availability
 )
 
 logger = logging.getLogger(__name__)
@@ -200,6 +200,29 @@ class CosmicGnomadAnnotator:
         self.stats['processing_steps'].append(('validate_environment', step_time))
         logger.info(f"✓ Environment validation completed ({step_time:.2f}s)")
     
+    def _add_rescue_flag(self, record, flag_name: str, flag_type: str) -> None:
+        """
+        Safely add rescue flag to VCF record INFO field with space-free values.
+        
+        Args:
+            record: pysam VariantRecord object
+            flag_name: Name of the INFO flag to add
+            flag_type: Type of rescue for logging purposes
+        """
+        try:
+            # Set space-free string values for rescue flags
+            if flag_name == 'GNOMAD_RESCUE':
+                record.info[flag_name] = 'population_frequency_rescue'
+            elif flag_name == 'COSMIC_RESCUE':
+                record.info[flag_name] = 'somatic_evidence_rescue'
+            else:
+                record.info[flag_name] = 'rescue'  # Fallback
+            
+            logger.debug(f"Added {flag_name} flag for {flag_type} at {record.chrom}:{record.pos}")
+        except Exception as e:
+            logger.warning(f"Could not add {flag_name} flag for {flag_type} at {record.chrom}:{record.pos}: {e}")
+            # Continue processing even if flag addition fails
+    
     def run_cosmic_annotation(self, input_vcf: Path, output_vcf: Path) -> bool:
         """
         Run COSMIC annotation workflow.
@@ -336,8 +359,16 @@ class CosmicGnomadAnnotator:
             
             # Open input VCF for reading
             with pysam.VariantFile(str(vcf_path)) as vcf_in:
-                # Create output VCF with same header
-                with pysam.VariantFile(str(classified_vcf), 'w', header=vcf_in.header) as vcf_out:
+                # Create output VCF with enhanced header for rescue flags
+                output_header = vcf_in.header.copy()
+                
+                # Add rescue flag INFO field definitions
+                if 'GNOMAD_RESCUE' not in output_header.info:
+                    output_header.info.add('GNOMAD_RESCUE', '1', 'String', 'Variant_rescued_to_Germline_classification_based_on_gnomAD_population_frequency_evidence')
+                if 'COSMIC_RESCUE' not in output_header.info:
+                    output_header.info.add('COSMIC_RESCUE', '1', 'String', 'Variant_rescued_to_Somatic_classification_based_on_COSMIC_recurrence_evidence')
+                
+                with pysam.VariantFile(str(classified_vcf), 'w', header=output_header) as vcf_out:
                     
                     for record in vcf_in:
                         variants_processed += 1
@@ -366,42 +397,29 @@ class CosmicGnomadAnnotator:
                         # Rescue Logic: Classification change = Rescue
                         # Only update FILTER when evidence thresholds are met AND category changes
                         
-                        rescue_occurred = False
-                        
                         if new_classification == "Germline" and original_filter != "Germline":
                             # Germline rescue: Non-germline → Germline based on population frequency
                             record.filter.clear()
                             record.filter.add("Germline")
-                            rescue_occurred = True
                             logger.info(f"GERMLINE RESCUE: {record.chrom}:{record.pos} {original_filter} → Germline (population frequency evidence)")
-                            # Add germline rescue flag to INFO field
-                            try:
-                                record.info['germline_rescue'] = True
-                            except Exception as e:
-                                logger.debug(f"Could not add germline_rescue flag to INFO: {e}")
+                            # Add GNOMAD rescue flag to INFO field
+                            self._add_rescue_flag(record, 'GNOMAD_RESCUE', 'germline rescue')
                             
                         elif new_classification == "Somatic" and original_filter != "Somatic":
                             # Somatic rescue: Non-somatic → Somatic based on evidence thresholds
                             record.filter.clear()
                             record.filter.add("Somatic")
-                            rescue_occurred = True
                             
                             if classification_result.rescue_flag:
                                 # Cross-modality + COSMIC rescue
                                 logger.info(f"SOMATIC RESCUE: {record.chrom}:{record.pos} {original_filter} → Somatic (cross-modality + COSMIC evidence)")
-                                # Add somatic rescue flag to INFO field
-                                try:
-                                    record.info['somatic_rescue'] = True
-                                except Exception as e:
-                                    logger.debug(f"Could not add somatic_rescue flag to INFO: {e}")
+                                # Add COSMIC rescue flag to INFO field
+                                self._add_rescue_flag(record, 'COSMIC_RESCUE', 'somatic rescue')
                             else:
                                 # High-confidence somatic rescue (unanimous callers)
                                 logger.info(f"SOMATIC RESCUE: {record.chrom}:{record.pos} {original_filter} → Somatic (unanimous caller support)")
-                                # Add somatic rescue flag to INFO field
-                                try:
-                                    record.info['somatic_rescue'] = True
-                                except Exception as e:
-                                    logger.debug(f"Could not add somatic_rescue flag to INFO: {e}")
+                                # Add COSMIC rescue flag to INFO field
+                                self._add_rescue_flag(record, 'COSMIC_RESCUE', 'somatic rescue')
                             
                         else:
                             # No classification change - preserve original FILTER
@@ -435,7 +453,6 @@ class CosmicGnomadAnnotator:
             
             # Update statistics
             self.stats['variants_classified'] = variants_processed
-            classification_stats = self.classifier.get_classification_statistics()
             
             # Clean up temporary directory
             cleanup_temp_directory(temp_dir, force=True)
