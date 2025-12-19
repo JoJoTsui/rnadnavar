@@ -72,8 +72,29 @@ MODALITIES = ["DNA_TUMOR_vs_DNA_NORMAL", "RNA_TUMOR_vs_DNA_NORMAL"]
 # Variant categories for classification and aggregation
 CATEGORY_ORDER = ["Somatic", "Germline", "Reference", "Artifact", "RNA_Edit", "NoConsensus"]
 
-# VCF processing stages in order (for annotation pipeline)
-VCF_STAGE_ORDER = ["rescue", "cosmic_gnomad", "rna_editing", "filtered_rescue"]
+# VCF processing stages in order (complete pipeline from normalization to final filtering)
+VCF_STAGE_ORDER = [
+    "normalized",        # Individual caller VCFs (Strelka, DeepSomatic, Mutect2)
+    "dna_consensus",     # DNA consensus VCF (combined DNA callers)
+    "rna_consensus",     # RNA consensus VCF (combined RNA callers)
+    "rescue",            # Rescue VCF (DNA + RNA combined)
+    "cosmic_gnomad",     # Cosmic/gnomAD annotated rescue VCF
+    "rna_editing",       # RNA editing annotated rescue VCF
+    "filtered_rescue"    # Final filtered rescue VCF
+]
+
+# Human-readable display names for stages
+STAGE_DISPLAY_NAMES = {
+    "normalized": "Normalized",
+    "dna_consensus": "DNA Consensus",
+    "rna_consensus": "RNA Consensus",
+    "rescue": "Rescued",
+    "cosmic_gnomad": "COSMIC/GnomAD",
+    "rna_editing": "RNA Editing",
+    "filtered_rescue": "Filtered",
+    # Alias for consensus detection
+    "consensus": "Consensus"
+}
 
 # Color scheme for variant categories and annotations
 CATEGORY_COLORS = {
@@ -88,6 +109,19 @@ CATEGORY_COLORS = {
     "StrandBias": "#AB63FA",     # Purple
     "Clustered": "#FFA500",      # Orange
 }
+
+# Import utilities first (no circular dependency)
+from .utils import (
+    get_stage_order_key,
+    sort_stages,
+    should_show_legend,
+    create_legend_config,
+    filter_no_consensus,
+    get_stage_display_name,
+    create_dual_view_plots,
+    ensure_all_categories_in_legend,
+    collect_stage_statistics
+)
 
 # Import classes from modules
 from .file_discovery import VCFFileDiscovery
@@ -122,12 +156,24 @@ from .tier_visualizer import TierVisualizer, create_tier_visualization_report
 
 # Export all public classes and constants
 __all__ = [
+    # Utility functions
+    'get_stage_order_key',
+    'sort_stages',
+    'should_show_legend',
+    'create_legend_config',
+    'filter_no_consensus',
+    'get_stage_display_name',
+    'create_dual_view_plots',
+    'ensure_all_categories_in_legend',
+    'collect_stage_statistics',
+    # Core classes
     'VCFFileDiscovery',
     'VCFStatisticsExtractor',
     'process_all_vcfs',
     'VCFVisualizer',
     'StatisticsAggregator',
     'BAMValidator',
+    # Classification functions
     'classify_strelka_variant',
     'classify_deepsomatic_variant',
     'classify_mutect2_variant',
@@ -137,11 +183,14 @@ __all__ = [
     'detect_no_consensus_variant',
     'classify_annotated_variant',
     'get_sample_indices',
+    # Analysis functions
     'analyze_rescue_vcf',
     'export_rescue_analysis',
     'create_resuce_transition_matrix',
+    # Tiering functions
     'tier_rescue_variants',
     'sample_tier_representatives',
+    # IGV functions
     'IGVLikePlotter',
     'visualize_variants_igv_like',
     'create_subset_vcf',
@@ -151,12 +200,15 @@ __all__ = [
     'visualize_rescue_variants_with_igvreports',
     'check_igv_reports_available',
     'get_alignment_index_path',
+    # Tier visualization
     'TierVisualizer',
     'create_tier_visualization_report',
+    # Constants
     'TOOLS',
     'MODALITIES',
     'CATEGORY_ORDER',
     'VCF_STAGE_ORDER',
+    'STAGE_DISPLAY_NAMES',
     'CATEGORY_COLORS'
 ]
 

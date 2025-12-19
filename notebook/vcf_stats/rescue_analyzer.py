@@ -18,8 +18,9 @@ try:
 except ImportError:
     VISUALIZATION_AVAILABLE = False
 
-# Import constants from main module
-from . import CATEGORY_ORDER, CATEGORY_COLORS
+# Import constants and utilities from main module
+from . import CATEGORY_ORDER, CATEGORY_COLORS, STAGE_DISPLAY_NAMES
+from .utils import should_show_legend
 
 
 def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) -> Dict[str, Any]:
@@ -215,47 +216,63 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
             # Unified color palette (matches visualizer)
             category_colors = CATEGORY_COLORS.copy()
 
+            # Use stage display names from constants
             stages = [
-                ("DNA Consensus", dna_classification, 1),
-                ("RNA Consensus", rna_classification, 2),
-                ("Rescued", rescue_classification, 3),
-                ("COSMIC/GnomAD", rescue_analysis["cosmic_gnomad"]["classification"], 4),
-                ("RNA Editing", rescue_analysis["rna_editing"]["classification"], 5),
-                ("Filtered", rescue_analysis["filtered_rescue"]["classification"], 6),
+                (STAGE_DISPLAY_NAMES.get("dna_consensus", "DNA Consensus"), dna_classification, 1),
+                (STAGE_DISPLAY_NAMES.get("rna_consensus", "RNA Consensus"), rna_classification, 2),
+                (STAGE_DISPLAY_NAMES.get("rescue", "Rescued"), rescue_classification, 3),
+                (STAGE_DISPLAY_NAMES.get("cosmic_gnomad", "COSMIC/GnomAD"), rescue_analysis["cosmic_gnomad"]["classification"], 4),
+                (STAGE_DISPLAY_NAMES.get("rna_editing", "RNA Editing"), rescue_analysis["rna_editing"]["classification"], 5),
+                (STAGE_DISPLAY_NAMES.get("filtered_rescue", "Filtered"), rescue_analysis["filtered_rescue"]["classification"], 6),
             ]
 
-            for stage_name, classification, col_idx in stages:
-                for filter_cat in CATEGORY_ORDER:
-                    count = classification.get(filter_cat, 0)
-                    if count > 0:
-                        fig.add_trace(
-                            go.Bar(
-                                name=filter_cat,
-                                x=[stage_name],
-                                y=[count],
-                                marker_color=category_colors.get(filter_cat, "#8A8A8A"),
-                                showlegend=(col_idx == 1),
-                                legendgroup=filter_cat,
+            def _create_rescue_plot(include_no_consensus=True, title_suffix=""):
+                """Helper to create rescue analysis plot."""
+                fig_rescue = go.Figure()
+                
+                for stage_name, classification, col_idx in stages:
+                    for filter_cat in CATEGORY_ORDER:
+                        # Skip NoConsensus if not included
+                        if not include_no_consensus and filter_cat == "NoConsensus":
+                            continue
+                            
+                        count = classification.get(filter_cat, 0)
+                        if count > 0:
+                            fig_rescue.add_trace(
+                                go.Bar(
+                                    name=filter_cat,
+                                    x=[stage_name],
+                                    y=[count],
+                                    marker_color=category_colors.get(filter_cat, "#8A8A8A"),
+                                    showlegend=should_show_legend(col_idx, 1),
+                                    legendgroup=filter_cat,
+                                )
                             )
-                        )
 
-            fig.update_layout(
-                title="Rescue Analysis: DNA/RNA Consensus to Rescued Variants",
-                xaxis_title="Processing Stage",
-                yaxis_title="Number of Variants",
-                barmode="stack",
-                height=600,
-                width=1000,
-                legend=dict(
-                    orientation="h",
-                    yanchor="bottom",
-                    y=1.02,
-                    xanchor="right",
-                    x=1
+                fig_rescue.update_layout(
+                    title=f"Rescue Analysis: Pipeline Progression{title_suffix}",
+                    xaxis_title="Processing Stage",
+                    yaxis_title="Number of Variants",
+                    barmode="stack",
+                    height=600,
+                    width=1000,
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="right",
+                        x=1
+                    )
                 )
-            )
+                return fig_rescue
 
+            # Create main plot with all categories
+            fig = _create_rescue_plot(include_no_consensus=True)
             fig.show()
+            
+            # Create NoConsensus-free plot for better visibility of other categories
+            fig_no_nc = _create_rescue_plot(include_no_consensus=False, title_suffix=" (excluding NoConsensus)")
+            fig_no_nc.show()
 
         except Exception as e:
             print(f"Error creating rescue analysis plot: {e}")
