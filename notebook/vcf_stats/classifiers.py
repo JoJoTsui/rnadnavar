@@ -197,14 +197,17 @@ def detect_rna_edit_variant(variant) -> bool:
         bool: True if variant appears to be RNA-edited
     """
     try:
-        # Check FILTER field
-        if variant.FILTER and "RNAedit" in str(variant.FILTER):
-            return True
+        # Check FILTER field (case-insensitive)
+        if variant.FILTER:
+            filter_str = str(variant.FILTER)
+            if "rnaedit" in filter_str.lower() or "rna_edit" in filter_str.lower():
+                return True
         
         # Check INFO fields for RNA editing markers
         info_keys = variant.INFO.keys() if hasattr(variant.INFO, 'keys') else []
         for key in info_keys:
-            if 'REDI' in key.upper() or 'RNA' in key.upper() and 'EDIT' in key.upper():
+            key_upper = key.upper()
+            if "REDI" in key_upper or ("RNA" in key_upper and "EDIT" in key_upper):
                 return True
                 
     except Exception:
@@ -272,41 +275,46 @@ def detect_no_consensus_variant(variant) -> bool:
 
 def classify_annotated_variant(variant) -> str:
     """
-    Classify a variant from an annotated VCF (cosmic_gnomad, rna_editing, filtered).
-    
-    Assigns categories based on FILTER field and special annotations.
+    Classify annotated/consensus/rescue variants using FILTER values written by vcf_utils.
+
+    vcf_utils writes the unified biological classification directly into FILTER
+    (Somatic, Germline, Reference, Artifact, NoConsensus). We preserve that mapping
+    and still flag RNA editing events using annotations.
+
     Returns one of: Somatic, Germline, Reference, Artifact, RNA_Edit, NoConsensus
-    
-    Priority:
-    1. NoConsensus (explicit FILTER)
-    2. RNA_Edit (FILTER or INFO markers)
-    3. PASS/filter-based classification
-    
-    Args:
-        variant: cyvcf2.Variant object
-        
-    Returns:
-        str: Classification category
     """
-    # Check for NoConsensus first
-    if detect_no_consensus_variant(variant):
-        return "NoConsensus"
-    
-    # Check for RNA editing
+    # RNA editing takes priority regardless of FILTER content
     if detect_rna_edit_variant(variant):
         return "RNA_Edit"
-    
-    # Fall back to FILTER-based classification
-    filter_val = variant.FILTER if variant.FILTER else "PASS"
-    
-    if filter_val == "PASS" or filter_val is None or filter_val == ".":
-        return "Somatic"
-    elif "GERMLINE" in str(filter_val).upper():
-        return "Germline"
-    elif "REFERENCE" in str(filter_val).upper() or "REF" in str(filter_val).upper():
-        return "Reference"
+
+    # Normalize FILTER values (handles None, '.', multiple tokens)
+    raw_filter = variant.FILTER
+    if raw_filter in (None, ".", "None"):
+        tokens = ["PASS"]
     else:
-        return "Artifact"
+        tokens = [tok.strip() for tok in str(raw_filter).replace(";", ",").split(",") if tok]
+
+    # Direct mapping from FILTER tokens to biological categories
+    filter_map = {
+        "pass": "Somatic",
+        "somatic": "Somatic",
+        "germline": "Germline",
+        "reference": "Reference",
+        "artifact": "Artifact",
+        "noconsensus": "NoConsensus",
+    }
+
+    for token in tokens:
+        mapped = filter_map.get(token.lower())
+        if mapped:
+            return mapped
+
+    # If explicitly marked NoConsensus but with unexpected casing
+    if detect_no_consensus_variant(variant):
+        return "NoConsensus"
+
+    # Fallback for any other FILTER labels
+    return "Artifact"
 
 
 def get_sample_indices(vcf_obj, caller_name):

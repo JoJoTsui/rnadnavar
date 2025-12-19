@@ -109,6 +109,28 @@ class VCFStatisticsExtractor:
                 "category_distribution": {},
             }
 
+            def _map_filter_to_category(filter_val):
+                """Map FILTER tokens to biological categories with sensible defaults."""
+                if filter_val in (None, ".", "None"):
+                    return "Somatic"
+
+                tokens = [tok.strip() for tok in str(filter_val).replace(";", ",").split(",") if tok]
+                filter_map = {
+                    "pass": "Somatic",
+                    "somatic": "Somatic",
+                    "germline": "Germline",
+                    "reference": "Reference",
+                    "artifact": "Artifact",
+                    "noconsensus": "NoConsensus",
+                }
+
+                for token in tokens:
+                    mapped = filter_map.get(token.lower())
+                    if mapped:
+                        return mapped
+
+                return "Artifact"
+
             # Determine classification approach based on VCF type
             use_annotated_classifier = self._is_consensus_or_rescue()
 
@@ -151,21 +173,11 @@ class VCFStatisticsExtractor:
                     )
                     
                 except Exception as e:
-                    # Fallback: use FILTER field or Artifact (ensure PASS -> Somatic)
-                    try:
-                        fallback_filter = variant.FILTER if variant.FILTER else "PASS"
-                        fallback_cat = (
-                            "Artifact"
-                            if (use_annotated_classifier and str(fallback_filter) == "NoConsensus")
-                            else ("Somatic" if str(fallback_filter) in {"PASS", ".", "None"} else str(fallback_filter))
-                        )
-                        stats["classification"][fallback_cat] = (
-                            stats["classification"].get(fallback_cat, 0) + 1
-                        )
-                    except:
-                        stats["classification"]["Artifact"] = (
-                            stats["classification"].get("Artifact", 0) + 1
-                        )
+                    # Fallback: map FILTER tokens to known categories
+                    fallback_cat = _map_filter_to_category(variant.FILTER)
+                    stats["classification"][fallback_cat] = (
+                        stats["classification"].get(fallback_cat, 0) + 1
+                    )
 
             # Convert chromosomes to sorted list
             stats["chromosomes"] = sorted(list(stats["chromosomes"]))

@@ -23,7 +23,7 @@ except ImportError as e:
     VISUALIZATION_AVAILABLE = False
 
 # Import constants from main module
-from . import CATEGORY_ORDER
+from . import CATEGORY_ORDER, CATEGORY_COLORS
 
 
 class VCFVisualizer:
@@ -38,20 +38,8 @@ class VCFVisualizer:
         """
         self.all_stats = all_stats
 
-        # Define unified color scheme (matching original notebook)
-        self.CATEGORY_COLORS = {
-            "Somatic": "#636EFA",
-            "Germline": "#00CC96",
-            "Reference": "#FFA15A",
-            "Artifact": "#EF553B",
-            "RNA_Edit": "#AB63FA",
-            "NoConsensus": "#8A8A8A",
-            "PASS": "#636EFA",
-            "LowQual": "#EF553B",
-            "StrandBias": "#AB63FA",
-            "Clustered": "#FFA500",
-            "Other": "#8A8A8A"
-        }
+        # Reuse unified color scheme exported by the package
+        self.CATEGORY_COLORS = CATEGORY_COLORS.copy()
 
     def plot_variant_counts_by_tool(self, exclude_no_consensus_view: bool = True):
         """
@@ -736,13 +724,13 @@ class VCFVisualizer:
                     fig_small.update_yaxes(range=[0, max_y2 * 1.1], row=1, col=i)
                 fig_small.show()
 
-    def plot_annotation_progression(self):
+    def plot_annotation_progression(self, dual_view_no_consensus: bool = True):
         """
         Plot variant count progression through annotation stages:
         rescue → cosmic_gnomad → rna_editing → filtered_rescue
-        
-        Shows how variant counts and categories change at each stage,
-        allowing visualization of filtering/annotation effects.
+
+        Includes an optional secondary view that hides NoConsensus to
+        highlight smaller categories when NoConsensus dominates.
         """
         if not VISUALIZATION_AVAILABLE:
             print("Visualization libraries not available. Skipping plot.")
@@ -783,65 +771,71 @@ class VCFVisualizer:
 
         df = pd.DataFrame(data)
 
-        # Create figure with stacked bars showing progression
-        fig = go.Figure()
+        def _build_progression(fig_df, title_suffix=""):
+            fig = go.Figure()
 
-        # Get unique stages in order
-        stages_ordered = sorted(df["Stage"].unique(), 
-                               key=lambda x: VCF_STAGE_ORDER.index(x) if x in VCF_STAGE_ORDER else 999)
-
-        # Track which categories to show in legend
-        categories_shown = set()
-
-        # Add bars for each category
-        for category in CATEGORY_ORDER:
-            df_cat = df[df["Category"] == category]
-            if df_cat.empty:
-                continue
-
-            # Get counts for each stage
-            counts_by_stage = []
-            for stage in stages_ordered:
-                stage_data = df_cat[df_cat["Stage"] == stage]
-                if not stage_data.empty:
-                    counts_by_stage.append(stage_data["Count"].sum())
-                else:
-                    counts_by_stage.append(0)
-
-            # Only add if there are non-zero values
-            if sum(counts_by_stage) > 0:
-                show_legend = category not in categories_shown
-                categories_shown.add(category)
-                
-                fig.add_trace(go.Bar(
-                    name=category,
-                    x=stages_ordered,
-                    y=counts_by_stage,
-                    marker_color=self.CATEGORY_COLORS.get(category, "#8A8A8A"),
-                    text=counts_by_stage,
-                    textposition="inside",
-                    textfont=dict(color="white", size=10),
-                    showlegend=show_legend,
-                    legendgroup=category,
-                    hovertemplate=f"<b>%{{x}}</b><br>{category}: %{{y}}<extra></extra>"
-                ))
-
-        fig.update_layout(
-            title_text="Variant Count Progression Through Annotation Stages",
-            xaxis_title="Processing Stage",
-            yaxis_title="Number of Variants",
-            barmode="stack",
-            template="plotly_white",
-            height=500,
-            showlegend=True,
-            legend=dict(
-                orientation="v",
-                yanchor="top",
-                y=1.0,
-                xanchor="left",
-                x=1.02,
-                title="Category"
+            stages_ordered = sorted(
+                fig_df["Stage"].unique(),
+                key=lambda x: VCF_STAGE_ORDER.index(x) if x in VCF_STAGE_ORDER else 999,
             )
-        )
 
-        fig.show()
+            categories_shown = set()
+
+            for category in CATEGORY_ORDER:
+                df_cat = fig_df[fig_df["Category"] == category]
+                if df_cat.empty:
+                    continue
+
+                counts_by_stage = []
+                for stage in stages_ordered:
+                    stage_data = df_cat[df_cat["Stage"] == stage]
+                    counts_by_stage.append(stage_data["Count"].sum() if not stage_data.empty else 0)
+
+                if sum(counts_by_stage) > 0:
+                    show_legend = category not in categories_shown
+                    categories_shown.add(category)
+
+                    fig.add_trace(
+                        go.Bar(
+                            name=category,
+                            x=stages_ordered,
+                            y=counts_by_stage,
+                            marker_color=self.CATEGORY_COLORS.get(category, "#8A8A8A"),
+                            text=counts_by_stage,
+                            textposition="inside",
+                            textfont=dict(color="white", size=10),
+                            showlegend=show_legend,
+                            legendgroup=category,
+                            hovertemplate=f"<b>%{{x}}</b><br>{category}: %{{y}}<extra></extra>",
+                        )
+                    )
+
+            fig.update_layout(
+                title_text=f"Variant Count Progression Through Annotation Stages{title_suffix}",
+                xaxis_title="Processing Stage",
+                yaxis_title="Number of Variants",
+                barmode="stack",
+                template="plotly_white",
+                height=500,
+                showlegend=True,
+                legend=dict(
+                    orientation="v",
+                    yanchor="top",
+                    y=1.0,
+                    xanchor="left",
+                    x=1.02,
+                    title="Category",
+                ),
+            )
+            return fig
+
+        # Full view including NoConsensus
+        full_fig = _build_progression(df)
+        full_fig.show()
+
+        # Optional view excluding NoConsensus to improve readability
+        if dual_view_no_consensus:
+            df_small = df[df["Category"] != "NoConsensus"].copy()
+            if not df_small.empty:
+                small_fig = _build_progression(df_small, " (excluding NoConsensus)")
+                small_fig.show()

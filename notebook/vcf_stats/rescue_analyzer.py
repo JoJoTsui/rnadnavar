@@ -19,7 +19,7 @@ except ImportError:
     VISUALIZATION_AVAILABLE = False
 
 # Import constants from main module
-from . import CATEGORY_ORDER
+from . import CATEGORY_ORDER, CATEGORY_COLORS
 
 
 def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) -> Dict[str, Any]:
@@ -212,18 +212,8 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
             # Create stacked bar chart
             fig = go.Figure()
 
-                # Define consistent colors (matching visualizer.py unified color scheme)
-            CATEGORY_COLORS = {
-                "Somatic": "#636EFA",
-                "Germline": "#00CC96",
-                    "Reference": "#FFA15A",
-                    "Artifact": "#EF553B",
-                "PASS": "#636EFA",
-                "LowQual": "#EF553B",
-                "StrandBias": "#AB63FA",
-                "Clustered": "#FFA500",
-                "Other": "#8A8A8A"
-            }
+            # Unified color palette (matches visualizer)
+            category_colors = CATEGORY_COLORS.copy()
 
             stages = [
                 ("DNA Consensus", dna_classification, 1),
@@ -243,8 +233,9 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
                                 name=filter_cat,
                                 x=[stage_name],
                                 y=[count],
-                                marker_color=CATEGORY_COLORS.get(filter_cat, "#8A8A8A"),
-                                showlegend=(col_idx == 1)  # Only show legend for first stage
+                                marker_color=category_colors.get(filter_cat, "#8A8A8A"),
+                                showlegend=(col_idx == 1),
+                                legendgroup=filter_cat,
                             )
                         )
 
