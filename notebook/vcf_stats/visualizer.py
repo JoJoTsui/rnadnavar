@@ -53,7 +53,7 @@ class VCFVisualizer:
             "Other": "#8A8A8A"
         }
 
-    def plot_variant_counts_by_tool(self):
+    def plot_variant_counts_by_tool(self, exclude_no_consensus_view: bool = True):
         """
         Bar plot comparing variant counts with FILTER categories across tools and modalities.
         """
@@ -61,17 +61,17 @@ class VCFVisualizer:
             print("Visualization libraries not available. Skipping plot.")
             return None
 
-        # Collect data - only from variant_calling category
+        # Collect data - use normalized caller VCFs (variant_calling removed)
         data = []
 
-        if "variant_calling" in self.all_stats:
-            for name, vcf_data in self.all_stats["variant_calling"].items():
+        if "normalized" in self.all_stats:
+            for name, vcf_data in self.all_stats["normalized"].items():
                 if "stats" in vcf_data and "basic" in vcf_data["stats"]:
                     basic = vcf_data["stats"]["basic"]
                     classification = basic.get("classification", {})
                     parts = name.split("_")
                     tool = parts[0] if parts else name
-                    modality = "DNA" if "DNA_TUMOR" in name else "RNA"
+                    modality = "DNA" if "DT_vs_DN" in name or "DNA_TUMOR" in name else "RNA"
 
                     # Add data for each FILTER category
                     for filter_cat in CATEGORY_ORDER:
@@ -169,6 +169,83 @@ class VCFVisualizer:
         )
 
         fig.show()
+
+        # Optional: a second view excluding NoConsensus to highlight minor categories
+        if exclude_no_consensus_view:
+            df2 = df[df["Category"] != "NoConsensus"].copy()
+            if not df2.empty:
+                fig2 = make_subplots(
+                    rows=1,
+                    cols=2,
+                    subplot_titles=("DNA Modality (No NoConsensus)", "RNA Modality (No NoConsensus)"),
+                    horizontal_spacing=0.12,
+                    shared_yaxes=True
+                )
+
+                # DNA
+                df_dna2 = df2[df2["Modality"] == "DNA"]
+                if not df_dna2.empty:
+                    tools = sorted(df_dna2["Tool"].unique())
+                    for filter_cat in [c for c in CATEGORY_ORDER if c != "NoConsensus"]:
+                        df_cat = df_dna2[df_dna2["Category"] == filter_cat]
+                        counts = [
+                            df_cat[df_cat["Tool"] == t]["Count"].sum()
+                            if not df_cat[df_cat["Tool"] == t].empty
+                            else 0
+                            for t in tools
+                        ]
+                        if sum(counts) > 0:
+                            fig2.add_trace(
+                                go.Bar(
+                                    name=filter_cat,
+                                    x=tools,
+                                    y=counts,
+                                    marker_color=self.CATEGORY_COLORS.get(filter_cat, "#8A8A8A"),
+                                    text=counts,
+                                    textposition="inside",
+                                    showlegend=True,
+                                    legendgroup=filter_cat
+                                ),
+                                row=1,
+                                col=1
+                            )
+
+                # RNA
+                df_rna2 = df2[df2["Modality"] == "RNA"]
+                if not df_rna2.empty:
+                    tools = sorted(df_rna2["Tool"].unique())
+                    for filter_cat in [c for c in CATEGORY_ORDER if c != "NoConsensus"]:
+                        df_cat = df_rna2[df_rna2["Category"] == filter_cat]
+                        counts = [
+                            df_cat[df_cat["Tool"] == t]["Count"].sum()
+                            if not df_cat[df_cat["Tool"] == t].empty
+                            else 0
+                            for t in tools
+                        ]
+                        if sum(counts) > 0:
+                            fig2.add_trace(
+                                go.Bar(
+                                    name=filter_cat,
+                                    x=tools,
+                                    y=counts,
+                                    marker_color=self.CATEGORY_COLORS.get(filter_cat, "#8A8A8A"),
+                                    text=counts,
+                                    textposition="inside",
+                                    showlegend=False,
+                                    legendgroup=filter_cat
+                                ),
+                                row=1,
+                                col=2
+                            )
+
+                fig2.update_layout(
+                    title="Variant Counts by Tool (excluding NoConsensus)",
+                    template="plotly_white",
+                    barmode="stack",
+                    height=500,
+                    showlegend=True
+                )
+                fig2.show()
 
     def plot_variant_type_distribution(self):
         """
@@ -308,15 +385,15 @@ class VCFVisualizer:
 
         data = []
 
-        # Get tool-level classification data
-        if "variant_calling" in self.all_stats:
-            for name, vcf_data in self.all_stats["variant_calling"].items():
+        # Get tool-level classification data from normalized VCFs
+        if "normalized" in self.all_stats:
+            for name, vcf_data in self.all_stats["normalized"].items():
                 if "stats" in vcf_data and "basic" in vcf_data["stats"]:
                     basic = vcf_data["stats"]["basic"]
                     classification = basic.get("classification", {})
                     parts = name.split("_")
                     tool = parts[0] if parts else name
-                    modality = "DNA" if "DNA_TUMOR" in name else "RNA"
+                    modality = "DNA" if "DT_vs_DN" in name or "DNA_TUMOR" in name else "RNA"
 
                     for filter_cat in CATEGORY_ORDER:
                         count = classification.get(filter_cat, 0)
@@ -334,13 +411,11 @@ class VCFVisualizer:
                 if "stats" in vcf_data and "basic" in vcf_data["stats"]:
                     basic = vcf_data["stats"]["basic"]
                     classification = basic.get("classification", {})
-                    # Explicitly detect modality to avoid misclassification
-                    if "RNA_TUMOR" in modality_key:
+                    # Explicitly detect modality using suffix keys
+                    if "RT_vs_DN" in modality_key or "RNA_TUMOR" in modality_key:
                         modality = "RNA"
-                    elif "DNA_TUMOR" in modality_key:
-                        modality = "DNA"
                     else:
-                        modality = "DNA" if modality_key.lower().startswith("dna") else "RNA"
+                        modality = "DNA"
 
                     for filter_cat in CATEGORY_ORDER:
                         count = classification.get(filter_cat, 0)
@@ -439,7 +514,7 @@ class VCFVisualizer:
 
         fig.show()
 
-    def plot_filter_status(self):
+    def plot_filter_status(self, dual_view_no_consensus: bool = True):
         """
         Stacked bar chart showing unified FILTER categories (Somatic, Germline, Reference, Artifact).
         """
@@ -464,14 +539,14 @@ class VCFVisualizer:
                 # Determine subplot category and tool name
                 parts = name.split("_")
 
-                if category == "variant_calling":
+                if category == "normalized":
                     tool = parts[0] if parts else "unknown"
-                    if "DNA_TUMOR" in name:
+                    if "DT_vs_DN" in name or "DNA_TUMOR" in name:
                         subplot_cat = "DNA"
-                    elif "RNA_TUMOR" in name:
+                    elif "RT_vs_DN" in name or "RNA_TUMOR" in name:
                         subplot_cat = "RNA"
                     else:
-                        continue  # Skip if not DNA or RNA
+                        continue
 
                 elif category == "consensus":
                     tool = "consensus"
@@ -482,12 +557,13 @@ class VCFVisualizer:
                     else:
                         continue
 
-                elif category == "rescue":
-                    tool = "rescue"
-                    subplot_cat = "Rescue"
+                elif category in {"rescue", "cosmic_gnomad", "rna_editing", "filtered_rescue"}:
+                    tool = category
+                    # Show these together in a single subplot
+                    subplot_cat = "Annotation Stages"
 
                 else:
-                    continue  # Skip other categories
+                    continue
 
                 # Add counts for each classification category
                 for filter_cat in CATEGORY_ORDER:
@@ -508,7 +584,7 @@ class VCFVisualizer:
         df = pd.DataFrame(data)
 
         # Determine available subplot categories
-        subplot_categories = ["DNA", "RNA", "Rescue"]
+        subplot_categories = ["DNA", "RNA", "Annotation Stages"]
         available_subplots = [
             cat for cat in subplot_categories if cat in df["SubplotCategory"].values
         ]
@@ -600,6 +676,65 @@ class VCFVisualizer:
             fig.update_yaxes(range=[0, max_y * 1.1], row=1, col=i)
 
         fig.show()
+
+        # Optional secondary view excluding NoConsensus to improve minor category visibility
+        if dual_view_no_consensus and data:
+            df_small = df[df["FilterCategory"] != "NoConsensus"].copy()
+            if not df_small.empty:
+                fig_small = make_subplots(
+                    rows=1,
+                    cols=len(available_subplots),
+                    subplot_titles=[f"{t} (No NoConsensus)" for t in available_subplots],
+                    horizontal_spacing=0.10,
+                    shared_yaxes=True
+                )
+
+                max_y2 = 0
+                for i, subplot_cat in enumerate(available_subplots, 1):
+                    df_subplot = df_small[df_small["SubplotCategory"] == subplot_cat]
+                    tools = sorted(df_subplot["Tool"].unique())
+                    for filter_cat in [c for c in CATEGORY_ORDER if c != "NoConsensus"]:
+                        df_filter = df_subplot[df_subplot["FilterCategory"] == filter_cat]
+                        counts = []
+                        for tool in tools:
+                            tool_data = df_filter[df_filter["Tool"] == tool]
+                            count = tool_data["Count"].sum() if not tool_data.empty else 0
+                            counts.append(count)
+                        if sum(counts) > 0:
+                            fig_small.add_trace(
+                                go.Bar(
+                                    name=filter_cat,
+                                    x=tools,
+                                    y=counts,
+                                    marker_color=self.CATEGORY_COLORS.get(filter_cat, "#8A8A8A"),
+                                    text=counts,
+                                    textposition="inside",
+                                    textfont=dict(color="white", size=10),
+                                    showlegend=(i == 1),
+                                    legendgroup=filter_cat,
+                                ),
+                                row=1,
+                                col=i
+                            )
+                    for tool in tools:
+                        tool_data = df_subplot[df_subplot["Tool"] == tool]
+                        total = tool_data["Count"].sum()
+                        max_y2 = max(max_y2, total)
+
+                    fig_small.update_xaxes(title_text="Caller/Stage", row=1, col=i)
+                    if i == 1:
+                        fig_small.update_yaxes(title_text="Number of Variants", row=1, col=i)
+
+                fig_small.update_layout(
+                    title_text="Variant Classification (excluding NoConsensus)",
+                    template="plotly_white",
+                    height=500,
+                    barmode="stack",
+                    showlegend=True
+                )
+                for i in range(1, len(available_subplots) + 1):
+                    fig_small.update_yaxes(range=[0, max_y2 * 1.1], row=1, col=i)
+                fig_small.show()
 
     def plot_annotation_progression(self):
         """

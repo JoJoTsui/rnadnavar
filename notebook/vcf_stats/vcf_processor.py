@@ -151,13 +151,13 @@ class VCFStatisticsExtractor:
                     )
                     
                 except Exception as e:
-                    # Fallback: use FILTER field or Artifact
+                    # Fallback: use FILTER field or Artifact (ensure PASS -> Somatic)
                     try:
-                        fallback_filter = variant.FILTER if variant.FILTER else "Artifact"
+                        fallback_filter = variant.FILTER if variant.FILTER else "PASS"
                         fallback_cat = (
                             "Artifact"
-                            if (use_annotated_classifier and fallback_filter == "NoConsensus")
-                            else fallback_filter
+                            if (use_annotated_classifier and str(fallback_filter) == "NoConsensus")
+                            else ("Somatic" if str(fallback_filter) in {"PASS", ".", "None"} else str(fallback_filter))
                         )
                         stats["classification"][fallback_cat] = (
                             stats["classification"].get(fallback_cat, 0) + 1

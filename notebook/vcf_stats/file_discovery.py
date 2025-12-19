@@ -58,6 +58,52 @@ class VCFFileDiscovery:
 
         return self.vcf_files
 
+    @staticmethod
+    def _suffix(sample: str) -> Optional[str]:
+        """Return DT/DN/RT suffix if present."""
+        if not sample:
+            return None
+        suf = sample[-2:]
+        return suf if suf in {"DT", "DN", "RT"} else None
+
+    @classmethod
+    def _pair_to_suffix_key(cls, pair: str) -> Optional[str]:
+        """
+        Convert a sample pair name like '2374372RT_vs_2374372DN' to 'RT_vs_DN'.
+        """
+        if "_vs_" not in pair:
+            return None
+        t, n = pair.split("_vs_", 1)
+        ts, ns = cls._suffix(t), cls._suffix(n)
+        if ts and ns:
+            return f"{ts}_vs_{ns}"
+        return None
+
+    @staticmethod
+    def _modality_to_suffix_pair(modality: str) -> Optional[str]:
+        """Map modality token to compact suffix pair DT/RT vs DN."""
+        if modality.startswith("DNA_TUMOR"):
+            return "DT_vs_DN"
+        if modality.startswith("RNA_TUMOR"):
+            return "RT_vs_DN"
+        return None
+
+    @classmethod
+    def _rescued_pair_to_suffix_key(cls, rescued_pair: str) -> Optional[str]:
+        """
+        Convert '2374372DT_vs_2374372DN_rescued_2374372RT_vs_2374372DN' ->
+        'DT_vs_DN_rescued_RT_vs_DN'.
+        """
+        if "_rescued_" not in rescued_pair:
+            # Try simple pair
+            return cls._pair_to_suffix_key(rescued_pair)
+        left, right = rescued_pair.split("_rescued_", 1)
+        left_key = cls._pair_to_suffix_key(left) or ""
+        right_key = cls._pair_to_suffix_key(right) or ""
+        if left_key and right_key:
+            return f"{left_key}_rescued_{right_key}"
+        return None
+
     def _discover_normalized_vcfs(self):
         """Discover normalized VCFs from standalone callers."""
         for tool in TOOLS:
@@ -71,7 +117,8 @@ class VCFFileDiscovery:
                 if norm_dir.exists():
                     vcf_files = list(norm_dir.glob("*.norm.vcf.gz"))
                     if vcf_files:
-                        key = f"{tool}_{modality}"
+                        suffix_pair = self._modality_to_suffix_pair(modality)
+                        key = f"{tool}_{suffix_pair}" if suffix_pair else f"{tool}_{modality}"
                         self.vcf_files["normalized"][key] = vcf_files[0]
             
             # Also try sample-pair structure
@@ -81,10 +128,9 @@ class VCFFileDiscovery:
                         vcf_files = list(subdir.glob("*.norm.vcf.gz"))
                         if vcf_files:
                             sample_pair = subdir.name
-                            tumor_sample = sample_pair.split("_vs_")[0]
-                            modality = self._infer_modality(tumor_sample)
-                            
-                            key = f"{tool}_{modality}"
+                            pair_key = self._pair_to_suffix_key(sample_pair)
+                            modality_key = pair_key if pair_key else self._infer_modality(sample_pair.split("_vs_")[0])
+                            key = f"{tool}_{modality_key}"
                             self.vcf_files["normalized"][key] = vcf_files[0]
 
     def _discover_consensus_vcfs(self):
@@ -99,7 +145,9 @@ class VCFFileDiscovery:
             if vcf_dir.exists():
                 vcf_files = list(vcf_dir.glob("*.consensus.vcf.gz"))
                 if vcf_files:
-                    self.vcf_files["consensus"][modality] = vcf_files[0]
+                    suffix_pair = self._modality_to_suffix_pair(modality)
+                    key = f"consensus_{suffix_pair}" if suffix_pair else modality
+                    self.vcf_files["consensus"][key] = vcf_files[0]
         
         # Also try sample-pair structure
         for subdir in consensus_dir.iterdir():
@@ -107,10 +155,9 @@ class VCFFileDiscovery:
                 vcf_files = list(subdir.glob("*.consensus.vcf.gz"))
                 if vcf_files:
                     sample_pair = subdir.name
-                    tumor_sample = sample_pair.split("_vs_")[0]
-                    modality = self._infer_modality(tumor_sample)
-                    
-                    self.vcf_files["consensus"][modality] = vcf_files[0]
+                    pair_key = self._pair_to_suffix_key(sample_pair)
+                    key = f"consensus_{pair_key}" if pair_key else sample_pair
+                    self.vcf_files["consensus"][key] = vcf_files[0]
 
     def _discover_rescue_vcfs(self):
         """Discover rescue VCFs (DNA + RNA combined)."""
@@ -122,7 +169,8 @@ class VCFFileDiscovery:
             if subdir.is_dir():
                 vcf_files = list(subdir.glob("*.rescued.vcf.gz"))
                 if vcf_files:
-                    self.vcf_files["rescue"][subdir.name] = vcf_files[0]
+                    key = self._rescued_pair_to_suffix_key(subdir.name) or subdir.name
+                    self.vcf_files["rescue"][key] = vcf_files[0]
 
     def _discover_cosmic_gnomad_vcfs(self):
         """
@@ -138,8 +186,8 @@ class VCFFileDiscovery:
             if sample_pair_dir.is_dir():
                 vcf_files = list(sample_pair_dir.glob("*.rescue.cosmic_gnomad_annotated.final.vcf.gz"))
                 if vcf_files:
-                    # Use sample pair as key
-                    self.vcf_files["cosmic_gnomad"][sample_pair_dir.name] = vcf_files[0]
+                    key = self._rescued_pair_to_suffix_key(sample_pair_dir.name) or sample_pair_dir.name
+                    self.vcf_files["cosmic_gnomad"][key] = vcf_files[0]
 
     def _discover_rna_editing_vcfs(self):
         """
@@ -155,7 +203,8 @@ class VCFFileDiscovery:
             if sample_pair_dir.is_dir():
                 vcf_files = list(sample_pair_dir.glob("*.rescue.rna_annotated.vcf.gz"))
                 if vcf_files:
-                    self.vcf_files["rna_editing"][sample_pair_dir.name] = vcf_files[0]
+                    key = self._rescued_pair_to_suffix_key(sample_pair_dir.name) or sample_pair_dir.name
+                    self.vcf_files["rna_editing"][key] = vcf_files[0]
 
     def _discover_filtered_rescue_vcfs(self):
         """
@@ -170,8 +219,14 @@ class VCFFileDiscovery:
         for sample_pair_dir in filtered_dir.iterdir():
             if sample_pair_dir.is_dir():
                 vcf_files = list(sample_pair_dir.glob("*.filtered.vcf.gz"))
-                if vcf_files:
-                    self.vcf_files["filtered_rescue"][sample_pair_dir.name] = vcf_files[0]
+                if not vcf_files:
+                    continue
+                # Only include combined rescued filtered result, omit single-modality filtered
+                # i.e., keep keys that contain '_rescued_'
+                if "_rescued_" not in sample_pair_dir.name:
+                    continue
+                key = self._rescued_pair_to_suffix_key(sample_pair_dir.name) or sample_pair_dir.name
+                self.vcf_files["filtered_rescue"][key] = vcf_files[0]
 
     @staticmethod
     def _infer_modality(tumor_sample: str) -> str:

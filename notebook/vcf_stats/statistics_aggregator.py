@@ -53,14 +53,18 @@ class StatisticsAggregator:
 
                 basic = data["stats"].get("basic", {})
 
-                # Parse tool and modality from name
-                parts = name.split("_")
-                if len(parts) >= 2:
-                    tool = parts[0]
-                    modality = "_".join(parts[1:])
+                # Parse Tool/Modality with stage-aware logic
+                if category in {"rescue", "cosmic_gnomad", "rna_editing", "filtered_rescue"}:
+                    tool = category
+                    modality = name
                 else:
-                    tool = name
-                    modality = "Unknown"
+                    parts = name.split("_")
+                    if len(parts) >= 2:
+                        tool = parts[0]
+                        modality = "_".join(parts[1:])
+                    else:
+                        tool = name
+                        modality = "Unknown"
 
                 row = {
                     "Category": category,
@@ -101,12 +105,17 @@ class StatisticsAggregator:
                 
         if rows:
             df = pd.DataFrame(rows)
-            
+
             # Add any missing columns with default values
             for col in expected_cols:
                 if col not in df.columns:
                     df[col] = 0
-                    
+
+            # Ensure numeric columns are numeric (avoid NaN for missing cats)
+            numeric_cols = [c for c in expected_cols if c not in {"Category", "Tool", "Modality", "File"}]
+            for c in numeric_cols:
+                df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
+
             return df[expected_cols]
         else:
             # Return empty DataFrame with expected columns

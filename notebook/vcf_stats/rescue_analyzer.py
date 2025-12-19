@@ -47,6 +47,9 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
         "dna_consensus": {},
         "rna_consensus": {},
         "rescue": {},
+        "cosmic_gnomad": {},
+        "rna_editing": {},
+        "filtered_rescue": {},
         "transitions": {},
         "summary": {}
     }
@@ -91,16 +94,37 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
     rescue_analysis["rna_consensus"]["classification"] = rna_classification
     rescue_analysis["rescue"]["classification"] = rescue_classification
 
+    # Collect downstream annotation stages if available
+    for stage in ["cosmic_gnomad", "rna_editing", "filtered_rescue"]:
+        stage_class = {}
+        stage_total = 0
+        if stage in all_vcf_stats:
+            for _, data in all_vcf_stats[stage].items():
+                basic = data.get("stats", {}).get("basic", {})
+                cls = basic.get("classification", {})
+                tot = basic.get("total_variants", 0)
+                # Merge counts across files of the same stage
+                stage_total += tot
+                for k, v in cls.items():
+                    stage_class[k] = stage_class.get(k, 0) + v
+        rescue_analysis[stage] = {
+            "classification": stage_class,
+            "total_variants": stage_total,
+        }
+
     # Print summary statistics
     print(
-        f"\n{'Category':<15} {'DNA Consensus':<15} {'RNA Consensus':<15} {'Rescued':<15}"
+        f"\n{'Category':<15} {'DNA Consensus':<15} {'RNA Consensus':<15} {'Rescued':<15} {'COSMIC':<15} {'RNA_Edit':<15} {'Filtered':<15}"
     )
     print("-" * 60)
     for filter_cat in CATEGORY_ORDER + ["PASS", "LowQual", "StrandBias", "Clustered", "Other"]:
         dna_count = dna_classification.get(filter_cat, 0)
         rna_count = rna_classification.get(filter_cat, 0)
         rescue_count = rescue_classification.get(filter_cat, 0)
-        print(f"{filter_cat:<15} {dna_count:<15,} {rna_count:<15,} {rescue_count:<15,}")
+        cg_count = rescue_analysis["cosmic_gnomad"]["classification"].get(filter_cat, 0)
+        re_count = rescue_analysis["rna_editing"]["classification"].get(filter_cat, 0)
+        flt_count = rescue_analysis["filtered_rescue"]["classification"].get(filter_cat, 0)
+        print(f"{filter_cat:<15} {dna_count:<15,} {rna_count:<15,} {rescue_count:<15,} {cg_count:<15,} {re_count:<15,} {flt_count:<15,}")
 
     print("-" * 60)
     print(f"{'TOTAL':<15} {dna_total:<15,} {rna_total:<15,} {rescue_total:<15,}")
@@ -121,12 +145,18 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
         dna_count = dna_classification.get(filter_cat, 0)
         rna_count = rna_classification.get(filter_cat, 0)
         rescue_count = rescue_classification.get(filter_cat, 0)
+        cg_count = rescue_analysis["cosmic_gnomad"]["classification"].get(filter_cat, 0)
+        re_count = rescue_analysis["rna_editing"]["classification"].get(filter_cat, 0)
+        flt_count = rescue_analysis["filtered_rescue"]["classification"].get(filter_cat, 0)
 
-        if dna_count > 0 or rna_count > 0 or rescue_count > 0:
+        if any([dna_count, rna_count, rescue_count, cg_count, re_count, flt_count]):
             print(f"\n{filter_cat} Category:")
             print(f"  DNA Consensus: {dna_count:,}")
             print(f"  RNA Consensus: {rna_count:,}")
             print(f"  Rescued: {rescue_count:,}")
+            print(f"  COSMIC/GnomAD: {cg_count:,}")
+            print(f"  RNA Editing: {re_count:,}")
+            print(f"  Filtered: {flt_count:,}")
 
             # Calculate rescue effectiveness
             max_dna_rna = max(dna_count, rna_count)
@@ -161,6 +191,9 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
         "dna_total": dna_total,
         "rna_total": rna_total,
         "rescue_total": rescue_total,
+        "cosmic_total": rescue_analysis["cosmic_gnomad"].get("total_variants", 0),
+        "rna_edit_total": rescue_analysis["rna_editing"].get("total_variants", 0),
+        "filtered_total": rescue_analysis["filtered_rescue"].get("total_variants", 0),
         "max_input_total": max(dna_total, rna_total),
         "total_gain": rescue_total - max(dna_total, rna_total),
         "total_gain_percent": ((rescue_total - max(dna_total, rna_total)) / max(dna_total, rna_total)) * 100 if max(dna_total, rna_total) > 0 else 0
@@ -196,6 +229,9 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
                 ("DNA Consensus", dna_classification, 1),
                 ("RNA Consensus", rna_classification, 2),
                 ("Rescued", rescue_classification, 3),
+                ("COSMIC/GnomAD", rescue_analysis["cosmic_gnomad"]["classification"], 4),
+                ("RNA Editing", rescue_analysis["rna_editing"]["classification"], 5),
+                ("Filtered", rescue_analysis["filtered_rescue"]["classification"], 6),
             ]
 
             for stage_name, classification, col_idx in stages:
@@ -217,8 +253,8 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
                 xaxis_title="Processing Stage",
                 yaxis_title="Number of Variants",
                 barmode="stack",
-                height=500,
-                width=800,
+                height=600,
+                width=1000,
                 legend=dict(
                     orientation="h",
                     yanchor="bottom",
