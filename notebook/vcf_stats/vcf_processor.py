@@ -15,11 +15,15 @@ from collections import defaultdict
 # Import classification functions
 from .classifiers import (
     classify_variant,
+    classify_annotated_variant,
+    detect_rna_edit_variant,
+    detect_cosmic_gnomad_annotation,
+    detect_no_consensus_variant,
     get_sample_indices
 )
 
 # Import constants from main module
-from . import TOOLS, MODALITIES, CATEGORY_ORDER
+from . import TOOLS, MODALITIES, CATEGORY_ORDER, VCF_STAGE_ORDER
 
 # Try to import optional dependencies
 try:
@@ -56,19 +60,32 @@ class VCFStatisticsExtractor:
     def _is_consensus_or_rescue(self) -> bool:
         """
         Determine if the current VCF is a consensus or rescue VCF.
+        Includes annotation stage VCFs (cosmic_gnomad, rna_editing, filtered_rescue).
         """
         p = str(self.vcf_path).lower()
         return (
             ".consensus.vcf.gz" in p
-            or ".rescued.vcf.gz" in p
             or ".consensus.vcf" in p
+            or ".rescued.vcf.gz" in p
             or ".rescued.vcf" in p
+            or ".cosmic_gnomad_annotated" in p
+            or ".rna_annotated" in p
+            or ".filtered.vcf.gz" in p
+            or ".filtered.vcf" in p
         )
 
     # ...existing code...
     def extract_basic_stats(self):
         """
         Extract basic variant statistics with biological classification or FILTER category.
+        
+        For consensus/rescue/annotated VCFs: Uses classification including new categories
+        (RNA_Edit, NoConsensus) based on FILTER and INFO fields.
+        
+        For raw caller VCFs: Uses biological classification (Somatic/Germline/Reference/Artifact).
+        
+        Removed: pass/filtered counts (no longer computed).
+        Added: Category count distribution and variant type statistics.
         """
         try:
             from cyvcf2 import VCF
@@ -83,16 +100,17 @@ class VCFStatisticsExtractor:
                 "indels": 0,
                 "mnps": 0,
                 "complex": 0,
-                "passed": 0,
-                "filtered": 0,
                 "chromosomes": set(),
                 "qualities": [],
                 "variant_types": defaultdict(int),
-                # Classification or category (based on FILTER for consensus/rescue)
+                # Classification: count distribution by category
                 "classification": {},
+                # Category counts (for tracking distribution across categories)
+                "category_distribution": {},
             }
 
-            use_filter_as_category = self._is_consensus_or_rescue()
+            # Determine classification approach based on VCF type
+            use_annotated_classifier = self._is_consensus_or_rescue()
 
             for variant in self.vcf:
                 stats["total_variants"] += 1
@@ -101,16 +119,6 @@ class VCFStatisticsExtractor:
                 # Quality scores
                 if variant.QUAL is not None and variant.QUAL > 0:
                     stats["qualities"].append(variant.QUAL)
-
-                # Filter status
-                if (
-                    variant.FILTER is None
-                    or variant.FILTER == "PASS"
-                    or variant.FILTER == "."
-                ):
-                    stats["passed"] += 1
-                else:
-                    stats["filtered"] += 1
 
                 # Variant type
                 if variant.is_snp:
@@ -128,33 +136,45 @@ class VCFStatisticsExtractor:
 
                 # Classification or FILTER-based category
                 try:
-                    if use_filter_as_category:
-                        # Normalize FILTER into unified categories
-                        raw_filter = variant.FILTER if variant.FILTER else "PASS"
-                        cat = "Artifact" if raw_filter == "NoConsensus" else raw_filter
-                        stats["classification"][cat] = (
-                            stats["classification"].get(cat, 0) + 1
-                        )
+                    if use_annotated_classifier:
+                        # Use annotated classifier for consensus/rescue/annotation VCFs
+                        classification = classify_annotated_variant(variant)
                     else:
+                        # Use biological classifier for raw caller VCFs
                         classification = classify_variant(
                             variant, self.caller_name, sample_indices
                         )
-                        stats["classification"][classification] = (
-                            stats["classification"].get(classification, 0) + 1
+                    
+                    # Count this category
+                    stats["classification"][classification] = (
+                        stats["classification"].get(classification, 0) + 1
+                    )
+                    
+                except Exception as e:
+                    # Fallback: use FILTER field or Artifact
+                    try:
+                        fallback_filter = variant.FILTER if variant.FILTER else "Artifact"
+                        fallback_cat = (
+                            "Artifact"
+                            if (use_annotated_classifier and fallback_filter == "NoConsensus")
+                            else fallback_filter
                         )
-                except Exception:
-                    # Fallback
-                    fallback_filter = variant.FILTER if variant.FILTER else "Artifact"
-                    fallback_cat = (
-                        "Artifact"
-                        if (use_filter_as_category and fallback_filter == "NoConsensus")
-                        else fallback_filter
-                    )
-                    stats["classification"][fallback_cat] = (
-                        stats["classification"].get(fallback_cat, 0) + 1
-                    )
+                        stats["classification"][fallback_cat] = (
+                            stats["classification"].get(fallback_cat, 0) + 1
+                        )
+                    except:
+                        stats["classification"]["Artifact"] = (
+                            stats["classification"].get("Artifact", 0) + 1
+                        )
 
+            # Convert chromosomes to sorted list
             stats["chromosomes"] = sorted(list(stats["chromosomes"]))
+            
+            # Compute category distribution percentages
+            total = stats["total_variants"]
+            if total > 0:
+                for cat, count in stats["classification"].items():
+                    stats["category_distribution"][cat] = (count / total) * 100
 
             self.stats["basic"] = stats
             return stats

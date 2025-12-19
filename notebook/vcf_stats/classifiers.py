@@ -3,7 +3,12 @@
 Variant Classifier Module
 
 Functions to classify variants from different callers (Strelka, DeepSomatic, Mutect2)
-into biological categories: Somatic, Germline, Reference, and Artifact.
+into biological categories: Somatic, Germline, Reference, Artifact, RNA_Edit, and NoConsensus.
+
+This module supports classification at multiple processing stages:
+- Raw caller outputs: Biological classification (Somatic/Germline/Reference/Artifact)
+- Consensus/Rescue VCFs: FILTER-based classification
+- Annotated VCFs: Detection of special annotations (RNA_Edit, Cosmic_gnomAD)
 """
 
 from typing import Dict, Optional
@@ -174,6 +179,134 @@ def classify_variant(variant, caller_name, sample_indices=None):
             return "Somatic"
         else:
             return "Artifact"
+
+
+def detect_rna_edit_variant(variant) -> bool:
+    """
+    Detect if a variant is flagged as RNA editing.
+    
+    Checks for:
+    - FILTER field containing 'RNAedit'
+    - INFO fields with REDI_* prefix
+    - REDI_SITES or RNA_EDITING_SCORE
+    
+    Args:
+        variant: cyvcf2.Variant object
+        
+    Returns:
+        bool: True if variant appears to be RNA-edited
+    """
+    try:
+        # Check FILTER field
+        if variant.FILTER and "RNAedit" in str(variant.FILTER):
+            return True
+        
+        # Check INFO fields for RNA editing markers
+        info_keys = variant.INFO.keys() if hasattr(variant.INFO, 'keys') else []
+        for key in info_keys:
+            if 'REDI' in key.upper() or 'RNA' in key.upper() and 'EDIT' in key.upper():
+                return True
+                
+    except Exception:
+        pass
+    
+    return False
+
+
+def detect_cosmic_gnomad_annotation(variant) -> bool:
+    """
+    Detect if a variant has Cosmic/gnomAD annotation.
+    
+    Checks for:
+    - COSMIC_ID in INFO
+    - gnomAD_AF or gnomAD_* fields
+    - COSMICID field
+    
+    Args:
+        variant: cyvcf2.Variant object
+        
+    Returns:
+        bool: True if variant has cosmic/gnomad annotation
+    """
+    try:
+        info = variant.INFO
+        
+        # Check for common cosmic/gnomad annotation keys
+        cosmic_keys = ['COSMIC_ID', 'COSMICID', 'COSMIC', 'gnomAD_AF', 'gnomAD_AFR_AF']
+        for key in cosmic_keys:
+            if key in info:
+                return True
+        
+        # Check for any gnomAD-prefixed field
+        info_keys = info.keys() if hasattr(info, 'keys') else []
+        for key in info_keys:
+            if 'gnomAD' in str(key) or 'COSMIC' in str(key):
+                return True
+                
+    except Exception:
+        pass
+    
+    return False
+
+
+def detect_no_consensus_variant(variant) -> bool:
+    """
+    Detect if a variant is flagged as NoConsensus.
+    
+    Checks FILTER field for explicit 'NoConsensus' marker.
+    
+    Args:
+        variant: cyvcf2.Variant object
+        
+    Returns:
+        bool: True if variant is marked as NoConsensus
+    """
+    try:
+        if variant.FILTER and str(variant.FILTER) == "NoConsensus":
+            return True
+    except Exception:
+        pass
+    
+    return False
+
+
+def classify_annotated_variant(variant) -> str:
+    """
+    Classify a variant from an annotated VCF (cosmic_gnomad, rna_editing, filtered).
+    
+    Assigns categories based on FILTER field and special annotations.
+    Returns one of: Somatic, Germline, Reference, Artifact, RNA_Edit, NoConsensus
+    
+    Priority:
+    1. NoConsensus (explicit FILTER)
+    2. RNA_Edit (FILTER or INFO markers)
+    3. PASS/filter-based classification
+    
+    Args:
+        variant: cyvcf2.Variant object
+        
+    Returns:
+        str: Classification category
+    """
+    # Check for NoConsensus first
+    if detect_no_consensus_variant(variant):
+        return "NoConsensus"
+    
+    # Check for RNA editing
+    if detect_rna_edit_variant(variant):
+        return "RNA_Edit"
+    
+    # Fall back to FILTER-based classification
+    filter_val = variant.FILTER if variant.FILTER else "PASS"
+    
+    if filter_val == "PASS" or filter_val is None or filter_val == ".":
+        return "Somatic"
+    elif "GERMLINE" in str(filter_val).upper():
+        return "Germline"
+    elif "REFERENCE" in str(filter_val).upper() or "REF" in str(filter_val).upper():
+        return "Reference"
+    else:
+        return "Artifact"
 
 
 def get_sample_indices(vcf_obj, caller_name):

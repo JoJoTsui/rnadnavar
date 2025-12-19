@@ -3,13 +3,14 @@
 VCF File Discovery Module
 
 Discovers and organizes all VCF files in the pipeline output directory.
+Refactored to support annotation stages: rescue → cosmic_gnomad → rna_editing → filtered_rescue.
 """
 
 from pathlib import Path
 from typing import Dict, List, Optional
 
 # Import constants from main module
-from . import TOOLS, MODALITIES
+from . import TOOLS, MODALITIES, VCF_STAGE_ORDER
 
 
 class VCFFileDiscovery:
@@ -24,57 +25,41 @@ class VCFFileDiscovery:
         """
         self.base_dir = Path(base_dir)
         self.vcf_files = {
-            "variant_calling": {},  # Raw tool outputs
-            "normalized": {},  # Normalized VCFs
-            "annotated": {},  # VEP annotated
-            "consensus": {},  # Consensus VCFs
-            "rescue": {},  # Rescued variants
+            "normalized": {},              # Normalized VCFs from standalone callers
+            "consensus": {},               # Consensus VCFs (DNA & RNA)
+            "rescue": {},                  # Rescue VCFs (DNA + RNA combined)
+            "cosmic_gnomad": {},           # Cosmic/gnomAD annotated
+            "rna_editing": {},             # RNA editing annotated
+            "filtered_rescue": {},         # Final filtered rescue VCFs
         }
         self.bam_files = {}
 
     def discover_vcfs(self) -> Dict[str, Dict[str, Path]]:
-        """Discover all VCF files"""
-        # 1. Per-tool variant calling outputs
-        # Try both modality-based structure and sample-pair structure
-        for tool in TOOLS:
-            tool_dir = self.base_dir / "variant_calling" / tool
-            if not tool_dir.exists():
-                continue
-            
-            # First try modality-based structure (e.g., DNA_TUMOR, RNA_TUMOR)
-            for modality in MODALITIES:
-                variant_dir = tool_dir / modality
-                if variant_dir.exists():
-                    vcf_files = list(variant_dir.glob("*.vcf.gz"))
-                    # Filter out gVCF files
-                    vcf_files = [f for f in vcf_files if ".g.vcf.gz" not in str(f)]
-                    if vcf_files:
-                        key = f"{tool}_{modality}"
-                        self.vcf_files["variant_calling"][key] = vcf_files[0]
-            
-            # Also try sample-pair structure (e.g., 2374372DT_vs_2374372DN)
-            for subdir in tool_dir.iterdir():
-                if subdir.is_dir() and "_vs_" in subdir.name:
-                    vcf_files = list(subdir.glob("*.vcf.gz"))
-                    # Filter out gVCF files
-                    vcf_files = [f for f in vcf_files if ".g.vcf.gz" not in str(f)]
-                    if vcf_files:
-                        # Extract modality from sample name (e.g., DT -> DNA_TUMOR)
-                        sample_pair = subdir.name
-                        # Get the tumor sample (first part before _vs_)
-                        tumor_sample = sample_pair.split("_vs_")[0]
-                        # Determine modality from suffix
-                        if tumor_sample.endswith("DT"):
-                            modality = "DNA_TUMOR"
-                        elif tumor_sample.endswith("RT"):
-                            modality = "RNA_TUMOR"
-                        else:
-                            modality = tumor_sample  # Use as-is if no recognized suffix
-                        
-                        key = f"{tool}_{modality}"
-                        self.vcf_files["variant_calling"][key] = vcf_files[0]
+        """
+        Discover all VCF files organized by processing stage.
+        
+        Only discovers normalized, consensus, rescue, and annotated (cosmic_gnomad, 
+        rna_editing, filtered_rescue) VCFs. Raw variant_calling VCFs are skipped.
+        """
+        # 1. Normalized VCFs - from standalone callers (primary input for analysis)
+        self._discover_normalized_vcfs()
+        
+        # 2. Consensus VCFs - DNA and RNA consensus
+        self._discover_consensus_vcfs()
+        
+        # 3. Rescue VCFs - DNA + RNA combined
+        self._discover_rescue_vcfs()
+        
+        # 4. Annotation stage VCFs (in order):
+        #    cosmic_gnomad → rna_editing → filtered_rescue
+        self._discover_cosmic_gnomad_vcfs()
+        self._discover_rna_editing_vcfs()
+        self._discover_filtered_rescue_vcfs()
 
-        # 2. Normalized VCFs
+        return self.vcf_files
+
+    def _discover_normalized_vcfs(self):
+        """Discover normalized VCFs from standalone callers."""
         for tool in TOOLS:
             norm_tool_dir = self.base_dir / "normalized" / tool
             if not norm_tool_dir.exists():
@@ -90,71 +75,121 @@ class VCFFileDiscovery:
                         self.vcf_files["normalized"][key] = vcf_files[0]
             
             # Also try sample-pair structure
-            for subdir in norm_tool_dir.iterdir():
-                if subdir.is_dir() and "_vs_" in subdir.name:
-                    vcf_files = list(subdir.glob("*.norm.vcf.gz"))
-                    if vcf_files:
-                        sample_pair = subdir.name
-                        tumor_sample = sample_pair.split("_vs_")[0]
-                        if tumor_sample.endswith("DT"):
-                            modality = "DNA_TUMOR"
-                        elif tumor_sample.endswith("RT"):
-                            modality = "RNA_TUMOR"
-                        else:
-                            modality = tumor_sample
-                        
-                        key = f"{tool}_{modality}"
-                        self.vcf_files["normalized"][key] = vcf_files[0]
+            if norm_tool_dir.exists():
+                for subdir in norm_tool_dir.iterdir():
+                    if subdir.is_dir() and "_vs_" in subdir.name:
+                        vcf_files = list(subdir.glob("*.norm.vcf.gz"))
+                        if vcf_files:
+                            sample_pair = subdir.name
+                            tumor_sample = sample_pair.split("_vs_")[0]
+                            modality = self._infer_modality(tumor_sample)
+                            
+                            key = f"{tool}_{modality}"
+                            self.vcf_files["normalized"][key] = vcf_files[0]
 
-        # 3. Annotated VCFs
-        annotated_dir = self.base_dir / "annotated"
-        if annotated_dir.exists():
-            for tool_modality_dir in annotated_dir.iterdir():
-                if tool_modality_dir.is_dir():
-                    for vcf_file in tool_modality_dir.glob("*.vcf.gz"):
-                        key = tool_modality_dir.name
-                        self.vcf_files["annotated"][key] = vcf_file
-
-        # 4. Consensus VCFs
+    def _discover_consensus_vcfs(self):
+        """Discover consensus VCFs (DNA and RNA)."""
         consensus_dir = self.base_dir / "consensus" / "vcf"
-        if consensus_dir.exists():
-            # Try modality-based structure
-            for modality in MODALITIES:
-                vcf_dir = consensus_dir / modality
-                if vcf_dir.exists():
-                    vcf_files = list(vcf_dir.glob("*.consensus.vcf.gz"))
-                    if vcf_files:
-                        self.vcf_files["consensus"][modality] = vcf_files[0]
+        if not consensus_dir.exists():
+            return
             
-            # Also try sample-pair structure
-            for subdir in consensus_dir.iterdir():
-                if subdir.is_dir() and "_vs_" in subdir.name:
-                    vcf_files = list(subdir.glob("*.consensus.vcf.gz"))
-                    if vcf_files:
-                        sample_pair = subdir.name
-                        tumor_sample = sample_pair.split("_vs_")[0]
-                        if tumor_sample.endswith("DT"):
-                            modality = "DNA_TUMOR"
-                        elif tumor_sample.endswith("RT"):
-                            modality = "RNA_TUMOR"
-                        else:
-                            modality = tumor_sample
-                        
-                        self.vcf_files["consensus"][modality] = vcf_files[0]
-
-        # 5. Rescue VCFs
-        rescue_dir = self.base_dir / "rescue"
-        if rescue_dir.exists():
-            for subdir in rescue_dir.iterdir():
-                if subdir.is_dir():
-                    vcf_files = list(subdir.glob("*.rescued.vcf.gz"))
-                    if vcf_files:
-                        # Use the directory name as the key (e.g., DNA_TUMOR_vs_DNA_NORMAL_rescued_RNA_TUMOR_vs_DNA_NORMAL)
-                        self.vcf_files["rescue"][subdir.name] = vcf_files[0]
-
+        # Try modality-based structure
+        for modality in MODALITIES:
+            vcf_dir = consensus_dir / modality
+            if vcf_dir.exists():
+                vcf_files = list(vcf_dir.glob("*.consensus.vcf.gz"))
+                if vcf_files:
+                    self.vcf_files["consensus"][modality] = vcf_files[0]
         
+        # Also try sample-pair structure
+        for subdir in consensus_dir.iterdir():
+            if subdir.is_dir() and "_vs_" in subdir.name:
+                vcf_files = list(subdir.glob("*.consensus.vcf.gz"))
+                if vcf_files:
+                    sample_pair = subdir.name
+                    tumor_sample = sample_pair.split("_vs_")[0]
+                    modality = self._infer_modality(tumor_sample)
+                    
+                    self.vcf_files["consensus"][modality] = vcf_files[0]
 
-        return self.vcf_files
+    def _discover_rescue_vcfs(self):
+        """Discover rescue VCFs (DNA + RNA combined)."""
+        rescue_dir = self.base_dir / "rescue"
+        if not rescue_dir.exists():
+            return
+            
+        for subdir in rescue_dir.iterdir():
+            if subdir.is_dir():
+                vcf_files = list(subdir.glob("*.rescued.vcf.gz"))
+                if vcf_files:
+                    self.vcf_files["rescue"][subdir.name] = vcf_files[0]
+
+    def _discover_cosmic_gnomad_vcfs(self):
+        """
+        Discover Cosmic/gnomAD annotated VCFs.
+        
+        Expected path: annotation/cosmic_gnomad/{sample_pair}/{sample_pair}.rescue.cosmic_gnomad_annotated.final.vcf.gz
+        """
+        cosmic_dir = self.base_dir / "annotation" / "cosmic_gnomad"
+        if not cosmic_dir.exists():
+            return
+            
+        for sample_pair_dir in cosmic_dir.iterdir():
+            if sample_pair_dir.is_dir():
+                vcf_files = list(sample_pair_dir.glob("*.rescue.cosmic_gnomad_annotated.final.vcf.gz"))
+                if vcf_files:
+                    # Use sample pair as key
+                    self.vcf_files["cosmic_gnomad"][sample_pair_dir.name] = vcf_files[0]
+
+    def _discover_rna_editing_vcfs(self):
+        """
+        Discover RNA editing annotated VCFs.
+        
+        Expected path: annotation/rna_editing/{sample_pair}/{sample_pair}.rescue.rna_annotated.vcf.gz
+        """
+        rna_edit_dir = self.base_dir / "annotation" / "rna_editing"
+        if not rna_edit_dir.exists():
+            return
+            
+        for sample_pair_dir in rna_edit_dir.iterdir():
+            if sample_pair_dir.is_dir():
+                vcf_files = list(sample_pair_dir.glob("*.rescue.rna_annotated.vcf.gz"))
+                if vcf_files:
+                    self.vcf_files["rna_editing"][sample_pair_dir.name] = vcf_files[0]
+
+    def _discover_filtered_rescue_vcfs(self):
+        """
+        Discover final filtered rescue VCFs.
+        
+        Expected path: filtered/{sample_pair}/{sample_pair}.filtered.vcf.gz
+        """
+        filtered_dir = self.base_dir / "filtered"
+        if not filtered_dir.exists():
+            return
+            
+        for sample_pair_dir in filtered_dir.iterdir():
+            if sample_pair_dir.is_dir():
+                vcf_files = list(sample_pair_dir.glob("*.filtered.vcf.gz"))
+                if vcf_files:
+                    self.vcf_files["filtered_rescue"][sample_pair_dir.name] = vcf_files[0]
+
+    @staticmethod
+    def _infer_modality(tumor_sample: str) -> str:
+        """
+        Infer modality from tumor sample name suffix.
+        
+        Args:
+            tumor_sample: Sample name (e.g., 2374372DT, 2374372RT)
+            
+        Returns:
+            Modality name (DNA_TUMOR_vs_DNA_NORMAL or RNA_TUMOR_vs_DNA_NORMAL)
+        """
+        if tumor_sample.endswith("DT"):
+            return "DNA_TUMOR_vs_DNA_NORMAL"
+        elif tumor_sample.endswith("RT"):
+            return "RNA_TUMOR_vs_DNA_NORMAL"
+        else:
+            return tumor_sample
 
     def discover_alignments(self) -> Dict[str, Path]:
         """Discover alignment files (CRAM/BAM)"""
@@ -193,17 +228,29 @@ class VCFFileDiscovery:
             for sample, bam_path in self.bam_files.items():
                 print(f"  {sample}: {bam_path.name}")
 
-    def get_consensus_files(self) -> Dict[str, Path]:
-        """Get only consensus VCF files"""
-        return self.vcf_files.get("consensus", {})
-
-    def get_variant_calling_files(self) -> Dict[str, Path]:
-        """Get only raw variant calling output files"""
-        return self.vcf_files.get("variant_calling", {})
-
     def get_rescue_files(self) -> Dict[str, Path]:
         """Get only rescue VCF files"""
         return self.vcf_files.get("rescue", {})
+
+    def get_annotation_files(self, stage: str) -> Dict[str, Path]:
+        """
+        Get VCF files from a specific annotation stage.
+        
+        Args:
+            stage: Annotation stage ('cosmic_gnomad', 'rna_editing', 'filtered_rescue')
+            
+        Returns:
+            Dictionary of VCF files for the stage
+        """
+        return self.vcf_files.get(stage, {})
+
+    def get_all_annotation_stages(self) -> Dict[str, Dict[str, Path]]:
+        """Get all annotation stage VCFs in order"""
+        stages = {}
+        for stage in VCF_STAGE_ORDER:
+            if stage in self.vcf_files and self.vcf_files[stage]:
+                stages[stage] = self.vcf_files[stage]
+        return stages
 
     def get_all_files_by_tool(self, tool: str) -> Dict[str, Dict[str, Path]]:
         """
@@ -267,5 +314,3 @@ class VCFFileDiscovery:
         for category, files in self.vcf_files.items():
             key = f"{tool}_{modality}"
             matching_files[category] = files.get(key)
-
-        return matching_files

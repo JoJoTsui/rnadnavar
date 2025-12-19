@@ -44,6 +44,8 @@ class VCFVisualizer:
             "Germline": "#00CC96",
             "Reference": "#FFA15A",
             "Artifact": "#EF553B",
+            "RNA_Edit": "#AB63FA",
+            "NoConsensus": "#8A8A8A",
             "PASS": "#636EFA",
             "LowQual": "#EF553B",
             "StrandBias": "#AB63FA",
@@ -171,6 +173,8 @@ class VCFVisualizer:
     def plot_variant_type_distribution(self):
         """
         Stacked bar charts showing SNP vs INDEL distribution with FILTER categories.
+        
+        Fixed: Unified color legend (no duplication) using legendgroup.
         """
         if not VISUALIZATION_AVAILABLE:
             print("Visualization libraries not available. Skipping plot.")
@@ -244,6 +248,9 @@ class VCFVisualizer:
             shared_yaxes=True
         )
 
+        # Track which categories have been shown in legend (to avoid duplication)
+        categories_in_legend = set()
+
         for i, modality in enumerate(available_mods, 1):
             df_mod = df[df["Modality"] == modality]
 
@@ -255,6 +262,12 @@ class VCFVisualizer:
                         df_cat = df_type[df_type["Category"] == filter_cat]
                         if not df_cat.empty:
                             count = df_cat["Count"].sum()
+                            
+                            # Show in legend only once per category
+                            show_legend = filter_cat not in categories_in_legend
+                            if show_legend:
+                                categories_in_legend.add(filter_cat)
+                            
                             fig.add_trace(
                                 go.Bar(
                                     name=filter_cat,
@@ -263,7 +276,7 @@ class VCFVisualizer:
                                     marker_color=self.CATEGORY_COLORS.get(filter_cat, "#8A8A8A"),
                                     text=[count],
                                     textposition="inside",
-                                    showlegend=(i == 1),
+                                    showlegend=show_legend,
                                     legendgroup=filter_cat,
                                     hovertemplate=f"<b>{var_type}</b><br>{filter_cat}: %{{y}}<extra></extra>"
                                 ),
@@ -585,5 +598,115 @@ class VCFVisualizer:
         # Set unified y-axis range with some padding
         for i in range(1, n_subplots + 1):
             fig.update_yaxes(range=[0, max_y * 1.1], row=1, col=i)
+
+        fig.show()
+
+    def plot_annotation_progression(self):
+        """
+        Plot variant count progression through annotation stages:
+        rescue → cosmic_gnomad → rna_editing → filtered_rescue
+        
+        Shows how variant counts and categories change at each stage,
+        allowing visualization of filtering/annotation effects.
+        """
+        if not VISUALIZATION_AVAILABLE:
+            print("Visualization libraries not available. Skipping plot.")
+            return None
+
+        from . import VCF_STAGE_ORDER
+        
+        data = []
+
+        # Collect data from each annotation stage in order
+        for stage in VCF_STAGE_ORDER:
+            if stage not in self.all_stats:
+                continue
+                
+            for name, vcf_data in self.all_stats[stage].items():
+                if "stats" not in vcf_data or "basic" not in vcf_data["stats"]:
+                    continue
+                    
+                basic = vcf_data["stats"]["basic"]
+                classification = basic.get("classification", {})
+                total_variants = basic.get("total_variants", 0)
+                
+                # For each category, record count at this stage
+                for category in CATEGORY_ORDER:
+                    count = classification.get(category, 0)
+                    if count > 0 or stage == "rescue":  # Always include rescue stage
+                        data.append({
+                            "Stage": stage,
+                            "Stage_Order": VCF_STAGE_ORDER.index(stage),
+                            "Category": category,
+                            "Count": count,
+                            "Total": total_variants
+                        })
+
+        if not data:
+            print("No annotation stage data available for progression plot")
+            return None
+
+        df = pd.DataFrame(data)
+
+        # Create figure with stacked bars showing progression
+        fig = go.Figure()
+
+        # Get unique stages in order
+        stages_ordered = sorted(df["Stage"].unique(), 
+                               key=lambda x: VCF_STAGE_ORDER.index(x) if x in VCF_STAGE_ORDER else 999)
+
+        # Track which categories to show in legend
+        categories_shown = set()
+
+        # Add bars for each category
+        for category in CATEGORY_ORDER:
+            df_cat = df[df["Category"] == category]
+            if df_cat.empty:
+                continue
+
+            # Get counts for each stage
+            counts_by_stage = []
+            for stage in stages_ordered:
+                stage_data = df_cat[df_cat["Stage"] == stage]
+                if not stage_data.empty:
+                    counts_by_stage.append(stage_data["Count"].sum())
+                else:
+                    counts_by_stage.append(0)
+
+            # Only add if there are non-zero values
+            if sum(counts_by_stage) > 0:
+                show_legend = category not in categories_shown
+                categories_shown.add(category)
+                
+                fig.add_trace(go.Bar(
+                    name=category,
+                    x=stages_ordered,
+                    y=counts_by_stage,
+                    marker_color=self.CATEGORY_COLORS.get(category, "#8A8A8A"),
+                    text=counts_by_stage,
+                    textposition="inside",
+                    textfont=dict(color="white", size=10),
+                    showlegend=show_legend,
+                    legendgroup=category,
+                    hovertemplate=f"<b>%{{x}}</b><br>{category}: %{{y}}<extra></extra>"
+                ))
+
+        fig.update_layout(
+            title_text="Variant Count Progression Through Annotation Stages",
+            xaxis_title="Processing Stage",
+            yaxis_title="Number of Variants",
+            barmode="stack",
+            template="plotly_white",
+            height=500,
+            showlegend=True,
+            legend=dict(
+                orientation="v",
+                yanchor="top",
+                y=1.0,
+                xanchor="left",
+                x=1.02,
+                title="Category"
+            )
+        )
 
         fig.show()
