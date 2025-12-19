@@ -33,3 +33,6 @@ env/
 
 # direnv
 .envrc
+
+# VCF statistics
+notebook/P2374372_statistics_output/
