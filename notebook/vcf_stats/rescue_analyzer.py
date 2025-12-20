@@ -207,6 +207,15 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
     print(f"  Rescued Total: {rescue_total:,}")
     print(f"  Overall Rescue Gain: {summary['total_gain']:,} ({summary['total_gain_percent']:.1f}%)")
 
+    # Print category color legend for visualization interpretation
+    print("\n" + "="*60)
+    print("Category Color Legend (for plots):")
+    print("="*60)
+    for category in CATEGORY_ORDER:
+        color = CATEGORY_COLORS.get(category, "#8A8A8A")
+        print(f"  {category:<15} : {color}")
+    print("="*60)
+
     # Create visualization if requested
     if show_plot and VISUALIZATION_AVAILABLE:
         try:
