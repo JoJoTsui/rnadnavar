@@ -284,8 +284,26 @@ class VCFFileDiscovery:
                 print(f"  {sample}: {bam_path.name}")
 
     def get_rescue_files(self) -> Dict[str, Path]:
-        """Get only rescue VCF files"""
-        return self.vcf_files.get("rescue", {})
+        """Get only rescue VCF files (deduplicated to prefer suffix-based keys)"""
+        rescue_files = self.vcf_files.get("rescue", {})
+        # Deduplicate: prefer keys like 'DT_vs_DN_rescued_RT_vs_DN' over full sample names
+        # If multiple keys point to the same file, keep only the suffix-based one
+        seen_paths = {}
+        result = {}
+        for key, path in rescue_files.items():
+            path_str = str(path)
+            if path_str in seen_paths:
+                # Already seen - prefer shorter/suffix key
+                existing_key = seen_paths[path_str]
+                if len(key) < len(existing_key):
+                    # Replace with shorter key
+                    del result[existing_key]
+                    result[key] = path
+                    seen_paths[path_str] = key
+            else:
+                result[key] = path
+                seen_paths[path_str] = key
+        return result
 
     def get_annotation_files(self, stage: str) -> Dict[str, Path]:
         """

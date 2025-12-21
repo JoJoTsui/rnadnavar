@@ -51,6 +51,16 @@ REFACTORING CHANGES (v2.0):
   7. Updated BAM validation to use final filtered rescue VCF
   8. Enhanced aggregation with stage progression tracking
   9. Improved docstrings and inline documentation
+  10. Integrated with shared bin/common/vcf_config for consistency across pipeline
+  11. Fixed plot_filter_status to include RNA_Edit in secondary view
+  12. Fixed plot_tier_distribution to properly display all categories in stacked bars
+  13. Fixed IGV reports to eliminate duplicate sample names
+  14. Ensured all categories have proper tier organization in IGV reports
+
+INTEGRATION WITH VCF_UTILS:
+  - Shares CATEGORY_ORDER, VCF_STAGE_ORDER, and CATEGORY_COLORS with bin/common/vcf_config
+  - Falls back to local definitions if shared module unavailable
+  - Ready for seamless integration with vcf_utils Nextflow pipeline
 
 For detailed usage, see notebook/vcf_statistics_P2374372.ipynb
 """

@@ -681,6 +681,9 @@ class VCFVisualizer:
                 )
 
                 max_y2 = 0
+                # Track categories added to legend for second plot
+                categories_seen_small = build_legend_tracker()
+                
                 for i, subplot_cat in enumerate(available_subplots, 1):
                     df_subplot = df_small[df_small["SubplotCategory"] == subplot_cat]
                     tools = df_subplot["Tool"].unique()
@@ -708,7 +711,7 @@ class VCFVisualizer:
                                     text=counts,
                                     textposition="inside",
                                     textfont=dict(color="white", size=10),
-                                    showlegend=(i == 1),
+                                    showlegend=should_add_to_legend(categories_seen_small, filter_cat),
                                     legendgroup=filter_cat,
                                 ),
                                 row=1,
@@ -1116,7 +1119,7 @@ class VCFVisualizer:
 
         def _create_tier_plot(plot_df, title_suffix=""):
             """Helper function to create tier distribution plot."""
-            # Create grouped bar chart data
+            # Create stacked bar chart data by tier
             data = []
             for category in CATEGORY_ORDER:
                 cat_data = plot_df[plot_df["filter_category"] == category]
@@ -1134,22 +1137,29 @@ class VCFVisualizer:
 
             df = pd.DataFrame(data)
 
-            # Create grouped bar chart
+            # Create stacked bar chart (stacked by category, x-axis = tier)
             fig = go.Figure()
 
+            # Add traces for each category (will be stacked)
             for category in CATEGORY_ORDER:
                 cat_df = df[df["Category"] == category]
                 if not cat_df.empty:
+                    # Ensure we have all tiers represented (fill with 0 if missing)
+                    tier_order = ["T1", "T2", "T3", "T4", "T5", "T6", "T7"]
+                    tier_counts = {tier: 0 for tier in tier_order}
+                    for _, row in cat_df.iterrows():
+                        tier_counts[row["Tier"]] = row["Count"]
+                    
                     fig.add_trace(go.Bar(
                         name=category,
-                        x=cat_df["Tier"],
-                        y=cat_df["Count"],
+                        x=tier_order,
+                        y=[tier_counts[t] for t in tier_order],
                         marker_color=self.CATEGORY_COLORS.get(category, "#8A8A8A"),
-                        text=cat_df["Count"],
+                        text=[tier_counts[t] if tier_counts[t] > 0 else "" for t in tier_order],
                         textposition="inside",
-                        showlegend=(category in CATEGORY_ORDER),
+                        showlegend=True,
                         legendgroup=category,
-                        hovertemplate="<b>%{x}</b><br>%{fullData.name}: %{y}<extra></extra>"
+                        hovertemplate="<b>%{x}</b><br>" + category + ": %{y}<extra></extra>"
                     ))
 
             # Ensure tier order (T1-T7)
