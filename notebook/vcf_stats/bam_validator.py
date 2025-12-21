@@ -35,7 +35,9 @@ class BAMValidator:
         self,
         vcf_path: Path,
         bam_paths: Dict[str, Path],
-        max_variants: int = 100
+        max_variants: int = 100,
+        stage_hint: Optional[str] = None,
+        selected_modalities: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
         """
         Validate variants by checking read support in BAM files.
@@ -54,6 +56,20 @@ class BAMValidator:
 
         validation_results = []
 
+        # Apply modality gating based on stage hint or explicit selection
+        filtered_bams: Dict[str, Path] = {}
+        if selected_modalities:
+            allow = set(selected_modalities)
+            filtered_bams = {k: v for k, v in bam_paths.items() if k in allow}
+        else:
+            if stage_hint == "rna_editing":
+                allow = {"RNA_TUMOR"}
+            elif stage_hint in {"rescue", "filtered_rescue"}:
+                allow = {"DNA_TUMOR", "RNA_TUMOR"}
+            else:
+                allow = set(bam_paths.keys())
+            filtered_bams = {k: v for k, v in bam_paths.items() if k in allow}
+
         try:
             # Open VCF file
             vcf = pysam.VariantFile(str(vcf_path))
@@ -64,7 +80,7 @@ class BAMValidator:
                     break
 
                 variant_count += 1
-                validation_result = self._validate_single_variant(variant, bam_paths)
+                validation_result = self._validate_single_variant(variant, filtered_bams)
                 validation_results.append(validation_result)
 
             vcf.close()

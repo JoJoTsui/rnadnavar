@@ -178,8 +178,8 @@ def tier_rule(dna_callers: int, rna_callers: int) -> str:
     if dna_callers == 0 and rna_callers == 1:
         return "T7"
     
-    # T8: No caller support (edge case)
-    return "T8"
+    # T8: No caller support (edge case) -> map to weakest defined tier T7
+    return "T7"
 
 
 def load_rescue_variants(rescue_vcf: Path) -> pd.DataFrame:
@@ -202,7 +202,11 @@ def load_rescue_variants(rescue_vcf: Path) -> pd.DataFrame:
         filt = var.FILTER if var.FILTER and var.FILTER != "." else "PASS"
         if not filt:
             filt = "PASS"
-        if filt not in ["PASS", "LowQual", "StrandBias", "Clustered", "Somatic", "Germline", "Reference", "Artifact"]:
+        if filt not in [
+            "PASS", "LowQual", "StrandBias", "Clustered",
+            "Somatic", "Germline", "Reference", "Artifact",
+            "RNA_Edit", "NoConsensus"
+        ]:
             filt = "Other"
 
         records.append({

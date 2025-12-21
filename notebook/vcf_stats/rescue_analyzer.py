@@ -21,6 +21,7 @@ except ImportError:
 # Import constants and utilities from main module
 from . import CATEGORY_ORDER, CATEGORY_COLORS, STAGE_DISPLAY_NAMES
 from .utils import should_show_legend
+from .plot_utils import build_legend_tracker, should_add_to_legend, legend_config
 
 
 def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) -> Dict[str, Any]:
@@ -238,6 +239,7 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
             def _create_rescue_plot(include_no_consensus=True, title_suffix=""):
                 """Helper to create rescue analysis plot."""
                 fig_rescue = go.Figure()
+                categories_seen = build_legend_tracker()
                 
                 for stage_name, classification, col_idx in stages:
                     for filter_cat in CATEGORY_ORDER:
@@ -253,7 +255,7 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
                                     x=[stage_name],
                                     y=[count],
                                     marker_color=category_colors.get(filter_cat, "#8A8A8A"),
-                                    showlegend=should_show_legend(col_idx, 1),
+                                    showlegend=should_add_to_legend(categories_seen, filter_cat),
                                     legendgroup=filter_cat,
                                 )
                             )
@@ -265,13 +267,7 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
                     barmode="stack",
                     height=600,
                     width=1000,
-                    legend=dict(
-                        orientation="h",
-                        yanchor="bottom",
-                        y=1.02,
-                        xanchor="right",
-                        x=1
-                    )
+                    legend=legend_config("top")
                 )
                 return fig_rescue
 

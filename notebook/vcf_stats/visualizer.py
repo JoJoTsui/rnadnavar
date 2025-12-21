@@ -17,6 +17,7 @@ try:
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
     import pandas as pd
+    import numpy as np
     VISUALIZATION_AVAILABLE = True
 except ImportError as e:
     print(f"Warning: Visualization dependencies not available: {e}")
@@ -25,6 +26,13 @@ except ImportError as e:
 # Import constants and utilities from main module
 from . import CATEGORY_ORDER, CATEGORY_COLORS, VCF_STAGE_ORDER, STAGE_DISPLAY_NAMES
 from .utils import sort_stages, should_show_legend, create_legend_config
+from .plot_utils import (
+    build_legend_tracker,
+    should_add_to_legend,
+    legend_config,
+    heatmap_matrix,
+    percentile_cap,
+)
 
 
 class VCFVisualizer:
@@ -587,6 +595,9 @@ class VCFVisualizer:
         # Find global y-axis max for consistent scaling
         max_y = 0
 
+        # Track categories added to legend globally
+        categories_seen = build_legend_tracker()
+
         # Plot each subplot
         for i, subplot_cat in enumerate(available_subplots, 1):
             df_subplot = df[df["SubplotCategory"] == subplot_cat]
@@ -622,7 +633,7 @@ class VCFVisualizer:
                             text=counts,
                             textposition="inside",
                             textfont=dict(color="white", size=10),
-                            showlegend=(i == 1),
+                            showlegend=should_add_to_legend(categories_seen, filter_cat),
                             legendgroup=filter_cat,
                             hovertemplate=f"<b>%{{x}}</b><br>{filter_cat}: %{{y}}<extra></extra>"
                         ),
@@ -648,14 +659,7 @@ class VCFVisualizer:
             height=500,
             barmode="stack",
             showlegend=True,
-            legend=dict(
-                orientation="v",
-                yanchor="top",
-                y=1.0,
-                xanchor="left",
-                x=1.02,
-                title="FILTER Category"
-            )
+            legend=legend_config("right")
         )
 
         # Set unified y-axis range with some padding
@@ -724,7 +728,8 @@ class VCFVisualizer:
                     template="plotly_white",
                     height=500,
                     barmode="stack",
-                    showlegend=True
+                    showlegend=True,
+                    legend=legend_config("right")
                 )
                 for i in range(1, len(available_subplots) + 1):
                     fig_small.update_yaxes(range=[0, max_y2 * 1.1], row=1, col=i)
@@ -893,36 +898,34 @@ class VCFVisualizer:
             return None
 
         df = pd.DataFrame(data)
-        
-        def _create_heatmap(plot_df, title_suffix=""):
-            """Helper to create heatmap visualization."""
-            # Pivot for heatmap
-            heatmap_data = plot_df.pivot_table(
-                index="Category", 
-                columns="Stage", 
-                values="Count", 
-                fill_value=0
-            )
-            
-            # Sort stages by pipeline order
-            stage_names = [STAGE_DISPLAY_NAMES.get(s, s.title()) for s in stages if STAGE_DISPLAY_NAMES.get(s, s.title()) in heatmap_data.columns]
-            heatmap_data = heatmap_data[stage_names]
-            
-            # Sort categories by CATEGORY_ORDER
-            heatmap_data = heatmap_data.reindex([c for c in CATEGORY_ORDER if c in heatmap_data.index])
 
-            # Create heatmap with automatic scaling
+        def _create_heatmap(plot_df, title_suffix="", normalize: Optional[str] = None):
+            """Helper to create heatmap visualization (counts or percent per stage)."""
+            # Build matrix and sort axes
+            mat = heatmap_matrix(plot_df, normalize=normalize)
+            # Sort columns by stage display order
+            stage_names = [STAGE_DISPLAY_NAMES.get(s, s.title()) for s in stages if STAGE_DISPLAY_NAMES.get(s, s.title()) in mat.columns]
+            mat = mat[stage_names]
+            # Sort rows by CATEGORY_ORDER
+            mat = mat.reindex([c for c in CATEGORY_ORDER if c in mat.index])
+
+            zvals = mat.values
+            zmax = None if normalize == "stage" else percentile_cap(zvals, 95.0)
+
             fig = go.Figure(data=go.Heatmap(
-                z=heatmap_data.values,
-                x=heatmap_data.columns,
-                y=heatmap_data.index,
-                colorscale="Viridis",
-                text=heatmap_data.values,
-                texttemplate="%{text:,}",
+                z=zvals,
+                x=mat.columns,
+                y=mat.index,
+                colorscale="YlGnBu",
+                zmax=zmax,
+                text=np.round(zvals, 1) if normalize == "stage" else zvals,
+                texttemplate="%{text}" if normalize == "stage" else "%{text:,}",
                 textfont={"size": 10},
-                colorbar=dict(title="Variant Count"),
-                hovertemplate="<b>%{y}</b><br>%{x}<br>Count: %{z:,}<extra></extra>",
-                zauto=True  # Auto-scale based on data range
+                colorbar=dict(title="Percent" if normalize == "stage" else "Variant Count"),
+                hovertemplate=(
+                    "<b>%{y}</b><br>%{x}<br>" + ("Percent: %{z:.1f}%" if normalize == "stage" else "Count: %{z:,}") + "<extra></extra>"
+                ),
+                zauto=(normalize == "stage")
             ))
 
             fig.update_layout(
@@ -934,16 +937,22 @@ class VCFVisualizer:
             )
             return fig
 
-        # Full view with all categories
+        # Full view (counts) with all categories
         fig_full = _create_heatmap(df)
         fig_full.show()
-        
-        # Secondary view without NoConsensus to improve visibility
+
+        # Percent-per-stage normalized view
+        fig_pct = _create_heatmap(df, " (percent per stage)", normalize="stage")
+        fig_pct.show()
+
+        # Secondary views without NoConsensus to improve visibility
         if dual_view_without_no_consensus:
             df_no_nc = df[df["Category"] != "NoConsensus"].copy()
             if not df_no_nc.empty:
                 fig_no_nc = _create_heatmap(df_no_nc, " (excluding NoConsensus)")
                 fig_no_nc.show()
+                fig_no_nc_pct = _create_heatmap(df_no_nc, " (percent per stage, excluding NoConsensus)", normalize="stage")
+                fig_no_nc_pct.show()
 
     def plot_stage_transition_sankey(self, categories_to_show: Optional[list] = None):
         """
