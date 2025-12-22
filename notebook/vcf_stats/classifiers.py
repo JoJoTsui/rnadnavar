@@ -1,356 +1,145 @@
 #!/usr/bin/env python3
 """
-Variant Classifier Module
+Annotation-Specific Classification Functions (Notebook Analysis Only)
 
-Functions to classify variants from different callers (Strelka, DeepSomatic, Mutect2)
-into biological categories: Somatic, Germline, Reference, Artifact, RNA_Edit, and NoConsensus.
+** ANALYSIS-SPECIFIC MODULE **
+This module contains functions for detecting special annotations that are only
+needed for Jupyter notebook analysis, NOT for the main Nextflow pipeline.
 
-This module supports classification at multiple processing stages:
-- Raw caller outputs: Biological classification (Somatic/Germline/Reference/Artifact)
-- Consensus/Rescue VCFs: FILTER-based classification
-- Annotated VCFs: Detection of special annotations (RNA_Edit, Cosmic_gnomAD)
+Specifically, this module provides:
+- detect_rna_edit_variant(): Detection of RNA editing annotations
+- detect_cosmic_gnomad_annotation(): Detection of COSMIC/gnomAD annotations
+- detect_no_consensus_variant(): Detection of non-consensus variants
+- classify_annotated_variant(): Combined annotation classification
+
+For BASE variant classification (Somatic/Germline/Reference/Artifact), use:
+- bin/vcf_utils/classification.py (canonical - used by production pipeline)
+
+This module wraps those canonical functions for notebook-specific analysis.
 """
 
-from typing import Dict, Optional
-from cyvcf2 import VCF
-
-
-def classify_strelka_variant(filter_val, nt_val, normal_dp):
-    """
-    Classifies a Strelka variant into Somatic, Germline, Reference, or Artifact.
-
-    Args:
-        filter_val (str): The value from the VCF FILTER column.
-                        Some parsers return None for PASS, Strelka writes "PASS" string.
-        nt_val (str): The value of the INFO/NT field (e.g., 'ref', 'het', 'hom').
-        normal_dp (int): The read depth of the Normal sample (FORMAT/DP).
-
-    Returns:
-        str: One of ['Somatic', 'Germline', 'Reference', 'Artifact']
-    """
-
-    # 1. Somatic: Strictly relies on PASS filter
-    # Some parsers return None for PASS, Strelka writes "PASS" string.
-    if filter_val == "PASS" or filter_val is None:
-        # Check NT field for LOF
-        if nt_val in ["somatic", "het", "hom"]:
-            return "Somatic"
-        
-        # If NT field indicates something else but filter is PASS, still return Somatic
-        return "Somatic"
-
-    # 2. Germline: Filter failed, but NT indicates variant presence in Normal
-    if nt_val in ["het", "hom"]:
-        # Rescue if Normal Depth is sufficient (>= 2 per Strelka specs)
-        if normal_dp >= 2:
-            return "Germline"
-        return "Artifact"
-
-    # 3. Reference: Filter failed, but NT indicates Normal is Reference
-    if nt_val == "ref":
-        # Rescue if Normal Depth is sufficient
-        if normal_dp >= 2:
-            return "Reference"
-        return "Artifact"
-
-    # 4. Artifact: Catch-all for everything else (e.g. NT='conflict', LowDepth with dp<2)
-    return "Artifact"
-
-
-def classify_deepsomatic_variant(filter_val):
-    """
-    Classifies a DeepSomatic variant into Somatic, Germline, Reference, or Artifact.
-
-    DeepSomatic already provides explicit FILTER labels:
-    - PASS: Somatic variant
-    - germline: Germline variant
-    - reference: Reference site
-    - Other FILTER values: Artifacts (low quality, etc.)
-
-    Args:
-        filter_val (str): The value from the VCF FILTER column.
-
-    Returns:
-        str: One of 'Somatic', 'Germline', 'Reference', or 'Artifact'.
-    """
-    # Normalize filter value
-    if filter_val is None or filter_val == "." or filter_val == "PASS":
-        return "Somatic"
-
-    # Check explicit DeepSomatic filter labels
-    if "GERMLINE" in filter_val.upper():
-        return "Germline"
-
-    if "REFCALL" in filter_val.upper() or "REF_CALL" in filter_val.upper():
-        return "Reference"
-
-    # Everything else is an artifact (failed filters)
-    return "Artifact"
-
-
-def classify_mutect2_variant(filter_val):
-    """
-    Classifies a Mutect2 variant into Somatic, Germline, Reference, or Artifact.
-
-    Note: Mutect2 typically only outputs PASS variants in somatic calling mode.
-    This function handles edge cases where other filters might appear.
-
-    Args:
-        filter_val (str): The value from the VCF FILTER column.
-
-    Returns:
-        str: One of 'Somatic', 'Germline', 'Reference', or 'Artifact'.
-    """
-    # Mutect2 in somatic mode primarily outputs PASS variants
-    if filter_val is None or filter_val == "." or filter_val == "PASS":
-        return "Somatic"
-
-    # Check for common Mutect2 germline-related filters (if present)
-    filter_upper = filter_val.upper()
-    if "GERMLINE" in filter_upper or "NORMAL_ARTIFACT" in filter_upper:
-        return "Germline"
-
-    # Other failed filters are artifacts
-    return "Artifact"
-
-
-def classify_variant(variant, caller_name, sample_indices=None):
-    """
-    Universal variant classifier that dispatches to caller-specific functions.
-
-    Args:
-        variant: cyvcf2.Variant object
-        caller_name (str): Name of the variant caller ('strelka', 'deepsomatic', 'mutect2')
-        sample_indices (dict): Optional dict mapping 'tumor' and 'normal' to sample indices
-
-    Returns:
-        str: One of 'Somatic', 'Germline', 'Reference', or 'Artifact'.
-    """
-    filter_val = variant.FILTER if variant.FILTER else None
-
-    if not caller_name:
-        # Fallback for unknown caller
-        if filter_val == "PASS":
-            return "Somatic"
-        else:
-            return "Artifact"
-
-    caller_lower = caller_name.lower()
-
-    if caller_lower == "strelka":
-        try:
-            # Extract Strelka-specific fields
-            nt_val = None
-            normal_dp = 0
-
-            # Try to get NT field (Normal Type)
-            # Note: cyvcf2's 'in' operator doesn't work reliably for INFO fields
-            # Use .get() directly and check if result is not None
-            try:
-                nt_val = variant.INFO.get('NT')
-            except:
-                nt_val = None
-
-            # Get normal sample depth
-            if sample_indices and 'normal' in sample_indices:
-                normal_idx = sample_indices['normal']
-                dp_array = variant.format('DP')
-                if dp_array is not None and len(dp_array) > normal_idx:
-                    dp_val = dp_array[normal_idx]
-                    if dp_val is not None and len(dp_val) > 0:
-                        normal_dp = dp_val[0] if dp_val[0] is not None else 0
-
-            return classify_strelka_variant(filter_val, nt_val, normal_dp)
-        except Exception as e:
-            print(
-                f"Warning: Strelka classification failed for variant at {variant.CHROM}:{variant.POS}: {e}"
-            )
-            return "Artifact"
-
-    elif caller_lower == "deepsomatic":
-        return classify_deepsomatic_variant(filter_val)
-
-    elif caller_lower == "mutect2":
-        return classify_mutect2_variant(filter_val)
-
-    else:
-        # Unknown caller, use generic PASS/FAIL logic
-        if filter_val is None or filter_val == "." or filter_val == "PASS":
-            return "Somatic"
-        else:
-            return "Artifact"
+from typing import Dict, Optional, Any
 
 
 def detect_rna_edit_variant(variant) -> bool:
     """
-    Detect if a variant is flagged as RNA editing.
+    Detect if a variant has RNA editing annotation.
     
-    Checks for:
-    - FILTER field containing 'RNAedit'
-    - INFO fields with REDI_* prefix
-    - REDI_SITES or RNA_EDITING_SCORE
+    Checks for REDIportal or DARNED annotations in INFO fields.
     
     Args:
         variant: cyvcf2.Variant object
         
     Returns:
-        bool: True if variant appears to be RNA-edited
+        True if variant has RNA editing annotation, False otherwise
     """
     try:
-        # Check FILTER field (case-insensitive)
-        if variant.FILTER:
-            filter_str = str(variant.FILTER)
-            if "rnaedit" in filter_str.lower() or "rna_edit" in filter_str.lower():
+        if hasattr(variant, 'INFO'):
+            info = variant.INFO
+            # Check for explicit RNA editing field (from rna_editing stage)
+            if info.get('RNA_EDIT', False):
                 return True
-        
-        # Check INFO fields for RNA editing markers
-        info_keys = variant.INFO.keys() if hasattr(variant.INFO, 'keys') else []
-        for key in info_keys:
-            key_upper = key.upper()
-            if "REDI" in key_upper or ("RNA" in key_upper and "EDIT" in key_upper):
+            # Check for REDIportal/DARNED directly
+            if info.get('REDIportal') or info.get('DARNED'):
                 return True
-                
+            # Check for REDI_* fields (explicit REDIportal annotations)
+            for key in info.keys():
+                if key.startswith('REDI_'):
+                    return True
+        return False
     except Exception:
-        pass
-    
-    return False
+        return False
 
 
 def detect_cosmic_gnomad_annotation(variant) -> bool:
     """
-    Detect if a variant has Cosmic/gnomAD annotation.
+    Detect if a variant has COSMIC or gnomAD annotation.
     
-    Checks for:
-    - COSMIC_ID in INFO
-    - gnomAD_AF or gnomAD_* fields
-    - COSMICID field
+    Checks for COSMIC_CNT, gnomAD_AF, or other database annotations.
     
     Args:
         variant: cyvcf2.Variant object
         
     Returns:
-        bool: True if variant has cosmic/gnomad annotation
+        True if variant has database annotation, False otherwise
     """
     try:
-        info = variant.INFO
-        
-        # Check for common cosmic/gnomad annotation keys
-        cosmic_keys = ['COSMIC_ID', 'COSMICID', 'COSMIC', 'gnomAD_AF', 'gnomAD_AFR_AF']
-        for key in cosmic_keys:
-            if key in info:
+        if hasattr(variant, 'INFO'):
+            info = variant.INFO
+            # Check for COSMIC annotation
+            if info.get('COSMIC_CNT', 0) > 0:
                 return True
-        
-        # Check for any gnomAD-prefixed field
-        info_keys = info.keys() if hasattr(info, 'keys') else []
-        for key in info_keys:
-            if 'gnomAD' in str(key) or 'COSMIC' in str(key):
+            if info.get('cosmic_count', 0) > 0:
                 return True
-                
+            if info.get('COSMIC_ID'):
+                return True
+            # Check for gnomAD annotation
+            gnomad_af = info.get('gnomAD_AF')
+            if gnomad_af is not None:
+                try:
+                    if float(gnomad_af) > 0:
+                        return True
+                except (ValueError, TypeError):
+                    pass
+            # Check for other database fields
+            if info.get('AF_gnomad'):
+                return True
+        return False
     except Exception:
-        pass
-    
-    return False
+        return False
 
 
 def detect_no_consensus_variant(variant) -> bool:
     """
-    Detect if a variant is flagged as NoConsensus.
-    
-    Checks FILTER field for explicit 'NoConsensus' marker.
+    Detect if a variant lacks consensus (DNA/RNA disagree or no consensus).
     
     Args:
         variant: cyvcf2.Variant object
         
     Returns:
-        bool: True if variant is marked as NoConsensus
+        True if variant is NoConsensus, False otherwise
     """
     try:
-        if variant.FILTER and str(variant.FILTER) == "NoConsensus":
-            return True
+        if hasattr(variant, 'FILTER'):
+            filter_val = variant.FILTER
+            if filter_val and 'NoConsensus' in str(filter_val):
+                return True
+        if hasattr(variant, 'INFO'):
+            info = variant.INFO
+            if info.get('NO_CONSENSUS'):
+                return True
+            if info.get('NoConsensus'):
+                return True
+        return False
     except Exception:
-        pass
-    
-    return False
+        return False
 
 
 def classify_annotated_variant(variant) -> str:
     """
-    Classify annotated/consensus/rescue variants using FILTER values written by vcf_utils.
-
-    vcf_utils writes the unified biological classification directly into FILTER
-    (Somatic, Germline, Reference, Artifact, NoConsensus). We preserve that mapping
-    and still flag RNA editing events using annotations.
-
-    Returns one of: Somatic, Germline, Reference, Artifact, RNA_Edit, NoConsensus
-    """
-    # RNA editing takes priority regardless of FILTER content
-    if detect_rna_edit_variant(variant):
-        return "RNA_Edit"
-
-    # Normalize FILTER values (handles None, '.', multiple tokens)
-    raw_filter = variant.FILTER
-    if raw_filter in (None, ".", "None"):
-        tokens = ["PASS"]
-    else:
-        tokens = [tok.strip() for tok in str(raw_filter).replace(";", ",").split(",") if tok]
-
-    # Direct mapping from FILTER tokens to biological categories
-    filter_map = {
-        "pass": "Somatic",
-        "somatic": "Somatic",
-        "germline": "Germline",
-        "reference": "Reference",
-        "artifact": "Artifact",
-        "noconsensus": "NoConsensus",
-    }
-
-    for token in tokens:
-        mapped = filter_map.get(token.lower())
-        if mapped:
-            return mapped
-
-    # If explicitly marked NoConsensus but with unexpected casing
-    if detect_no_consensus_variant(variant):
-        return "NoConsensus"
-
-    # Fallback for any other FILTER labels
-    return "Artifact"
-
-
-def get_sample_indices(vcf_obj, caller_name):
-    """
-    Determine tumor and normal sample indices from VCF samples.
-
+    Classify a variant based on annotation, returning special categories.
+    
+    Returns special categories for annotated VCFs:
+    - 'RNA_Edit': If has RNA editing annotation
+    - 'Cosmic_gnomAD': If has COSMIC/gnomAD annotation
+    - 'NoConsensus': If lacks consensus
+    - 'Somatic': Default/other
+    
     Args:
-        vcf_obj: cyvcf2.VCF object
-        caller_name (str): Name of the variant caller
-
+        variant: cyvcf2.Variant object
+        
     Returns:
-        dict: {'tumor': int, 'normal': int} or None
+        Annotation category (RNA_Edit, Cosmic_gnomAD, NoConsensus, Somatic)
     """
-    samples = vcf_obj.samples
-
-    if len(samples) < 2:
-        return None
-
-    indices = {}
-
-    # Try to identify tumor and normal samples
-    for i, sample in enumerate(samples):
-        sample_lower = sample.lower()
-        if "tumor" in sample_lower or "tumour" in sample_lower:
-            indices["tumor"] = i
-        elif "normal" in sample_lower:
-            indices["normal"] = i
-
-    # Fallback: assume first is tumor, second is normal
-    if "tumor" not in indices and len(samples) >= 1:
-        indices["tumor"] = 0
-    if "normal" not in indices and len(samples) >= 2:
-        indices["normal"] = 0
-        indices["tumor"] = 1
-
-    return indices
-
-
-print("✓ Variant classification functions defined")
+    # Check annotations in priority order
+    if detect_no_consensus_variant(variant):
+        return 'NoConsensus'
+    
+    if detect_rna_edit_variant(variant):
+        return 'RNA_Edit'
+    
+    if detect_cosmic_gnomad_annotation(variant):
+        return 'Cosmic_gnomAD'
+    
+    # Default to Somatic for anything else
+    return 'Somatic'

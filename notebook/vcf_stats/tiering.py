@@ -7,7 +7,7 @@ Utilities to compute tiers for variants in the final rescue VCF based on:
 - Database evidence (D0-D1)
 - Combined hybrid tiering (CxDy format)
 
-Uses the new TieringEngine for consistent tier assignment.
+Uses the canonical TieringEngine from bin/common for consistent tier assignment.
 """
 
 from __future__ import annotations
@@ -19,8 +19,13 @@ import random
 import pandas as pd
 import sys
 
-# Import new tiering engine
-from .tiering_engine import TieringEngine
+# Import canonical tiering engine from bin/common
+_current_dir = Path(__file__).parent.parent.parent
+_bin_common = _current_dir / "bin" / "common"
+if _bin_common.exists() and str(_bin_common) not in sys.path:
+    sys.path.insert(0, str(_bin_common))
+
+from tiering_engine import TieringEngine
 
 
 @dataclass(frozen=True)
