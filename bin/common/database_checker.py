@@ -63,13 +63,17 @@ DATABASE_INFO_FIELDS = {
         "cosmic_count",        # Alternative field name
     ],
     "REDIportal": [
-        "REDIportal",          # Boolean flag or annotation
-        "REDI",                # Short form
-        "RNA_EDIT_REDI",       # Full annotation
-    ],
-    "DARNED": [
-        "DARNED",              # Boolean flag or annotation
-        "RNA_EDIT_DARNED",     # Full annotation
+        # Explicit REDIportal INFO fields produced by the pipeline
+        "REDI_ACCESSION",
+        "REDI_DB",
+        "REDI_TYPE",
+        "REDI_REPEAT",
+        "REDI_FUNC",
+        "REDI_STRAND",
+        # Legacy flags retained for backward compatibility (optional)
+        "REDIportal",
+        "REDI",
+        "RNA_EDIT_REDI",
     ],
 }
 
@@ -79,9 +83,8 @@ DATABASE_THRESHOLDS = {
     "gnomAD_AF": GNOMAD_THRESHOLDS.get("germline_frequency", 0.001),
     # COSMIC: use configured recurrence minimum (any count above this is supportive)
     "COSMIC_CNT": COSMIC_THRESHOLDS.get("recurrence_minimum", 0),
-    # REDIportal/DARNED: presence-driven evidence
+    # REDIportal: presence-driven evidence
     "REDIportal": True,
-    "DARNED": True,
 }
 
 
@@ -177,44 +180,10 @@ def check_rediportal_support(info_dict: Dict[str, Any]) -> bool:
     return False
 
 
-def check_darned_support(info_dict: Dict[str, Any]) -> bool:
-    """
-    Check if variant is in DARNED RNA editing database.
-    
-    Args:
-        info_dict: Dictionary of INFO fields from VCF record
-    
-    Returns:
-        True if present in DARNED
-    """
-    for field in DATABASE_INFO_FIELDS["DARNED"]:
-        value = info_dict.get(field)
-        if value is not None:
-            # Check boolean/flag fields
-            if isinstance(value, bool):
-                return value
-            
-            # Check string fields (True, 1, yes, etc.)
-            if isinstance(value, str):
-                value_lower = value.lower()
-                if value_lower in ["true", "1", "yes", "t", "y"]:
-                    return True
-                if value_lower not in ["false", "0", "no", "f", "n", ".", "na"]:
-                    # Non-empty string that's not explicitly false
-                    return True
-            
-            # Check numeric fields
-            if isinstance(value, (int, float)) and value > 0:
-                return True
-    
-    return False
-
-
 def check_database_support(
     gnomad_af: Optional[float] = None,
     cosmic_cnt: Optional[int] = None,
     rediportal: Optional[bool] = None,
-    darned: Optional[bool] = None,
     info_dict: Optional[Dict[str, Any]] = None,
 ) -> bool:
     """
@@ -248,17 +217,15 @@ def check_database_support(
         return (
             check_gnomad_support(info_dict) or
             check_cosmic_support(info_dict) or
-            check_rediportal_support(info_dict) or
-            check_darned_support(info_dict)
+            check_rediportal_support(info_dict)
         )
     
     # Otherwise check individual parameters
     has_gnomad = gnomad_af is not None and gnomad_af > DATABASE_THRESHOLDS["gnomAD_AF"]
     has_cosmic = cosmic_cnt is not None and cosmic_cnt > DATABASE_THRESHOLDS["COSMIC_CNT"]
     has_rediportal = rediportal is True
-    has_darned = darned is True
     
-    return has_gnomad or has_cosmic or has_rediportal or has_darned
+    return has_gnomad or has_cosmic or has_rediportal
 
 
 def get_supporting_databases(
@@ -284,8 +251,7 @@ def get_supporting_databases(
     if check_rediportal_support(info_dict):
         supporting.append("REDIportal")
     
-    if check_darned_support(info_dict):
-        supporting.append("DARNED")
+    # DARNED not supported in this workflow
     
     return supporting
 
@@ -313,6 +279,7 @@ def get_database_details(
         "gnomAD_AF": None,
         "COSMIC_CNT": None,
         "REDIportal": False,
+        # DARNED intentionally unsupported in this workflow
         "DARNED": False,
     }
     
@@ -342,9 +309,6 @@ def get_database_details(
     # Check REDIportal
     details["REDIportal"] = check_rediportal_support(info_dict)
     
-    # Check DARNED
-    details["DARNED"] = check_darned_support(info_dict)
-    
     # Add list of supporting databases
     details["supporting_databases"] = get_supporting_databases(info_dict)
     
@@ -359,7 +323,6 @@ def compute_database_tier(
     gnomad_af: Optional[float] = None,
     cosmic_cnt: Optional[int] = None,
     rediportal: Optional[bool] = None,
-    darned: Optional[bool] = None,
     info_dict: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
@@ -386,7 +349,6 @@ def compute_database_tier(
         gnomad_af=gnomad_af,
         cosmic_cnt=cosmic_cnt,
         rediportal=rediportal,
-        darned=darned,
         info_dict=info_dict
     )
     
@@ -438,7 +400,7 @@ def print_database_summary(info_dict: Dict[str, Any]) -> None:
     print(f"  gnomAD AF:     {details['gnomAD_AF']}")
     print(f"  COSMIC Count:  {details['COSMIC_CNT']}")
     print(f"  REDIportal:    {details['REDIportal']}")
-    print(f"  DARNED:        {details['DARNED']}")
+    # DARNED removed from workflow
     print(f"\nSupporting Databases: {', '.join(details['supporting_databases']) or 'None'}")
     
     # Show which thresholds are met
@@ -487,9 +449,9 @@ def validate_database_fields(info_dict: Dict[str, Any]) -> Dict[str, Any]:
             has_cosmic = True
             found_fields.append(field)
     
-    # Check for RNA editing fields
+    # Check for RNA editing fields (REDIportal only)
     has_rna_edit = False
-    for field in DATABASE_INFO_FIELDS["REDIportal"] + DATABASE_INFO_FIELDS["DARNED"]:
+    for field in DATABASE_INFO_FIELDS["REDIportal"]:
         if field in info_dict:
             has_rna_edit = True
             found_fields.append(field)
