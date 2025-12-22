@@ -39,6 +39,18 @@ from vcf_utils.annotation_utils import (
     check_tool_availability
 )
 
+# Centralized config/validation
+COMMON_PATH = Path(__file__).parent / "common"
+if str(COMMON_PATH) not in sys.path:
+    sys.path.insert(0, str(COMMON_PATH))
+
+from annotation_config import (
+    COSMIC_THRESHOLDS,
+    GNOMAD_THRESHOLDS,
+    CLASSIFICATION_THRESHOLDS,
+)
+from annotation_validators import AnnotationValidator
+
 logger = logging.getLogger(__name__)
 
 
@@ -858,25 +870,25 @@ Examples:
     parser.add_argument(
         '--germline-freq-threshold',
         type=float,
-        default=0.001,
+        default=None,
         metavar='FLOAT',
-        help='Population frequency threshold for germline classification (default: 0.001)'
+        help=f"Population frequency threshold for germline classification (default: {GNOMAD_THRESHOLDS.get('germline_frequency', 0.001)})"
     )
-    
+
     parser.add_argument(
         '--somatic-consensus-threshold',
         type=int,
-        default=3,
+        default=None,
         metavar='INT',
-        help='Minimum caller support for high-confidence somatic classification (default: 3)'
+        help=f"Minimum caller support for high-confidence somatic classification (default: {CLASSIFICATION_THRESHOLDS.get('somatic_consensus_threshold', 3)})"
     )
-    
+
     parser.add_argument(
         '--cosmic-recurrence-threshold',
         type=int,
-        default=5,
+        default=None,
         metavar='INT',
-        help='Minimum COSMIC recurrence for rescue classification (default: 5)'
+        help=f"Minimum COSMIC recurrence for rescue classification (default: {COSMIC_THRESHOLDS.get('recurrence_minimum', 5)})"
     )
     
     parser.add_argument(
@@ -970,29 +982,40 @@ Examples:
         sys.exit(1)
     
     # Validate threshold parameters
-    if args.germline_freq_threshold < 0 or args.germline_freq_threshold > 1:
-        logger.error(f"CRITICAL: Invalid germline frequency threshold: {args.germline_freq_threshold}")
-        logger.error("Threshold must be between 0 and 1")
+    # Resolve thresholds from config with CLI overrides
+    germline_freq = args.germline_freq_threshold
+    somatic_consensus = args.somatic_consensus_threshold
+    cosmic_recurrence = args.cosmic_recurrence_threshold
+
+    if germline_freq is None:
+        germline_freq = GNOMAD_THRESHOLDS.get('germline_frequency', 0.001)
+    if somatic_consensus is None:
+        somatic_consensus = CLASSIFICATION_THRESHOLDS.get('somatic_consensus_threshold', 3)
+    if cosmic_recurrence is None:
+        cosmic_recurrence = COSMIC_THRESHOLDS.get('recurrence_minimum', 5)
+
+    # Validate thresholds via centralized validator
+    validator = AnnotationValidator()
+    validation = validator.validate_all_parameters(
+        cosmic_vcf=args.cosmic,
+        cosmic_threshold=cosmic_recurrence,
+        gnomad_dir=args.gnomad,
+        gnomad_frequency_threshold=germline_freq,
+    )
+
+    if not validation.get('valid', True):
+        logger.error("CRITICAL: Parameter validation failed")
+        validator.print_validation_report(validation)
         sys.exit(1)
-    
-    if args.somatic_consensus_threshold < 1:
-        logger.error(f"CRITICAL: Invalid somatic consensus threshold: {args.somatic_consensus_threshold}")
-        logger.error("Threshold must be at least 1")
-        sys.exit(1)
-    
-    if args.cosmic_recurrence_threshold < 1:
-        logger.error(f"CRITICAL: Invalid COSMIC recurrence threshold: {args.cosmic_recurrence_threshold}")
-        logger.error("Threshold must be at least 1")
-        sys.exit(1)
-    
+
     logger.info("✓ Parameter validation completed successfully")
-    
-    # Build classification configuration
+
+    # Build classification configuration (config defaults + overrides)
     classification_config = {
-        'germline_frequency_threshold': args.germline_freq_threshold,
-        'somatic_consensus_threshold': args.somatic_consensus_threshold,
-        'cosmic_recurrence_threshold': args.cosmic_recurrence_threshold,
-        'cross_modality_min_support': 1
+        'germline_frequency_threshold': germline_freq,
+        'somatic_consensus_threshold': somatic_consensus,
+        'cosmic_recurrence_threshold': cosmic_recurrence,
+        'cross_modality_min_support': CLASSIFICATION_THRESHOLDS.get('min_rna_support_with_dna', 1),
     }
     
     # Run annotation

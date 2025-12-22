@@ -31,6 +31,19 @@ Usage:
 from typing import Dict, Optional, Any, List
 import re
 
+# Import centralized annotation configuration (fallback-safe)
+try:
+    from annotation_config import (
+        GNOMAD_THRESHOLDS,
+        COSMIC_THRESHOLDS,
+        REDIPORTAL_THRESHOLDS,
+    )
+except Exception:
+    # Fallback defaults to preserve runtime if config is unavailable
+    GNOMAD_THRESHOLDS = {"germline_frequency": 0.001}
+    COSMIC_THRESHOLDS = {"recurrence_minimum": 0}
+    REDIPORTAL_THRESHOLDS = {"min_rna_support": 2}
+
 
 # ============================================================================
 # DATABASE FIELD DEFINITIONS
@@ -60,12 +73,15 @@ DATABASE_INFO_FIELDS = {
     ],
 }
 
-# Thresholds for database significance
+# Thresholds for database significance (config-driven, with safe fallbacks)
 DATABASE_THRESHOLDS = {
-    "gnomAD_AF": 0.001,        # Allele frequency > 0.1%
-    "COSMIC_CNT": 0,            # Any COSMIC count > 0
-    "REDIportal": True,         # Present in REDIportal
-    "DARNED": True,             # Present in DARNED
+    # gnomAD: use configured germline frequency threshold
+    "gnomAD_AF": GNOMAD_THRESHOLDS.get("germline_frequency", 0.001),
+    # COSMIC: use configured recurrence minimum (any count above this is supportive)
+    "COSMIC_CNT": COSMIC_THRESHOLDS.get("recurrence_minimum", 0),
+    # REDIportal/DARNED: presence-driven evidence
+    "REDIportal": True,
+    "DARNED": True,
 }
 
 
