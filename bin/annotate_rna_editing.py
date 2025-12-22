@@ -994,7 +994,7 @@ class RNAEditingAnnotator:
             True if variant has exact REDIportal match, False otherwise
         """
         # Check for any REDIportal annotation fields that indicate exact matching
-        rediportal_fields = ['REDI_ACCESSION', 'REDI_DB', 'REDI_TYPE', 'REDI_REPEAT', 'REDI_STRAND', 'DB']
+        rediportal_fields = ['REDI_ACCESSION', 'REDI_DB', 'REDI_TYPE', 'REDI_REPEAT', 'REDI_FUNC', 'REDI_STRAND']
         
         for field in rediportal_fields:
             if field in variant.info:

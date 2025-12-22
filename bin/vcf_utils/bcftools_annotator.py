@@ -488,7 +488,7 @@ class BcftoolsAnnotator:
         except Exception as e:
             logger.warning(f"Could not determine annotation fields: {e}")
             # Return common REDIportal fields as fallback
-            return {'REDI_ACCESSION', 'REDI_DB', 'REDI_TYPE', 'REDI_REPEAT', 'REDI_FUNC', 'REDI_STRAND', 'DB'}
+            return {'REDI_ACCESSION', 'REDI_DB', 'REDI_TYPE', 'REDI_REPEAT', 'REDI_FUNC', 'REDI_STRAND'}
     
     def build_annotation_command(self) -> Tuple[List[str], Optional[Path]]:
         """
