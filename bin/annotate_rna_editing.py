@@ -43,6 +43,18 @@ from typing import Dict
 script_dir = Path(__file__).parent
 sys.path.insert(0, str(script_dir))
 
+# Centralized config/validation
+COMMON_PATH = script_dir / "common"
+if str(COMMON_PATH) not in sys.path:
+    sys.path.insert(0, str(COMMON_PATH))
+
+try:
+    from annotation_config import REDIPORTAL_THRESHOLDS
+    from annotation_validators import AnnotationValidator
+except Exception:
+    REDIPORTAL_THRESHOLDS = {"min_rna_support": 2}
+    AnnotationValidator = None
+
 # Import dedicated modules for RNA editing annotation
 try:
     from vcf_utils.rediportal_converter import prepare_rediportal_database
@@ -1554,9 +1566,9 @@ Examples:
     parser.add_argument(
         '--min-rna-support',
         type=int,
-        default=2,
+        default=None,
         metavar='N',
-        help='Minimum RNA caller support threshold (default: 2, must be >= 1)'
+        help=f"Minimum RNA caller support threshold (default: {REDIPORTAL_THRESHOLDS.get('min_rna_support', 2)}, must be >= 1)"
     )
     
     parser.add_argument(
@@ -1572,8 +1584,13 @@ Examples:
     
     # Validate command-line arguments
     try:
+        # Resolve defaults from config
+        min_rna_support = args.min_rna_support
+        if min_rna_support is None:
+            min_rna_support = REDIPORTAL_THRESHOLDS.get('min_rna_support', 2)
+
         # Validate min_rna_support range
-        if args.min_rna_support < 1:
+        if min_rna_support < 1:
             logger.error("FATAL: --min-rna-support must be at least 1")
             sys.exit(2)  # Invalid argument
         
@@ -1594,13 +1611,25 @@ Examples:
         logger.error(f"FATAL: Argument validation failed: {e}")
         sys.exit(2)  # Invalid argument
     
+    # Validate against shared validator (if available)
+    if AnnotationValidator:
+        validator = AnnotationValidator()
+        validation = validator.validate_all_parameters(
+            rediportal_vcf=args.rediportal,
+            rediportal_min_rna=min_rna_support,
+        )
+        if not validation.get('valid', True):
+            logger.error("FATAL: Parameter validation failed")
+            validator.print_validation_report(validation)
+            sys.exit(2)
+
     # Run annotation
     try:
         annotator = RNAEditingAnnotator(
             input_vcf=args.input, 
             rediportal_vcf=args.rediportal, 
             output_vcf=args.output,
-            min_rna_support=args.min_rna_support
+            min_rna_support=min_rna_support
         )
         
         annotator.run_annotation()
