@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """
-Evidence Tiering System for RNA Editing Annotation
+RNA Evidence Classifier for RNA Editing Annotation
+
+** NOT THE SAME AS HYBRID TIERING (CxDy SYSTEM) **
+This module is specifically for RNA editing evidence classification (HIGH/MEDIUM/LOW/NONE).
+It is separate from the hybrid tiering engine (C1-C7 caller tiers + D0-D1 database evidence).
 
 This module implements the evidence tiering system that classifies RNA editing
 confidence based on RNA/DNA caller support and updates FILTER columns accordingly.
 It extracts N_RNA_CALLERS_SUPPORT and N_DNA_CALLERS_SUPPORT from variant INFO fields,
 implements RNA consensus detection, RNA-only variant detection, and creates evidence
 tier assignment logic (HIGH/MEDIUM/LOW/NONE).
+
+For hybrid tiering (CxDy), see: bin/common/tiering_engine.py
 
 Requirements Satisfied: 4.1, 4.2, 4.3, 4.4
 

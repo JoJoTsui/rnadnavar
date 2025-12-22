@@ -8,6 +8,10 @@ This module implements the hybrid tiering logic that combines:
 
 The final tier uses CxDy notation for clarity (e.g., C1D1, C7D0).
 
+** UNIFIED INFRASTRUCTURE **
+This module is the canonical tiering engine used by both Nextflow pipeline post-processing
+and Jupyter notebook analysis. It implements the same tier assignment logic in both contexts.
+
 Usage:
     from tiering_engine import TieringEngine
     
@@ -23,17 +27,18 @@ Usage:
         filter_normalized_fields={...},
         info_dict={...}
     )
+
+Dependencies:
+    - tier_config: CALLER_TIER_RULES, tier definitions (centralized)
+    - category_matcher: count_concordant_callers, category-aware counting
+    - database_checker: compute_database_tier, database evidence detection
 """
 
 import sys
 from pathlib import Path
 from typing import Dict, Optional, Any, Tuple
 
-# Add bin/common to path for imports
-bin_common_path = Path(__file__).parent.parent.parent / "bin" / "common"
-if str(bin_common_path) not in sys.path:
-    sys.path.insert(0, str(bin_common_path))
-
+# Local imports from bin/common
 from tier_config import (
     CALLER_TIER_RULES,
     CALLER_TIER_ORDER,

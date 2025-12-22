@@ -159,20 +159,41 @@ from .utils import (
     collect_stage_statistics
 )
 
-# Import classes from modules
-from .file_discovery import VCFFileDiscovery
-from .vcf_processor import VCFStatisticsExtractor, process_all_vcfs
-from .classifiers import (
+# Import canonical variant classification from bin/vcf_utils
+# (not from notebook/vcf_stats/classifiers.py - that's deprecated)
+import sys
+_current_dir = Path(__file__).parent.parent.parent
+_bin_vcf_utils = _current_dir / "bin" / "vcf_utils"
+if _bin_vcf_utils.exists() and str(_bin_vcf_utils) not in sys.path:
+    sys.path.insert(0, str(_bin_vcf_utils))
+
+from classification import (
     classify_strelka_variant,
     classify_deepsomatic_variant,
     classify_mutect2_variant,
-    classify_variant,
+    classify_variant_from_record as classify_variant,
+    get_sample_indices
+)
+
+# Import analysis-specific annotation detection (notebook-only, not in production)
+from .classifiers import (
     detect_rna_edit_variant,
     detect_cosmic_gnomad_annotation,
     detect_no_consensus_variant,
     classify_annotated_variant,
-    get_sample_indices
 )
+
+# Import canonical tiering engine from bin/common
+# (not from notebook/vcf_stats/tiering_engine.py - that's been moved)
+_bin_common = _current_dir / "bin" / "common"
+if _bin_common.exists() and str(_bin_common) not in sys.path:
+    sys.path.insert(0, str(_bin_common))
+
+from tiering_engine import TieringEngine
+
+# Import analysis-specific modules from vcf_stats
+from .file_discovery import VCFFileDiscovery
+from .vcf_processor import VCFStatisticsExtractor, process_all_vcfs
 from .visualizer import VCFVisualizer
 from .statistics_aggregator import StatisticsAggregator
 from .bam_validator import BAMValidator
@@ -209,16 +230,19 @@ __all__ = [
     'VCFVisualizer',
     'StatisticsAggregator',
     'BAMValidator',
-    # Classification functions
+    # Classification functions (canonical from bin/vcf_utils)
     'classify_strelka_variant',
     'classify_deepsomatic_variant',
     'classify_mutect2_variant',
     'classify_variant',
+    'get_sample_indices',
+    # Annotation detection (analysis-specific)
     'detect_rna_edit_variant',
     'detect_cosmic_gnomad_annotation',
     'detect_no_consensus_variant',
     'classify_annotated_variant',
-    'get_sample_indices',
+    # Tiering engine (canonical from bin/common)
+    'TieringEngine',
     # Analysis functions
     'analyze_rescue_vcf',
     'export_rescue_analysis',

@@ -11,15 +11,25 @@ from typing import Dict, Optional, Any, Tuple
 import pandas as pd
 import traceback
 from collections import defaultdict
+import sys
 
-# Import classification functions
+# Import canonical classification functions from bin/vcf_utils
+_current_dir = Path(__file__).parent.parent.parent
+_bin_vcf_utils = _current_dir / "bin" / "vcf_utils"
+if _bin_vcf_utils.exists() and str(_bin_vcf_utils) not in sys.path:
+    sys.path.insert(0, str(_bin_vcf_utils))
+
+from classification import (
+    classify_variant_from_record as classify_variant,
+    get_sample_indices,
+)
+
+# Import analysis-specific annotation detection from local classifiers
 from .classifiers import (
-    classify_variant,
     classify_annotated_variant,
     detect_rna_edit_variant,
     detect_cosmic_gnomad_annotation,
     detect_no_consensus_variant,
-    get_sample_indices
 )
 
 # Import constants from main module
