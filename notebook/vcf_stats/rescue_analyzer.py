@@ -237,7 +237,7 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
             ]
 
             def _create_rescue_plot(include_no_consensus=True, title_suffix=""):
-                """Helper to create rescue analysis plot."""
+                """Helper to create rescue analysis plot with count labels."""
                 fig_rescue = go.Figure()
                 categories_seen = build_legend_tracker()
                 
@@ -255,8 +255,12 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
                                     x=[stage_name],
                                     y=[count],
                                     marker_color=category_colors.get(filter_cat, "#8A8A8A"),
+                                    text=[count],  # Add count label
+                                    textposition="inside",  # Display count inside bar
+                                    textfont=dict(color="white", size=12),  # White text for visibility
                                     showlegend=should_add_to_legend(categories_seen, filter_cat),
                                     legendgroup=filter_cat,
+                                    hovertemplate=f"<b>{stage_name}</b><br>{filter_cat}: {count}<extra></extra>"
                                 )
                             )
 

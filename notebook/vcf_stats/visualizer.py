@@ -1074,16 +1074,17 @@ class VCFVisualizer:
 
     def plot_tier_distribution(self, rescue_vcf_path: Optional[str] = None, dual_view_no_consensus: bool = True):
         """
-        Bar chart showing tier distribution (T1-T7) per category for rescue VCF.
+        Bar chart showing tier distribution (C1D0-C7D1) per category for rescue VCF.
         
-        Tier definitions:
-            T1: 2+ DNA + 2+ RNA (strongest consensus)
-            T2: 2+ DNA + 1 RNA
-            T3: 2+ DNA only
-            T4: 1 DNA + 1+ RNA
-            T5: 1 DNA only
-            T6: 2+ RNA only
-            T7: 1 RNA (weakest)
+        NEW HYBRID TIERING SYSTEM:
+        - Caller tiers (C1-C7): Based on DNA/RNA caller counts
+          C1: ≥2 DNA + ≥2 RNA | C2: ≥2 DNA + (0-1) RNA | C3: ≥2 RNA + (0-1) DNA
+          C4: 1 DNA + 1 RNA | C5: 1 DNA only | C6: 1 RNA only | C7: 0 DNA + 0 RNA
+        
+        - Database tiers (D0-D1):
+          D1: Has database support | D0: No database support
+        
+        - Final tiers: CxDy format (14 total tiers from C1D1 to C7D0)
         
         Args:
             rescue_vcf_path: Path to rescue VCF (auto-detected if None)
@@ -1095,8 +1096,18 @@ class VCFVisualizer:
 
         try:
             from .tiering import tier_rescue_variants
-        except ImportError:
-            print("Tiering module not available")
+            from .tiering_engine import TieringEngine
+            import sys
+            from pathlib import Path as PathLib
+            
+            # Add bin/common to path
+            bin_common = PathLib(__file__).parent.parent.parent / "bin" / "common"
+            if str(bin_common) not in sys.path:
+                sys.path.insert(0, str(bin_common))
+            
+            from tier_config import TIER_ORDER, TIER_COLORS, get_tier_display_name
+        except ImportError as e:
+            print(f"Required modules not available: {e}")
             return None
 
         # Auto-detect rescue VCF if not provided
@@ -1118,7 +1129,7 @@ class VCFVisualizer:
             return None
 
         def _create_tier_plot(plot_df, title_suffix=""):
-            """Helper function to create tier distribution plot."""
+            """Helper function to create tier distribution plot with CxDy tiers."""
             # Create stacked bar chart data by tier
             data = []
             for category in CATEGORY_ORDER:
@@ -1145,38 +1156,39 @@ class VCFVisualizer:
                 cat_df = df[df["Category"] == category]
                 if not cat_df.empty:
                     # Ensure we have all tiers represented (fill with 0 if missing)
-                    tier_order = ["T1", "T2", "T3", "T4", "T5", "T6", "T7"]
-                    tier_counts = {tier: 0 for tier in tier_order}
+                    # Use TIER_ORDER from tier_config (C1D1, C1D0, C2D1, ...)
+                    tier_counts = {tier: 0 for tier in TIER_ORDER}
                     for _, row in cat_df.iterrows():
-                        tier_counts[row["Tier"]] = row["Count"]
+                        if row["Tier"] in tier_counts:
+                            tier_counts[row["Tier"]] = row["Count"]
                     
                     fig.add_trace(go.Bar(
                         name=category,
-                        x=tier_order,
-                        y=[tier_counts[t] for t in tier_order],
+                        x=TIER_ORDER,
+                        y=[tier_counts[t] for t in TIER_ORDER],
                         marker_color=self.CATEGORY_COLORS.get(category, "#8A8A8A"),
-                        text=[tier_counts[t] if tier_counts[t] > 0 else "" for t in tier_order],
+                        text=[tier_counts[t] if tier_counts[t] > 0 else "" for t in TIER_ORDER],
                         textposition="inside",
                         showlegend=True,
                         legendgroup=category,
                         hovertemplate="<b>%{x}</b><br>" + category + ": %{y}<extra></extra>"
                     ))
 
-            # Ensure tier order (T1-T7)
-            tier_order = ["T1", "T2", "T3", "T4", "T5", "T6", "T7"]
-            existing_tiers = [t for t in tier_order if t in df["Tier"].values]
+            # Filter to show only tiers that have data
+            existing_tiers = [t for t in TIER_ORDER if t in df["Tier"].values]
 
             fig.update_layout(
-                title=f"Rescue VCF Tier Distribution by Category{title_suffix}",
+                title=f"Rescue VCF Tier Distribution by Category{title_suffix}<br><sub>CxDy format: Caller tier (C1-C7) + Database tier (D0-D1)</sub>",
                 xaxis=dict(
-                    title="Tier",
+                    title="Tier (Caller × Database)",
                     categoryorder="array",
-                    categoryarray=existing_tiers
+                    categoryarray=existing_tiers if existing_tiers else TIER_ORDER,
+                    tickangle=-45
                 ),
                 yaxis_title="Number of Variants",
                 barmode="stack",
                 template="plotly_white",
-                height=500,
+                height=600,
                 showlegend=True,
                 legend=dict(
                     orientation="v",

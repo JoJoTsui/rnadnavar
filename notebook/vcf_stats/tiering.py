@@ -3,10 +3,11 @@
 Rescue Variant Tiering
 
 Utilities to compute tiers for variants in the final rescue VCF based on:
-- Number of callers detecting/supporting the variant
-- Modality support (DNA and/or RNA)
+- Category-aware caller support (C1-C7)
+- Database evidence (D0-D1)
+- Combined hybrid tiering (CxDy format)
 
-Designed for reuse from notebooks or scripts.
+Uses the new TieringEngine for consistent tier assignment.
 """
 
 from __future__ import annotations
@@ -16,6 +17,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 import random
 import pandas as pd
+import sys
+
+# Import new tiering engine
+from .tiering_engine import TieringEngine
 
 
 @dataclass(frozen=True)
@@ -126,59 +131,75 @@ def _per_modality_caller_counts(info: Any) -> Tuple[int, int]:
     return dna, rna
 
 
-def tier_rule(dna_callers: int, rna_callers: int) -> str:
+def tier_rule(dna_callers: int, rna_callers: int, has_database_support: bool = False) -> str:
     """
-    Assign a fine-grained tier based on per-modality caller support counts.
+    Assign tier using new hybrid tiering system (CxDy format).
     
-    Tiers represent all caller support combinations:
-    T1: DNA consensus (≥2) + RNA consensus (≥2) - Strongest: both modalities agree
-    T2: DNA consensus (≥2) + RNA support (1)   - DNA strong + single RNA caller
-    T3: DNA consensus (≥2) + RNA absent (0)    - DNA strong only
-    T4: DNA single (1) + RNA support (≥1)      - Single DNA caller + RNA corroboration
-    T5: DNA single (1) + RNA absent (0)        - Single DNA caller only
-    T6: DNA absent (0) + RNA consensus (≥2)    - RNA consensus only
-    T7: DNA absent (0) + RNA single (1)        - Single RNA caller only
-    T8: DNA absent (0) + RNA absent (0)        - No caller support (rare edge case)
+    NEW TIERING SYSTEM:
+    - Caller tiers (C1-C7): Based on DNA/RNA caller counts
+      C1: ≥2 DNA + ≥2 RNA (both strong)
+      C2: ≥2 DNA + (0 or 1) RNA (DNA strong)
+      C3: ≥2 RNA + (0 or 1) DNA (RNA strong)
+      C4: 1 DNA + 1 RNA (both weak)
+      C5: 1 DNA + 0 RNA (DNA only weak)
+      C6: 0 DNA + 1 RNA (RNA only weak)
+      C7: 0 DNA + 0 RNA (no caller support)
+    
+    - Database tiers (D0-D1):
+      D1: Has database support (gnomAD/COSMIC/REDIportal)
+      D0: No database support
+    
+    - Final tier: CxDy (e.g., C1D1, C2D0, C7D1)
     
     Args:
-        dna_callers: Number of DNA callers supporting the variant (0-3)
-        rna_callers: Number of RNA callers supporting the variant (0-3)
+        dna_callers: Number of DNA callers supporting the variant
+        rna_callers: Number of RNA callers supporting the variant
+        has_database_support: Whether variant has database annotation
     
     Returns:
-        Tier string T1-T8 (T1 strongest, T8 weakest)
+        Tier string in CxDy format (e.g., "C1D1", "C7D0")
+    
+    Note:
+        For backward compatibility, this uses the legacy counting method
+        (N_DNA_CALLERS_SUPPORT, N_RNA_CALLERS_SUPPORT).
+        For full category-aware counting, use TieringEngine.compute_tier() directly.
+    """
+    engine = TieringEngine()
+    return engine.compute_tier_simple(
+        dna_caller_count=int(dna_callers) if dna_callers is not None else 0,
+        rna_caller_count=int(rna_callers) if rna_callers is not None else 0,
+        has_database_support=has_database_support
+    )
+
+
+def tier_rule_legacy(dna_callers: int, rna_callers: int) -> str:
+    """
+    DEPRECATED: Legacy tier rule using T1-T8 system.
+    
+    This function is kept for backward compatibility only.
+    New code should use tier_rule() which returns CxDy format.
+    
+    Returns:
+        Tier string T1-T8 (old system)
     """
     dna_callers = int(dna_callers) if dna_callers is not None else 0
     rna_callers = int(rna_callers) if rna_callers is not None else 0
     
-    # T1: Both modalities with consensus support
+    # Legacy T1-T8 tier assignment
     if dna_callers >= 2 and rna_callers >= 2:
         return "T1"
-    
-    # T2: DNA consensus + single RNA support
     if dna_callers >= 2 and rna_callers == 1:
         return "T2"
-    
-    # T3: DNA consensus only
     if dna_callers >= 2 and rna_callers == 0:
         return "T3"
-    
-    # T4: Single DNA caller + RNA support
     if dna_callers == 1 and rna_callers >= 1:
         return "T4"
-    
-    # T5: Single DNA caller only
     if dna_callers == 1 and rna_callers == 0:
         return "T5"
-    
-    # T6: RNA consensus only (no DNA)
     if dna_callers == 0 and rna_callers >= 2:
         return "T6"
-    
-    # T7: Single RNA caller only (no DNA)
     if dna_callers == 0 and rna_callers == 1:
         return "T7"
-    
-    # T8: No caller support (edge case) -> map to weakest defined tier T7
     return "T7"
 
 
