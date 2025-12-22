@@ -4,10 +4,9 @@ Database Evidence Checker Module
 
 This module implements database evidence detection for the hybrid tiering system.
 It checks whether variants are present in external databases:
-- gnomAD: Population frequency database (germline variants)
-- COSMIC: Cancer somatic mutation database  
-- REDIportal: RNA editing database
-- DARNED: RNA editing database
+    - gnomAD: Population frequency database (germline variants)
+    - COSMIC: Cancer somatic mutation database  
+    - REDIportal: RNA editing database (A-to-G editing signatures)
 
 Usage:
     from database_checker import check_database_support, compute_database_tier
@@ -196,7 +195,6 @@ def check_database_support(
         gnomad_af: gnomAD allele frequency
         cosmic_cnt: COSMIC count
         rediportal: Present in REDIportal
-        darned: Present in DARNED
         info_dict: Dictionary of all INFO fields (alternative to individual params)
     
     Returns:
@@ -332,7 +330,6 @@ def compute_database_tier(
         gnomad_af: gnomAD allele frequency
         cosmic_cnt: COSMIC count
         rediportal: Present in REDIportal
-        darned: Present in DARNED
         info_dict: Dictionary of all INFO fields (alternative to individual params)
     
     Returns:
@@ -413,8 +410,7 @@ def print_database_summary(info_dict: Dict[str, Any]) -> None:
         print(f"  {status} COSMIC count > {DATABASE_THRESHOLDS['COSMIC_CNT']}")
     if details['REDIportal']:
         print(f"  ✓ Present in REDIportal")
-    if details['DARNED']:
-        print(f"  ✓ Present in DARNED")
+    # DARNED database no longer supported in pipeline
 
 
 def validate_database_fields(info_dict: Dict[str, Any]) -> Dict[str, Any]:

@@ -2,6 +2,9 @@
 """
 Tier Configuration Module for Hybrid Tiering System
 
+IMPORTANT: This module IMPORTS thresholds from annotation_config.py (centralized source of truth).
+Do NOT modify threshold values here - update annotation_config.py instead.
+
 This module defines the two-dimensional tiering system that combines:
 1. Caller Support (C1-C7): Based on category-concordant DNA/RNA caller counts
 2. Database Evidence (D0-D1): Based on presence in external databases
@@ -16,6 +19,15 @@ Usage:
 """
 
 from typing import Dict, List, Tuple, Callable
+
+# Import centralized thresholds from annotation_config
+try:
+    from annotation_config import GNOMAD_THRESHOLDS, COSMIC_THRESHOLDS, REDIPORTAL_THRESHOLDS
+except ImportError:
+    # Fallback if annotation_config not available (for backward compatibility)
+    GNOMAD_THRESHOLDS = {"germline_frequency": 0.001}
+    COSMIC_THRESHOLDS = {"recurrence_minimum": 5}
+    REDIPORTAL_THRESHOLDS = {"min_rna_support": 2}
 
 # ============================================================================
 # CALLER SUPPORT TIER DEFINITIONS (C1-C7)
@@ -88,8 +100,8 @@ DATABASE_TIER_RULES = {
         "description": "Has database support",
         "databases": ["gnomAD", "COSMIC", "REDIportal", "DARNED"],
         "thresholds": {
-            "gnomAD_AF": 0.001,      # Allele frequency > 0.1%
-            "COSMIC_CNT": 0,          # Any COSMIC count > 0
+            "gnomAD_AF": GNOMAD_THRESHOLDS.get("germline_frequency", 0.001),  # From annotation_config
+            "COSMIC_CNT": COSMIC_THRESHOLDS.get("recurrence_minimum", 0),      # From annotation_config
             "REDIportal": True,       # Present in REDIportal
             "DARNED": True,           # Present in DARNED
         },
