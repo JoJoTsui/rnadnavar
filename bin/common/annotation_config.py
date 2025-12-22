@@ -8,6 +8,25 @@ Provides a single source of truth for all annotation thresholds and parameters.
 This module ensures consistency across all annotation modules and simplifies
 parameter management for the entire annotation infrastructure.
 
+NEXTFLOW SOURCE OF TRUTH:
+  - File: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/nextflow.config
+  - File: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/conf/base.config
+  
+  Thresholds defined in Nextflow config:
+  - cosmic_gnomad_cosmic_recurrence_threshold = 5          # COSMIC_THRESHOLDS["recurrence_minimum"]
+  - cosmic_gnomad_germline_freq_threshold = 0.001         # GNOMAD_THRESHOLDS["germline_frequency"]
+  - cosmic_gnomad_somatic_consensus_threshold = 3         # CLASSIFICATION_THRESHOLDS["somatic_consensus_threshold"]
+  - min_rna_support = 2                                    # REDIPORTAL_THRESHOLDS["min_rna_support"]
+
+SYNCHRONIZATION:
+  This Python module mirrors thresholds from Nextflow config exactly.
+  When Nextflow parameters change, update corresponding values below.
+  
+  KEEP IN SYNC WITH:
+  - nextflow.config: params section
+  - conf/base.config: process resource limits and process-specific settings
+  - notebook/vcf_stats/tier_config.py: For tier assignment logic consistency
+
 USAGE:
     from annotation_config import COSMIC_THRESHOLDS, GNOMAD_THRESHOLDS, REDIPORTAL_THRESHOLDS
     
@@ -17,7 +36,7 @@ USAGE:
 
 Author: COSMIC/gnomAD/REDIportal Enhancement Pipeline
 Date: 2025-12-22
-Version: 1.0
+Version: 1.1 (Nextflow-synchronized version)
 """
 
 from typing import Dict, Any, List, Tuple
@@ -280,8 +299,9 @@ CLASSIFICATION_THRESHOLDS = {
     # Minimum DNA caller support for somatic variant confidence
     # Rationale: Cross-caller validation reduces artifacts
     # Range: 1-3 (1 = any caller, 2 = dual validation, 3 = high confidence)
-    # Recommendation: 2 for balanced somatic classification
-    "somatic_consensus_threshold": 2,
+    # Recommendation: 3 per Nextflow config cosmic_gnomad_somatic_consensus_threshold
+    # NOTE: Synchronized with Nextflow param: cosmic_gnomad_somatic_consensus_threshold = 3
+    "somatic_consensus_threshold": 3,
     
     # Whether to require dual DNA+RNA support for rescue variants
     # Rationale: Cross-modality validation increases confidence
@@ -485,6 +505,102 @@ def validate_thresholds() -> Dict[str, Any]:
     }
 
 
+# ============================================================================
+# NEXTFLOW ↔ PYTHON SYNCHRONIZATION MAPPING
+# ============================================================================
+# This table documents how Nextflow parameters map to Python configuration.
+# Keep this in sync when updating either Nextflow or Python configs.
+
+NEXTFLOW_PYTHON_MAPPING = {
+    # COSMIC annotation thresholds
+    "cosmic_gnomad_cosmic_recurrence_threshold": {
+        "description": "Minimum COSMIC mutation recurrence for significance",
+        "nextflow_value": 5,
+        "python_location": "COSMIC_THRESHOLDS['recurrence_minimum']",
+        "python_value": COSMIC_THRESHOLDS['recurrence_minimum'],
+        "status": "✓ SYNCED" if COSMIC_THRESHOLDS['recurrence_minimum'] == 5 else "⚠️ MISMATCH",
+    },
+    
+    # gnomAD annotation thresholds
+    "cosmic_gnomad_germline_freq_threshold": {
+        "description": "Population allele frequency threshold for germline classification (ACMG standard)",
+        "nextflow_value": 0.001,
+        "python_location": "GNOMAD_THRESHOLDS['germline_frequency']",
+        "python_value": GNOMAD_THRESHOLDS['germline_frequency'],
+        "status": "✓ SYNCED" if GNOMAD_THRESHOLDS['germline_frequency'] == 0.001 else "⚠️ MISMATCH",
+    },
+    
+    # DNA somatic consensus threshold
+    "cosmic_gnomad_somatic_consensus_threshold": {
+        "description": "Minimum DNA callers required for somatic consensus",
+        "nextflow_value": 3,
+        "python_location": "CLASSIFICATION_THRESHOLDS['somatic_consensus_threshold']",
+        "python_value": CLASSIFICATION_THRESHOLDS['somatic_consensus_threshold'],
+        "status": "✓ SYNCED" if CLASSIFICATION_THRESHOLDS['somatic_consensus_threshold'] == 3 else "⚠️ MISMATCH",
+    },
+    
+    # REDIportal RNA support threshold
+    "min_rna_support": {
+        "description": "Minimum RNA callers required for RNA mutation consensus",
+        "nextflow_value": 2,
+        "python_location": "REDIPORTAL_THRESHOLDS['min_rna_support']",
+        "python_value": REDIPORTAL_THRESHOLDS['min_rna_support'],
+        "status": "✓ SYNCED" if REDIPORTAL_THRESHOLDS['min_rna_support'] == 2 else "⚠️ MISMATCH",
+    },
+}
+
+
+def check_sync_status() -> Dict[str, Any]:
+    """
+    Check synchronization status between Nextflow and Python configs.
+    
+    Returns:
+        Dictionary with sync status for each threshold
+    """
+    sync_issues = []
+    for param_name, mapping in NEXTFLOW_PYTHON_MAPPING.items():
+        if mapping['nextflow_value'] != mapping['python_value']:
+            sync_issues.append({
+                "parameter": param_name,
+                "expected": mapping['nextflow_value'],
+                "actual": mapping['python_value'],
+                "description": mapping['description'],
+            })
+    
+    return {
+        "synced": len(sync_issues) == 0,
+        "issues": sync_issues,
+        "mapping": NEXTFLOW_PYTHON_MAPPING,
+    }
+
+
+def print_sync_status() -> None:
+    """Print synchronization status between Nextflow and Python configs."""
+    print("\n" + "=" * 80)
+    print("NEXTFLOW ↔ PYTHON SYNCHRONIZATION STATUS")
+    print("=" * 80)
+    
+    for param_name, mapping in NEXTFLOW_PYTHON_MAPPING.items():
+        print(f"\n{param_name}:")
+        print(f"  Description: {mapping['description']}")
+        print(f"  Nextflow: {mapping['nextflow_value']}")
+        print(f"  Python: {mapping['python_value']}")
+        print(f"  Status: {mapping['status']}")
+    
+    sync = check_sync_status()
+    print("\n" + "=" * 80)
+    if sync['synced']:
+        print("✓ ALL CONFIGURATIONS SYNCHRONIZED")
+    else:
+        print("⚠️  SYNCHRONIZATION ISSUES DETECTED:")
+        for issue in sync['issues']:
+            print(f"  • {issue['parameter']}")
+            print(f"    Expected (Nextflow): {issue['expected']}")
+            print(f"    Actual (Python): {issue['actual']}")
+            print(f"    Description: {issue['description']}")
+    print("=" * 80)
+
+
 if __name__ == "__main__":
     # Print configuration when run directly
     print_configuration_summary()
@@ -502,3 +618,6 @@ if __name__ == "__main__":
         print("\n⚠️  WARNINGS:")
         for warning in validation["warnings"]:
             print(f"  ! {warning}")
+    
+    # Check Nextflow ↔ Python synchronization
+    print_sync_status()
