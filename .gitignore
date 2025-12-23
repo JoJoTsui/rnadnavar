@@ -18,6 +18,7 @@ null/
 .kiro/
 .vscode*
 CLAUDE.md
+.claude*
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
