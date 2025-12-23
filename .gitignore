@@ -19,6 +19,7 @@ null/
 .vscode*
 CLAUDE.md
 .claude*
+.serena/
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
