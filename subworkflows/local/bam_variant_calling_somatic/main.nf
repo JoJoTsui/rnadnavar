@@ -35,7 +35,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC {
     vcf_sage          = Channel.empty()
     vcf_deepsomatic   = Channel.empty()
     // SAGE
-    if (tools && tools.split(',').contains('sage') || realignment) {
+    if (tools && tools.split(',').contains('sage')) {
         cram.dump(tag:"sage_cram")
         BAM_VARIANT_CALLING_SOMATIC_SAGE(
             cram,
