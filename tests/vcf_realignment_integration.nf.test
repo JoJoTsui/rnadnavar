@@ -14,15 +14,15 @@ nextflow_pipeline {
                 outdir                   = "$outputDir"
                 genome                   = null
                 igenomes_ignore          = true
-                fasta                    = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta"
-                fasta_fai                = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta.fai"
-                dict                     = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.dict"
-                hisat2                   = "https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/reference/hisat2_index.tar.gz"
+                fasta                    = '/t9k/mnt/hdd/work/Vax/rnadnavar/test-datasets/reference/chr7_hg38/GRCh38.d1.vd1.chr7.mini.fa'
+                // fasta_fai                = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta.fai"
+                // dict                     = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.dict"
+                // hisat2                   = "https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/reference/hisat2_index.tar.gz"
                 tools                    = "consensus,rescue"
                 step                     = "realignment"
                 skip_tools               = "baserecalibrator,markduplicates"
-                max_cpus                 = 2
-                max_memory               = "6.GB"
+                max_cpus                 = 8
+                max_memory               = "36.GB"
                 max_time                 = "6.h"
             }
         }

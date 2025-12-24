@@ -93,14 +93,23 @@ workflow PROPERTY_TEST_STACKOVERFLOW_PREVENTION {
         // Test channel sanitization
         vcf_channel = test_data.map { iteration, meta, vcf_content, cram_info ->
             // Create temporary VCF file
-            def vcf_file = file("${params.property_test_outdir}/vcf_${iteration}.vcf")
-            vcf_file.text = vcf_content
+            def outdir = file(params.property_test_outdir)
+            outdir.mkdirs()
             
-            return [meta, vcf_file, file("${vcf_file}.tbi")]
+            def vcf_file = file("${params.property_test_outdir}/vcf_${iteration}.vcf")
+            def tbi_file = file("${params.property_test_outdir}/vcf_${iteration}.vcf.tbi")
+            
+            vcf_file.text = vcf_content
+            tbi_file.text = "mock_tbi_data"
+            
+            return [meta, vcf_file, tbi_file]
         }
         
         cram_channel = test_data.map { iteration, meta, vcf_content, cram_info ->
             // Create mock CRAM files
+            def outdir = file(params.property_test_outdir)
+            outdir.mkdirs()
+            
             def cram_file = file("${params.property_test_outdir}/cram_${iteration}.cram")
             def crai_file = file("${params.property_test_outdir}/cram_${iteration}.cram.crai")
             
@@ -112,6 +121,9 @@ workflow PROPERTY_TEST_STACKOVERFLOW_PREVENTION {
         }
         
         // Test sanitization - should not cause StackOverflowError
+        vcf_channel.view { "VCF Channel: $it" }
+        cram_channel.view { "CRAM Channel: $it" }
+        
         SANITIZE_CHANNELS(vcf_channel, cram_channel)
         
         // Verify no circular references in metadata
