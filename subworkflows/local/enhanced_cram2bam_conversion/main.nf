@@ -2,7 +2,7 @@
 // ENHANCED_CRAM2BAM_CONVERSION: Convert CRAM to BAM with comprehensive validation and error handling
 //
 
-include { SAMTOOLS_CONVERT_ENHANCED } from '../../../modules/local/samtools_convert_enhanced/main'
+include { VALIDATED_SAMTOOLS_CONVERT } from '../validated_samtools_convert/main'
 
 workflow ENHANCED_CRAM2BAM_CONVERSION {
     take:
@@ -149,18 +149,18 @@ workflow ENHANCED_CRAM2BAM_CONVERSION {
         log.info "ENHANCED_CRAM2BAM_CONVERSION: Validated reference files: FASTA=${fasta.getSimpleName()}, FAI=${fasta_fai.getSimpleName()}"
         
         // Create channels for the validated reference files
-        validated_fasta = Channel.of([[id: "fasta"], fasta])
-        validated_fasta_fai = Channel.of([[id: "fasta_fai"], fasta_fai])
+        validated_fasta = fasta
+        validated_fasta_fai = fasta_fai
         
-        // Perform conversion with enhanced error handling and resource management
-        SAMTOOLS_CONVERT_ENHANCED(
+        // Perform conversion with enhanced error handling, resource management, and command validation
+        VALIDATED_SAMTOOLS_CONVERT(
             validated_input,
             validated_fasta,
             validated_fasta_fai
         )
         
         // Post-process outputs with validation
-        validated_bam = SAMTOOLS_CONVERT_ENHANCED.out.bam
+        validated_bam = VALIDATED_SAMTOOLS_CONVERT.out.bam
             .filter { meta, bam ->
                 if (!bam) {
                     log.error "ENHANCED_CRAM2BAM_CONVERSION: BAM output is null for sample ${meta.id}"
@@ -178,7 +178,7 @@ workflow ENHANCED_CRAM2BAM_CONVERSION {
                 return true
             }
         
-        validated_bai = SAMTOOLS_CONVERT_ENHANCED.out.bai
+        validated_bai = VALIDATED_SAMTOOLS_CONVERT.out.bai
             .filter { meta, bai ->
                 if (!bai) {
                     log.error "ENHANCED_CRAM2BAM_CONVERSION: BAI output is null for sample ${meta.id}"
@@ -197,7 +197,7 @@ workflow ENHANCED_CRAM2BAM_CONVERSION {
             }
         
         // Collect versions
-        versions = versions.mix(SAMTOOLS_CONVERT_ENHANCED.out.versions)
+        versions = versions.mix(VALIDATED_SAMTOOLS_CONVERT.out.versions)
     
     emit:
         bam = validated_bam

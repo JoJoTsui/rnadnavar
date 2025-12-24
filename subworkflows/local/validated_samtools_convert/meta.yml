@@ -1,0 +1,80 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/subworkflows/yaml-schema.json
+name: "validated_samtools_convert"
+description: Samtools convert with comprehensive command validation
+keywords:
+  - samtools
+  - convert
+  - validation
+  - bam
+  - cram
+  - sam
+components:
+  - command_validation
+  - samtools_convert_enhanced
+input:
+  - input_channel:
+      type: tuple
+      description: |
+        Groovy Tuple containing:
+        - meta (map): sample metadata
+        - input_file (file): BAM/CRAM/SAM file to convert
+        - index_file (file): Index file for input
+  - fasta:
+      type: file
+      description: Reference FASTA file
+      pattern: "*.{fa,fasta}"
+  - fasta_fai:
+      type: file
+      description: Reference FASTA index file
+      pattern: "*.fai"
+output:
+  - bam:
+      type: tuple
+      description: |
+        Groovy Tuple containing:
+        - meta (map): sample metadata
+        - bam (file): converted BAM file
+      pattern: "*.bam"
+  - cram:
+      type: tuple
+      description: |
+        Groovy Tuple containing:
+        - meta (map): sample metadata
+        - cram (file): converted CRAM file
+      pattern: "*.cram"
+  - sam:
+      type: tuple
+      description: |
+        Groovy Tuple containing:
+        - meta (map): sample metadata
+        - sam (file): converted SAM file
+      pattern: "*.sam"
+  - bai:
+      type: tuple
+      description: |
+        Groovy Tuple containing:
+        - meta (map): sample metadata
+        - bai (file): BAM index file
+      pattern: "*.bai"
+  - csi:
+      type: tuple
+      description: |
+        Groovy Tuple containing:
+        - meta (map): sample metadata
+        - csi (file): CSI index file
+      pattern: "*.csi"
+  - crai:
+      type: tuple
+      description: |
+        Groovy Tuple containing:
+        - meta (map): sample metadata
+        - crai (file): CRAM index file
+      pattern: "*.crai"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@vcf-realignment-optimization"
+maintainers:
+  - "@vcf-realignment-optimization"
