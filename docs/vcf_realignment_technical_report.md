@@ -675,7 +675,7 @@ awk 'BEGIN{OFS="\t"} !/^#/ {
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0.0 | 2024-12-24 | Initial VCF-based RNA realignment implementation |
+| 1.0.0 | 2025-12-24 | Initial VCF-based RNA realignment implementation |
 
 ---
 
@@ -690,4 +690,4 @@ For questions or issues related to VCF-based RNA realignment:
 ---
 
 *Document Version: 1.0.0*
-*Last Updated: December 24, 2024*
+*Last Updated: December 24, 2025*
