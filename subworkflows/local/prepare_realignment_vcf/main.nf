@@ -63,11 +63,12 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
                                         id:      meta.id + "_realign"], vcf, tbi]
             }
 
-            // Join VCF with CRAM by patient
-            cram_vcf_joined = reads_to_realign_and_join.join(vcf_to_realign_and_join)
-
+            // Join VCF with CRAM by patient only (not all keys)
+            // Join produces: [meta_left, cram, crai, meta_right, vcf, tbi]
+            cram_vcf_joined = reads_to_realign_and_join.join(vcf_to_realign_and_join, by: ['patient'])
+            // cram_vcf_joined.view { meta_left, cram, crai, meta_right, vcf, tbi -> "Joined: ${meta_left.id} with ${vcf.getSimpleName()}" }
             // VCF to BED conversion
-            vcf_to_bed = cram_vcf_joined.map{meta, cram, crai, vcf, tbi -> [meta + [cram_file:cram, crai_file:crai], vcf, tbi]}
+            vcf_to_bed = cram_vcf_joined.map{meta_left, cram, crai, meta_right, vcf, tbi -> [meta_left + [cram_file:cram, crai_file:crai], vcf, tbi]}
             VCF2BED(vcf_to_bed)
 
             // Extract read IDs using BED from VCF2BED
