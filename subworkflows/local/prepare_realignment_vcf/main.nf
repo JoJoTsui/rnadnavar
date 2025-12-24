@@ -47,8 +47,6 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
                                         realign:   it[0].status == 2 || it[0].status == 0
             }
 
-            vcf_to_realign.dump(tag:'vcf_to_realign')
-
             // Join VCF with CRAM files
             // Map CRAM to add _realign suffix
             reads_to_realign_and_join = reads_to_realign_branch.realign.map{meta, cram, crai ->
@@ -98,8 +96,6 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
 
             // Align with HISAT2
             reads_for_realignment = CONVERT_FASTQ_INPUT.out.reads
-            hisat2_index.dump(tag:"HISAT2index")
-            splicesites.dump(tag:"HISAT2splicesites")
             // Note: single_end in meta always false for this subworkflow TODO: add to samplesheet in future?
             FASTQ_ALIGN_HISAT2(
                                 reads_for_realignment.map{meta, reads -> [meta + [single_end:false], reads]},
