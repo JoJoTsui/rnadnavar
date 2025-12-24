@@ -7,7 +7,6 @@
 include { BAM_GATK_PREPROCESSING    } from '../bam_gatk_preprocessing/main'
 include { BAM_VARIANT_CALLING       } from '../bam_variant_calling/main'
 include { VCF_NORMALIZE             } from '../vcf_normalize/main'
-include { VCF_ANNOTATE              } from '../vcf_annotate/main'
 include { VCF_CONSENSUS_WORKFLOW    } from '../vcf_consensus_workflow/main'
 include { VCF_FILTERING             } from '../vcf_filtering/main'
 include { MAF_FILTERING              } from '../maf_filtering/main'
@@ -34,7 +33,6 @@ workflow RNA_REALIGNMENT_WORKFLOW {
         intervals_bed_combined
         intervals_and_num_intervals
         intervals_bed_gz_tbi_combined
-        vep_cache
         realignment                 // true (indicates this is realignment)
 
     main:
@@ -90,17 +88,8 @@ workflow RNA_REALIGNMENT_WORKFLOW {
         versions = versions.mix(VCF_NORMALIZE.out.versions)
         vcf_normalized = VCF_NORMALIZE.out.vcf
 
-        // Annotate VCFs
-        VCF_ANNOTATE(
-            vcf_normalized.map{ meta, vcf, tbi -> [ meta + [ file_name: vcf.baseName ], vcf, [tbi] ] },
-            fasta,
-            input_sample,
-            realignment,
-            vep_cache
-        )
-        vcf_annotated = VCF_ANNOTATE.out.vcf_ann
-        versions = versions.mix(VCF_ANNOTATE.out.versions)
-        reports  = reports.mix(VCF_ANNOTATE.out.reports)
+        // Note: VEP annotation removed - annotated VCF was not used downstream.
+        // Only normalized VCF is used for consensus generation.
 
         // RNA Consensus (on realigned BAM)
         VCF_CONSENSUS_WORKFLOW(vcf_normalized, input_sample, realignment)
