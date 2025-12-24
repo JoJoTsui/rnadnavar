@@ -1,0 +1,80 @@
+name: samtools_convert_enhanced
+description: Enhanced samtools convert with comprehensive input validation and error handling to prevent StackOverflowError
+keywords:
+  - convert
+  - bam
+  - cram
+  - samtools
+  - validation
+  - error-handling
+tools:
+  - samtools:
+      description: Tools for manipulating next-generation sequencing data
+      homepage: http://www.htslib.org/
+      documentation: http://www.htslib.org/doc/samtools.html
+      tool_dev_url: https://github.com/samtools/samtools
+      doi: "10.1093/bioinformatics/btp352"
+      licence: ["MIT"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - input:
+      type: file
+      description: BAM/CRAM file
+      pattern: "*.{bam,cram}"
+  - index:
+      type: file
+      description: BAM/CRAM index file
+      pattern: "*.{bai,crai}"
+  - meta2:
+      type: map
+      description: |
+        Groovy Map containing reference information
+        e.g. [ id:'genome' ]
+  - fasta:
+      type: file
+      description: Reference genome FASTA file
+      pattern: "*.{fa,fasta}"
+  - meta3:
+      type: map
+      description: |
+        Groovy Map containing reference index information
+        e.g. [ id:'genome' ]
+  - fai:
+      type: file
+      description: Reference genome FASTA index file
+      pattern: "*.fai"
+
+output:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+  - bam:
+      type: file
+      description: Converted BAM file
+      pattern: "*.bam"
+  - cram:
+      type: file
+      description: Converted CRAM file
+      pattern: "*.cram"
+  - bai:
+      type: file
+      description: BAM index file
+      pattern: "*.bai"
+  - crai:
+      type: file
+      description: CRAM index file
+      pattern: "*.crai"
+
+authors:
+  - "@VCF-Realignment-Optimization"

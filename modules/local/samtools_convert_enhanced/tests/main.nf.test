@@ -1,0 +1,45 @@
+nextflow_process {
+
+    name "Test Process SAMTOOLS_CONVERT_ENHANCED"
+    script "../main.nf"
+    process "SAMTOOLS_CONVERT_ENHANCED"
+
+    tag "modules"
+    tag "modules_local"
+    tag "samtools_convert_enhanced"
+    tag "samtools"
+
+    test("cram2bam - stub") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                input[0] = Channel.of([
+                    [ id:'test', single_end:false, patient:'patient1', status:0 ], // meta map
+                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/illumina/cram/test.paired_end.sorted.cram', checkIfExists: true),
+                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/illumina/cram/test.paired_end.sorted.cram.crai', checkIfExists: true)
+                ])
+                input[1] = Channel.of([
+                    [ id:'fasta' ],
+                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/genome.fasta', checkIfExists: true)
+                ])
+                input[2] = Channel.of([
+                    [ id:'fasta_fai' ],
+                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/genome/genome.fasta.fai', checkIfExists: true)
+                ])
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert snapshot(process.out).match("stub") }
+            )
+        }
+
+    }
+
+}

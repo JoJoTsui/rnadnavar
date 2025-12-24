@@ -1,0 +1,75 @@
+{
+    "stub": {
+        "content": [
+            {
+                "0": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": false,
+                            "patient": "patient1",
+                            "status": 0
+                        },
+                        "test.bam:md5,d41d8cd98f00b204e9800998ecf8427e"
+                    ]
+                ],
+                "1": [
+                    
+                ],
+                "2": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": false,
+                            "patient": "patient1",
+                            "status": 0
+                        },
+                        "test.bam.bai:md5,d41d8cd98f00b204e9800998ecf8427e"
+                    ]
+                ],
+                "3": [
+                    
+                ],
+                "4": [
+                    "versions.yml:md5,6f6b551202982b4e732352cb8f0774f3"
+                ],
+                "bai": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": false,
+                            "patient": "patient1",
+                            "status": 0
+                        },
+                        "test.bam.bai:md5,d41d8cd98f00b204e9800998ecf8427e"
+                    ]
+                ],
+                "bam": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": false,
+                            "patient": "patient1",
+                            "status": 0
+                        },
+                        "test.bam:md5,d41d8cd98f00b204e9800998ecf8427e"
+                    ]
+                ],
+                "crai": [
+                    
+                ],
+                "cram": [
+                    
+                ],
+                "versions": [
+                    "versions.yml:md5,6f6b551202982b4e732352cb8f0774f3"
+                ]
+            }
+        ],
+        "meta": {
+            "nf-test": "0.9.2",
+            "nextflow": "25.10.0"
+        },
+        "timestamp": "2025-12-25T02:19:54.157208347"
+    }
+}

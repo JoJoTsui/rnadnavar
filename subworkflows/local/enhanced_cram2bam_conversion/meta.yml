@@ -1,0 +1,44 @@
+name: enhanced_cram2bam_conversion
+description: Enhanced CRAM to BAM conversion with comprehensive validation and error handling to prevent StackOverflowError
+keywords:
+  - convert
+  - cram
+  - bam
+  - validation
+  - error-handling
+  - realignment
+components:
+  - samtools_convert_enhanced
+input:
+  - cram_channel:
+      type: channel
+      description: |
+        Channel containing CRAM files with metadata
+        Structure: [meta, cram, crai]
+        where meta is a map containing at least: id, patient, status
+  - fasta:
+      type: file
+      description: Reference genome FASTA file
+      pattern: "*.{fa,fasta}"
+  - fasta_fai:
+      type: file
+      description: Reference genome FASTA index file
+      pattern: "*.fai"
+output:
+  - bam:
+      type: channel
+      description: |
+        Channel containing converted BAM files with metadata
+        Structure: [meta, bam]
+  - bai:
+      type: channel
+      description: |
+        Channel containing BAM index files with metadata
+        Structure: [meta, bai]
+  - versions:
+      type: channel
+      description: |
+        Channel containing software versions
+        Structure: versions.yml
+authors:
+  - "@VCF-Realignment-Optimization"

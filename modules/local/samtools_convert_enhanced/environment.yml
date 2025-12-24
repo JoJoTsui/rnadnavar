@@ -1,0 +1,7 @@
+name: samtools_convert_enhanced
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - bioconda::samtools=1.21
