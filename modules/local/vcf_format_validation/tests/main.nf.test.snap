@@ -1,0 +1,49 @@
+{
+    "stub": {
+        "content": [
+            {
+                "0": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": false
+                        },
+                        "dummy.vcf:md5,d41d8cd98f00b204e9800998ecf8427e",
+                        [
+                            
+                        ]
+                    ]
+                ],
+                "1": [
+                    "versions.yml:md5,4e9c22261126d5d0b654457ad163917c"
+                ],
+                "2": [
+                    "test_validation_report.txt:md5,2143fac24171a735fcc9e068b755bf2e"
+                ],
+                "validated_vcf": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": false
+                        },
+                        "dummy.vcf:md5,d41d8cd98f00b204e9800998ecf8427e",
+                        [
+                            
+                        ]
+                    ]
+                ],
+                "validation_report": [
+                    "test_validation_report.txt:md5,2143fac24171a735fcc9e068b755bf2e"
+                ],
+                "versions": [
+                    "versions.yml:md5,4e9c22261126d5d0b654457ad163917c"
+                ]
+            }
+        ],
+        "meta": {
+            "nf-test": "0.9.2",
+            "nextflow": "25.10.0"
+        },
+        "timestamp": "2025-12-25T03:02:51.596426862"
+    }
+}

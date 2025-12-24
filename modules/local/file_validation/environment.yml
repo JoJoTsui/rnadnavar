@@ -1,0 +1,8 @@
+name: file_validation
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - samtools=1.17
+  - file=5.44

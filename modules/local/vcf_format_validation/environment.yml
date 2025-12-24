@@ -1,0 +1,9 @@
+name: vcf_format_validation
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - bcftools=1.17
+  - tabix=1.17
+  - file=5.44

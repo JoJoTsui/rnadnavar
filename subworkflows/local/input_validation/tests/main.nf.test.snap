@@ -1,0 +1,71 @@
+{
+    "stub": {
+        "content": [
+            {
+                "0": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": false
+                        },
+                        "dummy.vcf:md5,d41d8cd98f00b204e9800998ecf8427e",
+                        [
+                            
+                        ]
+                    ]
+                ],
+                "1": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": false
+                        },
+                        "dummy.cram:md5,d41d8cd98f00b204e9800998ecf8427e",
+                        null
+                    ]
+                ],
+                "2": [
+                    "test_validation_report.txt:md5,2143fac24171a735fcc9e068b755bf2e"
+                ],
+                "3": [
+                    "versions.yml:md5,7c1452f714a1cd65ad58d6fb21319f73",
+                    "versions.yml:md5,b683e46de6f856633be909abed69fbcf"
+                ],
+                "cram": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": false
+                        },
+                        "dummy.cram:md5,d41d8cd98f00b204e9800998ecf8427e",
+                        null
+                    ]
+                ],
+                "validation_reports": [
+                    "test_validation_report.txt:md5,2143fac24171a735fcc9e068b755bf2e"
+                ],
+                "vcf": [
+                    [
+                        {
+                            "id": "test",
+                            "single_end": false
+                        },
+                        "dummy.vcf:md5,d41d8cd98f00b204e9800998ecf8427e",
+                        [
+                            
+                        ]
+                    ]
+                ],
+                "versions": [
+                    "versions.yml:md5,7c1452f714a1cd65ad58d6fb21319f73",
+                    "versions.yml:md5,b683e46de6f856633be909abed69fbcf"
+                ]
+            }
+        ],
+        "meta": {
+            "nf-test": "0.9.2",
+            "nextflow": "25.10.0"
+        },
+        "timestamp": "2025-12-25T03:04:20.034501718"
+    }
+}

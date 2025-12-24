@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/modules/meta-schema.json
+name: "vcf_format_validation"
+description: Comprehensive VCF format validation including header, coordinate system, compression, and HISAT2 index verification
+keywords:
+  - validation
+  - vcf
+  - format
+  - header
+  - coordinates
+  - compression
+  - hisat2
+  - index
+tools:
+  - "bcftools":
+      description: BCFtools is a set of utilities that manipulate variant calls in the Variant Call Format (VCF) and its binary counterpart BCF.
+      homepage: http://samtools.github.io/bcftools/
+      documentation: http://samtools.github.io/bcftools/bcftools.html
+      doi: "10.1093/bioinformatics/btp352"
+      licence: ["MIT"]
+  - "tabix":
+      description: Tabix indexes a TAB-delimited genome position file
+      homepage: http://www.htslib.org/doc/tabix.html
+      documentation: http://www.htslib.org/doc/tabix.html
+      doi: "10.1093/bioinformatics/btp352"
+      licence: ["MIT"]
+  - "file":
+      description: File type identification utility
+      homepage: https://www.darwinsys.com/file/
+      documentation: https://linux.die.net/man/1/file
+      licence: ["BSD"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. `[ id:'sample1', single_end:false ]`
+  - vcf:
+      type: file
+      description: VCF file to validate
+      pattern: "*.{vcf,vcf.gz}"
+  - tbi:
+      type: file
+      description: Tabix index file for compressed VCF
+      pattern: "*.{tbi,csi}"
+  - hisat2_index:
+      type: directory
+      description: Directory containing HISAT2 index files (optional)
+      pattern: "*"
+
+output:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. `[ id:'sample1', single_end:false ]`
+  - validated_vcf:
+      type: file
+      description: The validated VCF file and index
+      pattern: "*.{vcf,vcf.gz,tbi,csi}"
+  - validation_report:
+      type: file
+      description: Detailed validation report
+      pattern: "*_validation_report.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+
+authors:
+  - "@your-username"
+maintainers:
+  - "@your-username"

@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/subworkflows/meta-schema.json
+name: "input_validation"
+description: Comprehensive input validation subworkflow for VCF realignment optimization
+keywords:
+  - validation
+  - input
+  - vcf
+  - cram
+  - format
+  - file
+components:
+  - file_validation
+  - vcf_format_validation
+input:
+  - vcf_channel:
+      type: channel
+      description: |
+        Channel containing VCF files with metadata and tabix index
+        Structure: [meta, vcf, tbi]
+  - cram_channel:
+      type: channel
+      description: |
+        Channel containing CRAM files with metadata and index
+        Structure: [meta, cram, crai]
+  - hisat2_index:
+      type: directory
+      description: |
+        Directory containing HISAT2 index files (optional)
+        Used for HISAT2 index format validation
+output:
+  - vcf:
+      type: channel
+      description: |
+        Validated VCF files with metadata and tabix index
+        Structure: [meta, vcf, tbi]
+  - cram:
+      type: channel
+      description: |
+        Validated CRAM files with metadata and index
+        Structure: [meta, cram, crai]
+  - validation_reports:
+      type: channel
+      description: |
+        Detailed validation reports for VCF files
+        Structure: validation_report.txt
+  - versions:
+      type: channel
+      description: |
+        File containing software versions
+        Structure: versions.yml
+authors:
+  - "@your-username"
+maintainers:
+  - "@your-username"

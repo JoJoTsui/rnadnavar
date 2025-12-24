@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/modules/meta-schema.json
+name: "file_validation"
+description: Comprehensive file validation for genomics files including existence, accessibility, and format checks
+keywords:
+  - validation
+  - file
+  - genomics
+  - cram
+  - bam
+  - compression
+tools:
+  - "samtools":
+      description: Tools for manipulating next-generation sequencing data
+      homepage: http://www.htslib.org/
+      documentation: http://www.htslib.org/doc/samtools.html
+      doi: "10.1093/bioinformatics/btp352"
+      licence: ["MIT"]
+  - "file":
+      description: File type identification utility
+      homepage: https://www.darwinsys.com/file/
+      documentation: https://linux.die.net/man/1/file
+      licence: ["BSD"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. `[ id:'sample1', single_end:false ]`
+  - files:
+      type: file
+      description: Input files to validate (CRAM, BAM, VCF, index files, etc.)
+      pattern: "*"
+
+output:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. `[ id:'sample1', single_end:false ]`
+  - validated_files:
+      type: file
+      description: The same input files after validation
+      pattern: "*"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+
+authors:
+  - "@your-username"
+maintainers:
+  - "@your-username"

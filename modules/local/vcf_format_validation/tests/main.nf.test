@@ -1,0 +1,37 @@
+nextflow_process {
+
+    name "Test Process VCF_FORMAT_VALIDATION"
+    script "../main.nf"
+    process "VCF_FORMAT_VALIDATION"
+
+    tag "modules"
+    tag "modules_local"
+    tag "vcf_format_validation"
+
+    test("vcf_format_validation - stub") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                input[0] = Channel.of([
+                    [ id:'test', single_end:false ],
+                    file("dummy.vcf"),
+                    []
+                ])
+                input[1] = []
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert snapshot(process.out).match("stub") }
+            )
+        }
+
+    }
+
+}

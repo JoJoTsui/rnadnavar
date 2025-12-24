@@ -1,0 +1,35 @@
+nextflow_process {
+
+    name "Test Process FILE_VALIDATION"
+    script "../main.nf"
+    process "FILE_VALIDATION"
+
+    tag "modules"
+    tag "modules_local"
+    tag "file_validation"
+
+    test("file_validation - stub") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                input[0] = Channel.of([
+                    [ id:'test', single_end:false ],
+                    [ file("dummy.txt") ]
+                ])
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert snapshot(process.out).match("stub") }
+            )
+        }
+
+    }
+
+}
