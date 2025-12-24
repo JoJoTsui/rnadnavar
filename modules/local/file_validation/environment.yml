@@ -4,5 +4,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - samtools=1.17
-  - file=5.44
+  - samtools=1.21
+  - bcftools=1.21
+  - htslib=1.21
+  - file=5.46

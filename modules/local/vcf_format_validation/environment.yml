@@ -4,6 +4,6 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - bcftools=1.17
-  - tabix=1.17
-  - file=5.44
+  - bcftools=1.21
+  - htslib=1.21
+  - file=5.46
