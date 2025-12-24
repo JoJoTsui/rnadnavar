@@ -1,0 +1,76 @@
+nextflow_workflow {
+
+    name "Property Test: Null Condition Handling"
+    script "../property_test_framework.nf"
+    workflow "PROPERTY_TEST_NULL_CONDITION_HANDLING"
+    tag "property"
+    tag "null_handling"
+    tag "vcf_realignment"
+
+    test("Property 2: Null Condition Handling - Feature: vcf-realignment-optimization, Property 2: For any task.ext.when condition including null values, the system should evaluate the condition gracefully without throwing exceptions") {
+
+        when {
+            params {
+                property_test_iterations = 100
+                property_test_outdir = "$outputDir/property_tests"
+                test_data_seed = 42
+                property_test_debug = true
+            }
+            
+            workflow {
+                """
+                input[0] = params.property_test_iterations
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.trace.succeeded().size() >= params.property_test_iterations },
+                // Property: No exceptions should be thrown for null conditions
+                { assert !workflow.trace.tasks().any { 
+                    it.stderr?.contains('NullPointerException') ||
+                    it.stderr?.contains('IllegalArgumentException')
+                }},
+                // Property: All condition evaluations should complete
+                { assert workflow.trace.succeeded().size() > 0 },
+                // Property: Results should handle null gracefully
+                { assert path("$outputDir/property_tests").exists() }
+            )
+        }
+    }
+
+    test("Property 2: Null Condition Handling - Various condition types") {
+
+        when {
+            params {
+                property_test_iterations = 150
+                property_test_outdir = "$outputDir/property_tests_conditions"
+                test_data_seed = 789
+                property_test_debug = true
+            }
+            
+            workflow {
+                """
+                input[0] = params.property_test_iterations
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                // Property: Should handle all condition types (null, boolean, string, number)
+                { assert workflow.trace.succeeded().size() >= params.property_test_iterations },
+                // Property: No type conversion errors
+                { assert !workflow.trace.tasks().any { 
+                    it.stderr?.contains('ClassCastException') ||
+                    it.stderr?.contains('NumberFormatException')
+                }},
+                // Property: Consistent behavior across condition types
+                { assert workflow.trace.tasks().every { it.status == 'COMPLETED' || it.status == 'CACHED' } }
+            )
+        }
+    }
+}

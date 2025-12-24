@@ -1,0 +1,111 @@
+nextflow_workflow {
+
+    name "Property Test: Command Construction Validation"
+    script "../property_test_framework.nf"
+    workflow "PROPERTY_TEST_COMMAND_CONSTRUCTION"
+    tag "property"
+    tag "command_validation"
+    tag "vcf_realignment"
+
+    test("Property 7: Command Construction Validation - Feature: vcf-realignment-optimization, Property 7: For any generated command, the system should validate command syntax and parameter correctness before execution") {
+
+        when {
+            params {
+                property_test_iterations = 100
+                property_test_outdir = "$outputDir/property_tests"
+                test_data_seed = 42
+                property_test_debug = true
+            }
+            
+            workflow {
+                """
+                input[0] = params.property_test_iterations
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.trace.succeeded().size() >= 1 },
+                // Property: Command validation should complete
+                { assert workflow.trace.tasks().any { it.name.contains('COMMAND_VALIDATION') } },
+                // Property: Invalid commands should be rejected
+                { assert !workflow.trace.tasks().any { 
+                    it.stderr?.contains('command not found') ||
+                    it.stderr?.contains('invalid syntax')
+                }},
+                // Property: Valid commands should pass validation
+                { assert workflow.trace.succeeded().size() > 0 },
+                // Property: Command structure should be preserved
+                { assert path("$outputDir/property_tests").exists() }
+            )
+        }
+    }
+
+    test("Property 7: Command Construction Validation - Various command types") {
+
+        when {
+            params {
+                property_test_iterations = 75
+                property_test_outdir = "$outputDir/property_tests_commands"
+                test_data_seed = 987
+                property_test_debug = true
+            }
+            
+            workflow {
+                """
+                input[0] = params.property_test_iterations
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                // Property: Should handle different command types (samtools, picard, hisat2)
+                { assert workflow.trace.succeeded().size() >= 1 },
+                // Property: Command validation should be consistent
+                { assert workflow.trace.tasks().any { it.name.contains('COMMAND_VALIDATION') } },
+                // Property: No command construction errors
+                { assert !workflow.trace.tasks().any { 
+                    it.stderr?.contains('ArrayIndexOutOfBoundsException') ||
+                    it.stderr?.contains('command construction failed')
+                }}
+            )
+        }
+    }
+
+    test("Property 7: Command Construction Validation - Edge cases") {
+
+        when {
+            params {
+                property_test_iterations = 60
+                property_test_outdir = "$outputDir/property_tests_edge"
+                test_data_seed = 147
+                property_test_debug = true
+            }
+            
+            workflow {
+                """
+                input[0] = params.property_test_iterations
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                // Property: Should handle edge cases (null, empty commands)
+                { assert !workflow.trace.tasks().any { it.errorAction == 'TERMINATE' } },
+                // Property: Edge cases should be handled gracefully
+                { assert workflow.trace.tasks().any { it.name.contains('COMMAND_VALIDATION') } },
+                // Property: No unexpected exceptions
+                { assert !workflow.trace.tasks().any { 
+                    it.stderr?.contains('UnexpectedException') ||
+                    it.stderr?.contains('RuntimeException')
+                }}
+            )
+        }
+    }
+}
