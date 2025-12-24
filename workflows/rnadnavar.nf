@@ -294,7 +294,6 @@ workflow RNADNAVAR {
                 PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_combined,
                 PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_and_num_intervals,
                 PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_gz_tbi_combined,
-                vep_cache,
                 true  // realignment = true
             )
             versions = versions.mix(RNA_REALIGNMENT_WORKFLOW.out.versions)
