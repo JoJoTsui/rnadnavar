@@ -46,7 +46,7 @@ workflow INPUT_VALIDATION {
     //
     VCF_FORMAT_VALIDATION (
         vcf_channel,
-        hisat2_index ?: []
+        hisat2_index ? hisat2_index.map { meta, path -> path } : []
     )
     ch_versions = ch_versions.mix(VCF_FORMAT_VALIDATION.out.versions)
     
