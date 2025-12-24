@@ -48,8 +48,6 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
                 INPUT_VALIDATION(
                     vcf_with_candidates,
                     reads_to_realign,
-                    fasta,
-                    fasta_fai,
                     hisat2_index
                 )
                 versions = versions.mix(INPUT_VALIDATION.out.versions)
