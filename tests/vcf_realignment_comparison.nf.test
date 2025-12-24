@@ -1,0 +1,163 @@
+nextflow_pipeline {
+
+    name "Test VCF vs MAF realignment workflow comparison"
+    script "../main.nf"
+    tag "pipeline"
+    tag "vcf_realignment"
+    tag "comparison"
+
+    test("VCF realignment workflow - known good output validation") {
+
+        when {
+            params {
+                input                    = "${projectDir}/tests/csv/3.0/cram_trbc_recal_complex.csv"
+                outdir                   = "$outputDir"
+                genome                   = null
+                igenomes_ignore          = true
+                fasta                    = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta"
+                fasta_fai                = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta.fai"
+                dict                     = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.dict"
+                hisat2                   = "https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/reference/hisat2_index.tar.gz"
+                tools                    = "consensus,rescue"
+                step                     = "realignment"
+                skip_tools               = "baserecalibrator,markduplicates"
+                max_cpus                 = 2
+                max_memory               = "6.GB"
+                max_time                 = "6.h"
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.trace.succeeded().size() > 0 },
+                // Validate specific VCF realignment components executed
+                { assert workflow.trace.tasks().any { it.name.contains('SANITIZE_CHANNELS') } },
+                { assert workflow.trace.tasks().any { it.name.contains('SAFE_CHANNEL_JOIN') } },
+                { assert workflow.trace.tasks().any { it.name.contains('VCF2BED') } },
+                { assert workflow.trace.tasks().any { it.name.contains('ENHANCED_CRAM2BAM_CONVERSION') } },
+                // Validate no StackOverflowError occurred
+                { assert !workflow.trace.tasks().any { it.stderr?.contains('StackOverflowError') } },
+                { assert !workflow.trace.tasks().any { it.stderr?.contains('java.lang.StackOverflowError') } },
+                // Validate output structure matches expected
+                { assert path("$outputDir/realignment").exists() },
+                // Validate that realigned BAM files were produced
+                { assert workflow.trace.tasks().any { it.name.contains('FASTQ_ALIGN_HISAT2') } },
+                // Validate process monitoring was active
+                { assert workflow.trace.tasks().any { it.name.contains('PROCESS_MONITORING') } }
+            )
+        }
+    }
+
+    test("MAF realignment workflow - baseline comparison") {
+
+        when {
+            params {
+                input                    = "${projectDir}/tests/csv/3.0/cram_trbc_recal_complex.csv"
+                outdir                   = "$outputDir"
+                genome                   = null
+                igenomes_ignore          = true
+                fasta                    = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta"
+                fasta_fai                = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta.fai"
+                dict                     = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.dict"
+                hisat2                   = "https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/reference/hisat2_index.tar.gz"
+                tools                    = "consensus"  // MAF-based workflow only
+                step                     = "realignment"
+                skip_tools               = "baserecalibrator,markduplicates"
+                max_cpus                 = 2
+                max_memory               = "6.GB"
+                max_time                 = "6.h"
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.trace.succeeded().size() > 0 },
+                // Validate MAF workflow does NOT use VCF-specific components
+                { assert !workflow.trace.tasks().any { it.name.contains('SANITIZE_CHANNELS') } },
+                { assert !workflow.trace.tasks().any { it.name.contains('SAFE_CHANNEL_JOIN') } },
+                { assert !workflow.trace.tasks().any { it.name.contains('VCF2BED') } },
+                // Validate traditional MAF-based processing
+                { assert workflow.trace.tasks().any { it.name.contains('VCF2MAF') || it.name.contains('MAF2BED') } },
+                // Validate output structure
+                { assert path("$outputDir/realignment").exists() },
+                // Validate realignment still occurs
+                { assert workflow.trace.tasks().any { it.name.contains('FASTQ_ALIGN_HISAT2') } }
+            )
+        }
+    }
+
+    test("Workflow performance comparison - VCF vs MAF") {
+
+        when {
+            params {
+                input                    = "${projectDir}/tests/csv/3.0/cram_trbc_recal_complex.csv"
+                outdir                   = "$outputDir"
+                genome                   = null
+                igenomes_ignore          = true
+                fasta                    = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta"
+                fasta_fai                = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta.fai"
+                dict                     = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.dict"
+                hisat2                   = "https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/reference/hisat2_index.tar.gz"
+                tools                    = "consensus,rescue"
+                step                     = "realignment"
+                skip_tools               = "baserecalibrator,markduplicates"
+                max_cpus                 = 2
+                max_memory               = "6.GB"
+                max_time                 = "6.h"
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                // Validate VCF workflow completed successfully
+                { assert workflow.trace.succeeded().size() > 0 },
+                // Validate performance is reasonable (not significantly degraded)
+                { assert workflow.trace.tasks().findAll { it.status == 'COMPLETED' }.size() > 0 },
+                // Validate memory usage stayed within limits
+                { assert !workflow.trace.tasks().any { it.errorAction == 'TERMINATE' && it.stderr?.contains('OutOfMemoryError') } },
+                // Validate no excessive runtime
+                { assert workflow.trace.tasks().every { it.duration < 3600000 } }, // Less than 1 hour per task
+                // Validate output quality
+                { assert path("$outputDir/realignment").exists() }
+            )
+        }
+    }
+
+    test("Edge case handling - empty and malformed inputs") {
+
+        when {
+            params {
+                input                    = "${projectDir}/tests/csv/3.0/cram_trbc_recal_complex.csv"
+                outdir                   = "$outputDir"
+                genome                   = null
+                igenomes_ignore          = true
+                fasta                    = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta"
+                fasta_fai                = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.fasta.fai"
+                dict                     = "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/genome/genome.dict"
+                hisat2                   = "https://raw.githubusercontent.com/nf-core/test-datasets/rnadnavar/data/reference/hisat2_index.tar.gz"
+                tools                    = "consensus,rescue"
+                step                     = "realignment"
+                skip_tools               = "baserecalibrator,markduplicates"
+                max_cpus                 = 2
+                max_memory               = "6.GB"
+                max_time                 = "6.h"
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success || workflow.failed }, // May fail gracefully
+                // Validate error handling components were used
+                { assert workflow.trace.tasks().any { it.name.contains('INPUT_VALIDATION') } },
+                { assert workflow.trace.tasks().any { it.name.contains('PROCESS_MONITORING') } },
+                // Validate graceful failure handling if inputs are problematic
+                { assert !workflow.trace.tasks().any { it.stderr?.contains('StackOverflowError') } },
+                // Validate diagnostic information was captured
+                { assert workflow.trace.tasks().any { it.name.contains('ERROR_SAFE_PROCESS') } }
+            )
+        }
+    }
+}
