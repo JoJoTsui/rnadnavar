@@ -140,8 +140,12 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             // === STEP 5: VCF TO BED CONVERSION WITH ERROR HANDLING ===
             // Convert VCF to BED format for region extraction
             vcf_to_bed_input = joined_data.map { meta, cram, crai, vcf, tbi -> 
-                // Add file references to meta for VCF2BED processing
-                [meta + [cram_file: cram, crai_file: crai], vcf, tbi]
+                // Store file paths as strings to avoid serialization issues
+                def enhanced_meta = meta + [
+                    cram_path: cram.toString(),
+                    crai_path: crai.toString()
+                ]
+                [enhanced_meta, vcf, tbi]
             }
 
             // Monitor VCF2BED conversion (if enabled)
@@ -162,7 +166,10 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             // === STEP 6: READ ID EXTRACTION WITH MONITORING ===
             // Extract read IDs using BED from VCF2BED
             cram_to_extract = VCF2BED.out.bed.map { meta, bed -> 
-                [meta, meta.cram_file, meta.crai_file, bed]
+                // Reconstruct file objects from stored paths
+                def cram_file = file(meta.cram_path)
+                def crai_file = file(meta.crai_path)
+                [meta, cram_file, crai_file, bed]
             }
 
             if (params.enable_process_monitoring && !params.disable_realignment_optimization) {
@@ -182,7 +189,11 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             // === STEP 7: ENHANCED CRAM TO BAM CONVERSION ===
             // Use enhanced conversion with comprehensive error handling (if enabled)
             cram_to_convert = SAMTOOLS_EXTRACT_READ_IDS.out.read_ids.map { meta, readsid -> 
-                [meta + [readsid_file: readsid], meta.cram_file, meta.crai_file]
+                // Store read IDs path as string and reconstruct CRAM files
+                def cram_file = file(meta.cram_path)
+                def crai_file = file(meta.crai_path)
+                def enhanced_meta = meta + [readsid_path: readsid.toString()]
+                [enhanced_meta, cram_file, crai_file]
             }
 
             if (params.enable_enhanced_cram_conversion && !params.disable_realignment_optimization) {
@@ -208,7 +219,9 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             // === STEP 8: READ FILTERING WITH ERROR HANDLING ===
             // Apply picard filtersamreads with enhanced error handling
             bam_to_filter = converted_bam.map { meta, bam -> 
-                [meta, bam, meta.readsid_file]
+                // Reconstruct read IDs file from stored path
+                def readsid_file = file(meta.readsid_path)
+                [meta, bam, readsid_file]
             }
 
             if (params.enable_process_monitoring && !params.disable_realignment_optimization) {
@@ -292,7 +305,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             // Clean up metadata for final output
             bam_mapped = validated_output.map{meta, bam, bai -> 
                 // Remove temporary fields added during processing
-                def clean_meta = meta - meta.subMap(['single_end', 'cram_file', 'crai_file', 'readsid_file'])
+                def clean_meta = meta - meta.subMap(['single_end', 'cram_path', 'crai_path', 'readsid_path'])
                 [clean_meta, bam]
             }
         }
