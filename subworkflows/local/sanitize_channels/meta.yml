@@ -1,0 +1,40 @@
+name: "sanitize_channels"
+description: Clean and validate channel data to prevent StackOverflowError
+keywords:
+  - channels
+  - validation
+  - sanitization
+  - stackoverflow
+  - meta
+components:
+  - sanitize_channels
+input:
+  - vcf_channel:
+      type: tuple
+      description: |
+        Channel containing VCF files with metadata
+        Structure: [meta, vcf, tbi]
+  - cram_channel:
+      type: tuple
+      description: |
+        Channel containing CRAM files with metadata
+        Structure: [meta, cram, crai]
+output:
+  - vcf:
+      type: tuple
+      description: |
+        Sanitized VCF channel with cleaned metadata
+        Structure: [clean_meta, vcf, tbi]
+  - cram:
+      type: tuple
+      description: |
+        Sanitized CRAM channel with cleaned metadata
+        Structure: [clean_meta, cram, crai]
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@vcf-realignment-optimization"
+maintainers:
+  - "@vcf-realignment-optimization"
