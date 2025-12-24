@@ -1,0 +1,4 @@
+patient,status,sample,lane,fastq_1,fastq_2
+TCRBOA7,0,TCRBOA7-N,LX,/t9k/mnt/hdd/work/Vax/rnadnavar/test-datasets/data/tcrb/fastq/TCRBOA7-N-WEX.read1.250000.fastq.gz,/t9k/mnt/hdd/work/Vax/rnadnavar/test-datasets/data/tcrb/fastq/TCRBOA7-N-WEX.read2.250000.fastq.gz
+TCRBOA7,1,TCRBOA7-T,LX,/t9k/mnt/hdd/work/Vax/rnadnavar/test-datasets/data/tcrb/fastq/TCRBOA7-T-WEX.read1.250000.fastq.gz,/t9k/mnt/hdd/work/Vax/rnadnavar/test-datasets/data/tcrb/fastq/TCRBOA7-T-WEX.read2.250000.fastq.gz
+TCRBOA7,2,TCRBOA7-T-RNA,LX,/t9k/mnt/hdd/work/Vax/rnadnavar/test-datasets/data/tcrb/fastq/TCRBOA7-T-RNA.read1.250000.fastq.gz,/t9k/mnt/hdd/work/Vax/rnadnavar/test-datasets/data/tcrb/fastq/TCRBOA7-T-RNA.read2.250000.fastq.gz

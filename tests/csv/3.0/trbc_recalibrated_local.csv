@@ -1,0 +1,4 @@
+patient,status,sample,cram,crai
+TCRBOA7,0,TCRBOA7-N,/t9k/mnt/hdd/work/Vax/rnadnavar/test-datasets/data/tcrb/cram/TCRBOA7-N.chr7.recal.cram,/t9k/mnt/hdd/work/Vax/rnadnavar/test-datasets/data/tcrb/cram/TCRBOA7-N.chr7.recal.cram.crai
+TCRBOA7,1,TCRBOA7-T,/t9k/mnt/hdd/work/Vax/rnadnavar/test-datasets/data/tcrb/cram/TCRBOA7-T.chr7.recal.cram,/t9k/mnt/hdd/work/Vax/rnadnavar/test-datasets/data/tcrb/cram/TCRBOA7-T.chr7.recal.cram.crai
+TCRBOA7,2,TCRBOA7-T-RNA,/t9k/mnt/hdd/work/Vax/rnadnavar/test-datasets/data/tcrb/cram/TCRBOA7-T-RNA.chr7.recal.cram,/t9k/mnt/hdd/work/Vax/rnadnavar/test-datasets/data/tcrb/cram/TCRBOA7-T-RNA.chr7.recal.cram.crai
