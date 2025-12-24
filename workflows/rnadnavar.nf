@@ -235,7 +235,9 @@ workflow RNADNAVAR {
         // === Step 1: Prepare realignment (extract reads + HISAT2) ===
         if (mode == 'vcf') {
             // VCF-based realignment: use RNA consensus VCF as input
+            // Include both main consensus VCFs and rescue VCFs
             vcf_for_realignment = BAM_PROCESSING.out.vcf
+                .mix(BAM_PROCESSING.out.vcf_rescue)
                 .filter { it[0].status == 2 }  // RNA samples only
                 .map { meta, vcf, tbi -> [meta, vcf, tbi] }
 
