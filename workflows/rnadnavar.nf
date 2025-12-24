@@ -260,6 +260,11 @@ workflow RNADNAVAR {
                 .filter { it[0].status == 2 }  // RNA samples only
                 .map { meta, vcf, tbi -> [meta, vcf, tbi] }
 
+            // Filter CRAM to match VCF filtering - RNA samples only for realignment
+            // This prevents status mismatch warnings where CRAM (all statuses) was joined with VCF (RNA only)
+            cram_for_realignment = BAM_PROCESSING.out.cram_variant_calling
+                .filter { it[0].status == 2 }  // RNA samples only, matching VCF filter
+
             // Use optimized VCF realignment if enabled, otherwise use basic version
             if (params.enable_vcf_realignment_optimization && !params.disable_realignment_optimization) {
                 // === OPTIMIZED VCF REALIGNMENT WORKFLOW ===
@@ -268,7 +273,7 @@ workflow RNADNAVAR {
                 PREPARE_REALIGNMENT_VCF(
                     input_sample,
                     vcf_for_realignment,
-                    BAM_PROCESSING.out.cram_variant_calling,
+                    cram_for_realignment,
                     fasta,
                     fasta_fai,
                     dict,
@@ -290,7 +295,7 @@ workflow RNADNAVAR {
                 PREPARE_REALIGNMENT_VCF(
                     input_sample,
                     vcf_for_realignment,
-                    BAM_PROCESSING.out.cram_variant_calling,
+                    cram_for_realignment,
                     fasta,
                     fasta_fai,
                     dict,

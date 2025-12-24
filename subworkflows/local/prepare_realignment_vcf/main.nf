@@ -125,7 +125,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
                 versions = versions.mix(SAFE_CHANNEL_JOIN.out.versions)
                 joined_data = SAFE_CHANNEL_JOIN.out.joined
             } else {
-                // Use basic channel join
+                // Use basic channel join - both VCF and CRAM are now filtered to RNA samples (status=2)
                 joined_data = sanitized_cram
                     .map { meta, cram, crai -> [meta.patient, meta, cram, crai] }
                     .join(
