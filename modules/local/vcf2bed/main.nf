@@ -2,10 +2,7 @@ process VCF2BED {
     tag "$meta.id"
     label 'process_single'
 
-    conda "bioconda::bcftools=1.15.1"
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bcftools:1.15.1--h8b25389_0' :
-        'biocontainers/bcftools:1.15.1--h8b25389_0' }"
+    conda "${moduleDir}/environment.yml"
 
     input:
     tuple val(meta), path(vcf), path(tbi)
