@@ -31,7 +31,7 @@ workflow PROCESS_MONITORING {
                     def problematicFields = []
                     meta.each { key, value ->
                         if (value instanceof java.io.File || value instanceof java.nio.file.Path) {
-                            problematicFields.add("${key}: File reference detected")
+                            problematicFields.add("${key}: File/Path reference detected")
                         } else if (value instanceof Map && value.containsKey(key)) {
                             problematicFields.add("${key}: Potential circular reference")
                         } else if (value == null) {
@@ -51,14 +51,18 @@ workflow PROCESS_MONITORING {
                 for (int i = 1; i < items.size(); i++) {
                     def item = items[i]
                     if (item instanceof java.io.File || item instanceof java.nio.file.Path) {
-                        def file = item as java.io.File
-                        log.info "File ${i}: ${file.name} (${file.exists() ? 'EXISTS' : 'MISSING'}, ${file.exists() ? "${file.length()} bytes" : 'N/A'})"
+                        // Handle both File and Path objects
+                        def fileName = item instanceof java.nio.file.Path ? item.getFileName().toString() : item.name
+                        def fileExists = item instanceof java.nio.file.Path ? java.nio.file.Files.exists(item) : item.exists()
+                        def fileSize = fileExists ? (item instanceof java.nio.file.Path ? java.nio.file.Files.size(item) : item.length()) : 0
+                        log.info "File ${i}: ${fileName} (${fileExists ? 'EXISTS' : 'MISSING'}, ${fileExists ? "${fileSize} bytes" : 'N/A'})"
                     } else if (item instanceof List) {
                         log.info "File list ${i}: ${item.size()} files"
                         item.eachWithIndex { subItem, idx ->
                             if (subItem instanceof java.io.File || subItem instanceof java.nio.file.Path) {
-                                def file = subItem as java.io.File
-                                log.info "  - File ${idx}: ${file.name} (${file.exists() ? 'EXISTS' : 'MISSING'})"
+                                def fileName = subItem instanceof java.nio.file.Path ? subItem.getFileName().toString() : subItem.name
+                                def fileExists = subItem instanceof java.nio.file.Path ? java.nio.file.Files.exists(subItem) : subItem.exists()
+                                log.info "  - File ${idx}: ${fileName} (${fileExists ? 'EXISTS' : 'MISSING'})"
                             }
                         }
                     } else {
