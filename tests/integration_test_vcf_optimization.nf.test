@@ -1,0 +1,133 @@
+nextflow_pipeline {
+
+    name "Test VCF realignment optimization integration"
+    script "workflows/rnadnavar.nf"
+    tag "integration"
+    tag "vcf_realignment"
+    tag "optimization"
+
+    test("VCF realignment optimization enabled") {
+
+        when {
+            params {
+                // Basic test parameters
+                input = "${projectDir}/tests/csv/3.0/vcf_realignment_test.csv"
+                outdir = "results"
+                
+                // Enable VCF realignment with optimization
+                tools = "realignment"
+                realignment_mode = "vcf"
+                enable_vcf_realignment_optimization = true
+                enable_channel_sanitization = true
+                enable_safe_channel_join = true
+                enable_enhanced_cram_conversion = true
+                enable_process_monitoring = true
+                enable_input_validation = true
+                
+                // Test configuration
+                genome = null
+                fasta = "${projectDir}/tests/data/reference/genome.fasta"
+                fasta_fai = "${projectDir}/tests/data/reference/genome.fasta.fai"
+                dict = "${projectDir}/tests/data/reference/genome.dict"
+                
+                // Disable other tools for focused testing
+                skip_tools = "fastqc,multiqc,samtools,bcftools,vcftools,mosdepth"
+                
+                // Use minimal resources for testing
+                max_cpus = 2
+                max_memory = "6.GB"
+                max_time = "1.h"
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.trace.succeeded().size() > 0
+            
+            // Check that optimization components were used
+            assert workflow.trace.tasks().any { it.name.contains('SANITIZE_CHANNELS') }
+            assert workflow.trace.tasks().any { it.name.contains('SAFE_CHANNEL_JOIN') }
+            assert workflow.trace.tasks().any { it.name.contains('ENHANCED_CRAM2BAM_CONVERSION') }
+            assert workflow.trace.tasks().any { it.name.contains('PROCESS_MONITORING') }
+            assert workflow.trace.tasks().any { it.name.contains('INPUT_VALIDATION') }
+        }
+    }
+
+    test("VCF realignment optimization disabled") {
+
+        when {
+            params {
+                // Basic test parameters
+                input = "${projectDir}/tests/csv/3.0/vcf_realignment_test.csv"
+                outdir = "results"
+                
+                // Enable VCF realignment but disable optimization
+                tools = "realignment"
+                realignment_mode = "vcf"
+                enable_vcf_realignment_optimization = false
+                disable_realignment_optimization = true
+                
+                // Test configuration
+                genome = null
+                fasta = "${projectDir}/tests/data/reference/genome.fasta"
+                fasta_fai = "${projectDir}/tests/data/reference/genome.fasta.fai"
+                dict = "${projectDir}/tests/data/reference/genome.dict"
+                
+                // Disable other tools for focused testing
+                skip_tools = "fastqc,multiqc,samtools,bcftools,vcftools,mosdepth"
+                
+                // Use minimal resources for testing
+                max_cpus = 2
+                max_memory = "6.GB"
+                max_time = "1.h"
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.trace.succeeded().size() > 0
+            
+            // Check that basic VCF realignment still works without optimization
+            assert workflow.trace.tasks().any { it.name.contains('PREPARE_REALIGNMENT_VCF') }
+        }
+    }
+
+    test("Legacy MAF realignment compatibility") {
+
+        when {
+            params {
+                // Basic test parameters
+                input = "${projectDir}/tests/csv/3.0/vcf_realignment_test.csv"
+                outdir = "results"
+                
+                // Force legacy MAF realignment
+                tools = "realignment"
+                force_legacy_realignment = true
+                realignment_mode = "maf"
+                
+                // Test configuration
+                genome = null
+                fasta = "${projectDir}/tests/data/reference/genome.fasta"
+                fasta_fai = "${projectDir}/tests/data/reference/genome.fasta.fai"
+                dict = "${projectDir}/tests/data/reference/genome.dict"
+                
+                // Disable other tools for focused testing
+                skip_tools = "fastqc,multiqc,samtools,bcftools,vcftools,mosdepth"
+                
+                // Use minimal resources for testing
+                max_cpus = 2
+                max_memory = "6.GB"
+                max_time = "1.h"
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.trace.succeeded().size() > 0
+            
+            // Check that legacy MAF realignment is used
+            assert workflow.trace.tasks().any { it.name.contains('PREPARE_REALIGNMENT') }
+            assert !workflow.trace.tasks().any { it.name.contains('PREPARE_REALIGNMENT_VCF') }
+        }
+    }
+}

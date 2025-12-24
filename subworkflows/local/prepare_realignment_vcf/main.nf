@@ -43,44 +43,58 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
         'realignment'] && !(params.skip_tools && params.skip_tools.split(",").contains("realignment"))) {
 
             // === STEP 1: INPUT VALIDATION ===
-            // Validate all input files and formats before processing
-            INPUT_VALIDATION(
-                vcf_with_candidates,
-                reads_to_realign,
-                fasta,
-                fasta_fai,
-                hisat2_index
-            )
-            versions = versions.mix(INPUT_VALIDATION.out.versions)
+            // Validate all input files and formats before processing (if enabled)
+            if (params.enable_input_validation && !params.disable_realignment_optimization) {
+                INPUT_VALIDATION(
+                    vcf_with_candidates,
+                    reads_to_realign,
+                    fasta,
+                    fasta_fai,
+                    hisat2_index
+                )
+                versions = versions.mix(INPUT_VALIDATION.out.versions)
 
-            // Use validated inputs for further processing
-            validated_vcf = INPUT_VALIDATION.out.vcf
-            validated_cram = INPUT_VALIDATION.out.cram
+                // Use validated inputs for further processing
+                validated_vcf = INPUT_VALIDATION.out.vcf
+                validated_cram = INPUT_VALIDATION.out.cram
+            } else {
+                // Skip validation - use inputs directly
+                validated_vcf = vcf_with_candidates
+                validated_cram = reads_to_realign
+            }
 
             // === STEP 2: SAMPLE FILTERING WITH MONITORING ===
             // Filter samples: RNA (status=2) and DNA normal (status=0) only
             // Exclude DNA tumor (status=1)
             
-            // Monitor VCF filtering
-            PROCESS_MONITORING(
-                "VCF_SAMPLE_FILTERING",
-                validated_vcf
-            )
-            monitored_vcf = PROCESS_MONITORING.out.output
-            versions = versions.mix(PROCESS_MONITORING.out.versions)
+            // Monitor VCF filtering (if enabled)
+            if (params.enable_process_monitoring && !params.disable_realignment_optimization) {
+                PROCESS_MONITORING(
+                    "VCF_SAMPLE_FILTERING",
+                    validated_vcf
+                )
+                monitored_vcf = PROCESS_MONITORING.out.output
+                versions = versions.mix(PROCESS_MONITORING.out.versions)
+            } else {
+                monitored_vcf = validated_vcf
+            }
 
             vcf_to_realign = monitored_vcf.branch{
                                         norealign: it[0].status == 1
                                         realign:   it[0].status == 2 || it[0].status == 0
             }
 
-            // Monitor CRAM filtering
-            PROCESS_MONITORING(
-                "CRAM_SAMPLE_FILTERING", 
-                validated_cram
-            )
-            monitored_cram = PROCESS_MONITORING.out.output
-            versions = versions.mix(PROCESS_MONITORING.out.versions)
+            // Monitor CRAM filtering (if enabled)
+            if (params.enable_process_monitoring && !params.disable_realignment_optimization) {
+                PROCESS_MONITORING(
+                    "CRAM_SAMPLE_FILTERING", 
+                    validated_cram
+                )
+                monitored_cram = PROCESS_MONITORING.out.output
+                versions = versions.mix(PROCESS_MONITORING.out.versions)
+            } else {
+                monitored_cram = validated_cram
+            }
 
             reads_to_realign_branch = monitored_cram.branch{
                                         norealign: it[0].status == 1
@@ -88,23 +102,42 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             }
 
             // === STEP 3: CHANNEL SANITIZATION ===
-            // Clean and validate channel data to prevent StackOverflowError
-            SANITIZE_CHANNELS(
-                vcf_to_realign.realign,
-                reads_to_realign_branch.realign
-            )
-            versions = versions.mix(SANITIZE_CHANNELS.out.versions)
+            // Clean and validate channel data to prevent StackOverflowError (if enabled)
+            if (params.enable_channel_sanitization && !params.disable_realignment_optimization) {
+                SANITIZE_CHANNELS(
+                    vcf_to_realign.realign,
+                    reads_to_realign_branch.realign
+                )
+                versions = versions.mix(SANITIZE_CHANNELS.out.versions)
+                sanitized_vcf = SANITIZE_CHANNELS.out.vcf
+                sanitized_cram = SANITIZE_CHANNELS.out.cram
+            } else {
+                // Skip sanitization - use channels directly
+                sanitized_vcf = vcf_to_realign.realign
+                sanitized_cram = reads_to_realign_branch.realign
+            }
 
             // === STEP 4: SAFE CHANNEL JOIN ===
-            // Perform robust channel joining with comprehensive validation
-            SAFE_CHANNEL_JOIN(
-                SANITIZE_CHANNELS.out.vcf,
-                SANITIZE_CHANNELS.out.cram
-            )
-            versions = versions.mix(SAFE_CHANNEL_JOIN.out.versions)
-
-            // Extract joined data: [meta, cram, crai, vcf, tbi]
-            joined_data = SAFE_CHANNEL_JOIN.out.joined
+            // Perform robust channel joining with comprehensive validation (if enabled)
+            if (params.enable_safe_channel_join && !params.disable_realignment_optimization) {
+                SAFE_CHANNEL_JOIN(
+                    sanitized_vcf,
+                    sanitized_cram
+                )
+                versions = versions.mix(SAFE_CHANNEL_JOIN.out.versions)
+                joined_data = SAFE_CHANNEL_JOIN.out.joined
+            } else {
+                // Use basic channel join
+                joined_data = sanitized_cram
+                    .map { meta, cram, crai -> [meta.patient, meta, cram, crai] }
+                    .join(
+                        sanitized_vcf.map { meta, vcf, tbi -> [meta.patient, meta, vcf, tbi] },
+                        by: 0
+                    )
+                    .map { patient, cram_meta, cram, crai, vcf_meta, vcf, tbi ->
+                        [cram_meta, cram, crai, vcf, tbi]
+                    }
+            }
 
             // === STEP 5: VCF TO BED CONVERSION WITH ERROR HANDLING ===
             // Convert VCF to BED format for region extraction
@@ -113,13 +146,17 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
                 [meta + [cram_file: cram, crai_file: crai], vcf, tbi]
             }
 
-            // Monitor VCF2BED conversion
-            PROCESS_MONITORING(
-                "VCF2BED_CONVERSION",
-                vcf_to_bed_input
-            )
-            monitored_vcf2bed = PROCESS_MONITORING.out.output
-            versions = versions.mix(PROCESS_MONITORING.out.versions)
+            // Monitor VCF2BED conversion (if enabled)
+            if (params.enable_process_monitoring && !params.disable_realignment_optimization) {
+                PROCESS_MONITORING(
+                    "VCF2BED_CONVERSION",
+                    vcf_to_bed_input
+                )
+                monitored_vcf2bed = PROCESS_MONITORING.out.output
+                versions = versions.mix(PROCESS_MONITORING.out.versions)
+            } else {
+                monitored_vcf2bed = vcf_to_bed_input
+            }
 
             VCF2BED(monitored_vcf2bed)
             versions = versions.mix(VCF2BED.out.versions)
@@ -130,41 +167,62 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
                 [meta, meta.cram_file, meta.crai_file, bed]
             }
 
-            PROCESS_MONITORING(
-                "READ_ID_EXTRACTION",
-                cram_to_extract
-            )
-            monitored_extract = PROCESS_MONITORING.out.output
-            versions = versions.mix(PROCESS_MONITORING.out.versions)
+            if (params.enable_process_monitoring && !params.disable_realignment_optimization) {
+                PROCESS_MONITORING(
+                    "READ_ID_EXTRACTION",
+                    cram_to_extract
+                )
+                monitored_extract = PROCESS_MONITORING.out.output
+                versions = versions.mix(PROCESS_MONITORING.out.versions)
+            } else {
+                monitored_extract = cram_to_extract
+            }
 
             SAMTOOLS_EXTRACT_READ_IDS(monitored_extract, fasta)
             versions = versions.mix(SAMTOOLS_EXTRACT_READ_IDS.out.versions)
 
             // === STEP 7: ENHANCED CRAM TO BAM CONVERSION ===
-            // Use enhanced conversion with comprehensive error handling
+            // Use enhanced conversion with comprehensive error handling (if enabled)
             cram_to_convert = SAMTOOLS_EXTRACT_READ_IDS.out.read_ids.map { meta, readsid -> 
                 [meta + [readsid_file: readsid], meta.cram_file, meta.crai_file]
             }
 
-            ENHANCED_CRAM2BAM_CONVERSION(
-                cram_to_convert,
-                fasta,
-                fasta_fai
-            )
-            versions = versions.mix(ENHANCED_CRAM2BAM_CONVERSION.out.versions)
+            if (params.enable_enhanced_cram_conversion && !params.disable_realignment_optimization) {
+                ENHANCED_CRAM2BAM_CONVERSION(
+                    cram_to_convert,
+                    fasta,
+                    fasta_fai
+                )
+                versions = versions.mix(ENHANCED_CRAM2BAM_CONVERSION.out.versions)
+                converted_bam = ENHANCED_CRAM2BAM_CONVERSION.out.bam
+            } else {
+                // Use basic SAMTOOLS_CONVERT (would need to be implemented or imported)
+                // For now, use the enhanced version but without extra monitoring
+                ENHANCED_CRAM2BAM_CONVERSION(
+                    cram_to_convert,
+                    fasta,
+                    fasta_fai
+                )
+                versions = versions.mix(ENHANCED_CRAM2BAM_CONVERSION.out.versions)
+                converted_bam = ENHANCED_CRAM2BAM_CONVERSION.out.bam
+            }
 
             // === STEP 8: READ FILTERING WITH ERROR HANDLING ===
             // Apply picard filtersamreads with enhanced error handling
-            bam_to_filter = ENHANCED_CRAM2BAM_CONVERSION.out.bam.map { meta, bam -> 
+            bam_to_filter = converted_bam.map { meta, bam -> 
                 [meta, bam, meta.readsid_file]
             }
 
-            PROCESS_MONITORING(
-                "READ_FILTERING",
-                bam_to_filter
-            )
-            monitored_filter = PROCESS_MONITORING.out.output
-            versions = versions.mix(PROCESS_MONITORING.out.versions)
+            if (params.enable_process_monitoring && !params.disable_realignment_optimization) {
+                PROCESS_MONITORING(
+                    "READ_FILTERING",
+                    bam_to_filter
+                )
+                monitored_filter = PROCESS_MONITORING.out.output
+                versions = versions.mix(PROCESS_MONITORING.out.versions)
+            } else {
+                monitored_filter = bam_to_filter
+            }
 
             PICARD_FILTERSAMREADS(monitored_filter, fasta, 'includeReadList')
             versions = versions.mix(PICARD_FILTERSAMREADS.out.versions)
@@ -173,12 +231,16 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             // Convert filtered BAM to FASTQ for realignment
             bam_to_fq = PICARD_FILTERSAMREADS.out.bam.join(PICARD_FILTERSAMREADS.out.bai)
 
-            PROCESS_MONITORING(
-                "BAM_TO_FASTQ_CONVERSION",
-                bam_to_fq
-            )
-            monitored_bam2fq = PROCESS_MONITORING.out.output
-            versions = versions.mix(PROCESS_MONITORING.out.versions)
+            if (params.enable_process_monitoring && !params.disable_realignment_optimization) {
+                PROCESS_MONITORING(
+                    "BAM_TO_FASTQ_CONVERSION",
+                    bam_to_fq
+                )
+                monitored_bam2fq = PROCESS_MONITORING.out.output
+                versions = versions.mix(PROCESS_MONITORING.out.versions)
+            } else {
+                monitored_bam2fq = bam_to_fq
+            }
 
             interleave_input = false  // Currently don't allow interleaved input
             CONVERT_FASTQ_INPUT(
@@ -193,12 +255,16 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             // Perform realignment with HISAT2
             reads_for_realignment = CONVERT_FASTQ_INPUT.out.reads
 
-            PROCESS_MONITORING(
-                "HISAT2_REALIGNMENT",
-                reads_for_realignment
-            )
-            monitored_realign = PROCESS_MONITORING.out.output
-            versions = versions.mix(PROCESS_MONITORING.out.versions)
+            if (params.enable_process_monitoring && !params.disable_realignment_optimization) {
+                PROCESS_MONITORING(
+                    "HISAT2_REALIGNMENT",
+                    reads_for_realignment
+                )
+                monitored_realign = PROCESS_MONITORING.out.output
+                versions = versions.mix(PROCESS_MONITORING.out.versions)
+            } else {
+                monitored_realign = reads_for_realignment
+            }
 
             // Note: single_end in meta always false for this subworkflow
             FASTQ_ALIGN_HISAT2(
@@ -214,12 +280,16 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             raw_bam_mapped = FASTQ_ALIGN_HISAT2.out.bam.join(FASTQ_ALIGN_HISAT2.out.bai)
                 .map{meta,bam,bai -> [meta + [ id:meta.sample, data_type:"bam"], bam, bai]}
 
-            PROCESS_MONITORING(
-                "FINAL_OUTPUT_VALIDATION",
-                raw_bam_mapped
-            )
-            validated_output = PROCESS_MONITORING.out.output
-            versions = versions.mix(PROCESS_MONITORING.out.versions)
+            if (params.enable_process_monitoring && !params.disable_realignment_optimization) {
+                PROCESS_MONITORING(
+                    "FINAL_OUTPUT_VALIDATION",
+                    raw_bam_mapped
+                )
+                validated_output = PROCESS_MONITORING.out.output
+                versions = versions.mix(PROCESS_MONITORING.out.versions)
+            } else {
+                validated_output = raw_bam_mapped
+            }
 
             // Clean up metadata for final output
             bam_mapped = validated_output.map{meta, bam, bai -> 
