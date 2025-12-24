@@ -24,14 +24,14 @@ workflow VCF_CONSENSUS_WORKFLOW {
         // Determine expected caller count for grouping
         def ncallers_expected
         
-        if (realignment || (params.step in ['consensus', 'annotate','filtering', 'rna_filtering'] && 
+        if (realignment || (params.step in ['consensus', 'annotate','filtering', 'rna_filtering'] &&
                            params.tools && params.tools.split(',').contains("realignment"))) {
             // Realignment mode uses default callers
-            def tools_list = params.defaultvariantcallers.split(',')
+            def tools_list = params.defaultvariantcallers.split(',').toList()
             ncallers_expected = tools_list.unique().size()
         } else if (params.tools) {
             // Extract actual variant caller names from tools parameter
-            def tools_list = params.tools.split(',').findAll { it in ['sage', 'strelka', 'mutect2', 'deepsomatic'] }
+            def tools_list = params.tools.split(',').toList().findAll { it in ['sage', 'strelka', 'mutect2', 'deepsomatic'] }
             if (tools_list.size() > 0) {
                 ncallers_expected = tools_list.unique().size()
             } else {

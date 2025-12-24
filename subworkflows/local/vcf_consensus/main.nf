@@ -43,12 +43,14 @@ workflow VCF_CONSENSUS {
         VCF2MAF(vcf_to_consensus_type.vcf.map{metaVCF -> [metaVCF[0], metaVCF[1]]},
                 fasta)
         // count number of callers to generate groupKey
+        // Pre-calculate ncallers to avoid closure scoping issues
+        def ncallers_expected
         if (realignment || (params.step in ['consensus', 'annotate','filtering', 'rna_filtering'] && params.tools && params.tools.split(',').contains("realignment")) ) {
-            tools_list = params.defaultvariantcallers.split(',') // TODO: testing is necessary if this changes
+            ncallers_expected = params.defaultvariantcallers.split(',').toList().unique().size()
         } else {
-            tools_list = params.tools.split(',').findAll { it in ['sage', 'strelka', 'mutect2', 'deepsomatic'] }
+            ncallers_expected = params.tools.split(',').toList().findAll { it in ['sage', 'strelka', 'mutect2', 'deepsomatic'] }.unique().size()
         }
-        
+
         maf_to_consensus = VCF2MAF.out.maf.mix(vcf_to_consensus_type.maf).map { meta, maf ->
                                                 // change data type to maf
                                                 def key = meta + [data_type: 'maf']
@@ -56,9 +58,8 @@ workflow VCF_CONSENSUS {
                                                 key = key.subMap('id', 'patient', 'status', 'data_type')
                                                 [key, maf, meta.variantcaller]
                                             }.map{ meta, maf, variantcaller ->
-                                                def ncallers   = tools_list.unique().size()
                                                 def key = groupKey(meta.subMap('id', 'patient', 'status') +
-                                                            [ncallers : ncallers], ncallers)
+                                                            [ncallers : ncallers_expected], ncallers_expected)
                                                 [key, maf, variantcaller]
                                             }.groupTuple() // [meta, [maf1, maf2, ...], [variantcaller1, variantcaller2, ...]]
         versions         = versions.mix(VCF2MAF.out.versions)
