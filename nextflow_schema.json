@@ -803,6 +803,14 @@
                     "fa_icon": "fas fa-filter",
                     "description": "Minimum number of callers required for indel consensus in rescue workflow.",
                     "help_text": "When using the rescue workflow (--tools rescue), this parameter specifies the minimum number of variant callers (across DNA and RNA modalities) that must support an indel for it to be included in the rescued output. Default is 2."
+                },
+                "realignment_mode": {
+                    "type": "string",
+                    "default": "vcf",
+                    "description": "Realignment workflow mode: 'vcf' (new VCF-based, default) or 'maf' (legacy MAF-based).",
+                    "enum": ["maf", "vcf"],
+                    "fa_icon": "fas fa-sync-alt",
+                    "help_text": "Choose between VCF-based (new, default) and MAF-based (legacy) realignment workflows. VCF mode uses RNA consensus VCF files for targeted read extraction and includes a second cross-modality rescue step. MAF mode uses filtered MAF files as input (legacy behavior)."
                 }
             }
         },

@@ -39,6 +39,11 @@ include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as BAM_PROCESSING } from '../s
 include { BAM_EXTRACT_READS_HISAT2_ALIGN as PREPARE_REALIGNMENT     } from '../subworkflows/local/prepare_realignment'
 include { BAM_VARIANT_CALLING_PRE_POST_PROCESSING as REALIGNMENT    } from '../subworkflows/local/bam_variant_calling_pre_post_processing'
 
+// VCF-based realignment (new)
+include { BAM_EXTRACT_READS_HISAT2_ALIGN_VCF as PREPARE_REALIGNMENT_VCF } from '../subworkflows/local/prepare_realignment_vcf'
+include { RNA_REALIGNMENT_WORKFLOW                                  } from '../subworkflows/local/rna_realignment'
+include { SECOND_RESCUE_WORKFLOW                                    } from '../subworkflows/local/second_rescue'
+
 // Filter RNA
 include { MAF_FILTERING_RNA                                         } from '../subworkflows/local/maf_rna_filtering'
 
@@ -206,87 +211,182 @@ workflow RNADNAVAR {
     filtered_maf = BAM_PROCESSING.out.maf
     reports = reports.mix(BAM_PROCESSING.out.reports)
     versions = versions.mix(BAM_PROCESSING.out.versions)
+
+    // === Store first-round outputs for second rescue ===
+    // DNA consensus VCF (executed once only, status <= 1 for DNA normal+tumor)
+    first_round_dna_consensus_vcf = BAM_PROCESSING.out.vcf.filter { it[0].status <= 1 }
+    // First round rescued VCF (for comparison)
+    first_round_rescued_vcf = BAM_PROCESSING.out.vcf_rescue
+
+    // === Realignment branch ===
+    realigned_rna_consensus_vcf = Channel.empty()
+    realigned_filtered_rna_vcf = Channel.empty()
+    second_rescued_vcf = Channel.empty()
+    realigned_filtered_maf = Channel.empty()
+
     if (params.tools && params.tools.split(',').contains('realignment')) {
         // fastq will not be split when realignment
         params.split_fastq = 0
         // reset intervals to none (realignment files are small)
         PREPARE_INTERVALS_FOR_REALIGNMENT(fasta_fai, null, true)
-        PREPARE_REALIGNMENT(
-            input_sample,
-            filtered_maf,
-            BAM_PROCESSING.out.cram_variant_calling,
-            fasta,
-            fasta_fai,
-            dict,
-            PREPARE_REFERENCE_AND_INTERVALS.out.hisat2_index,
-            PREPARE_REFERENCE_AND_INTERVALS.out.splicesites,
-            BAM_PROCESSING.out.dna_consensus_maf,
-            BAM_PROCESSING.out.dna_varcall_mafs,
-        )
-        // do mapping with hisat2
 
-        versions = versions.mix(PREPARE_REALIGNMENT.out.versions)
+        def mode = params.realignment_mode ?: 'maf'
 
-        REALIGNMENT(
-            Channel.empty(),
-            PREPARE_REALIGNMENT.out.bam_mapped,
-            Channel.empty(),
-            fasta,
-            fasta_fai,
-            dict,
-            dbsnp,
-            dbsnp_tbi,
-            pon,
-            pon_tbi,
-            known_sites_indels,
-            known_sites_indels_tbi,
-            germline_resource,
-            germline_resource_tbi,
-            PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed,
-            PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_for_preprocessing,
-            PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_gz_tbi,
-            PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_combined,
-            PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_and_num_intervals,
-            PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_gz_tbi_combined,
-            vep_cache,
-            PREPARE_REALIGNMENT.out.dna_consensus_maf,
-            PREPARE_REALIGNMENT.out.dna_varcall_mafs,
-            true,
-            true,
-            rediportal_vcf,
-            rediportal_tbi,
-            min_rna_support,
-            enable_rna_annotation,
-            cosmic_vcf,
-            cosmic_tbi,
-            gnomad_dir,
-            enable_cosmic_gnomad_annotation,
-            cosmic_gnomad_verbose,
-        )
+        // === Step 1: Prepare realignment (extract reads + HISAT2) ===
+        if (mode == 'vcf') {
+            // VCF-based realignment: use RNA consensus VCF as input
+            vcf_for_realignment = BAM_PROCESSING.out.vcf
+                .filter { it[0].status == 2 }  // RNA samples only
+                .map { meta, vcf, tbi -> [meta, vcf, tbi] }
 
-        reports = reports.mix(REALIGNMENT.out.reports)
-        versions = versions.mix(REALIGNMENT.out.versions)
-        realigned_filtered_maf = REALIGNMENT.out.maf
-    }
-    else {
-        realigned_filtered_maf = Channel.empty()
+            PREPARE_REALIGNMENT_VCF(
+                input_sample,
+                vcf_for_realignment,
+                BAM_PROCESSING.out.cram_variant_calling,
+                fasta,
+                fasta_fai,
+                dict,
+                PREPARE_REFERENCE_AND_INTERVALS.out.hisat2_index,
+                PREPARE_REFERENCE_AND_INTERVALS.out.splicesites,
+                BAM_PROCESSING.out.dna_consensus_maf,
+                BAM_PROCESSING.out.dna_varcall_mafs,
+            )
+            versions = versions.mix(PREPARE_REALIGNMENT_VCF.out.versions)
+            realigned_bam = PREPARE_REALIGNMENT_VCF.out.bam_mapped
+        } else {
+            // MAF-based realignment (existing)
+            PREPARE_REALIGNMENT(
+                input_sample,
+                filtered_maf,
+                BAM_PROCESSING.out.cram_variant_calling,
+                fasta,
+                fasta_fai,
+                dict,
+                PREPARE_REFERENCE_AND_INTERVALS.out.hisat2_index,
+                PREPARE_REFERENCE_AND_INTERVALS.out.splicesites,
+                BAM_PROCESSING.out.dna_consensus_maf,
+                BAM_PROCESSING.out.dna_varcall_mafs,
+            )
+            versions = versions.mix(PREPARE_REALIGNMENT.out.versions)
+            realigned_bam = PREPARE_REALIGNMENT.out.bam_mapped
+        }
+
+        // === Step 2: RNA variant calling on realigned BAM ===
+        if (mode == 'vcf') {
+            // VCF mode: use dedicated RNA realignment workflow
+            RNA_REALIGNMENT_WORKFLOW(
+                input_sample,
+                realigned_bam,
+                fasta,
+                fasta_fai,
+                dict,
+                dbsnp,
+                dbsnp_tbi,
+                pon,
+                pon_tbi,
+                known_sites_indels,
+                known_sites_indels_tbi,
+                germline_resource,
+                germline_resource_tbi,
+                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed,
+                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_for_preprocessing,
+                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_gz_tbi,
+                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_combined,
+                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_and_num_intervals,
+                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_gz_tbi_combined,
+                vep_cache,
+                true  // realignment = true
+            )
+            versions = versions.mix(RNA_REALIGNMENT_WORKFLOW.out.versions)
+            reports = reports.mix(RNA_REALIGNMENT_WORKFLOW.out.reports)
+
+            // Capture realigned RNA outputs
+            realigned_rna_consensus_vcf = RNA_REALIGNMENT_WORKFLOW.out.rna_consensus_vcf
+            realigned_filtered_rna_vcf = RNA_REALIGNMENT_WORKFLOW.out.filtered_rna_vcf
+
+            // === Step 3: Second rescue (DNA + realigned RNA) ===
+            if (params.tools && params.tools.split(',').contains('rescue')) {
+                SECOND_RESCUE_WORKFLOW(
+                    first_round_dna_consensus_vcf,
+                    realigned_rna_consensus_vcf,
+                    Channel.empty(),  // DNA caller VCFs (consensus-only for now)
+                    Channel.empty(),  // RNA caller VCFs (consensus-only for now)
+                    fasta,
+                    rediportal_vcf,
+                    rediportal_tbi,
+                    min_rna_support,
+                    enable_rna_annotation,
+                    cosmic_vcf,
+                    cosmic_tbi,
+                    gnomad_dir,
+                    enable_cosmic_gnomad_annotation,
+                    cosmic_gnomad_verbose
+                )
+                versions = versions.mix(SECOND_RESCUE_WORKFLOW.out.versions)
+                second_rescued_vcf = SECOND_RESCUE_WORKFLOW.out.second_rescued_vcf
+            }
+        } else {
+            // MAF mode: use existing realignment workflow
+            REALIGNMENT(
+                Channel.empty(),
+                realigned_bam,
+                Channel.empty(),
+                fasta,
+                fasta_fai,
+                dict,
+                dbsnp,
+                dbsnp_tbi,
+                pon,
+                pon_tbi,
+                known_sites_indels,
+                known_sites_indels_tbi,
+                germline_resource,
+                germline_resource_tbi,
+                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed,
+                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_for_preprocessing,
+                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_gz_tbi,
+                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_combined,
+                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_and_num_intervals,
+                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_gz_tbi_combined,
+                vep_cache,
+                PREPARE_REALIGNMENT.out.dna_consensus_maf,
+                PREPARE_REALIGNMENT.out.dna_varcall_mafs,
+                true,
+                true,
+                rediportal_vcf,
+                rediportal_tbi,
+                min_rna_support,
+                enable_rna_annotation,
+                cosmic_vcf,
+                cosmic_tbi,
+                gnomad_dir,
+                enable_cosmic_gnomad_annotation,
+                cosmic_gnomad_verbose,
+            )
+            reports = reports.mix(REALIGNMENT.out.reports)
+            versions = versions.mix(REALIGNMENT.out.versions)
+            realigned_filtered_maf = REALIGNMENT.out.maf
+        }
     }
     filtered_maf.dump(tag: "filtered_maf")
     realigned_filtered_maf.dump(tag: "realigned_filtered_maf")
-    MAF_FILTERING_RNA(
-        filtered_maf.branch {
-            dna: it[0].status < 2
-            rna: it[0].status >= 2
-        }.rna,
-        realigned_filtered_maf.branch {
-            dna: it[0].status < 2
-            rna: it[0].status >= 2
-        }.rna,
-        fasta,
-        fasta_fai,
-        input_sample,
-    )
-    versions = versions.mix(MAF_FILTERING_RNA.out.versions)
+    // MAF filtering only needed for MAF mode (VCF mode is VCF-only workflow)
+    if (params.realignment_mode == 'maf') {
+        MAF_FILTERING_RNA(
+            filtered_maf.branch {
+                dna: it[0].status < 2
+                rna: it[0].status >= 2
+            }.rna,
+            realigned_filtered_maf.branch {
+                dna: it[0].status < 2
+                rna: it[0].status >= 2
+            }.rna,
+            fasta,
+            fasta_fai,
+            input_sample,
+        )
+        versions = versions.mix(MAF_FILTERING_RNA.out.versions)
+    }
     //
     // REPORTING
     //

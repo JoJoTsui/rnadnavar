@@ -1,0 +1,39 @@
+nextflow_process {
+    name "Test VCF2BED"
+    script "../modules/local/vcf2bed/main.nf"
+    process "VCF2BED"
+}
+
+test("Should convert VCF to BED") {
+    setup {
+        // Create a test VCF file
+        run("TEST_VCF") {
+            """
+            cat <<'EOF' > test.vcf
+##fileformat=VCFv4.2
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##INFO=<ID=AF,Number=A,Type=float,Description="Allele Frequency">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	100	.	A	T	30	PASS	DP=50;AF=0.5
+chr1	200	.	C	G	40	PASS	DP=60;AF=0.6
+chr2	300	.	G	A	35	PASS	DP=55;AF=0.4
+EOF
+            """
+        }
+    }
+
+    when {
+        params {
+        }
+    }
+
+    then {
+        assert process.success
+        assert path("test.bed").exists()
+        // Verify BED format
+        def bed = new File("test.bed").text
+        assert bed.contains("chr1\t99\t100")
+        assert bed.contains("chr1\t199\t200")
+        assert bed.contains("chr2\t299\t300")
+    }
+}
