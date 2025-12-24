@@ -23,14 +23,14 @@ workflow VCF_RESCUE_POST_PROCESSING {
     versions = Channel.empty()
     
     // Log workflow parameters for debugging
-    log.info "=== VCF Rescue Post-Processing Workflow ==="
-    log.info "COSMIC/gnomAD annotation enabled: ${enable_cosmic_gnomad_annotation}"
-    log.info "COSMIC database provided: ${cosmic_vcf ? 'Yes' : 'No'}"
-    log.info "gnomAD database provided: ${gnomad_dir ? 'Yes' : 'No'}"
-    log.info "COSMIC/gnomAD verbose logging: ${cosmic_gnomad_verbose}"
-    log.info "RNA annotation enabled: ${enable_rna_annotation}"
-    log.info "Min RNA support threshold: ${min_rna_support}"
-    log.info "REDIportal VCF provided: ${rediportal_vcf ? 'Yes' : 'No'}"
+    // log.info "=== VCF Rescue Post-Processing Workflow ==="
+    // log.info "COSMIC/gnomAD annotation enabled: ${enable_cosmic_gnomad_annotation}"
+    // log.info "COSMIC database provided: ${cosmic_vcf ? 'Yes' : 'No'}"
+    // log.info "gnomAD database provided: ${gnomad_dir ? 'Yes' : 'No'}"
+    // log.info "COSMIC/gnomAD verbose logging: ${cosmic_gnomad_verbose}"
+    // log.info "RNA annotation enabled: ${enable_rna_annotation}"
+    // log.info "Min RNA support threshold: ${min_rna_support}"
+    // log.info "REDIportal VCF provided: ${rediportal_vcf ? 'Yes' : 'No'}"
     
     // Determine actual execution flags based on input validation
     def run_cosmic_gnomad = enable_cosmic_gnomad_annotation && (cosmic_vcf || gnomad_dir)
@@ -50,9 +50,9 @@ workflow VCF_RESCUE_POST_PROCESSING {
     
     // COSMIC/gnomAD annotation (conditional with error handling)
     if (run_cosmic_gnomad) {
-        log.info "COSMIC/gnomAD annotation will be performed"
-        if (cosmic_vcf) log.info "  - COSMIC database: ${cosmic_vcf}"
-        if (gnomad_dir) log.info "  - gnomAD database: ${gnomad_dir}"
+        // log.info "COSMIC/gnomAD annotation will be performed"
+        // if (cosmic_vcf) log.info "  - COSMIC database: ${cosmic_vcf}"
+        // if (gnomad_dir) log.info "  - gnomAD database: ${gnomad_dir}"
         
         COSMIC_GNOMAD_ANNOTATION(
             vcf_rescue,
@@ -70,7 +70,7 @@ workflow VCF_RESCUE_POST_PROCESSING {
 
     // RNA editing annotation (conditional with error handling)
     if (run_rna_annotation) {
-        log.info "RNA editing annotation will be performed using REDIportal database"
+        // log.info "RNA editing annotation will be performed using REDIportal database"
         
         RNA_EDITING_ANNOTATION(
             vcf_after_cosmic_gnomad,
