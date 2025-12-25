@@ -183,15 +183,12 @@ workflow VALIDATED_SAMTOOLS_CONVERT {
             return [meta, input_file, index_file]
         }
         
-        // Create reference file channels
-        fasta_channel = Channel.of([[id: "fasta"], fasta])
-        fasta_fai_channel = Channel.of([[id: "fasta_fai"], fasta_fai])
-        
         // Execute samtools convert with validated commands
+        // Ensure both fasta and fasta_fai are proper tuples as expected by the module
         SAMTOOLS_CONVERT_ENHANCED(
             validated_inputs,
-            fasta_channel,
-            fasta_fai_channel
+            fasta,  // Already a tuple [meta, file] from PREPARE_GENOME
+            fasta_fai.map{ fai -> [[id: "fasta_fai"], fai] }  // Convert file to tuple
         )
         
         versions = versions.mix(SAMTOOLS_CONVERT_ENHANCED.out.versions)
