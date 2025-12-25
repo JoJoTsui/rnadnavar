@@ -15,7 +15,8 @@ include { MAF_FILTERING              } from '../maf_filtering/main'
 workflow RNA_REALIGNMENT_WORKFLOW {
     take:
         input_sample
-        bam_mapped                  // Realigned BAM from HISAT2
+        bam_mapped                  // Realigned BAM from HISAT2 (RNA tumor only)
+        dna_normal_cram             // DNA normal CRAM from first pass (for tumor-normal pairing)
         fasta
         fasta_fai
         dict
@@ -39,7 +40,7 @@ workflow RNA_REALIGNMENT_WORKFLOW {
         reports   = Channel.empty()
         versions  = Channel.empty()
 
-        // GATK preprocessing on realigned BAM (RNA samples)
+        // GATK preprocessing on realigned BAM (RNA samples only)
         BAM_GATK_PREPROCESSING(
             input_sample,
             bam_mapped,
@@ -54,10 +55,15 @@ workflow RNA_REALIGNMENT_WORKFLOW {
             realignment
         )
 
-        // Variant calling on realigned BAM
+        // Combine realigned RNA tumor CRAM with DNA normal CRAM for tumor-normal pairing
+        // RNA tumor samples (status=2) from realignment + DNA normal (status=0) from first pass
+        cram_for_variant_calling = BAM_GATK_PREPROCESSING.out.cram_variant_calling
+            .mix(dna_normal_cram)
+
+        // Variant calling on combined tumor-normal samples
         BAM_VARIANT_CALLING(
             params.tools,
-            BAM_GATK_PREPROCESSING.out.cram_variant_calling,
+            cram_for_variant_calling,
             fasta,
             fasta_fai,
             dict,

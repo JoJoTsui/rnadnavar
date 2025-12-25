@@ -330,9 +330,14 @@ workflow RNADNAVAR {
         // === Step 2: RNA variant calling on realigned BAM ===
         if (mode == 'vcf') {
             // VCF mode: use dedicated RNA realignment workflow
+            // Extract DNA normal samples from first-pass CRAM output for tumor-normal pairing
+            dna_normal_cram = BAM_PROCESSING.out.cram_variant_calling
+                .filter { it[0].status == 0 }  // DNA normal only (status=0)
+            
             RNA_REALIGNMENT_WORKFLOW(
                 input_sample,
                 realigned_bam,
+                dna_normal_cram,  // Add DNA normal CRAM for pairing
                 fasta,
                 fasta_fai,
                 dict,

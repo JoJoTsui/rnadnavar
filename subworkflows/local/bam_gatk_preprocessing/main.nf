@@ -186,8 +186,9 @@ workflow BAM_GATK_PREPROCESSING {
     }
 
     // BQSR
-    ch_cram_for_bam_baserecalibrator = ch_sncr_cram_for_restart?: cram_skip_splitncigar
-    if (params.step in ['mapping', 'markduplicates', 'splitncigar', 'prepare_recalibration'] & !realignment) {
+    // Note: ch_sncr_cram_for_restart is always defined (either with data or empty), so no need for Elvis operator
+    ch_cram_for_bam_baserecalibrator = ch_sncr_cram_for_restart
+    if (params.step in ['mapping', 'markduplicates', 'splitncigar', 'prepare_recalibration'] && !realignment) {
 
         // Run if starting from step "prepare_recalibration". This will not run for second pass
         if (params.step == 'prepare_recalibration' && !realignment) {
@@ -253,10 +254,10 @@ workflow BAM_GATK_PREPROCESSING {
             // Create CSV to restart from this step
             CHANNEL_BASERECALIBRATOR_CREATE_CSV(ch_sncr_cram_for_restart.join(ch_table_bqsr, failOnDuplicate: true), params.tools, params.skip_tools, params.save_output_as_bam, params.outdir)
         }
-    } else{
+    } else {
+        // When realignment=true or step is not in the BQSR steps, skip BQSR and use splitncigar output
         cram_variant_calling = ch_sncr_cram_for_restart
         cram_applybqsr       = ch_sncr_cram_for_restart
-
     }
 
     if (params.step in ['mapping', 'markduplicates', 'splitncigar','prepare_recalibration', 'recalibrate'] && !realignment) {
