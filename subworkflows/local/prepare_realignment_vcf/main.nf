@@ -166,7 +166,13 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             // === STEP 6: READ ID EXTRACTION WITH MONITORING ===
             // Extract read IDs using BED from VCF2BED
             cram_to_extract = VCF2BED.out.bed.map { meta, bed -> 
-                // Reconstruct file objects from stored paths
+                // Reconstruct file objects from stored paths with null checks
+                if (!meta.cram_path) {
+                    throw new IllegalArgumentException("Missing cram_path in metadata for sample ${meta.id}")
+                }
+                if (!meta.crai_path) {
+                    throw new IllegalArgumentException("Missing crai_path in metadata for sample ${meta.id}")
+                }
                 def cram_file = file(meta.cram_path)
                 def crai_file = file(meta.crai_path)
                 [meta, cram_file, crai_file, bed]
@@ -189,7 +195,13 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             // === STEP 7: ENHANCED CRAM TO BAM CONVERSION ===
             // Use enhanced conversion with comprehensive error handling (if enabled)
             cram_to_convert = SAMTOOLS_EXTRACT_READ_IDS.out.read_ids.map { meta, readsid -> 
-                // Store read IDs path as string and reconstruct CRAM files
+                // Store read IDs path as string and reconstruct CRAM files with null checks
+                if (!meta.cram_path) {
+                    throw new IllegalArgumentException("Missing cram_path in metadata for sample ${meta.id}")
+                }
+                if (!meta.crai_path) {
+                    throw new IllegalArgumentException("Missing crai_path in metadata for sample ${meta.id}")
+                }
                 def cram_file = file(meta.cram_path)
                 def crai_file = file(meta.crai_path)
                 def enhanced_meta = meta + [readsid_path: readsid.toString()]
@@ -219,7 +231,10 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             // === STEP 8: READ FILTERING WITH ERROR HANDLING ===
             // Apply picard filtersamreads with enhanced error handling
             bam_to_filter = converted_bam.map { meta, bam -> 
-                // Reconstruct read IDs file from stored path
+                // Reconstruct read IDs file from stored path with null check
+                if (!meta.readsid_path) {
+                    throw new IllegalArgumentException("Missing readsid_path in metadata for sample ${meta.id}")
+                }
                 def readsid_file = file(meta.readsid_path)
                 [meta, bam, readsid_file]
             }

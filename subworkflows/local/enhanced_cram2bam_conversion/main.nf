@@ -100,6 +100,16 @@ workflow ENHANCED_CRAM2BAM_CONVERSION {
                 if (meta.data_type) {
                     safe_meta.data_type = meta.data_type
                 }
+                // Preserve path fields needed for downstream processing
+                if (meta.readsid_path) {
+                    safe_meta.readsid_path = meta.readsid_path
+                }
+                if (meta.cram_path) {
+                    safe_meta.cram_path = meta.cram_path
+                }
+                if (meta.crai_path) {
+                    safe_meta.crai_path = meta.crai_path
+                }
                 
                 // Add conversion-specific metadata
                 safe_meta.conversion_stage = "cram2bam"
