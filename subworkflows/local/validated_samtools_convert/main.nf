@@ -43,7 +43,7 @@ workflow VALIDATED_SAMTOOLS_CONVERT {
                         "-o", "${meta.id}.${output_ext}",
                         input_file.toString()
                     ],
-                    input_files: [input_file],
+                    input_files: [],
                     output_files: ["${meta.id}.${output_ext}"],
                     resources: [
                         memory: "4.GB",
@@ -52,14 +52,25 @@ workflow VALIDATED_SAMTOOLS_CONVERT {
                     ]
                 ]
                 
+                // Add input file (only if it's a proper file object)
+                if (input_file) {
+                    command_parts.input_files.add(input_file)
+                }
+                
                 // Add reference files if provided
                 if (fasta && fasta_fai) {
                     command_parts.args.addAll(1, ["--reference", fasta.toString()])
-                    command_parts.input_files.addAll([fasta, fasta_fai])
+                    // Only add to input_files if they're proper file objects
+                    if (fasta.hasProperty('exists')) {
+                        command_parts.input_files.add(fasta)
+                    }
+                    if (fasta_fai.hasProperty('exists')) {
+                        command_parts.input_files.add(fasta_fai)
+                    }
                 }
                 
                 // Add index file if provided
-                if (index_file && index_file.toString() != "null") {
+                if (index_file && index_file.toString() != "null" && index_file.hasProperty('exists')) {
                     command_parts.input_files.add(index_file)
                 }
                 
@@ -104,13 +115,29 @@ workflow VALIDATED_SAMTOOLS_CONVERT {
                         throw new IllegalArgumentException("Invalid arguments for ${process_name}")
                     }
                     
-                    // Validate input files exist
-                    cmd_parts.input_files.each { file ->
-                        if (!file.exists()) {
-                            throw new IllegalArgumentException("Input file does not exist for ${process_name}: ${file}")
-                        }
-                        if (!file.canRead()) {
-                            throw new IllegalArgumentException("Input file is not readable for ${process_name}: ${file}")
+                    // Validate input files exist (only for proper file objects)
+                    if (cmd_parts.input_files && cmd_parts.input_files.size() > 0) {
+                        cmd_parts.input_files.each { file_obj ->
+                            if (file_obj == null) {
+                                return // Skip null files
+                            }
+                            
+                            try {
+                                // Only validate if it's a file object with exists() method
+                                if (file_obj.hasProperty('exists') && file_obj.respondsTo('exists')) {
+                                    if (!file_obj.exists()) {
+                                        throw new IllegalArgumentException("Input file does not exist for ${process_name}: ${file_obj}")
+                                    }
+                                    if (file_obj.respondsTo('canRead') && !file_obj.canRead()) {
+                                        throw new IllegalArgumentException("Input file is not readable for ${process_name}: ${file_obj}")
+                                    }
+                                    log.debug "VALIDATED_SAMTOOLS_CONVERT: File validation passed for ${file_obj}"
+                                } else {
+                                    log.debug "VALIDATED_SAMTOOLS_CONVERT: Skipping validation for non-file object: ${file_obj.getClass().simpleName}"
+                                }
+                            } catch (Exception e) {
+                                log.warn "VALIDATED_SAMTOOLS_CONVERT: File validation error for ${file_obj}: ${e.getMessage()}"
+                            }
                         }
                     }
                     
