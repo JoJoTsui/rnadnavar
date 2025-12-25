@@ -97,7 +97,6 @@ This design is necessary because somatic variant callers (Mutect2, Strelka, etc.
 │     ├─ BAM_GATK_PREPROCESSING                                            │
 │     ├─ BAM_VARIANT_CALLING                                               │
 │     ├─ VCF_NORMALIZE                                                      │
-│     ├─ VCF_ANNOTATE                                                       │
 │     ├─ VCF_CONSENSUS_WORKFLOW → realigned_rna_consensus_vcf             │
 │     └─ VCF_FILTERING → realigned_filtered_rna_vcf                        │
 │          ↓                                                                  │
@@ -174,9 +173,10 @@ Full variant calling pipeline on realigned BAMs.
 1. **BAM_GATK_PREPROCESSING**: Preprocess realigned BAM
 2. **BAM_VARIANT_CALLING**: Call variants on realigned data
 3. **VCF_NORMALIZE**: Normalize VCF files
-4. **VCF_ANNOTATE**: Annotate with VEP
-5. **VCF_CONSENSUS_WORKFLOW**: Generate RNA consensus from realigned data
-6. **VCF_FILTERING**: Filter RNA consensus VCF
+4. **VCF_CONSENSUS_WORKFLOW**: Generate RNA consensus from realigned data
+5. **VCF_FILTERING**: Filter RNA consensus VCF
+
+**Note**: VEP annotation has been removed from the realignment workflow as the annotated VCF was not used downstream. Only the normalized VCF is used for consensus generation.
 
 **Key Outputs**:
 - `realigned_rna_consensus_vcf`: RNA consensus from realigned BAM

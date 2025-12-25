@@ -10,6 +10,8 @@ The nf-core/rnadnavar documentation is split into the following pages:
   - Detailed explanation of the within-modality consensus calling algorithm.
 - [Rescue Workflow](rescue_workflow.md)
   - Comprehensive guide to the cross-modality rescue workflow for DNA-RNA variant validation.
+- [VCF Realignment Comprehensive Guide](VCF_REALIGNMENT_COMPREHENSIVE_GUIDE.md)
+  - Complete guide to the VCF-based RNA realignment workflow, including architecture, configuration, and troubleshooting.
 - [RNA Editing Annotation Guide](RNA_EDITING_ANNOTATION_GUIDE.md)
   - Complete guide to RNA editing annotation functionality, including setup, configuration, and troubleshooting.
 - [RNA Editing Logging Guide](RNA_EDITING_LOGGING_GUIDE.md)
