@@ -127,3 +127,59 @@ workflow PREPARE_INTERVALS {
 
     versions               // [ versions.yml ]
 }
+
+workflow PREPARE_REALIGNMENT_INTERVALS {
+    take:
+    bed_channel // [meta, bed]
+
+    main:
+    versions = Channel.empty()
+
+    // Merge all BEDs into one
+    ch_merged_bed = bed_channel
+        .map { meta, bed -> bed }
+        .collectFile(name: 'realigned_intervals.bed', sort: true)
+        .map { file -> [[id:'realigned_intervals'], file] }
+
+    // Index
+    TABIX_BGZIPTABIX_INTERVAL_COMBINED(ch_merged_bed)
+    versions = versions.mix(TABIX_BGZIPTABIX_INTERVAL_COMBINED.out.versions)
+
+    // Prepare outputs
+    // 1. intervals (no splitting, just the one merged file)
+    intervals_bed = ch_merged_bed.map{ meta, bed -> [bed, 1] }
+
+    // 2. intervals_bed_gz_tbi
+    intervals_bed_gz_tbi = TABIX_BGZIPTABIX_INTERVAL_COMBINED.out.gz_tbi
+        .map{ meta, gz, tbi -> [[gz, tbi], 1] }
+
+    // 3. intervals_bed_combined
+    intervals_bed_combined = ch_merged_bed.map{ meta, bed -> bed }.collect()
+
+    // 4. intervals_bed_gz_tbi_combined
+    intervals_bed_gz_tbi_combined = TABIX_BGZIPTABIX_INTERVAL_COMBINED.out.gz_tbi
+        .map{ meta, gz, tbi -> [gz, tbi] }
+        .collect()
+
+    // 5. intervals_and_num_intervals
+    intervals_and_num_intervals = intervals_bed
+
+    // 6. intervals_bed_gz_tbi_and_num_intervals
+    intervals_bed_gz_tbi_and_num_intervals = intervals_bed_gz_tbi.map{ intervals, num_intervals ->
+        [ intervals[0], intervals[1], num_intervals ]
+    }
+    
+    // 7. intervals_for_preprocessing
+    intervals_for_preprocessing = intervals_bed_combined.map{it -> [ [ id:'realigned_intervals' ], it ]}.collect()
+
+
+    emit:
+    intervals_bed
+    intervals_bed_gz_tbi
+    intervals_for_preprocessing
+    intervals_bed_combined
+    intervals_bed_gz_tbi_combined
+    intervals_and_num_intervals
+    intervals_bed_gz_tbi_and_num_intervals
+    versions
+}

@@ -37,6 +37,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
     main:
         versions   = Channel.empty()
         bam_mapped = Channel.empty()
+        bed        = Channel.empty()
 
         if (params.step in ['mapping', 'markduplicates', 'splitncigar',
         'prepare_recalibration', 'recalibrate', 'variant_calling', 'norm', 'consensus',
@@ -162,6 +163,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
 
             VCF2BED(monitored_vcf2bed)
             versions = versions.mix(VCF2BED.out.versions)
+            bed = VCF2BED.out.bed
 
             // === STEP 6: READ ID EXTRACTION WITH MONITORING ===
             // Extract read IDs using BED from VCF2BED
@@ -327,6 +329,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
 
     emit:
         bam_mapped         = bam_mapped
+        bed                = bed
         dna_consensus_maf  = dna_consensus_maf
         dna_varcall_mafs   = dna_varcall_mafs
         versions           = versions

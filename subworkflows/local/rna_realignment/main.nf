@@ -77,7 +77,7 @@ workflow RNA_REALIGNMENT_WORKFLOW {
             pon_tbi,
             input_sample,
             realignment,
-            Channel.empty()  // No intervals for realignment (targeted regions)
+            false // params.no_intervals -> false, as we now pass merged realignment intervals
         )
 
         versions = versions.mix(BAM_VARIANT_CALLING.out.versions)

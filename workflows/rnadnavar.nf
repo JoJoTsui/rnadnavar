@@ -24,6 +24,7 @@ include { methodsDescriptionText                                    } from '../s
 include { SAMPLESHEET_TO_CHANNEL                                    } from '../subworkflows/local/samplesheet_to_channel'
 include { PREPARE_REFERENCE_AND_INTERVALS                           } from '../subworkflows/local/prepare_reference_and_intervals'
 include { PREPARE_INTERVALS as PREPARE_INTERVALS_FOR_REALIGNMENT    } from '../subworkflows/local/prepare_intervals'
+include { PREPARE_REALIGNMENT_INTERVALS                             } from '../subworkflows/local/prepare_intervals'
 // Download annotation cache if needed
 include { ENSEMBLVEP_DOWNLOAD                                       } from '../modules/nf-core/ensemblvep/download'
 include { UNZIP as UNZIP_VEP_CACHE                                  } from '../modules/nf-core/unzip'
@@ -284,6 +285,7 @@ workflow RNADNAVAR {
                 )
                 versions = versions.mix(PREPARE_REALIGNMENT_VCF.out.versions)
                 realigned_bam = PREPARE_REALIGNMENT_VCF.out.bam_mapped
+                realigned_bed = PREPARE_REALIGNMENT_VCF.out.bed
                 
             } else {
                 // === BASIC VCF REALIGNMENT WORKFLOW ===
@@ -306,6 +308,7 @@ workflow RNADNAVAR {
                 )
                 versions = versions.mix(PREPARE_REALIGNMENT_VCF.out.versions)
                 realigned_bam = PREPARE_REALIGNMENT_VCF.out.bam_mapped
+                realigned_bed = PREPARE_REALIGNMENT_VCF.out.bed
             }
         } else {
             // === LEGACY MAF-BASED REALIGNMENT ===
@@ -334,6 +337,10 @@ workflow RNADNAVAR {
             dna_normal_cram = BAM_PROCESSING.out.cram_variant_calling
                 .filter { it[0].status == 0 }  // DNA normal only (status=0)
             
+            // Merge and index realignment intervals
+            PREPARE_REALIGNMENT_INTERVALS(realigned_bed)
+            versions = versions.mix(PREPARE_REALIGNMENT_INTERVALS.out.versions)
+
             RNA_REALIGNMENT_WORKFLOW(
                 input_sample,
                 realigned_bam,
@@ -349,12 +356,12 @@ workflow RNADNAVAR {
                 known_sites_indels_tbi,
                 germline_resource,
                 germline_resource_tbi,
-                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed,
-                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_for_preprocessing,
-                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_gz_tbi,
-                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_combined,
-                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_and_num_intervals,
-                PREPARE_INTERVALS_FOR_REALIGNMENT.out.intervals_bed_gz_tbi_combined,
+                PREPARE_REALIGNMENT_INTERVALS.out.intervals_bed,
+                PREPARE_REALIGNMENT_INTERVALS.out.intervals_for_preprocessing,
+                PREPARE_REALIGNMENT_INTERVALS.out.intervals_bed_gz_tbi,
+                PREPARE_REALIGNMENT_INTERVALS.out.intervals_bed_combined,
+                PREPARE_REALIGNMENT_INTERVALS.out.intervals_and_num_intervals,
+                PREPARE_REALIGNMENT_INTERVALS.out.intervals_bed_gz_tbi_combined,
                 true  // realignment = true
             )
             versions = versions.mix(RNA_REALIGNMENT_WORKFLOW.out.versions)
