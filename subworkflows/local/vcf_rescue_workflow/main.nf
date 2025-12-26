@@ -30,7 +30,10 @@ workflow VCF_RESCUE_WORKFLOW {
         .groupTuple()
     
     // Cross DNA and RNA consensus VCFs by patient, then join with caller VCFs
-    rescue_input = dna_consensus_vcf
+    // Refactored to use mix/groupTuple to handle empty caller channels gracefully
+    
+    // 1. Prepare Consensus Data
+    ch_consensus_data = dna_consensus_vcf
         .map { meta, vcf, tbi -> [meta.patient, meta, vcf, tbi] }
         .cross(rna_consensus_vcf.map { meta, vcf, tbi -> 
             [meta.patient, meta, vcf, tbi] 
@@ -41,17 +44,65 @@ workflow VCF_RESCUE_WORKFLOW {
             meta.dna_id = dna[1].id
             meta.rna_id = rna[1].id
             meta.id = "${meta.dna_id}_rescued_${meta.rna_id}"
-            [meta.patient, meta, dna[2], dna[3], rna[2], rna[3]]
+            
+            [meta.patient, [
+                type: 'consensus',
+                meta: meta,
+                dna_cons_vcf: dna[2],
+                dna_cons_tbi: dna[3],
+                rna_cons_vcf: rna[2],
+                rna_cons_tbi: rna[3]
+            ]]
         }
-        .join(dna_callers_grouped, by: 0, remainder: true)
-        .join(rna_callers_grouped, by: 0, remainder: true)
-        .map { patient, meta, dna_cons_vcf, dna_cons_tbi, rna_cons_vcf, rna_cons_tbi, 
-               dna_vcfs, dna_tbis, dna_callers, rna_vcfs, rna_tbis, rna_callers ->
-            [meta, 
-             dna_cons_vcf, dna_cons_tbi, 
-             rna_cons_vcf, rna_cons_tbi,
-             dna_vcfs ?: [], dna_tbis ?: [], dna_callers ?: [],
-             rna_vcfs ?: [], rna_tbis ?: [], rna_callers ?: []]
+
+    // 2. Prepare DNA Callers Data
+    ch_dna_callers = dna_callers_grouped
+        .map { patient, vcfs, tbis, callers ->
+            [patient, [
+                type: 'dna_callers',
+                vcfs: vcfs,
+                tbis: tbis,
+                callers: callers
+            ]]
+        }
+
+    // 3. Prepare RNA Callers Data
+    ch_rna_callers = rna_callers_grouped
+        .map { patient, vcfs, tbis, callers ->
+            [patient, [
+                type: 'rna_callers',
+                vcfs: vcfs,
+                tbis: tbis,
+                callers: callers
+            ]]
+        }
+
+    // 4. Mix, Group, and Combine
+    rescue_input = ch_consensus_data
+        .mix(ch_dna_callers)
+        .mix(ch_rna_callers)
+        .groupTuple()
+        .flatMap { patient, data_list ->
+            def dna_data = data_list.find { it.type == 'dna_callers' }
+            def rna_data = data_list.find { it.type == 'rna_callers' }
+            
+            def consensus_items = data_list.findAll { it.type == 'consensus' }
+            
+            consensus_items.collect { consensus ->
+                [
+                    consensus.meta,
+                    consensus.dna_cons_vcf,
+                    consensus.dna_cons_tbi,
+                    consensus.rna_cons_vcf,
+                    consensus.rna_cons_tbi,
+                    dna_data ? dna_data.vcfs : [],
+                    dna_data ? dna_data.tbis : [],
+                    dna_data ? dna_data.callers : [],
+                    rna_data ? rna_data.vcfs : [],
+                    rna_data ? rna_data.tbis : [],
+                    rna_data ? rna_data.callers : []
+                ]
+            }
         }
     
     // Run rescue process with consensus AND individual caller VCFs
