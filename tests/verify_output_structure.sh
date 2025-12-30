@@ -87,11 +87,20 @@ for subdir in variant_calling normalized consensus filtered; do
             echo "  Checking variant callers in $subdir:"
             for caller in mutect2 strelka deepsomatic; do
                 if [ -d "$OUTDIR/vcf_realignment/$subdir/$caller" ]; then
-                    CALLER_FILES=$(find "$OUTDIR/vcf_realignment/$subdir/$caller" -type f -name "*realign*" 2>/dev/null | wc -l)
+                    if [ "$subdir" = "normalized" ]; then
+                        # For normalized, specifically check for .dec.norm.vcf.gz pattern
+                        CALLER_FILES=$(find "$OUTDIR/vcf_realignment/$subdir/$caller" -type f -name "*realign*.dec.norm.vcf.gz" 2>/dev/null | wc -l)
+                    else
+                        CALLER_FILES=$(find "$OUTDIR/vcf_realignment/$subdir/$caller" -type f -name "*realign*" 2>/dev/null | wc -l)
+                    fi
                     if [ "$CALLER_FILES" -gt 0 ]; then
                         echo "    [PASS] $caller: $CALLER_FILES files"
                     else
-                        echo "    [WARN] $caller: directory exists but no realign files found"
+                        if [ "$subdir" = "normalized" ]; then
+                            echo "    [WARN] $caller: directory exists but no realign files found (expected *.dec.norm.vcf.gz pattern)"
+                        else
+                            echo "    [WARN] $caller: directory exists but no realign files found"
+                        fi
                     fi
                 else
                     echo "    [FAIL] $caller: directory missing"
@@ -102,6 +111,30 @@ for subdir in variant_calling normalized consensus filtered; do
         echo "[FAIL] vcf_realignment/$subdir missing."
     fi
 done
+
+# 4.5 Check preprocessing/realignment outputs
+echo -e "\nChecking preprocessing/realignment outputs..."
+if [ -d "$OUTDIR/preprocessing/realignment" ]; then
+    echo "[PASS] preprocessing/realignment directory exists."
+    
+    # Check for readids
+    READID_FILES=$(find "$OUTDIR/preprocessing/realignment/readids" -name "*_IDs_all.txt" 2>/dev/null | wc -l)
+    if [ "$READID_FILES" -gt 0 ]; then
+        echo "  [PASS] Found $READID_FILES readid extraction outputs."
+    else
+        echo "  [WARN] No readid files found."
+    fi
+    
+    # Check for vcf2bed
+    BED_FILES=$(find "$OUTDIR/preprocessing/realignment/vcf2bed" -name "*.bed" 2>/dev/null | wc -l)
+    if [ "$BED_FILES" -gt 0 ]; then
+        echo "  [PASS] Found $BED_FILES vcf2bed outputs."
+    else
+        echo "  [WARN] No BED files found."
+    fi
+else
+    echo "[WARN] preprocessing/realignment directory not found."
+fi
 
 # 5. Check Second Rescue Outputs and RNA Annotation
 echo -e "\nChecking for second rescue outputs..."

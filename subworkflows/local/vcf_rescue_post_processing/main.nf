@@ -34,11 +34,11 @@ workflow VCF_RESCUE_POST_PROCESSING {
     log.info "REDIportal VCF channel: ${rediportal_vcf}"
     log.info "REDIportal TBI channel: ${rediportal_tbi}"
     
-    // Determine actual execution flags based on input validation
-    // Note: Channels need explicit check - empty channels are truthy in Groovy
-    def cosmic_vcf_provided = cosmic_vcf != null && !cosmic_vcf.toString().contains('DataflowBroadcast')
-    def gnomad_dir_provided = gnomad_dir != null && !gnomad_dir.toString().contains('DataflowBroadcast')
-    def rediportal_provided = rediportal_vcf != null && !rediportal_vcf.toString().contains('DataflowBroadcast')
+    // Determine actual execution flags based on parameter validation
+    // Note: Rely on boolean parameters, not channel inspection (channels are lazy)
+    def cosmic_vcf_provided = cosmic_vcf != null
+    def gnomad_dir_provided = gnomad_dir != null
+    def rediportal_provided = rediportal_vcf != null
     
     def run_cosmic_gnomad = enable_cosmic_gnomad_annotation && (cosmic_vcf_provided || gnomad_dir_provided)
     def run_rna_annotation = enable_rna_annotation && rediportal_provided
@@ -50,8 +50,8 @@ workflow VCF_RESCUE_POST_PROCESSING {
         log.warn "COSMIC/gnomAD annotation enabled but no databases provided - skipping"
     }
     if (enable_rna_annotation && !run_rna_annotation) {
-        log.warn "RNA annotation enabled (${enable_rna_annotation}) but REDIportal VCF not provided or empty - skipping"
-        log.warn "  rediportal_vcf channel content: ${rediportal_vcf}"
+        log.warn "RNA annotation enabled but REDIportal VCF parameter not provided - skipping"
+        log.info "  rediportal_vcf parameter: ${params.rediportal_vcf ?: 'not set'}"
     }
     if (min_rna_support < 1) {
         log.warn "Invalid min_rna_support value: ${min_rna_support}. Using default value of 2"
@@ -79,7 +79,11 @@ workflow VCF_RESCUE_POST_PROCESSING {
 
     // RNA editing annotation (conditional with error handling)
     if (run_rna_annotation) {
-        // log.info "RNA editing annotation will be performed using REDIportal database"
+        log.info "RNA editing annotation will be performed using REDIportal database"
+        
+        // Log actual channel content at invocation time
+        rediportal_vcf.view { "rediportal_vcf channel content: $it" }
+        rediportal_tbi.view { "rediportal_tbi channel content: $it" }
         
         RNA_EDITING_ANNOTATION(
             vcf_after_cosmic_gnomad,
