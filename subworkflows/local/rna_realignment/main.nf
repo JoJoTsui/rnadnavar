@@ -10,6 +10,7 @@ include { VCF_NORMALIZE             } from '../vcf_normalize/main'
 include { VCF_CONSENSUS_WORKFLOW    } from '../vcf_consensus_workflow/main'
 include { VCF_FILTERING             } from '../vcf_filtering/main'
 include { MAF_FILTERING              } from '../maf_filtering/main'
+include { validateMeta               } from '../utils_nfcore_rnadnavar_pipeline/main'
 
 
 workflow RNA_REALIGNMENT_WORKFLOW {
@@ -40,10 +41,14 @@ workflow RNA_REALIGNMENT_WORKFLOW {
         reports   = Channel.empty()
         versions  = Channel.empty()
 
+        // Validate inputs
+        validated_bam = bam_mapped.filter { meta, bam -> validateMeta(meta) }
+        validated_dna_cram = dna_normal_cram.filter { meta, cram, crai -> validateMeta(meta) }
+
         // GATK preprocessing on realigned BAM (RNA samples only)
         BAM_GATK_PREPROCESSING(
             input_sample,
-            bam_mapped,
+            validated_bam,
             Channel.empty(),  // No separate cram_mapped for realignment
             fasta,
             fasta_fai,
@@ -58,7 +63,7 @@ workflow RNA_REALIGNMENT_WORKFLOW {
         // Combine realigned RNA tumor CRAM with DNA normal CRAM for tumor-normal pairing
         // RNA tumor samples (status=2) from realignment + DNA normal (status=0) from first pass
         cram_for_variant_calling = BAM_GATK_PREPROCESSING.out.cram_variant_calling
-            .mix(dna_normal_cram)
+            .mix(validated_dna_cram)
 
         // Variant calling on combined tumor-normal samples
         BAM_VARIANT_CALLING(

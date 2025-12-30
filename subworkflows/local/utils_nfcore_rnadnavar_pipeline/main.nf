@@ -325,3 +325,23 @@ def retrieveInput(need_input, step, outdir) {
     }
     return input
 }
+
+// Validate metadata structure to prevent StackOverflowError and ensure data integrity
+def validateMeta(meta, required_keys = ['id', 'patient', 'status']) {
+    if (!meta) {
+        log.warn "Metadata is null or empty"
+        return false
+    }
+    
+    // Check for required keys
+    def missing_keys = required_keys.findAll { !meta.containsKey(it) }
+    if (missing_keys) {
+        log.warn "Metadata missing required keys: ${missing_keys}. Meta: ${meta}"
+        // Fail fast for critical keys if needed, or just warn
+        if (missing_keys.contains('id') || missing_keys.contains('patient')) {
+            return false
+        }
+    }
+    
+    return true
+}
