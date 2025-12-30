@@ -165,7 +165,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             // === STEP 10: OUTPUT PROCESSING ===
             // Process final outputs
             raw_bam_mapped = FASTQ_ALIGN_HISAT2.out.bam.join(FASTQ_ALIGN_HISAT2.out.bai)
-                .map{meta,bam,bai -> [meta + [ id:meta.sample, data_type:"bam"], bam, bai]}
+                .map{meta,bam,bai -> [meta + [ id:meta.sample + "_realign", data_type:"bam"], bam, bai]}
 
             // Clean up metadata for final output
             bam_mapped = raw_bam_mapped.map{meta, bam, bai -> 

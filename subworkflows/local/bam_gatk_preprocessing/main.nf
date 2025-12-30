@@ -366,7 +366,9 @@ workflow BAM_GATK_PREPROCESSING {
     // Remove lane from id (which is sample)
     cram_variant_calling = cram_variant_calling.map{meta, cram, crai ->
 //													meta['read_group'] = meta['read_group'].replaceFirst(/ID:[^\s]+/, "ID:" + meta['sample'])
-                                                    meta['id'] = meta['sample']
+                                                    if (!realignment) {
+                                                        meta['id'] = meta['sample']
+                                                    }
                                                     [meta, cram, crai]}
     cram_variant_calling.dump(tag:"cram_variant_calling_AFTER")
 
