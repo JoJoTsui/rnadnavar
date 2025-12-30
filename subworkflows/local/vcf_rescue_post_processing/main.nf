@@ -79,23 +79,35 @@ workflow VCF_RESCUE_POST_PROCESSING {
 
     // RNA editing annotation (conditional with error handling)
     if (run_rna_annotation) {
+        log.info "=== RNA_EDITING_ANNOTATION INVOCATION ==="
         log.info "RNA editing annotation will be performed using REDIportal database"
+        log.info "Process will be added to workflow DAG"
+        log.info "Input VCF channel: ${vcf_after_cosmic_gnomad.getClass().simpleName}"
+        log.info "REDIportal VCF channel: ${rediportal_vcf.getClass().simpleName}"
+        log.info "Min RNA support: ${validated_min_rna_support}"
         
         // Log actual channel content at invocation time
-        rediportal_vcf.view { "rediportal_vcf channel content: $it" }
-        rediportal_tbi.view { "rediportal_tbi channel content: $it" }
+        rediportal_vcf.view { "[RNA_ANNOTATION] rediportal_vcf channel content: $it" }
+        rediportal_tbi.view { "[RNA_ANNOTATION] rediportal_tbi channel content: $it" }
+        vcf_after_cosmic_gnomad.view { meta, vcf, tbi -> "[RNA_ANNOTATION] Input VCF for annotation: ${meta.id} - ${vcf.name}" }
         
+        log.info "Invoking RNA_EDITING_ANNOTATION process now..."
         RNA_EDITING_ANNOTATION(
             vcf_after_cosmic_gnomad,
             rediportal_vcf,
             rediportal_tbi,
             validated_min_rna_support
         )
+        log.info "RNA_EDITING_ANNOTATION process invoked successfully"
         
         vcf_for_filtering = RNA_EDITING_ANNOTATION.out.vcf
+        vcf_for_filtering.view { meta, vcf, tbi -> "[RNA_ANNOTATION] Output from RNA_EDITING_ANNOTATION: ${meta.id} - ${vcf.name}" }
         versions = versions.mix(RNA_EDITING_ANNOTATION.out.versions)
+        log.info "RNA annotation output channel assigned to vcf_for_filtering"
     } else {
+        log.warn "RNA annotation SKIPPED - using unannotated VCF for filtering"
         vcf_for_filtering = vcf_after_cosmic_gnomad
+        vcf_for_filtering.view { meta, vcf, tbi -> "[NO_RNA_ANNOTATION] VCF going to filtering: ${meta.id} - ${vcf.name}" }
     }
     
     // Rescue VCF filtering (always executed)
