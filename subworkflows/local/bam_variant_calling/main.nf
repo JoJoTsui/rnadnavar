@@ -97,7 +97,7 @@ workflow BAM_VARIANT_CALLING {
                 .map { normal, tumor ->
                     def meta = [:]
 
-                    meta.id         = "${tumor[1].sample}_vs_${normal[1].sample}".toString()
+                    meta.id         = "${tumor[1].id}_vs_${normal[1].sample}".toString()
                     meta.normal_id  = normal[1].sample
                     meta.patient    = normal[0]
                     meta.status     = tumor[1].status
