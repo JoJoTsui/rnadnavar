@@ -35,8 +35,13 @@ workflow VCF_RESCUE_POST_PROCESSING {
     log.info "REDIportal TBI channel: ${rediportal_tbi}"
     
     // Determine actual execution flags based on input validation
-    def run_cosmic_gnomad = enable_cosmic_gnomad_annotation && (cosmic_vcf || gnomad_dir)
-    def run_rna_annotation = enable_rna_annotation && rediportal_vcf
+    // Note: Channels need explicit check - empty channels are truthy in Groovy
+    def cosmic_vcf_provided = cosmic_vcf != null && !cosmic_vcf.toString().contains('DataflowBroadcast')
+    def gnomad_dir_provided = gnomad_dir != null && !gnomad_dir.toString().contains('DataflowBroadcast')
+    def rediportal_provided = rediportal_vcf != null && !rediportal_vcf.toString().contains('DataflowBroadcast')
+    
+    def run_cosmic_gnomad = enable_cosmic_gnomad_annotation && (cosmic_vcf_provided || gnomad_dir_provided)
+    def run_rna_annotation = enable_rna_annotation && rediportal_provided
     def validated_min_rna_support = (min_rna_support < 1) ? 2 : min_rna_support
     
     // Log validation results with detailed channel inspection

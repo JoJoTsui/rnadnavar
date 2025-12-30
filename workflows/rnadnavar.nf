@@ -174,6 +174,14 @@ workflow RNADNAVAR {
     rediportal_tbi          = params.rediportal_tbi ? Channel.fromPath(params.rediportal_tbi).collect() : Channel.empty()
     min_rna_support         = params.min_rna_support ?: 2
     enable_rna_annotation   = params.enable_rna_annotation ?: false
+    
+    // Debug RNA annotation parameters
+    log.info "=== RNA Annotation Parameters (Main Workflow) ==="
+    log.info "params.rediportal_vcf: ${params.rediportal_vcf}"
+    log.info "params.enable_rna_annotation: ${params.enable_rna_annotation}"
+    log.info "min_rna_support: ${min_rna_support}"
+    rediportal_vcf.view { "rediportal_vcf channel content: $it" }
+    rediportal_tbi.view { "rediportal_tbi channel content: $it" }
 
     // COSMIC/gnomAD annotation parameters
     cosmic_vcf                      = params.cosmic_database ? Channel.fromPath(params.cosmic_database).collect() : Channel.empty()
@@ -183,6 +191,10 @@ workflow RNADNAVAR {
     cosmic_gnomad_verbose           = params.cosmic_gnomad_verbose ?: false
 
     // 5 MAIN STEPS: GATK PREPROCESING - VARIANT CALLING - NORMALIZATION - CONSENSUS - ANNOTATION
+    log.info "=== BAM_PROCESSING Parameters ==="
+    log.info "params.tools: ${params.tools}"
+    log.info "Contains rescue: ${params.tools && params.tools.split(',').contains('rescue')}"
+    
     BAM_PROCESSING(
         input_sample,
         BAM_ALIGN.out.bam_mapped,

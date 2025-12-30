@@ -69,37 +69,77 @@ else
 fi
 
 # 4. Check VCF Realignment Subdirectories
-echo "\nChecking vcf_realignment subdirectories..."
+echo -e "\nChecking vcf_realignment subdirectories..."
 for subdir in variant_calling normalized consensus filtered; do
     if [ -d "$OUTDIR/vcf_realignment/$subdir" ]; then
         echo "[PASS] vcf_realignment/$subdir exists."
+        
         # Check for _realign suffix in files within this directory
-        REALIGN_FILES=$(find "$OUTDIR/vcf_realignment/$subdir" -type f -name "*_realign*" | wc -l)
+        REALIGN_FILES=$(find "$OUTDIR/vcf_realignment/$subdir" -type f -name "*_realign*" 2>/dev/null | wc -l)
         if [ "$REALIGN_FILES" -gt 0 ]; then
             echo "  [PASS] Found $REALIGN_FILES files with _realign suffix."
         else
             echo "  [WARN] No files with _realign suffix found in $subdir."
+        fi
+        
+        # For variant_calling and normalized, check for specific variant callers
+        if [ "$subdir" = "variant_calling" ] || [ "$subdir" = "normalized" ]; then
+            echo "  Checking variant callers in $subdir:"
+            for caller in mutect2 strelka deepsomatic; do
+                if [ -d "$OUTDIR/vcf_realignment/$subdir/$caller" ]; then
+                    CALLER_FILES=$(find "$OUTDIR/vcf_realignment/$subdir/$caller" -type f -name "*realign*" 2>/dev/null | wc -l)
+                    if [ "$CALLER_FILES" -gt 0 ]; then
+                        echo "    [PASS] $caller: $CALLER_FILES files"
+                    else
+                        echo "    [WARN] $caller: directory exists but no realign files found"
+                    fi
+                else
+                    echo "    [FAIL] $caller: directory missing"
+                fi
+            done
         fi
     else
         echo "[FAIL] vcf_realignment/$subdir missing."
     fi
 done
 
-# 5. Check Second Rescue Outputs
-echo "\nChecking for second rescue outputs..."
+# 5. Check Second Rescue Outputs and RNA Annotation
+echo -e "\nChecking for second rescue outputs..."
 if [ -d "$OUTDIR/rescue" ]; then
-    FIRST_RESCUE=$(find "$OUTDIR/rescue" -name "*rescued_RNA_TUMOR_vs*" -type f | head -n 1)
-    SECOND_RESCUE=$(find "$OUTDIR/rescue" -name "*rescued_RNA_TUMOR_realign_vs*" -type f | head -n 1)
+    FIRST_RESCUE=$(find "$OUTDIR/rescue" -name "*rescued_RNA_TUMOR_vs*" -not -name "*_realign*" -type f 2>/dev/null | head -n 1)
+    SECOND_RESCUE=$(find "$OUTDIR/rescue" -name "*rescued_RNA_TUMOR_realign_vs*" -type f 2>/dev/null | head -n 1)
     
     if [ -n "$FIRST_RESCUE" ]; then
         echo "[PASS] Found first-round rescue: $(basename "$FIRST_RESCUE")"
+        
+        # Check for RNA annotation in first rescue
+        if command -v bcftools &> /dev/null; then
+            if bcftools view -h "$FIRST_RESCUE" 2>/dev/null | grep -q "RNA_EDIT\|REDIportal"; then
+                echo "  [PASS] First rescue contains RNA editing annotation"
+            else
+                echo "  [WARN] First rescue missing RNA editing annotation"
+            fi
+        fi
+    else
+        echo "[WARN] First-round rescue not found."
     fi
     
     if [ -n "$SECOND_RESCUE" ]; then
         echo "[PASS] Found second-round rescue (with realigned RNA): $(basename "$SECOND_RESCUE")"
+        
+        # Check for RNA annotation in second rescue
+        if command -v bcftools &> /dev/null; then
+            if bcftools view -h "$SECOND_RESCUE" 2>/dev/null | grep -q "RNA_EDIT\|REDIportal"; then
+                echo "  [PASS] Second rescue contains RNA editing annotation"
+            else
+                echo "  [WARN] Second rescue missing RNA editing annotation"
+            fi
+        fi
     else
         echo "[WARN] Second-round rescue with _realign suffix not found."
     fi
+else
+    echo "[FAIL] rescue directory missing."
 fi
 
-echo "\nVerification complete."
+echo -e "\nVerification complete."
