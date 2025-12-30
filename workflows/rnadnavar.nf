@@ -374,6 +374,13 @@ workflow RNADNAVAR {
 
             // === Step 3: Second rescue (DNA + realigned RNA) ===
             if (params.tools && params.tools.split(',').contains('rescue')) {
+                // Debug RNA annotation parameters before passing to rescue
+                log.info "=== Second Rescue Workflow - RNA Annotation Parameters ==="
+                log.info "enable_rna_annotation: ${enable_rna_annotation}"
+                log.info "min_rna_support: ${min_rna_support}"
+                log.info "rediportal_vcf channel: ${rediportal_vcf}"
+                log.info "rediportal_tbi channel: ${rediportal_tbi}"
+                
                 SECOND_RESCUE_WORKFLOW(
                     first_round_dna_consensus_vcf,
                     realigned_rna_consensus_vcf,
