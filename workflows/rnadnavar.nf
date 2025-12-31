@@ -5,7 +5,6 @@
 */
 
 include { MULTIQC                                                   } from '../modules/nf-core/multiqc'
-include { samplesheetToList                                         } from 'plugin/nf-schema'
 include { paramsSummaryMap                                          } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc                                      } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML                                    } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -22,7 +21,6 @@ include { validateMeta                                              } from '../s
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
 // Build the genome index and other reference files
-include { SAMPLESHEET_TO_CHANNEL                                    } from '../subworkflows/local/samplesheet_to_channel'
 include { PREPARE_REFERENCE_AND_INTERVALS                           } from '../subworkflows/local/prepare_reference_and_intervals'
 include { PREPARE_INTERVALS as PREPARE_INTERVALS_FOR_REALIGNMENT    } from '../subworkflows/local/prepare_intervals'
 include { PREPARE_REALIGNMENT_INTERVALS                             } from '../subworkflows/local/prepare_intervals'
@@ -68,21 +66,9 @@ workflow RNADNAVAR {
     // To gather used softwares versions for MultiQC
     versions = Channel.empty()
 
-    // Set input, can either be from --input or from automatic retrieval in utils_nfcore_rnadnavar_pipeline
-    if (params.input) {
-        ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
-    }
-    else {
-        // No input provided - create empty channel (will fail validation downstream if needed)
-        ch_from_samplesheet = Channel.empty()
-        if (!params.build_only_index) {
-            log.warn "No input samplesheet provided. Use --input to specify a samplesheet."
-        }
-    }
-    // Parse samplesheet
-    SAMPLESHEET_TO_CHANNEL(ch_from_samplesheet)
-
-    input_sample = SAMPLESHEET_TO_CHANNEL.out.input_sample
+    // Use samplesheet already parsed by PIPELINE_INITIALISATION
+    // This avoids duplicate SAMPLESHEET_TO_CHANNEL calls which caused duplicate PON warnings
+    input_sample = ch_samplesheet
 
 
     // Initialise MULTIQC
