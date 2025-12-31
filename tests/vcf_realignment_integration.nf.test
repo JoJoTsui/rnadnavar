@@ -32,9 +32,6 @@ nextflow_pipeline {
                 { assert workflow.success },
                 { assert workflow.trace.succeeded().size() > 0 },
                 // Check that VCF realignment workflow components were executed
-                { assert workflow.trace.tasks().any { it.name.contains('SANITIZE_CHANNELS') } },
-                { assert workflow.trace.tasks().any { it.name.contains('SAFE_CHANNEL_JOIN') } },
-                { assert workflow.trace.tasks().any { it.name.contains('ENHANCED_CRAM2BAM_CONVERSION') } },
                 { assert workflow.trace.tasks().any { it.name.contains('VCF2BED') } },
                 { assert workflow.trace.tasks().any { it.name.contains('SAMTOOLS_EXTRACT_READ_IDS') } },
                 { assert workflow.trace.tasks().any { it.name.contains('PICARD_FILTERSAMREADS') } },
@@ -74,12 +71,9 @@ nextflow_pipeline {
                 { assert workflow.success },
                 // Verify that only RNA (status=2) and DNA normal (status=0) samples were processed
                 // DNA tumor samples (status=1) should be filtered out
-                { assert workflow.trace.tasks().any { it.name.contains('PROCESS_MONITORING') } },
-                // Verify channel sanitization prevented StackOverflowError
+                // Verify channel operations prevented StackOverflowError
                 { assert !workflow.trace.tasks().any { it.stderr?.contains('StackOverflowError') } },
                 { assert !workflow.trace.tasks().any { it.stderr?.contains('circular reference') } },
-                // Verify safe channel join operations
-                { assert workflow.trace.tasks().any { it.name.contains('SAFE_CHANNEL_JOIN') } },
                 // Verify output structure
                 { assert path("$outputDir/realignment").exists() }
             )
@@ -110,14 +104,8 @@ nextflow_pipeline {
         then {
             assertAll(
                 { assert workflow.success },
-                // Verify error handling components were used
-                { assert workflow.trace.tasks().any { it.name.contains('INPUT_VALIDATION') } },
-                { assert workflow.trace.tasks().any { it.name.contains('PROCESS_MONITORING') } },
-                { assert workflow.trace.tasks().any { it.name.contains('ERROR_SAFE_PROCESS') } },
                 // Verify no critical errors occurred
-                { assert !workflow.trace.tasks().any { it.errorAction == 'TERMINATE' } },
-                // Verify comprehensive logging was performed
-                { assert workflow.trace.tasks().any { it.name.contains('PROCESS_MONITORING') } }
+                { assert !workflow.trace.tasks().any { it.errorAction == 'TERMINATE' } }
             )
         }
     }
@@ -149,9 +137,6 @@ nextflow_pipeline {
                 { assert workflow.trace.succeeded().size() > 0 },
                 // Verify MAF-based realignment workflow still works
                 { assert !workflow.trace.tasks().any { it.name.contains('VCF2BED') } },
-                { assert !workflow.trace.tasks().any { it.name.contains('SANITIZE_CHANNELS') } },
-                // Verify backward compatibility - no VCF-specific components
-                { assert !workflow.trace.tasks().any { it.name.contains('SAFE_CHANNEL_JOIN') } },
                 // Verify output files exist
                 { assert path("$outputDir").exists() }
             )

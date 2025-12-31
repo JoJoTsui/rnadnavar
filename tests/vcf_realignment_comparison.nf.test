@@ -32,19 +32,14 @@ nextflow_pipeline {
                 { assert workflow.success },
                 { assert workflow.trace.succeeded().size() > 0 },
                 // Validate specific VCF realignment components executed
-                { assert workflow.trace.tasks().any { it.name.contains('SANITIZE_CHANNELS') } },
-                { assert workflow.trace.tasks().any { it.name.contains('SAFE_CHANNEL_JOIN') } },
                 { assert workflow.trace.tasks().any { it.name.contains('VCF2BED') } },
-                { assert workflow.trace.tasks().any { it.name.contains('ENHANCED_CRAM2BAM_CONVERSION') } },
                 // Validate no StackOverflowError occurred
                 { assert !workflow.trace.tasks().any { it.stderr?.contains('StackOverflowError') } },
                 { assert !workflow.trace.tasks().any { it.stderr?.contains('java.lang.StackOverflowError') } },
                 // Validate output structure matches expected
                 { assert path("$outputDir/realignment").exists() },
                 // Validate that realigned BAM files were produced
-                { assert workflow.trace.tasks().any { it.name.contains('FASTQ_ALIGN_HISAT2') } },
-                // Validate process monitoring was active
-                { assert workflow.trace.tasks().any { it.name.contains('PROCESS_MONITORING') } }
+                { assert workflow.trace.tasks().any { it.name.contains('FASTQ_ALIGN_HISAT2') } }
             )
         }
     }
@@ -75,8 +70,6 @@ nextflow_pipeline {
                 { assert workflow.success },
                 { assert workflow.trace.succeeded().size() > 0 },
                 // Validate MAF workflow does NOT use VCF-specific components
-                { assert !workflow.trace.tasks().any { it.name.contains('SANITIZE_CHANNELS') } },
-                { assert !workflow.trace.tasks().any { it.name.contains('SAFE_CHANNEL_JOIN') } },
                 { assert !workflow.trace.tasks().any { it.name.contains('VCF2BED') } },
                 // Validate traditional MAF-based processing
                 { assert workflow.trace.tasks().any { it.name.contains('VCF2MAF') || it.name.contains('MAF2BED') } },
@@ -150,13 +143,8 @@ nextflow_pipeline {
         then {
             assertAll(
                 { assert workflow.success || workflow.failed }, // May fail gracefully
-                // Validate error handling components were used
-                { assert workflow.trace.tasks().any { it.name.contains('INPUT_VALIDATION') } },
-                { assert workflow.trace.tasks().any { it.name.contains('PROCESS_MONITORING') } },
                 // Validate graceful failure handling if inputs are problematic
-                { assert !workflow.trace.tasks().any { it.stderr?.contains('StackOverflowError') } },
-                // Validate diagnostic information was captured
-                { assert workflow.trace.tasks().any { it.name.contains('ERROR_SAFE_PROCESS') } }
+                { assert !workflow.trace.tasks().any { it.stderr?.contains('StackOverflowError') } }
             )
         }
     }

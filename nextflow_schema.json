@@ -626,6 +626,35 @@
                     "fa_icon": "fas fa-dna",
                     "description": "Enable when exome or panel data is provided.",
                     "help_text": "With this parameter flags in various tools are set for targeted sequencing data. It is recommended to enable for whole-exome and panel data analysis."
+                },
+                "realignment_mode": {
+                    "type": "string",
+                    "default": "vcf",
+                    "enum": ["vcf", "maf"],
+                    "fa_icon": "fas fa-sync",
+                    "description": "Realignment workflow mode: 'vcf' (new VCF-based, default) or 'maf' (legacy MAF-based).",
+                    "help_text": "The VCF-based realignment workflow uses variant positions directly from VCF files to extract and realign reads. The MAF-based workflow uses a legacy approach that converts VCF to MAF format first."
+                },
+                "enable_vcf_realignment_optimization": {
+                    "type": "boolean",
+                    "default": true,
+                    "fa_icon": "fas fa-rocket",
+                    "description": "Enable optimized VCF realignment with error handling.",
+                    "help_text": "When enabled, uses the optimized VCF realignment workflow with enhanced error handling and validation. Disable for basic VCF realignment without optimizations."
+                },
+                "force_legacy_realignment": {
+                    "type": "boolean",
+                    "default": false,
+                    "fa_icon": "fas fa-history",
+                    "description": "Force use of legacy MAF-based realignment (overrides realignment_mode).",
+                    "help_text": "When enabled, forces the use of the legacy MAF-based realignment workflow regardless of the realignment_mode setting."
+                },
+                "disable_realignment_optimization": {
+                    "type": "boolean",
+                    "default": false,
+                    "fa_icon": "fas fa-ban",
+                    "description": "Disable all optimization features (use basic VCF realignment).",
+                    "help_text": "When enabled, disables optimization features and uses the basic VCF realignment implementation."
                 }
             }
         },

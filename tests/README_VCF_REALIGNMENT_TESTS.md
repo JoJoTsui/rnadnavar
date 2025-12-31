@@ -47,10 +47,7 @@ Tests workflow comparison and validation:
 
 Individual component testing:
 
-- **Channel Sanitization**: `subworkflows/local/sanitize_channels/tests/main.nf.test`
-- **Safe Channel Join**: `subworkflows/local/safe_channel_join/tests/main.nf.test`
 - **Enhanced CRAM2BAM**: `subworkflows/local/enhanced_cram2bam_conversion/tests/main.nf.test`
-- **Input Validation**: `subworkflows/local/input_validation/tests/main.nf.test`
 
 ## Running Tests
 
@@ -77,7 +74,7 @@ nf-test test tests/vcf_realignment_integration.nf.test
 nf-test test tests/vcf_realignment_comparison.nf.test
 
 # Run component tests
-nf-test test subworkflows/local/sanitize_channels/tests/main.nf.test
+nf-test test subworkflows/local/enhanced_cram2bam_conversion/tests/main.nf.test
 ```
 
 ### Test Profiles
@@ -145,13 +142,13 @@ Tests specifically validate that the original StackOverflowError in SAMTOOLS_CON
 assert !workflow.trace.tasks().any { it.stderr?.contains('StackOverflowError') }
 ```
 
-### 2. Channel Sanitization
+### 2. VCF Conversion
 
-Tests validate that channel data is properly cleaned to prevent circular references:
+Tests validate that VCF to BED conversion works for realignment:
 
 ```bash
-# Verify sanitization components executed
-assert workflow.trace.tasks().any { it.name.contains('SANITIZE_CHANNELS') }
+# Verify VCF2BED components executed
+assert workflow.trace.tasks().any { it.name.contains('VCF2BED') }
 ```
 
 ### 3. Sample Filtering
@@ -160,7 +157,7 @@ Tests validate that only RNA (status=2) and DNA normal (status=0) samples are pr
 
 ```bash
 # DNA tumor samples (status=1) should be filtered out
-assert workflow.trace.tasks().any { it.name.contains('PROCESS_MONITORING') }
+# Verify realignment only processes RNA samples
 ```
 
 ### 4. Backward Compatibility

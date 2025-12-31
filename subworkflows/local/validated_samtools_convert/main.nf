@@ -2,7 +2,6 @@
 // VALIDATED_SAMTOOLS_CONVERT: Samtools convert with command validation
 //
 
-include { COMMAND_VALIDATION } from '../command_validation/main'
 include { SAMTOOLS_CONVERT_ENHANCED } from '../../../modules/local/samtools_convert_enhanced/main'
 
 workflow VALIDATED_SAMTOOLS_CONVERT {

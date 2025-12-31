@@ -84,10 +84,7 @@ run_performance_test() {
 echo -e "\n${YELLOW}=== Phase 1: Component Unit Tests ===${NC}"
 
 # Test individual VCF realignment components
-run_test "Channel Sanitization Module" "subworkflows/local/sanitize_channels/tests/main.nf.test"
-run_test "Safe Channel Join Module" "subworkflows/local/safe_channel_join/tests/main.nf.test"
 run_test "Enhanced CRAM2BAM Conversion" "subworkflows/local/enhanced_cram2bam_conversion/tests/main.nf.test"
-run_test "Input Validation Module" "subworkflows/local/input_validation/tests/main.nf.test"
 
 echo -e "\n${YELLOW}=== Phase 2: VCF Realignment Integration Tests ===${NC}"
 

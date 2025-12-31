@@ -67,6 +67,10 @@ BaseRecalibrator` and `GATK ApplyBQSR`)
   - `Mutect2`
   - `Strelka2`
   - `SAGE`
+
+> [!NOTE]
+> **Panel of Normals (PON):** By default, Mutect2 uses the GATK-provided Panel of Normals if no custom PON is specified via `--pon`. For production analyses, consider providing a study-specific PON matched to your sample population for improved variant calling specificity. See the [GATK documentation](https://gatk.broadinstitute.org/hc/en-us/articles/360035890631-Panel-of-Normals-PON-) for details on creating a custom PON.
+
 - Annotation with `VEP` (enabled with `--tools` adding
   `vep`)
 - Normalisation of VCFs with VT (enabled with `--tools`

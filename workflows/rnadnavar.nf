@@ -46,15 +46,6 @@ include { BAM_EXTRACT_READS_HISAT2_ALIGN_VCF as PREPARE_REALIGNMENT_VCF } from '
 include { RNA_REALIGNMENT_WORKFLOW                                  } from '../subworkflows/local/rna_realignment'
 include { SECOND_RESCUE_WORKFLOW                                    } from '../subworkflows/local/second_rescue'
 
-// Optimized VCF realignment components
-include { SANITIZE_CHANNELS                                         } from '../subworkflows/local/sanitize_channels'
-include { SAFE_CHANNEL_JOIN                                         } from '../subworkflows/local/safe_channel_join'
-include { ENHANCED_CRAM2BAM_CONVERSION                              } from '../subworkflows/local/enhanced_cram2bam_conversion'
-include { PROCESS_MONITORING                                        } from '../subworkflows/local/process_monitoring'
-include { ERROR_SAFE_PROCESS                                        } from '../subworkflows/local/error_safe_process'
-include { INPUT_VALIDATION                                          } from '../subworkflows/local/input_validation'
-include { COMMAND_VALIDATION                                        } from '../subworkflows/local/command_validation'
-
 // Filter RNA
 include { MAF_FILTERING_RNA                                         } from '../subworkflows/local/maf_rna_filtering'
 
