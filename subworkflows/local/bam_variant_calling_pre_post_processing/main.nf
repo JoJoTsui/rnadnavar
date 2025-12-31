@@ -179,13 +179,10 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     filtered_rescue_vcf          = Channel.empty()
     filtered_rescue_vcf_stripped = Channel.empty()
     
-    log.info "=== VCF_RESCUE_POST_PROCESSING Check ==="
-    log.info "params.tools: ${params.tools}"
-    log.info "Contains rescue: ${params.tools && params.tools.split(',').contains('rescue')}"
-    log.info "Will run VCF_RESCUE_POST_PROCESSING: ${params.tools && params.tools.split(',').contains('rescue')}"
-    
     if (params.tools && params.tools.split(',').contains('rescue')) {
-        log.info "Executing VCF_RESCUE_POST_PROCESSING with enable_rna_annotation=${enable_rna_annotation}"
+        if (params.debug_verbose) {
+            log.info "[DEBUG] VCF_RESCUE_POST_PROCESSING: rna_annotation=${enable_rna_annotation}, cosmic_gnomad=${enable_cosmic_gnomad_annotation}"
+        }
         VCF_RESCUE_POST_PROCESSING(
             vcf_rescue,
             rediportal_vcf,

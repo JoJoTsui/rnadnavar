@@ -173,27 +173,28 @@ workflow RNADNAVAR {
     rediportal_vcf          = params.rediportal_vcf ? Channel.fromPath(params.rediportal_vcf).collect() : Channel.empty()
     rediportal_tbi          = params.rediportal_tbi ? Channel.fromPath(params.rediportal_tbi).collect() : Channel.empty()
     min_rna_support         = params.min_rna_support ?: 2
-    enable_rna_annotation   = params.enable_rna_annotation ?: false
+    // CRITICAL: Use explicit null check for boolean - Elvis operator treats false as falsy
+    enable_rna_annotation   = params.enable_rna_annotation == null ? false : params.enable_rna_annotation
     
-    // Debug RNA annotation parameters
-    log.info "=== RNA Annotation Parameters (Main Workflow) ==="
-    log.info "params.rediportal_vcf: ${params.rediportal_vcf}"
-    log.info "params.enable_rna_annotation: ${params.enable_rna_annotation}"
-    log.info "min_rna_support: ${min_rna_support}"
-    rediportal_vcf.view { "rediportal_vcf channel content: $it" }
-    rediportal_tbi.view { "rediportal_tbi channel content: $it" }
+    // Debug RNA annotation parameters (only when debug_verbose is enabled)
+    if (params.debug_verbose) {
+        log.info "[DEBUG] RNA Annotation: rediportal_vcf=${params.rediportal_vcf}, enable=${enable_rna_annotation}, min_support=${min_rna_support}"
+        rediportal_vcf.view { "[DEBUG] rediportal_vcf: $it" }
+        rediportal_tbi.view { "[DEBUG] rediportal_tbi: $it" }
+    }
 
     // COSMIC/gnomAD annotation parameters
     cosmic_vcf                      = params.cosmic_database ? Channel.fromPath(params.cosmic_database).collect() : Channel.empty()
     cosmic_tbi                      = params.cosmic_database ? Channel.fromPath(params.cosmic_database + '.tbi').collect() : Channel.empty()
     gnomad_dir                      = params.gnomad_database ? Channel.fromPath(params.gnomad_database).collect() : Channel.empty()
-    enable_cosmic_gnomad_annotation = params.enable_cosmic_gnomad_annotation ?: true
-    cosmic_gnomad_verbose           = params.cosmic_gnomad_verbose ?: false
+    // CRITICAL: Use explicit null check for boolean - Elvis operator treats false as falsy
+    enable_cosmic_gnomad_annotation = params.enable_cosmic_gnomad_annotation == null ? true : params.enable_cosmic_gnomad_annotation
+    cosmic_gnomad_verbose           = params.cosmic_gnomad_verbose == null ? false : params.cosmic_gnomad_verbose
 
     // 5 MAIN STEPS: GATK PREPROCESING - VARIANT CALLING - NORMALIZATION - CONSENSUS - ANNOTATION
-    log.info "=== BAM_PROCESSING Parameters ==="
-    log.info "params.tools: ${params.tools}"
-    log.info "Contains rescue: ${params.tools && params.tools.split(',').contains('rescue')}"
+    if (params.debug_verbose) {
+        log.info "[DEBUG] BAM_PROCESSING: tools=${params.tools}, cosmic_gnomad=${enable_cosmic_gnomad_annotation}, rna_annotation=${enable_rna_annotation}"
+    }
     
     BAM_PROCESSING(
         input_sample,
@@ -386,12 +387,10 @@ workflow RNADNAVAR {
 
             // === Step 3: Second rescue (DNA + realigned RNA) ===
             if (params.tools && params.tools.split(',').contains('rescue')) {
-                // Debug RNA annotation parameters before passing to rescue
-                log.info "=== Second Rescue Workflow - RNA Annotation Parameters ==="
-                log.info "enable_rna_annotation: ${enable_rna_annotation}"
-                log.info "min_rna_support: ${min_rna_support}"
-                log.info "rediportal_vcf channel: ${rediportal_vcf}"
-                log.info "rediportal_tbi channel: ${rediportal_tbi}"
+                // Debug RNA annotation parameters (only when debug_verbose is enabled)
+                if (params.debug_verbose) {
+                    log.info "[DEBUG] Second Rescue: rna_annotation=${enable_rna_annotation}, cosmic_gnomad=${enable_cosmic_gnomad_annotation}"
+                }
                 
                 SECOND_RESCUE_WORKFLOW(
                     first_round_dna_consensus_vcf,

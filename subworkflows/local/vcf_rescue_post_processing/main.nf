@@ -1,6 +1,6 @@
 //
 // VCF Rescue Post-Processing Workflow - Modular pipeline for extensible post-rescue processing
-// Enhanced with comprehensive error handling and resource management
+// REFACTORED: Uses runtime channel handling instead of parse-time conditionals
 //
 include { COSMIC_GNOMAD_ANNOTATION } from '../../../modules/local/cosmic_gnomad_annotation/main'
 include { RNA_EDITING_ANNOTATION   } from '../../../modules/local/rna_editing_annotation/main'
@@ -22,94 +22,74 @@ workflow VCF_RESCUE_POST_PROCESSING {
     main:
     versions = Channel.empty()
     
-    // Log workflow parameters for debugging
-    log.info "=== VCF Rescue Post-Processing Workflow ==="
-    log.info "COSMIC/gnomAD annotation enabled: ${enable_cosmic_gnomad_annotation}"
-    log.info "COSMIC database provided: ${cosmic_vcf ? 'Yes' : 'No'}"
-    log.info "gnomAD database provided: ${gnomad_dir ? 'Yes' : 'No'}"
-    log.info "COSMIC/gnomAD verbose logging: ${cosmic_gnomad_verbose}"
-    log.info "RNA annotation enabled: ${enable_rna_annotation}"
-    log.info "Min RNA support threshold: ${min_rna_support}"
-    log.info "REDIportal VCF provided: ${rediportal_vcf ? 'Yes' : 'No'}"
-    log.info "REDIportal VCF channel: ${rediportal_vcf}"
-    log.info "REDIportal TBI channel: ${rediportal_tbi}"
-    
-    // Determine actual execution flags based on parameter validation
-    // Note: Rely on boolean parameters, not channel inspection (channels are lazy)
-    def cosmic_vcf_provided = cosmic_vcf != null
-    def gnomad_dir_provided = gnomad_dir != null
-    def rediportal_provided = rediportal_vcf != null
-    
-    def run_cosmic_gnomad = enable_cosmic_gnomad_annotation && (cosmic_vcf_provided || gnomad_dir_provided)
-    def run_rna_annotation = enable_rna_annotation && rediportal_provided
+    // Validate min_rna_support
     def validated_min_rna_support = (min_rna_support < 1) ? 2 : min_rna_support
     
-    // Log validation results with detailed channel inspection
-    log.info "Conditional evaluation: run_cosmic_gnomad = ${run_cosmic_gnomad}, run_rna_annotation = ${run_rna_annotation}"
-    if (enable_cosmic_gnomad_annotation && !run_cosmic_gnomad) {
-        log.warn "COSMIC/gnomAD annotation enabled but no databases provided - skipping"
-    }
-    if (enable_rna_annotation && !run_rna_annotation) {
-        log.warn "RNA annotation enabled but REDIportal VCF parameter not provided - skipping"
-        log.info "  rediportal_vcf parameter: ${params.rediportal_vcf ?: 'not set'}"
-    }
-    if (min_rna_support < 1) {
-        log.warn "Invalid min_rna_support value: ${min_rna_support}. Using default value of 2"
+    // Debug logging only when enabled
+    if (params.debug_verbose) {
+        log.info "[DEBUG] VCF_RESCUE_POST_PROCESSING: cosmic_gnomad=${enable_cosmic_gnomad_annotation}, rna_annotation=${enable_rna_annotation}"
     }
     
-    // COSMIC/gnomAD annotation (conditional with error handling)
-    if (run_cosmic_gnomad) {
-        // log.info "COSMIC/gnomAD annotation will be performed"
-        // if (cosmic_vcf) log.info "  - COSMIC database: ${cosmic_vcf}"
-        // if (gnomad_dir) log.info "  - gnomAD database: ${gnomad_dir}"
-        
-        COSMIC_GNOMAD_ANNOTATION(
-            vcf_rescue,
-            cosmic_vcf,
-            cosmic_tbi,
-            gnomad_dir,
-            cosmic_gnomad_verbose
-        )
-        
-        vcf_after_cosmic_gnomad = COSMIC_GNOMAD_ANNOTATION.out.vcf
-        versions = versions.mix(COSMIC_GNOMAD_ANNOTATION.out.versions)
-    } else {
-        vcf_after_cosmic_gnomad = vcf_rescue
+    // ============================================================================
+    // COSMIC/gnomAD Annotation - Uses .ifEmpty() to handle missing databases
+    // This allows proper runtime channel handling instead of parse-time checks
+    // ============================================================================
+    
+    // Create safe channels with NO_FILE placeholder for empty database channels
+    cosmic_vcf_safe = cosmic_vcf.ifEmpty { file('NO_FILE') }
+    cosmic_tbi_safe = cosmic_tbi.ifEmpty { file('NO_FILE') }
+    gnomad_dir_safe = gnomad_dir.ifEmpty { file('NO_FILE') }
+    
+    // Branch VCF based on whether COSMIC/gnomAD annotation is enabled
+    // This is evaluated at runtime, not parse time
+    vcf_for_cosmic = vcf_rescue.branch {
+        run_cosmic: enable_cosmic_gnomad_annotation
+        skip_cosmic: true
     }
-
-    // RNA editing annotation (conditional with error handling)
-    if (run_rna_annotation) {
-        log.info "=== RNA_EDITING_ANNOTATION INVOCATION ==="
-        log.info "RNA editing annotation will be performed using REDIportal database"
-        log.info "Process will be added to workflow DAG"
-        log.info "Input VCF channel: ${vcf_after_cosmic_gnomad.getClass().simpleName}"
-        log.info "REDIportal VCF channel: ${rediportal_vcf.getClass().simpleName}"
-        log.info "Min RNA support: ${validated_min_rna_support}"
-        
-        // Create value channels for logging without consuming the originals
-        // CRITICAL FIX: .view() consumes channels - use .first() to create non-consuming copies
-        def rediportal_file = rediportal_vcf.first()
-        def rediportal_index = rediportal_tbi.first()
-        rediportal_file.view { "[RNA_ANNOTATION] rediportal_vcf file: $it" }
-        rediportal_index.view { "[RNA_ANNOTATION] rediportal_tbi file: $it" }
-        
-        log.info "Invoking RNA_EDITING_ANNOTATION process now..."
-        RNA_EDITING_ANNOTATION(
-            vcf_after_cosmic_gnomad,
-            rediportal_file,
-            rediportal_index,
-            validated_min_rna_support
-        )
-        log.info "RNA_EDITING_ANNOTATION process invoked successfully"
-        
-        vcf_for_filtering = RNA_EDITING_ANNOTATION.out.vcf
-        vcf_for_filtering.view { meta, vcf, tbi -> "[RNA_ANNOTATION] Output from RNA_EDITING_ANNOTATION: ${meta.id} - ${vcf.name}" }
-        versions = versions.mix(RNA_EDITING_ANNOTATION.out.versions)
-        log.info "RNA annotation output channel assigned to vcf_for_filtering"
-    } else {
-        log.warn "RNA annotation SKIPPED - using unannotated VCF for filtering"
-        vcf_for_filtering = vcf_after_cosmic_gnomad
-        vcf_for_filtering.view { meta, vcf, tbi -> "[NO_RNA_ANNOTATION] VCF going to filtering: ${meta.id} - ${vcf.name}" }
+    
+    // Run COSMIC/gnomAD annotation only when enabled
+    // The process has internal handling for NO_FILE placeholders
+    COSMIC_GNOMAD_ANNOTATION(
+        vcf_for_cosmic.run_cosmic,
+        cosmic_vcf_safe,
+        cosmic_tbi_safe,
+        gnomad_dir_safe,
+        cosmic_gnomad_verbose
+    )
+    
+    // Merge annotated and skipped VCFs
+    vcf_after_cosmic_gnomad = COSMIC_GNOMAD_ANNOTATION.out.vcf.mix(vcf_for_cosmic.skip_cosmic)
+    versions = versions.mix(COSMIC_GNOMAD_ANNOTATION.out.versions)
+    
+    // ============================================================================
+    // RNA Editing Annotation - Uses .ifEmpty() to handle missing REDIportal files
+    // ============================================================================
+    
+    // Create safe channels for REDIportal files
+    rediportal_vcf_safe = rediportal_vcf.ifEmpty { file('NO_FILE') }
+    rediportal_tbi_safe = rediportal_tbi.ifEmpty { file('NO_FILE') }
+    
+    // Branch VCF based on whether RNA annotation is enabled
+    vcf_for_rna = vcf_after_cosmic_gnomad.branch {
+        run_rna: enable_rna_annotation
+        skip_rna: true
+    }
+    
+    // Run RNA editing annotation only when enabled
+    RNA_EDITING_ANNOTATION(
+        vcf_for_rna.run_rna,
+        rediportal_vcf_safe,
+        rediportal_tbi_safe,
+        validated_min_rna_support
+    )
+    
+    // Merge annotated and skipped VCFs
+    vcf_for_filtering = RNA_EDITING_ANNOTATION.out.vcf.mix(vcf_for_rna.skip_rna)
+    versions = versions.mix(RNA_EDITING_ANNOTATION.out.versions)
+    
+    // Debug output (only when enabled)
+    if (params.debug_verbose) {
+        vcf_for_filtering.view { meta, vcf, tbi -> "[DEBUG] VCF for filtering: ${meta.id}" }
     }
     
     // Rescue VCF filtering (always executed)

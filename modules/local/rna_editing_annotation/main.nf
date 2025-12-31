@@ -17,6 +17,11 @@ process RNA_EDITING_ANNOTATION {
     tuple val(meta), path("*.rna_annotated.vcf.gz"), path("*.rna_annotated.vcf.gz.tbi"), emit: vcf
     path "versions.yml", emit: versions
 
+    when:
+    // Skip if REDIportal files are NO_FILE placeholders
+    task.ext.when == null || task.ext.when
+    rediportal_vcf.name != 'NO_FILE' && rediportal_tbi.name != 'NO_FILE'
+
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
