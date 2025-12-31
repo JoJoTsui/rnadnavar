@@ -30,6 +30,8 @@ The VCF-based realignment workflow consists of the following steps:
 *   **Comprehensive Annotation**: Includes COSMIC, gnomAD, and RNA editing annotations (REDIportal) with conditional execution based on parameter settings.
 *   **Organized Output Structure**: All realignment-related outputs are placed in dedicated `vcf_realignment/` directory to separate them from main workflow outputs.
 *   **Suffix Propagation**: Realigned samples maintain `_realign` suffix throughout the workflow for easy identification.
+*   **Unified Logging**: All debug logging is gated behind `--debug_verbose` flag, keeping stdout clean during normal execution.
+*   **Consolidated Rescue Outputs**: Both first-round and second-round rescue outputs are consolidated in their respective `rescue/` directories.
 
 ## Usage
 
@@ -58,25 +60,71 @@ To enable VCF-based realignment, set the following parameters in your configurat
 --cosmic_gnomad_verbose false  # Set to true for detailed annotation logs
 ```
 
+**Debug Logging:**
+```bash
+--debug_verbose true  # Enable verbose debug logging to .nextflow.log (default: false)
+```
+
 ## Output
 
 The workflow produces the following outputs organized in dedicated directories:
 
-*   **MAF Results**: `results/maf_results/` (Main workflow only - MAF mode)
-    *   Contains `vcf2maf`, `consensus`, and `filtered` MAF files.
-*   **Realignment Outputs**: `results/vcf_realignment/`
-    *   `preprocessing/`: Contains realigned CRAMs/BAMs from MarkDuplicates and SplitNCigarReads with `_realign` suffix.
-    *   `variant_calling/`: Contains raw VCFs from variant callers (mutect2, strelka, deepsomatic, etc.) for realigned samples.
-    *   `normalized/`: Contains normalized VCFs (VT decompose + BCFTools norm) organized by variant caller.
-    *   `consensus/`: Contains consensus VCFs generated from realigned variant calls.
-    *   `filtered/`: Contains filtered consensus VCFs for realigned samples.
-*   **Rescued VCFs**: `results/rescue/` (Final output)
-    *   First-round rescue: `DNA_TUMOR_vs_DNA_NORMAL_rescued_RNA_TUMOR_vs_DNA_NORMAL.*`
-    *   Second-round rescue (with realigned RNA): `DNA_TUMOR_vs_DNA_NORMAL_rescued_RNA_TUMOR_realign_vs_DNA_NORMAL.*`
-    *   Annotated rescue VCFs with RNA editing and COSMIC/gnomAD annotations (if enabled).
-*   **Reports**: `results/reports/vcf_realignment/`
-    *   QC reports, metrics, and statistics for realignment processes.
-    *   Includes samtools, mosdepth, bcftools stats, and GATK metrics.
+### First-Round Rescue Outputs
+
+Located in `results/rescue/<sample_id>/` (consolidated):
+```
+rescue/
+└── DNA_TUMOR_vs_DNA_NORMAL_rescued_RNA_TUMOR_vs_DNA_NORMAL/
+    ├── *.rescued.vcf.gz                  # VCF_RESCUE output
+    ├── *.rescued.vcf.gz.tbi
+    ├── *.rescue.rna_annotated.vcf.gz     # RNA_EDITING_ANNOTATION (if enabled)
+    ├── *.rescue.rna_annotated.vcf.gz.tbi
+    ├── *.cosmic_gnomad.vcf.gz            # COSMIC_GNOMAD_ANNOTATION (if enabled)
+    ├── *.cosmic_gnomad.vcf.gz.tbi
+    ├── *.filtered.vcf.gz                 # VCF_RESCUE_FILTER output
+    ├── *.filtered.vcf.gz.tbi
+    ├── *.filtered.vcf.stripped.vcf.gz
+    └── *.filtered.vcf.stripped.vcf.gz.tbi
+```
+
+### Second-Round Rescue Outputs (Realigned RNA)
+
+Located in `results/vcf_realignment/rescue/<sample_id>/` (consolidated):
+```
+vcf_realignment/rescue/
+└── DNA_TUMOR_vs_DNA_NORMAL_rescued_RNA_TUMOR_realign_vs_DNA_NORMAL/
+    ├── *.rescued.vcf.gz                  # VCF_RESCUE output
+    ├── *.rescued.vcf.gz.tbi
+    ├── *.rescue.rna_annotated.vcf.gz     # RNA_EDITING_ANNOTATION (if enabled)
+    ├── *.rescue.rna_annotated.vcf.gz.tbi
+    ├── *.cosmic_gnomad.vcf.gz            # COSMIC_GNOMAD_ANNOTATION (if enabled)
+    ├── *.cosmic_gnomad.vcf.gz.tbi
+    ├── *.filtered.vcf.gz                 # VCF_RESCUE_FILTER output
+    ├── *.filtered.vcf.gz.tbi
+    ├── *.filtered.vcf.stripped.vcf.gz
+    └── *.filtered.vcf.stripped.vcf.gz.tbi
+```
+
+### Realignment Intermediate Outputs
+
+Located in `results/vcf_realignment/`:
+```
+vcf_realignment/
+├── preprocessing/
+│   ├── markduplicates/RNA_TUMOR_realign/
+│   └── splitncigarreads/RNA_TUMOR_realign/
+├── variant_calling/
+│   ├── deepsomatic/RNA_TUMOR_realign_vs_DNA_NORMAL/
+│   ├── mutect2/RNA_TUMOR_realign_vs_DNA_NORMAL/
+│   └── strelka/RNA_TUMOR_realign_vs_DNA_NORMAL/
+├── normalized/
+│   ├── deepsomatic/RNA_TUMOR_realign_vs_DNA_NORMAL/
+│   ├── mutect2/RNA_TUMOR_realign_vs_DNA_NORMAL/
+│   └── strelka/RNA_TUMOR_realign_vs_DNA_NORMAL/
+├── consensus/RNA_TUMOR_realign_vs_DNA_NORMAL/
+├── filtered/RNA_TUMOR_realign_vs_DNA_NORMAL/
+└── rescue/DNA_TUMOR_vs_DNA_NORMAL_rescued_RNA_TUMOR_realign_vs_DNA_NORMAL/
+```
 
 ### Output File Naming Convention
 
@@ -87,23 +135,48 @@ All realignment outputs include the `_realign` suffix in sample IDs to distingui
 - Filtered: `RNA_TUMOR_realign_vs_DNA_NORMAL.filtered.vcf.gz`
 - Second rescue: `DNA_TUMOR_vs_DNA_NORMAL_rescued_RNA_TUMOR_realign_vs_DNA_NORMAL.rescued.vcf.gz`
 
+## Logging Behavior
+
+The VCF realignment workflow uses a unified logging approach:
+
+### Default Mode (`--debug_verbose false`)
+- **stdout**: Only Nextflow execution progress (process completion, task counts)
+- **.nextflow.log**: Contains all log messages including debug information
+
+### Debug Mode (`--debug_verbose true`)
+- **stdout**: Detailed workflow state information including:
+  - Realignment mode selection
+  - Channel contents and metadata validation
+  - CRAM to BAM conversion status
+  - Memory usage monitoring
+- **.nextflow.log**: Same as stdout plus additional trace-level information
+
+### Error Messages
+Error messages (`log.error`) are always displayed regardless of `--debug_verbose` setting:
+- Missing required metadata fields
+- File validation failures
+- Process execution errors
+
 ## Configuration Architecture
 
 The VCF realignment workflow uses a modular configuration approach:
 
 *   **Base Configuration**: `conf/modules/modules.config` - Defines default publishDir patterns for all processes.
+*   **First-Round Rescue**: `conf/modules/rescue/first_round_rescue.config` - Consolidates first-round rescue outputs into `rescue/${meta.id}/`.
 *   **Realignment-Specific Overrides**: `conf/modules/prepare_realignment/vcf_realignment.config` - Overrides publishDir for all processes within `RNA_REALIGNMENT_WORKFLOW` and `SECOND_RESCUE_WORKFLOW` to route outputs to `vcf_realignment/` directory.
 *   **Optimization Config**: `conf/modules/prepare_realignment/optimization.config` - Contains only PREPARE_REALIGNMENT_VCF-specific overrides (HISAT2, SAMTOOLS).
 
 The configuration loading order in [nextflow.config](nextflow.config) ensures proper precedence:
 1. Base modules.config (default patterns)
 2. Specific module configs (variant calling, normalization, etc.)
-3. vcf_realignment.config (loaded last to override patterns for realignment processes)
+3. first_round_rescue.config (consolidates first-round rescue outputs)
+4. vcf_realignment.config (loaded last to override patterns for realignment processes)
 
 This architecture ensures that:
-- Realignment outputs are properly organized without affecting main workflow outputs.
-- Wildcard selector patterns (`.*:RNA_REALIGNMENT_WORKFLOW:.*:PROCESS_NAME`) catch all nested processes.
-- Configuration is maintainable and easy to extend for new processes.
+- Both first-round and second-round rescue outputs are properly consolidated
+- Realignment outputs are properly organized without affecting main workflow outputs
+- Wildcard selector patterns (`.*:RNA_REALIGNMENT_WORKFLOW:.*:PROCESS_NAME`) catch all nested processes
+- Configuration is maintainable and easy to extend for new processes
 
 ## Troubleshooting
 
@@ -115,16 +188,22 @@ Check the following:
    --rediportal_vcf /path/to/REDIportal.vcf.gz
    --rediportal_tbi /path/to/REDIportal.vcf.gz.tbi
    ```
-2. Check pipeline logs for parameter debugging messages:
+2. Enable debug logging to see detailed workflow state:
+   ```bash
+   --debug_verbose true
    ```
-   === Second Rescue Workflow - RNA Annotation Parameters ===
-   enable_rna_annotation: true
-   rediportal_vcf channel: [/path/to/file]
-   ```
-3. Check VCF_RESCUE_POST_PROCESSING logs for conditional evaluation:
-   ```
-   Conditional evaluation: run_rna_annotation = true
-   ```
+3. Check `.nextflow.log` for VCF_RESCUE_POST_PROCESSING conditional evaluation
+
+**Issue: Too much logging on stdout**
+
+The pipeline uses `--debug_verbose` (default: false) to control verbose logging:
+```bash
+# Quiet mode (default) - only Nextflow progress
+nextflow run main.nf ...
+
+# Debug mode - verbose workflow state logging
+nextflow run main.nf --debug_verbose true ...
+```
 
 **Issue: Realignment outputs not in `vcf_realignment/` directory**
 
@@ -134,6 +213,10 @@ Check the following:
    nextflow config -profile <your_profile> | grep -A5 "RNA_REALIGNMENT_WORKFLOW"
    ```
 3. Ensure process names match the wildcard patterns in the config.
+
+**Issue: First-round rescue outputs scattered in multiple directories**
+
+This is expected if using an older configuration. Update to the latest version which includes `first_round_rescue.config` for consolidated output structure.
 
 **Issue: `_realign` suffix missing in output files**
 
@@ -159,7 +242,8 @@ Use the provided verification script to check output structure:
 ```
 
 This script checks for:
-- Proper directory structure (`vcf_realignment/`, `maf_results/`, `rescue/`)
+- Proper directory structure (`vcf_realignment/`, `rescue/`)
 - Presence of `_realign` suffix in filenames
 - Existence of both first-round and second-round rescue outputs
 - All expected subdirectories within `vcf_realignment/`
+- Consolidated rescue output structure
