@@ -86,16 +86,18 @@ workflow VCF_RESCUE_POST_PROCESSING {
         log.info "REDIportal VCF channel: ${rediportal_vcf.getClass().simpleName}"
         log.info "Min RNA support: ${validated_min_rna_support}"
         
-        // Log actual channel content at invocation time
-        rediportal_vcf.view { "[RNA_ANNOTATION] rediportal_vcf channel content: $it" }
-        rediportal_tbi.view { "[RNA_ANNOTATION] rediportal_tbi channel content: $it" }
-        vcf_after_cosmic_gnomad.view { meta, vcf, tbi -> "[RNA_ANNOTATION] Input VCF for annotation: ${meta.id} - ${vcf.name}" }
+        // Create value channels for logging without consuming the originals
+        // CRITICAL FIX: .view() consumes channels - use .first() to create non-consuming copies
+        def rediportal_file = rediportal_vcf.first()
+        def rediportal_index = rediportal_tbi.first()
+        rediportal_file.view { "[RNA_ANNOTATION] rediportal_vcf file: $it" }
+        rediportal_index.view { "[RNA_ANNOTATION] rediportal_tbi file: $it" }
         
         log.info "Invoking RNA_EDITING_ANNOTATION process now..."
         RNA_EDITING_ANNOTATION(
             vcf_after_cosmic_gnomad,
-            rediportal_vcf,
-            rediportal_tbi,
+            rediportal_file,
+            rediportal_index,
             validated_min_rna_support
         )
         log.info "RNA_EDITING_ANNOTATION process invoked successfully"
