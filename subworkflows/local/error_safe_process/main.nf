@@ -16,7 +16,7 @@ workflow ERROR_SAFE_PROCESS {
             .map { items ->
                 try {
                     // Pre-execution validation
-                    log.info "ERROR_SAFE_PROCESS: Starting ${process_name}"
+                    if (params.debug_verbose) { log.info "ERROR_SAFE_PROCESS: Starting ${process_name}" }
                     
                     // Check for null inputs
                     if (items == null) {
@@ -48,7 +48,7 @@ workflow ERROR_SAFE_PROCESS {
                         runtime = Runtime.getRuntime()
                         freeMemory = runtime.freeMemory()
                         memoryUsagePercent = ((maxMemory - freeMemory) * 100.0) / maxMemory
-                        log.info "Memory usage after GC: ${String.format('%.1f', memoryUsagePercent)}%"
+                        if (params.debug_verbose) { log.info "Memory usage after GC: ${String.format('%.1f', memoryUsagePercent)}%" }
                     }
                     
                     // Check for potential circular references in metadata
@@ -60,7 +60,7 @@ workflow ERROR_SAFE_PROCESS {
                         }
                     }
                     
-                    log.info "Pre-execution validation passed for ${process_name}"
+                    if (params.debug_verbose) { log.info "Pre-execution validation passed for ${process_name}" }
                     return items
                     
                 } catch (StackOverflowError e) {
@@ -110,7 +110,7 @@ workflow ERROR_SAFE_PROCESS {
                         }
                     }
                     
-                    log.info "Post-processing validation passed for ${process_name}"
+                    if (params.debug_verbose) { log.info "Post-processing validation passed for ${process_name}" }
                     return true
                     
                 } catch (Exception e) {
@@ -120,7 +120,7 @@ workflow ERROR_SAFE_PROCESS {
             }
             .map { items ->
                 // Final success logging
-                log.info "ERROR_SAFE_PROCESS: Successfully completed ${process_name}"
+                if (params.debug_verbose) { log.info "ERROR_SAFE_PROCESS: Successfully completed ${process_name}" }
                 return items
             }
     

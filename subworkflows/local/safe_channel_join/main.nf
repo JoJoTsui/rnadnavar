@@ -114,9 +114,9 @@ workflow SAFE_CHANNEL_JOIN {
                 [merged_meta, cram, crai, vcf, tbi]
             }
         
-        // Log successful joins for monitoring
+        // Log successful joins for monitoring (only when debug_verbose enabled)
         joined_logged = joined.map { meta, cram, crai, vcf, tbi ->
-            log.info "Successfully joined patient ${meta.patient}: CRAM=${cram.getSimpleName()}, VCF=${vcf.getSimpleName()}"
+            if (params.debug_verbose) { log.info "Successfully joined patient ${meta.patient}: CRAM=${cram.getSimpleName()}, VCF=${vcf.getSimpleName()}" }
             [meta, cram, crai, vcf, tbi]
         }
     

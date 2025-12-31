@@ -82,7 +82,11 @@ workflow RNADNAVAR {
         ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
     }
     else {
-        ch_from_samplesheet = params.build_only_index ? Channel.empty() : Channel.fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
+        // No input provided - create empty channel (will fail validation downstream if needed)
+        ch_from_samplesheet = Channel.empty()
+        if (!params.build_only_index) {
+            log.warn "No input samplesheet provided. Use --input to specify a samplesheet."
+        }
     }
     // Parse samplesheet
     SAMPLESHEET_TO_CHANNEL(ch_from_samplesheet)
@@ -172,7 +176,8 @@ workflow RNADNAVAR {
     // RNA editing parameters
     rediportal_vcf          = params.rediportal_vcf ? Channel.fromPath(params.rediportal_vcf).collect() : Channel.empty()
     rediportal_tbi          = params.rediportal_tbi ? Channel.fromPath(params.rediportal_tbi).collect() : Channel.empty()
-    min_rna_support         = params.min_rna_support ?: 2
+    // CRITICAL: Use explicit null check - Elvis operator treats 0 as falsy
+    min_rna_support         = params.min_rna_support == null ? 2 : params.min_rna_support
     // CRITICAL: Use explicit null check for boolean - Elvis operator treats false as falsy
     enable_rna_annotation   = params.enable_rna_annotation == null ? false : params.enable_rna_annotation
     
@@ -255,15 +260,18 @@ workflow RNADNAVAR {
         PREPARE_INTERVALS_FOR_REALIGNMENT(fasta_fai, null, true)
 
         // Determine realignment mode with backward compatibility
-        def mode = params.force_legacy_realignment ? 'maf' : (params.realignment_mode ?: 'vcf')
+        // CRITICAL: Use explicit null check - Elvis operator treats empty string as falsy
+        def mode = params.force_legacy_realignment ? 'maf' : (params.realignment_mode != null ? params.realignment_mode : 'vcf')
         
-        // Log realignment mode selection
-        log.info "Using realignment mode: ${mode}"
-        if (params.enable_vcf_realignment_optimization && mode == 'vcf') {
-            log.info "VCF realignment optimization features enabled"
-        }
-        if (params.disable_realignment_optimization) {
-            log.info "Realignment optimization features disabled - using basic implementation"
+        // Log realignment mode selection (only when debug_verbose enabled)
+        if (params.debug_verbose) {
+            log.info "Using realignment mode: ${mode}"
+            if (params.enable_vcf_realignment_optimization && mode == 'vcf') {
+                log.info "VCF realignment optimization features enabled"
+            }
+            if (params.disable_realignment_optimization) {
+                log.info "Realignment optimization features disabled - using basic implementation"
+            }
         }
 
         // === Step 1: Prepare realignment (extract reads + HISAT2) ===
@@ -283,7 +291,7 @@ workflow RNADNAVAR {
             // Use optimized VCF realignment if enabled, otherwise use basic version
             if (params.enable_vcf_realignment_optimization && !params.disable_realignment_optimization) {
                 // === OPTIMIZED VCF REALIGNMENT WORKFLOW ===
-                log.info "Using optimized VCF realignment workflow with comprehensive error handling"
+                if (params.debug_verbose) { log.info "Using optimized VCF realignment workflow with comprehensive error handling" }
                 
                 PREPARE_REALIGNMENT_VCF(
                     input_sample,
@@ -303,7 +311,7 @@ workflow RNADNAVAR {
                 
             } else {
                 // === BASIC VCF REALIGNMENT WORKFLOW ===
-                log.info "Using basic VCF realignment workflow (optimization disabled)"
+                if (params.debug_verbose) { log.info "Using basic VCF realignment workflow (optimization disabled)" }
                 
                 // Use the original BAM_EXTRACT_READS_HISAT2_ALIGN_VCF without optimizations
                 // This would require a separate basic implementation or fallback logic
@@ -326,7 +334,7 @@ workflow RNADNAVAR {
             }
         } else {
             // === LEGACY MAF-BASED REALIGNMENT ===
-            log.info "Using legacy MAF-based realignment workflow"
+            if (params.debug_verbose) { log.info "Using legacy MAF-based realignment workflow" }
             
             PREPARE_REALIGNMENT(
                 input_sample,

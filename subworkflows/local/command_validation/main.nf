@@ -14,7 +14,7 @@ workflow COMMAND_VALIDATION {
         validated_command = Channel.of(command_parts)
             .map { cmd_parts ->
                 try {
-                    log.info "COMMAND_VALIDATION: Validating command for ${process_name}"
+                    if (params.debug_verbose) { log.info "COMMAND_VALIDATION: Validating command for ${process_name}" }
                     
                     // Validate command structure
                     if (!cmd_parts) {
@@ -90,10 +90,12 @@ workflow COMMAND_VALIDATION {
                     validateCommandSyntax(full_command, process_name)
                     
                     // Log successful validation
-                    log.info "COMMAND_VALIDATION: Successfully validated command for ${process_name}"
-                    log.info "  - Executable: ${executable}"
-                    log.info "  - Arguments: ${args}"
-                    log.info "  - Full command: ${full_command}"
+                    if (params.debug_verbose) {
+                        log.info "COMMAND_VALIDATION: Successfully validated command for ${process_name}"
+                        log.info "  - Executable: ${executable}"
+                        log.info "  - Arguments: ${args}"
+                        log.info "  - Full command: ${full_command}"
+                    }
                     
                     // Return validated command parts with additional metadata
                     return cmd_parts + [

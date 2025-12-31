@@ -98,7 +98,7 @@ workflow VALIDATED_SAMTOOLS_CONVERT {
                     def process_name = validation_data.process_name
                     def cmd_parts = validation_data.command_parts
                     
-                    log.info "VALIDATED_SAMTOOLS_CONVERT: Validating command for ${process_name}"
+                    if (params.debug_verbose) { log.info "VALIDATED_SAMTOOLS_CONVERT: Validating command for ${process_name}" }
                     
                     // Validate command structure
                     if (!cmd_parts || !(cmd_parts instanceof Map)) {
@@ -154,10 +154,12 @@ workflow VALIDATED_SAMTOOLS_CONVERT {
                     // Construct full command for logging
                     def full_command = "${cmd_parts.executable} ${cmd_parts.args.join(' ')}"
                     
-                    log.info "VALIDATED_SAMTOOLS_CONVERT: Command validation passed for ${process_name}"
-                    log.info "  - Full command: ${full_command}"
-                    log.info "  - Input files: ${cmd_parts.input_files.size()}"
-                    log.info "  - Output files: ${cmd_parts.output_files.size()}"
+                    if (params.debug_verbose) {
+                        log.info "VALIDATED_SAMTOOLS_CONVERT: Command validation passed for ${process_name}"
+                        log.info "  - Full command: ${full_command}"
+                        log.info "  - Input files: ${cmd_parts.input_files.size()}"
+                        log.info "  - Output files: ${cmd_parts.output_files.size()}"
+                    }
                     
                     // Return validated data
                     return [
@@ -179,7 +181,7 @@ workflow VALIDATED_SAMTOOLS_CONVERT {
         
         // Extract validated inputs for samtools convert
         validated_inputs = validated_results.map { meta, input_file, index_file, validated_cmd ->
-            log.info "VALIDATED_SAMTOOLS_CONVERT: Proceeding with validated conversion for ${meta.id}"
+            if (params.debug_verbose) { log.info "VALIDATED_SAMTOOLS_CONVERT: Proceeding with validated conversion for ${meta.id}" }
             return [meta, input_file, index_file]
         }
         
@@ -193,11 +195,11 @@ workflow VALIDATED_SAMTOOLS_CONVERT {
         
         versions = versions.mix(SAMTOOLS_CONVERT_ENHANCED.out.versions)
         
-        // Log successful completion
+        // Log successful completion (only when debug_verbose enabled)
         completed_conversions = SAMTOOLS_CONVERT_ENHANCED.out.bam
             .mix(SAMTOOLS_CONVERT_ENHANCED.out.cram)
             .map { meta, output_file ->
-                log.info "VALIDATED_SAMTOOLS_CONVERT: Successfully completed conversion for ${meta.id}: ${output_file.getSimpleName()}"
+                if (params.debug_verbose) { log.info "VALIDATED_SAMTOOLS_CONVERT: Successfully completed conversion for ${meta.id}: ${output_file.getSimpleName()}" }
                 return [meta, output_file]
             }
     

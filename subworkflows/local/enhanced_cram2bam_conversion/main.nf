@@ -80,7 +80,7 @@ workflow ENHANCED_CRAM2BAM_CONVERSION {
                     log.warn "ENHANCED_CRAM2BAM_CONVERSION: CRAM index is very small (${crai.size()} bytes): ${crai} for sample ${meta.id}"
                 }
                 
-                log.info "ENHANCED_CRAM2BAM_CONVERSION: Validated input for sample ${meta.id}: CRAM=${cram.getSimpleName()}, Index=${crai.getSimpleName()}"
+                if (params.debug_verbose) { log.info "ENHANCED_CRAM2BAM_CONVERSION: Validated input for sample ${meta.id}: CRAM=${cram.getSimpleName()}, Index=${crai.getSimpleName()}" }
                 return true
             }
             .map { meta, cram, crai ->
@@ -124,7 +124,7 @@ workflow ENHANCED_CRAM2BAM_CONVERSION {
         
         // Skip reference file validation for now to avoid channel/file object issues
         // The validation will be handled by the downstream modules
-        log.info "ENHANCED_CRAM2BAM_CONVERSION: Skipping reference file validation (handled downstream)"
+        if (params.debug_verbose) { log.info "ENHANCED_CRAM2BAM_CONVERSION: Skipping reference file validation (handled downstream)" }
         
         // Perform conversion with enhanced error handling, resource management, and command validation
         VALIDATED_SAMTOOLS_CONVERT(
@@ -148,7 +148,7 @@ workflow ENHANCED_CRAM2BAM_CONVERSION {
                     log.warn "ENHANCED_CRAM2BAM_CONVERSION: BAM output is very small (${bam.size()} bytes): ${bam} for sample ${meta.id}"
                 }
                 
-                log.info "ENHANCED_CRAM2BAM_CONVERSION: Successfully converted to BAM for sample ${meta.id}: ${bam.getSimpleName()}"
+                if (params.debug_verbose) { log.info "ENHANCED_CRAM2BAM_CONVERSION: Successfully converted to BAM for sample ${meta.id}: ${bam.getSimpleName()}" }
                 return true
             }
         
@@ -166,7 +166,7 @@ workflow ENHANCED_CRAM2BAM_CONVERSION {
                     log.warn "ENHANCED_CRAM2BAM_CONVERSION: BAI output is very small (${bai.size()} bytes): ${bai} for sample ${meta.id}"
                 }
                 
-                log.info "ENHANCED_CRAM2BAM_CONVERSION: Successfully created BAI index for sample ${meta.id}: ${bai.getSimpleName()}"
+                if (params.debug_verbose) { log.info "ENHANCED_CRAM2BAM_CONVERSION: Successfully created BAI index for sample ${meta.id}: ${bai.getSimpleName()}" }
                 return true
             }
         
