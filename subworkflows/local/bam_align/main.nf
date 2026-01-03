@@ -90,12 +90,37 @@ workflow BAM_ALIGN {
             reports = reports.mix(FASTP.out.json.collect{ _meta, json -> json })
             reports = reports.mix(FASTP.out.html.collect{ _meta, html -> html })
 
-            if (params.split_fastq) {
+            if (params.split_fastq != null && params.split_fastq > 0) {
+                // When splitting is enabled, handle multiple split files from FASTP
                 reads_for_alignment = FASTP.out.reads.map{ meta, reads ->
                     def read_files = reads.sort(false) { a,b -> a.getName().tokenize('.')[0] <=> b.getName().tokenize('.')[0] }.collate(2)
                     [ meta + [ n_fastq: read_files.size() ], read_files ]
                 }.transpose()
-            } else reads_for_alignment = FASTP.out.reads
+            } else {
+                // When splitting is disabled, ensure we pass reads as-is
+                // For paired-end, we expect exactly 2 files (R1 and R2)
+                // If cached split files exist from a previous run, warn and use them all
+                // (user should clean work dir or run without -resume to get correct behavior)
+                reads_for_alignment = FASTP.out.reads.map{ meta, reads ->
+                    def read_list = reads instanceof List ? reads : [reads]
+                    if (read_list.size() > 2) {
+                        log.warn "Sample ${meta.id}: Found ${read_list.size()} FASTQ files but split_fastq=0. " +
+                                 "This may be due to cached split files from a previous run. " +
+                                 "Consider running without -resume or cleaning the work directory."
+                        // Group split files into pairs and transpose like split mode
+                        def read_files = read_list.sort(false) { a,b -> a.getName().tokenize('.')[0] <=> b.getName().tokenize('.')[0] }.collate(2)
+                        return [ meta + [ n_fastq: read_files.size() ], read_files ]
+                    }
+                    [ meta + [ n_fastq: 1 ], read_list ]
+                }.flatMap { meta, reads ->
+                    // Handle both cases: single pair returns as-is, multiple pairs get transposed
+                    if (reads instanceof List && reads.size() > 0 && reads[0] instanceof List) {
+                        reads.collect { pair -> [meta, pair] }
+                    } else {
+                        [[meta, reads]]
+                    }
+                }
+            }
 
             versions = versions.mix(FASTP.out.versions)
 
