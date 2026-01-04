@@ -11,7 +11,7 @@ Features:
 - Support for new categories (RNA_Edit, NoConsensus)
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import pandas as pd
 from pathlib import Path
 
@@ -22,14 +22,16 @@ from . import CATEGORY_ORDER, VCF_STAGE_ORDER
 class StatisticsAggregator:
     """Aggregate and summarize VCF statistics"""
 
-    def __init__(self, all_stats: Dict[str, Any]):
+    def __init__(self, all_stats: Dict[str, Any], workflow_type: str = "standard"):
         """
         Initialize aggregator with statistics data.
 
         Args:
             all_stats: Dictionary containing all VCF statistics
+            workflow_type: Type of workflow ("standard" or "realignment")
         """
         self.all_stats = all_stats
+        self.workflow_type = workflow_type
 
     def create_variant_count_summary(self) -> pd.DataFrame:
         """
@@ -238,22 +240,96 @@ class StatisticsAggregator:
         
         return report
 
-    def export_report(self, output_dir: str, format: str = "excel"):
+    def create_workflow_comparison_summary(
+        self,
+        standard_stats: Dict[str, Any],
+        realignment_stats: Dict[str, Any]
+    ) -> pd.DataFrame:
+        """
+        Compare variant counts between standard and realignment workflows.
+        
+        This method creates a comprehensive comparison table showing how variant
+        counts differ between the two workflows across all stages and categories.
+        
+        Args:
+            standard_stats: Statistics from standard workflow
+            realignment_stats: Statistics from realignment workflow
+        
+        Returns:
+            DataFrame with columns:
+            - Stage
+            - Category
+            - Standard_Count
+            - Realignment_Count
+            - Difference
+            - Percent_Change
+        """
+        from .comparison import WorkflowComparator
+        
+        # Create comparator instance
+        comparator = WorkflowComparator(standard_stats, realignment_stats)
+        
+        # Get RNA category distribution comparison (most comprehensive)
+        comparison_df = comparator.compare_rna_category_distribution()
+        
+        return comparison_df
+    
+    def create_rna_stage_comparison_summary(
+        self,
+        standard_stats: Dict[str, Any],
+        realignment_stats: Dict[str, Any]
+    ) -> pd.DataFrame:
+        """
+        Compare RNA annotation stages between standard and realignment workflows.
+        
+        Focuses on annotation stages (cosmic_gnomad, rna_editing, filtered_rescue)
+        to show how realignment affects variant annotation and filtering.
+        
+        Args:
+            standard_stats: Statistics from standard workflow
+            realignment_stats: Statistics from realignment workflow
+        
+        Returns:
+            DataFrame with detailed annotation stage comparison
+        """
+        from .comparison import WorkflowComparator
+        
+        # Create comparator instance
+        comparator = WorkflowComparator(standard_stats, realignment_stats)
+        
+        # Get RNA annotation stage comparison
+        annotation_comparison = comparator.compare_rna_annotation_stages()
+        
+        return annotation_comparison
+
+    def export_report(
+        self, 
+        output_dir: str, 
+        format: str = "excel",
+        comparison_data: Optional[Dict[str, pd.DataFrame]] = None
+    ):
         """
         Export summary report to files.
 
         Args:
             output_dir: Directory to save report
             format: Export format ('excel', 'csv', 'both')
+            comparison_data: Optional dictionary of comparison DataFrames to include
+                           (e.g., from create_workflow_comparison_summary)
         """
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
         report = self.create_summary_report()
+        
+        # Add comparison data if provided
+        if comparison_data:
+            report.update(comparison_data)
 
         if format in ["excel", "both"]:
             # Export to Excel with multiple sheets
-            excel_path = output_path / "vcf_statistics_report.xlsx"
+            excel_filename = f"vcf_statistics_report_{self.workflow_type}.xlsx"
+            excel_path = output_path / excel_filename
             with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
                 for sheet_name, df in report.items():
                     if not df.empty:
@@ -262,7 +338,7 @@ class StatisticsAggregator:
 
         if format in ["csv", "both"]:
             # Export to separate CSV files
-            csv_dir = output_path / "csv_reports"
+            csv_dir = output_path / f"csv_reports_{self.workflow_type}"
             csv_dir.mkdir(exist_ok=True)
 
             for name, df in report.items():
