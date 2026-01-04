@@ -14,11 +14,8 @@ from collections import defaultdict
 
 # Import classification functions
 from .classifiers import (
-    classify_variant,
+    classify_by_filter,
     classify_annotated_variant,
-    detect_rna_edit_variant,
-    detect_cosmic_gnomad_annotation,
-    detect_no_consensus_variant,
     get_sample_indices
 )
 
@@ -56,43 +53,25 @@ class VCFStatisticsExtractor:
         self.vcf = None
         self.stats = {}
 
-    # ...existing code...
-    def _is_consensus_or_rescue(self) -> bool:
-        """
-        Determine if the current VCF is a consensus or rescue VCF.
-        Includes annotation stage VCFs (cosmic_gnomad, rna_editing, filtered_rescue).
-        """
-        p = str(self.vcf_path).lower()
-        return (
-            ".consensus.vcf.gz" in p
-            or ".consensus.vcf" in p
-            or ".rescued.vcf.gz" in p
-            or ".rescued.vcf" in p
-            or ".cosmic_gnomad_annotated" in p
-            or ".rna_annotated" in p
-            or ".filtered.vcf.gz" in p
-            or ".filtered.vcf" in p
-        )
-
-    # ...existing code...
     def extract_basic_stats(self):
         """
-        Extract basic variant statistics with biological classification or FILTER category.
+        Extract basic variant statistics with unified FILTER-based classification.
         
-        For consensus/rescue/annotated VCFs: Uses classification including new categories
-        (RNA_Edit, NoConsensus) based on FILTER and INFO fields.
+        Uses classify_by_filter() for all VCF types, providing consistent
+        classification based solely on the FILTER field.
         
-        For raw caller VCFs: Uses biological classification (Somatic/Germline/Reference/Artifact).
+        Returns statistics including:
+        - Total variants, SNPs, INDELs, MNPs, complex variants
+        - Chromosomes
+        - Variant types
+        - Classification by category (Somatic, Germline, Reference, Artifact, RNA_Edit, NoConsensus)
+        - Category distribution percentages
         
-        Removed: pass/filtered counts (no longer computed).
-        Added: Category count distribution and variant type statistics.
+        Note: Quality scores are not extracted as they are not always available.
         """
         try:
             from cyvcf2 import VCF
             self.vcf = VCF(str(self.vcf_path))
-
-            # Get sample indices for classification
-            sample_indices = get_sample_indices(self.vcf, self.caller_name)
 
             stats = {
                 "total_variants": 0,
@@ -101,7 +80,6 @@ class VCFStatisticsExtractor:
                 "mnps": 0,
                 "complex": 0,
                 "chromosomes": set(),
-                "qualities": [],
                 "variant_types": defaultdict(int),
                 # Classification: count distribution by category
                 "classification": {},
@@ -109,38 +87,9 @@ class VCFStatisticsExtractor:
                 "category_distribution": {},
             }
 
-            def _map_filter_to_category(filter_val):
-                """Map FILTER tokens to biological categories with sensible defaults."""
-                if filter_val in (None, ".", "None"):
-                    return "Somatic"
-
-                tokens = [tok.strip() for tok in str(filter_val).replace(";", ",").split(",") if tok]
-                filter_map = {
-                    "pass": "Somatic",
-                    "somatic": "Somatic",
-                    "germline": "Germline",
-                    "reference": "Reference",
-                    "artifact": "Artifact",
-                    "noconsensus": "NoConsensus",
-                }
-
-                for token in tokens:
-                    mapped = filter_map.get(token.lower())
-                    if mapped:
-                        return mapped
-
-                return "Artifact"
-
-            # Determine classification approach based on VCF type
-            use_annotated_classifier = self._is_consensus_or_rescue()
-
             for variant in self.vcf:
                 stats["total_variants"] += 1
                 stats["chromosomes"].add(variant.CHROM)
-
-                # Quality scores
-                if variant.QUAL is not None and variant.QUAL > 0:
-                    stats["qualities"].append(variant.QUAL)
 
                 # Variant type
                 if variant.is_snp:
@@ -156,16 +105,9 @@ class VCFStatisticsExtractor:
                     stats["complex"] += 1
                     stats["variant_types"]["COMPLEX"] += 1
 
-                # Classification or FILTER-based category
+                # Unified classification using FILTER field only
                 try:
-                    if use_annotated_classifier:
-                        # Use annotated classifier for consensus/rescue/annotation VCFs
-                        classification = classify_annotated_variant(variant)
-                    else:
-                        # Use biological classifier for raw caller VCFs
-                        classification = classify_variant(
-                            variant, self.caller_name, sample_indices
-                        )
+                    classification = classify_by_filter(variant)
                     
                     # Count this category
                     stats["classification"][classification] = (
@@ -173,10 +115,9 @@ class VCFStatisticsExtractor:
                     )
                     
                 except Exception as e:
-                    # Fallback: map FILTER tokens to known categories
-                    fallback_cat = _map_filter_to_category(variant.FILTER)
-                    stats["classification"][fallback_cat] = (
-                        stats["classification"].get(fallback_cat, 0) + 1
+                    # Fallback: default to Artifact if classification fails
+                    stats["classification"]["Artifact"] = (
+                        stats["classification"].get("Artifact", 0) + 1
                     )
 
             # Convert chromosomes to sorted list

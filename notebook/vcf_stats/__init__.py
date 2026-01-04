@@ -178,13 +178,7 @@ from .workflow import (
 from .file_discovery import VCFFileDiscovery
 from .vcf_processor import VCFStatisticsExtractor, process_all_vcfs
 from .classifiers import (
-    classify_strelka_variant,
-    classify_deepsomatic_variant,
-    classify_mutect2_variant,
-    classify_variant,
-    detect_rna_edit_variant,
-    detect_cosmic_gnomad_annotation,
-    detect_no_consensus_variant,
+    classify_by_filter,
     classify_annotated_variant,
     get_sample_indices
 )
@@ -237,13 +231,7 @@ __all__ = [
     'StatisticsAggregator',
     'BAMValidator',
     # Classification functions
-    'classify_strelka_variant',
-    'classify_deepsomatic_variant',
-    'classify_mutect2_variant',
-    'classify_variant',
-    'detect_rna_edit_variant',
-    'detect_cosmic_gnomad_annotation',
-    'detect_no_consensus_variant',
+    'classify_by_filter',
     'classify_annotated_variant',
     'get_sample_indices',
     # Analysis functions
