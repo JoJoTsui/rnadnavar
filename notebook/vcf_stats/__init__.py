@@ -159,6 +159,21 @@ from .utils import (
     collect_stage_statistics
 )
 
+# Import workflow abstraction
+from .workflow import (
+    WorkflowType,
+    WorkflowConfig,
+    WorkflowManager,
+    WORKFLOW_TYPES,
+    STAGE_NORMALIZED,
+    STAGE_CONSENSUS,
+    STAGE_RESCUE,
+    STAGE_COSMIC_GNOMAD,
+    STAGE_RNA_EDITING,
+    STAGE_FILTERED_RESCUE,
+    ALL_STAGES
+)
+
 # Import classes from modules
 from .file_discovery import VCFFileDiscovery
 from .vcf_processor import VCFStatisticsExtractor, process_all_vcfs
@@ -202,6 +217,18 @@ __all__ = [
     'create_dual_view_plots',
     'ensure_all_categories_in_legend',
     'collect_stage_statistics',
+    # Workflow abstraction
+    'WorkflowType',
+    'WorkflowConfig',
+    'WorkflowManager',
+    'WORKFLOW_TYPES',
+    'STAGE_NORMALIZED',
+    'STAGE_CONSENSUS',
+    'STAGE_RESCUE',
+    'STAGE_COSMIC_GNOMAD',
+    'STAGE_RNA_EDITING',
+    'STAGE_FILTERED_RESCUE',
+    'ALL_STAGES',
     # Core classes
     'VCFFileDiscovery',
     'VCFStatisticsExtractor',
