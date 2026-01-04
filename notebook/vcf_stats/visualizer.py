@@ -38,14 +38,16 @@ from .plot_utils import (
 class VCFVisualizer:
     """Create visualizations for VCF statistics"""
 
-    def __init__(self, all_stats: Dict[str, Any]):
+    def __init__(self, all_stats: Dict[str, Any], workflow_type: str = "standard"):
         """
         Initialize visualizer with statistics data.
 
         Args:
             all_stats: Dictionary containing all VCF statistics
+            workflow_type: Type of workflow ("standard" or "realignment")
         """
         self.all_stats = all_stats
+        self.workflow_type = workflow_type
 
         # Reuse unified color scheme exported by the package
         self.CATEGORY_COLORS = CATEGORY_COLORS.copy()
@@ -1213,3 +1215,478 @@ class VCFVisualizer:
                 fig_no_nc = _create_tier_plot(tiered_df_no_nc, " (excluding NoConsensus)")
                 if fig_no_nc:
                     fig_no_nc.show()
+
+    def plot_rna_workflow_comparison(
+        self,
+        rna_standard_stats: Dict[str, Any],
+        rna_realignment_stats: Dict[str, Any]
+    ):
+        """
+        Side-by-side comparison of RNA standard vs realignment workflows.
+        
+        Creates subplots showing:
+        - RNA variant counts by stage
+        - RNA category distribution
+        - RNA SNP/INDEL ratios
+        
+        Note: Only compares RNA modality as realignment only applies to RNA.
+        
+        Args:
+            rna_standard_stats: Statistics from standard RNA workflow
+            rna_realignment_stats: Statistics from realignment RNA workflow
+        """
+        if not VISUALIZATION_AVAILABLE:
+            print("Visualization libraries not available. Skipping plot.")
+            return None
+        
+        # Import comparison module
+        from .comparison import WorkflowComparator
+        
+        # Create comparator
+        comparator = WorkflowComparator(rna_standard_stats, rna_realignment_stats)
+        
+        # Get comparison data
+        variant_counts_df = comparator.compare_rna_variant_counts()
+        category_dist_df = comparator.compare_rna_category_distribution()
+        
+        # Create figure with 3 subplots
+        fig = make_subplots(
+            rows=1,
+            cols=3,
+            subplot_titles=(
+                "RNA Variant Counts by Stage",
+                "RNA Category Distribution",
+                "RNA SNP/INDEL Ratios"
+            ),
+            horizontal_spacing=0.12,
+            specs=[[{"type": "bar"}, {"type": "bar"}, {"type": "bar"}]]
+        )
+        
+        # Subplot 1: Variant counts by stage
+        stages = variant_counts_df["Stage"].unique()
+        standard_counts = variant_counts_df["Standard_RNA_Count"].values
+        realignment_counts = variant_counts_df["Realignment_RNA_Count"].values
+        
+        fig.add_trace(
+            go.Bar(
+                name="Standard RNA",
+                x=stages,
+                y=standard_counts,
+                marker_color="#4472C4",
+                text=standard_counts,
+                textposition="inside",
+                showlegend=True
+            ),
+            row=1,
+            col=1
+        )
+        
+        fig.add_trace(
+            go.Bar(
+                name="Realignment RNA",
+                x=stages,
+                y=realignment_counts,
+                marker_color="#ED7D31",
+                text=realignment_counts,
+                textposition="inside",
+                showlegend=True
+            ),
+            row=1,
+            col=1
+        )
+        
+        # Subplot 2: Category distribution (stacked bars for final stage)
+        final_stage = "filtered_rescue"
+        final_stage_data = category_dist_df[category_dist_df["Stage"] == final_stage]
+        
+        categories_in_legend = set()
+        
+        for category in CATEGORY_ORDER:
+            cat_data = final_stage_data[final_stage_data["Category"] == category]
+            if not cat_data.empty:
+                standard_count = cat_data["Standard_RNA_Count"].values[0]
+                realignment_count = cat_data["Realignment_RNA_Count"].values[0]
+                
+                show_legend = category not in categories_in_legend
+                categories_in_legend.add(category)
+                
+                fig.add_trace(
+                    go.Bar(
+                        name=category,
+                        x=["Standard", "Realignment"],
+                        y=[standard_count, realignment_count],
+                        marker_color=self.CATEGORY_COLORS.get(category, "#8A8A8A"),
+                        text=[standard_count, realignment_count],
+                        textposition="inside",
+                        showlegend=show_legend,
+                        legendgroup=category
+                    ),
+                    row=1,
+                    col=2
+                )
+        
+        # Subplot 3: SNP/INDEL ratios
+        # Calculate SNP/INDEL ratios from final stage
+        def _get_snp_indel_ratio(stats, stage):
+            """Helper to calculate SNP/INDEL ratio for a stage."""
+            if stage not in stats:
+                return 0, 0
+            
+            total_snps = 0
+            total_indels = 0
+            
+            for name, data in stats[stage].items():
+                if "stats" in data and "basic" in data["stats"]:
+                    basic = data["stats"]["basic"]
+                    variant_types = basic.get("variant_types", {})
+                    total_snps += variant_types.get("SNP", 0)
+                    total_indels += variant_types.get("DEL", 0) + variant_types.get("INS", 0)
+            
+            return total_snps, total_indels
+        
+        std_snps, std_indels = _get_snp_indel_ratio(rna_standard_stats, final_stage)
+        real_snps, real_indels = _get_snp_indel_ratio(rna_realignment_stats, final_stage)
+        
+        fig.add_trace(
+            go.Bar(
+                name="SNPs",
+                x=["Standard", "Realignment"],
+                y=[std_snps, real_snps],
+                marker_color="#70AD47",
+                text=[std_snps, real_snps],
+                textposition="inside",
+                showlegend=True
+            ),
+            row=1,
+            col=3
+        )
+        
+        fig.add_trace(
+            go.Bar(
+                name="INDELs",
+                x=["Standard", "Realignment"],
+                y=[std_indels, real_indels],
+                marker_color="#FFC000",
+                text=[std_indels, real_indels],
+                textposition="inside",
+                showlegend=True
+            ),
+            row=1,
+            col=3
+        )
+        
+        # Update axes
+        fig.update_xaxes(title_text="Stage", row=1, col=1, tickangle=-45)
+        fig.update_xaxes(title_text="Workflow", row=1, col=2)
+        fig.update_xaxes(title_text="Workflow", row=1, col=3)
+        
+        fig.update_yaxes(title_text="Variant Count", row=1, col=1)
+        fig.update_yaxes(title_text="Variant Count", row=1, col=2)
+        fig.update_yaxes(title_text="Variant Count", row=1, col=3)
+        
+        # Update layout
+        fig.update_layout(
+            title_text="RNA Workflow Comparison: Standard vs Realignment",
+            template="plotly_white",
+            height=600,
+            barmode="stack",
+            showlegend=True
+        )
+        
+        fig.show()
+        return fig
+    
+    def plot_rna_stage_progression_comparison(
+        self,
+        rna_standard_stats: Dict[str, Any],
+        rna_realignment_stats: Dict[str, Any]
+    ):
+        """
+        Line plot showing RNA variant count changes through stages.
+        
+        Two lines (standard RNA and realignment RNA) showing how counts
+        change from normalized → filtered_rescue.
+        
+        Args:
+            rna_standard_stats: Statistics from standard RNA workflow
+            rna_realignment_stats: Statistics from realignment RNA workflow
+        """
+        if not VISUALIZATION_AVAILABLE:
+            print("Visualization libraries not available. Skipping plot.")
+            return None
+        
+        # Import comparison module
+        from .comparison import WorkflowComparator
+        
+        # Create comparator
+        comparator = WorkflowComparator(rna_standard_stats, rna_realignment_stats)
+        
+        # Get comparison data
+        variant_counts_df = comparator.compare_rna_variant_counts()
+        
+        # Create line plot
+        fig = go.Figure()
+        
+        stages = variant_counts_df["Stage"].values
+        standard_counts = variant_counts_df["Standard_RNA_Count"].values
+        realignment_counts = variant_counts_df["Realignment_RNA_Count"].values
+        
+        # Add standard workflow line
+        fig.add_trace(
+            go.Scatter(
+                name="Standard RNA",
+                x=stages,
+                y=standard_counts,
+                mode="lines+markers",
+                line=dict(color="#4472C4", width=3),
+                marker=dict(size=10, symbol="circle"),
+                text=[f"{c:,}" for c in standard_counts],
+                textposition="top center",
+                hovertemplate="<b>%{x}</b><br>Standard: %{y:,}<extra></extra>"
+            )
+        )
+        
+        # Add realignment workflow line
+        fig.add_trace(
+            go.Scatter(
+                name="Realignment RNA",
+                x=stages,
+                y=realignment_counts,
+                mode="lines+markers",
+                line=dict(color="#ED7D31", width=3),
+                marker=dict(size=10, symbol="diamond"),
+                text=[f"{c:,}" for c in realignment_counts],
+                textposition="bottom center",
+                hovertemplate="<b>%{x}</b><br>Realignment: %{y:,}<extra></extra>"
+            )
+        )
+        
+        # Update layout
+        fig.update_layout(
+            title_text="RNA Variant Count Progression Through Pipeline Stages",
+            xaxis_title="Processing Stage",
+            yaxis_title="Number of Variants",
+            template="plotly_white",
+            height=600,
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            ),
+            hovermode="x unified"
+        )
+        
+        # Rotate x-axis labels for readability
+        fig.update_xaxes(tickangle=-45)
+        
+        fig.show()
+        return fig
+    
+    def plot_rna_annotation_impact_comparison(
+        self,
+        rna_standard_stats: Dict[str, Any],
+        rna_realignment_stats: Dict[str, Any]
+    ):
+        """
+        Heatmap showing annotation stage differences for RNA samples.
+        
+        Rows: Stages (cosmic_gnomad, rna_editing, filtered_rescue)
+        Columns: Categories (Somatic, Germline, etc.)
+        Values: Difference in counts (realignment - standard)
+        
+        Args:
+            rna_standard_stats: Statistics from standard RNA workflow
+            rna_realignment_stats: Statistics from realignment RNA workflow
+        """
+        if not VISUALIZATION_AVAILABLE:
+            print("Visualization libraries not available. Skipping plot.")
+            return None
+        
+        # Import comparison module
+        from .comparison import WorkflowComparator
+        
+        # Create comparator
+        comparator = WorkflowComparator(rna_standard_stats, rna_realignment_stats)
+        
+        # Get annotation stage comparison data
+        annotation_df = comparator.compare_rna_annotation_stages()
+        
+        if annotation_df.empty:
+            print("No annotation stage data available for comparison")
+            return None
+        
+        # Check if we have the required columns
+        if "Stage" not in annotation_df.columns or "Category" not in annotation_df.columns:
+            print(f"Missing required columns in annotation data. Available columns: {annotation_df.columns.tolist()}")
+            return None
+        
+        # Pivot data for heatmap
+        # Rows = Stages, Columns = Categories, Values = Difference
+        try:
+            heatmap_data = annotation_df.pivot(
+                index="Stage",
+                columns="Category",
+                values="Difference"
+            )
+        except Exception as e:
+            print(f"Error creating pivot table: {e}")
+            print(f"DataFrame shape: {annotation_df.shape}")
+            print(f"DataFrame columns: {annotation_df.columns.tolist()}")
+            print(f"First few rows:\n{annotation_df.head()}")
+            return None
+        
+        # Reorder columns by CATEGORY_ORDER
+        available_categories = [c for c in CATEGORY_ORDER if c in heatmap_data.columns]
+        heatmap_data = heatmap_data[available_categories]
+        
+        # Create heatmap
+        fig = go.Figure(data=go.Heatmap(
+            z=heatmap_data.values,
+            x=heatmap_data.columns,
+            y=heatmap_data.index,
+            colorscale="RdBu_r",  # Red for negative (fewer), Blue for positive (more)
+            zmid=0,  # Center colorscale at 0
+            text=heatmap_data.values,
+            texttemplate="%{text:,}",
+            textfont={"size": 12},
+            colorbar=dict(title="Difference<br>(Realignment - Standard)"),
+            hovertemplate="<b>%{y}</b><br>%{x}<br>Difference: %{z:,}<extra></extra>"
+        ))
+        
+        # Update layout
+        fig.update_layout(
+            title_text="RNA Annotation Stage Impact: Realignment vs Standard<br><sub>Positive values = more variants in realignment, Negative = fewer variants</sub>",
+            xaxis_title="Category",
+            yaxis_title="Processing Stage",
+            template="plotly_white",
+            height=500,
+            width=1000
+        )
+        
+        fig.show()
+        return fig
+    
+    def plot_integrative_view(
+        self,
+        dna_stats: Dict[str, Any],
+        rna_standard_stats: Dict[str, Any],
+        rna_realignment_stats: Dict[str, Any]
+    ):
+        """
+        Comprehensive visualization of all three modalities.
+        
+        Creates grouped bar charts showing:
+        - DNA-tumor (standard only)
+        - RNA-tumor (standard)
+        - RNA-tumor (realignment)
+        
+        This provides a complete picture of variant calling across
+        all samples and workflows, highlighting the realignment impact
+        in the context of DNA results.
+        
+        Args:
+            dna_stats: Statistics from DNA standard workflow
+            rna_standard_stats: Statistics from RNA standard workflow
+            rna_realignment_stats: Statistics from RNA realignment workflow
+        """
+        if not VISUALIZATION_AVAILABLE:
+            print("Visualization libraries not available. Skipping plot.")
+            return None
+        
+        # Import comparison module
+        from .comparison import WorkflowComparator
+        
+        # Create comparator (using dummy standard stats since we're providing all three separately)
+        comparator = WorkflowComparator({}, {})
+        
+        # Get integrative view data
+        integrative_df = comparator.create_integrative_view(
+            dna_stats=dna_stats,
+            rna_standard_stats=rna_standard_stats,
+            rna_realignment_stats=rna_realignment_stats
+        )
+        
+        # Create figure with subplots for each stage
+        annotation_stages = ["rescue", "cosmic_gnomad", "rna_editing", "filtered_rescue"]
+        available_stages = [s for s in annotation_stages if s in integrative_df["Stage"].values]
+        n_stages = len(available_stages)
+        
+        if n_stages == 0:
+            print("No data available for integrative view")
+            return None
+        
+        fig = make_subplots(
+            rows=1,
+            cols=n_stages,
+            subplot_titles=available_stages,
+            horizontal_spacing=0.10,
+            shared_yaxes=True
+        )
+        
+        # Track categories for legend
+        categories_in_legend = set()
+        
+        # For each stage, create grouped bars by category
+        for i, stage in enumerate(available_stages, 1):
+            stage_data = integrative_df[integrative_df["Stage"] == stage]
+            
+            # For each category, add grouped bars
+            for category in CATEGORY_ORDER:
+                cat_data = stage_data[stage_data["Category"] == category]
+                if not cat_data.empty:
+                    dna_count = cat_data["DNA_Standard"].values[0]
+                    rna_std_count = cat_data["RNA_Standard"].values[0]
+                    rna_real_count = cat_data["RNA_Realignment"].values[0]
+                    
+                    # Only show in legend once
+                    show_legend = category not in categories_in_legend
+                    if show_legend:
+                        categories_in_legend.add(category)
+                    
+                    # Add three bars for this category (DNA, RNA Standard, RNA Realignment)
+                    fig.add_trace(
+                        go.Bar(
+                            name=category,
+                            x=["DNA", "RNA-Std", "RNA-Real"],
+                            y=[dna_count, rna_std_count, rna_real_count],
+                            marker_color=self.CATEGORY_COLORS.get(category, "#8A8A8A"),
+                            text=[dna_count, rna_std_count, rna_real_count],
+                            textposition="inside",
+                            showlegend=show_legend,
+                            legendgroup=category,
+                            hovertemplate=f"<b>%{{x}}</b><br>{category}: %{{y}}<extra></extra>"
+                        ),
+                        row=1,
+                        col=i
+                    )
+            
+            # Update axes
+            fig.update_xaxes(title_text="Sample Type", row=1, col=i)
+            if i == 1:
+                fig.update_yaxes(title_text="Number of Variants", row=1, col=i)
+        
+        # Update layout
+        fig.update_layout(
+            title_text="Integrative View: DNA + RNA Standard + RNA Realignment<br><sub>Comparing all modalities across annotation stages</sub>",
+            template="plotly_white",
+            height=600,
+            barmode="stack",
+            showlegend=True,
+            legend=dict(
+                orientation="v",
+                yanchor="top",
+                y=1.0,
+                xanchor="left",
+                x=1.02,
+                title="Category"
+            )
+        )
+        
+        fig.show()
+        return fig
+
+
+print("✓ VCF Visualizer module loaded successfully")
