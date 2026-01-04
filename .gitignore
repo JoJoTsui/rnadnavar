@@ -28,6 +28,8 @@ CLAUDE.md
 # Python bytecode (generated when you import from src/)
 __pycache__/
 *.py[cod]
+# hypothesis test
+.hypothesis/
 
 # Virtual environment (if stored locally)
 .venv/
