@@ -4,6 +4,7 @@ VCF File Discovery Module
 
 Discovers and organizes all VCF files in the pipeline output directory.
 Refactored to support annotation stages: rescue → cosmic_gnomad → rna_editing → filtered_rescue.
+Enhanced to support realignment workflow discovery.
 """
 
 from pathlib import Path
@@ -11,19 +12,22 @@ from typing import Dict, List, Optional
 
 # Import constants from main module
 from . import TOOLS, MODALITIES, VCF_STAGE_ORDER
+from .workflow import WorkflowManager, WorkflowConfig, WorkflowType
 
 
 class VCFFileDiscovery:
     """Discover and organize all VCF files in the pipeline output"""
 
-    def __init__(self, base_dir: Path):
+    def __init__(self, base_dir: Path, workflow_manager: Optional[WorkflowManager] = None):
         """
         Initialize VCF file discovery.
 
         Args:
             base_dir: Base directory of the pipeline output
+            workflow_manager: Optional WorkflowManager for workflow-aware discovery
         """
         self.base_dir = Path(base_dir)
+        self.workflow_manager = workflow_manager or WorkflowManager(base_dir)
         self.vcf_files = {
             "normalized": {},              # Normalized VCFs from standalone callers
             "consensus": {},               # Consensus VCFs (DNA & RNA)
@@ -106,71 +110,21 @@ class VCFFileDiscovery:
 
     def _discover_normalized_vcfs(self):
         """Discover normalized VCFs from standalone callers."""
-        for tool in TOOLS:
-            norm_tool_dir = self.base_dir / "normalized" / tool
-            if not norm_tool_dir.exists():
-                continue
-                
-            # Try modality-based structure
-            for modality in MODALITIES:
-                norm_dir = norm_tool_dir / modality
-                if norm_dir.exists():
-                    vcf_files = list(norm_dir.glob("*.norm.vcf.gz"))
-                    if vcf_files:
-                        suffix_pair = self._modality_to_suffix_pair(modality)
-                        key = f"{tool}_{suffix_pair}" if suffix_pair else f"{tool}_{modality}"
-                        self.vcf_files["normalized"][key] = vcf_files[0]
-            
-            # Also try sample-pair structure
-            if norm_tool_dir.exists():
-                for subdir in norm_tool_dir.iterdir():
-                    if subdir.is_dir() and "_vs_" in subdir.name:
-                        vcf_files = list(subdir.glob("*.norm.vcf.gz"))
-                        if vcf_files:
-                            sample_pair = subdir.name
-                            pair_key = self._pair_to_suffix_key(sample_pair)
-                            modality_key = pair_key if pair_key else self._infer_modality(sample_pair.split("_vs_")[0])
-                            key = f"{tool}_{modality_key}"
-                            self.vcf_files["normalized"][key] = vcf_files[0]
+        norm_dir = self.base_dir / "normalized"
+        if norm_dir.exists():
+            self.vcf_files["normalized"] = self._discover_stage_normalized(norm_dir, "standard")
 
     def _discover_consensus_vcfs(self):
         """Discover consensus VCFs (DNA and RNA)."""
-        consensus_dir = self.base_dir / "consensus" / "vcf"
-        if not consensus_dir.exists():
-            return
-            
-        # Try modality-based structure
-        for modality in MODALITIES:
-            vcf_dir = consensus_dir / modality
-            if vcf_dir.exists():
-                vcf_files = list(vcf_dir.glob("*.consensus.vcf.gz"))
-                if vcf_files:
-                    suffix_pair = self._modality_to_suffix_pair(modality)
-                    key = f"consensus_{suffix_pair}" if suffix_pair else modality
-                    self.vcf_files["consensus"][key] = vcf_files[0]
-        
-        # Also try sample-pair structure
-        for subdir in consensus_dir.iterdir():
-            if subdir.is_dir() and "_vs_" in subdir.name:
-                vcf_files = list(subdir.glob("*.consensus.vcf.gz"))
-                if vcf_files:
-                    sample_pair = subdir.name
-                    pair_key = self._pair_to_suffix_key(sample_pair)
-                    key = f"consensus_{pair_key}" if pair_key else sample_pair
-                    self.vcf_files["consensus"][key] = vcf_files[0]
+        consensus_dir = self.base_dir / "consensus"
+        if consensus_dir.exists():
+            self.vcf_files["consensus"] = self._discover_stage_consensus(consensus_dir, "standard")
 
     def _discover_rescue_vcfs(self):
         """Discover rescue VCFs (DNA + RNA combined)."""
         rescue_dir = self.base_dir / "rescue"
-        if not rescue_dir.exists():
-            return
-            
-        for subdir in rescue_dir.iterdir():
-            if subdir.is_dir():
-                vcf_files = list(subdir.glob("*.rescued.vcf.gz"))
-                if vcf_files:
-                    key = self._rescued_pair_to_suffix_key(subdir.name) or subdir.name
-                    self.vcf_files["rescue"][key] = vcf_files[0]
+        if rescue_dir.exists():
+            self.vcf_files["rescue"] = self._discover_stage_rescue(rescue_dir, "standard")
 
     def _discover_cosmic_gnomad_vcfs(self):
         """
@@ -179,15 +133,10 @@ class VCFFileDiscovery:
         Expected path: annotation/cosmic_gnomad/{sample_pair}/{sample_pair}.rescue.cosmic_gnomad_annotated.final.vcf.gz
         """
         cosmic_dir = self.base_dir / "annotation" / "cosmic_gnomad"
-        if not cosmic_dir.exists():
-            return
-            
-        for sample_pair_dir in cosmic_dir.iterdir():
-            if sample_pair_dir.is_dir():
-                vcf_files = list(sample_pair_dir.glob("*.rescue.cosmic_gnomad_annotated.final.vcf.gz"))
-                if vcf_files:
-                    key = self._rescued_pair_to_suffix_key(sample_pair_dir.name) or sample_pair_dir.name
-                    self.vcf_files["cosmic_gnomad"][key] = vcf_files[0]
+        if cosmic_dir.exists():
+            self.vcf_files["cosmic_gnomad"] = self._discover_stage_annotation(
+                cosmic_dir, "*.rescue.cosmic_gnomad_annotated.final.vcf.gz", "standard"
+            )
 
     def _discover_rna_editing_vcfs(self):
         """
@@ -196,15 +145,10 @@ class VCFFileDiscovery:
         Expected path: annotation/rna_editing/{sample_pair}/{sample_pair}.rescue.rna_annotated.vcf.gz
         """
         rna_edit_dir = self.base_dir / "annotation" / "rna_editing"
-        if not rna_edit_dir.exists():
-            return
-            
-        for sample_pair_dir in rna_edit_dir.iterdir():
-            if sample_pair_dir.is_dir():
-                vcf_files = list(sample_pair_dir.glob("*.rescue.rna_annotated.vcf.gz"))
-                if vcf_files:
-                    key = self._rescued_pair_to_suffix_key(sample_pair_dir.name) or sample_pair_dir.name
-                    self.vcf_files["rna_editing"][key] = vcf_files[0]
+        if rna_edit_dir.exists():
+            self.vcf_files["rna_editing"] = self._discover_stage_annotation(
+                rna_edit_dir, "*.rescue.rna_annotated.vcf.gz", "standard"
+            )
 
     def _discover_filtered_rescue_vcfs(self):
         """
@@ -213,20 +157,8 @@ class VCFFileDiscovery:
         Expected path: filtered/{sample_pair}/{sample_pair}.filtered.vcf.gz
         """
         filtered_dir = self.base_dir / "filtered"
-        if not filtered_dir.exists():
-            return
-            
-        for sample_pair_dir in filtered_dir.iterdir():
-            if sample_pair_dir.is_dir():
-                vcf_files = list(sample_pair_dir.glob("*.filtered.vcf.gz"))
-                if not vcf_files:
-                    continue
-                # Only include combined rescued filtered result, omit single-modality filtered
-                # i.e., keep keys that contain '_rescued_'
-                if "_rescued_" not in sample_pair_dir.name:
-                    continue
-                key = self._rescued_pair_to_suffix_key(sample_pair_dir.name) or sample_pair_dir.name
-                self.vcf_files["filtered_rescue"][key] = vcf_files[0]
+        if filtered_dir.exists():
+            self.vcf_files["filtered_rescue"] = self._discover_stage_filtered(filtered_dir, "standard")
 
     @staticmethod
     def _infer_modality(tumor_sample: str) -> str:
@@ -387,3 +319,332 @@ class VCFFileDiscovery:
         for category, files in self.vcf_files.items():
             key = f"{tool}_{modality}"
             matching_files[category] = files.get(key)
+
+        return matching_files
+
+    def discover_vcfs_for_workflow(
+        self, 
+        workflow_config: WorkflowConfig
+    ) -> Dict[str, Dict[str, Path]]:
+        """
+        Discover VCF files for a specific workflow.
+        
+        Args:
+            workflow_config: Configuration for the workflow to discover
+            
+        Returns:
+            Dictionary organized by stage, with VCF paths:
+            {
+                "normalized": {name: path},
+                "consensus": {name: path},
+                "rescue": {name: path},
+                "cosmic_gnomad": {name: path},
+                "rna_editing": {name: path},
+                "filtered_rescue": {name: path}
+            }
+        """
+        workflow_vcfs = {}
+        
+        # Discover each stage using the workflow configuration
+        for stage in workflow_config.stages:
+            stage_path = workflow_config.get_stage_path(stage)
+            if not stage_path or not stage_path.exists():
+                workflow_vcfs[stage] = {}
+                continue
+                
+            # Use stage-specific discovery logic
+            if stage == "normalized":
+                workflow_vcfs[stage] = self._discover_stage_normalized(stage_path, workflow_config.name)
+            elif stage == "consensus":
+                workflow_vcfs[stage] = self._discover_stage_consensus(stage_path, workflow_config.name)
+            elif stage == "rescue":
+                workflow_vcfs[stage] = self._discover_stage_rescue(stage_path, workflow_config.name)
+            elif stage == "cosmic_gnomad":
+                workflow_vcfs[stage] = self._discover_stage_annotation(
+                    stage_path, "*.rescue.cosmic_gnomad_annotated.final.vcf.gz", workflow_config.name
+                )
+            elif stage == "rna_editing":
+                workflow_vcfs[stage] = self._discover_stage_annotation(
+                    stage_path, "*.rescue.rna_annotated.vcf.gz", workflow_config.name
+                )
+            elif stage == "filtered_rescue":
+                workflow_vcfs[stage] = self._discover_stage_filtered(stage_path, workflow_config.name)
+            else:
+                workflow_vcfs[stage] = {}
+                
+        return workflow_vcfs
+
+    def discover_all_workflows(self) -> Dict[str, Dict[str, Dict[str, Path]]]:
+        """
+        Discover VCF files for all detected workflows.
+        
+        Returns:
+            Dictionary organized by workflow type and stage:
+            {
+                "standard": {
+                    "normalized": {name: path},
+                    "consensus": {name: path},
+                    ...
+                },
+                "realignment": {
+                    "normalized": {name: path},
+                    "consensus": {name: path},
+                    ...
+                }
+            }
+        """
+        all_workflows = {}
+        
+        # Get all detected workflow configurations
+        workflow_configs = self.workflow_manager.get_all_configs()
+        
+        for workflow_type, config in workflow_configs.items():
+            workflow_name = config.name
+            all_workflows[workflow_name] = self.discover_vcfs_for_workflow(config)
+            
+        return all_workflows
+
+    def discover_bam_files_for_workflow(
+        self,
+        workflow_config: WorkflowConfig
+    ) -> Dict[str, Path]:
+        """
+        Discover BAM/CRAM files for a specific workflow.
+        
+        Args:
+            workflow_config: Configuration for the workflow
+            
+        Returns:
+            Dictionary mapping sample names to BAM/CRAM file paths
+        """
+        bam_files = {}
+        
+        # Look for preprocessing/recalibrated directory in the workflow base path
+        recal_dir = workflow_config.base_path / "preprocessing" / "recalibrated"
+        
+        if not recal_dir.exists():
+            return bam_files
+            
+        for sample_dir in recal_dir.iterdir():
+            if not sample_dir.is_dir():
+                continue
+                
+            sample_name = sample_dir.name
+            
+            # Add workflow prefix to sample name for realignment
+            if workflow_config.name == "realignment":
+                sample_name = f"realignment_{sample_name}"
+            
+            # Look for CRAM first, then BAM
+            cram_files = list(sample_dir.glob("*.cram"))
+            bam_files_list = list(sample_dir.glob("*.bam"))
+            
+            if cram_files:
+                bam_files[sample_name] = cram_files[0]
+            elif bam_files_list:
+                bam_files[sample_name] = bam_files_list[0]
+                
+        return bam_files
+
+    def _discover_stage_normalized(
+        self, 
+        stage_path: Path, 
+        workflow_name: str
+    ) -> Dict[str, Path]:
+        """
+        Discover normalized VCFs in a stage directory.
+        
+        Args:
+            stage_path: Path to the normalized stage directory
+            workflow_name: Name of the workflow ("standard" or "realignment")
+            
+        Returns:
+            Dictionary of discovered VCF files
+        """
+        vcfs = {}
+        
+        for tool in TOOLS:
+            tool_dir = stage_path / tool
+            if not tool_dir.exists():
+                continue
+                
+            # Try modality-based structure
+            for modality in MODALITIES:
+                modality_dir = tool_dir / modality
+                if modality_dir.exists():
+                    vcf_files = list(modality_dir.glob("*.norm.vcf.gz"))
+                    if vcf_files:
+                        suffix_pair = self._modality_to_suffix_pair(modality)
+                        key = f"{tool}_{suffix_pair}" if suffix_pair else f"{tool}_{modality}"
+                        # Add workflow prefix for realignment
+                        if workflow_name == "realignment":
+                            key = f"realignment_{key}"
+                        vcfs[key] = vcf_files[0]
+            
+            # Also try sample-pair structure
+            for subdir in tool_dir.iterdir():
+                if subdir.is_dir() and "_vs_" in subdir.name:
+                    vcf_files = list(subdir.glob("*.norm.vcf.gz"))
+                    if vcf_files:
+                        sample_pair = subdir.name
+                        pair_key = self._pair_to_suffix_key(sample_pair)
+                        modality_key = pair_key if pair_key else self._infer_modality(sample_pair.split("_vs_")[0])
+                        key = f"{tool}_{modality_key}"
+                        # Add workflow prefix for realignment
+                        if workflow_name == "realignment":
+                            key = f"realignment_{key}"
+                        vcfs[key] = vcf_files[0]
+                        
+        return vcfs
+
+    def _discover_stage_consensus(
+        self, 
+        stage_path: Path, 
+        workflow_name: str
+    ) -> Dict[str, Path]:
+        """
+        Discover consensus VCFs in a stage directory.
+        
+        Args:
+            stage_path: Path to the consensus stage directory
+            workflow_name: Name of the workflow ("standard" or "realignment")
+            
+        Returns:
+            Dictionary of discovered VCF files
+        """
+        vcfs = {}
+        vcf_dir = stage_path / "vcf"
+        
+        if not vcf_dir.exists():
+            return vcfs
+            
+        # Try modality-based structure
+        for modality in MODALITIES:
+            modality_vcf_dir = vcf_dir / modality
+            if modality_vcf_dir.exists():
+                vcf_files = list(modality_vcf_dir.glob("*.consensus.vcf.gz"))
+                if vcf_files:
+                    suffix_pair = self._modality_to_suffix_pair(modality)
+                    key = f"consensus_{suffix_pair}" if suffix_pair else modality
+                    # Add workflow prefix for realignment
+                    if workflow_name == "realignment":
+                        key = f"realignment_{key}"
+                    vcfs[key] = vcf_files[0]
+        
+        # Also try sample-pair structure
+        for subdir in vcf_dir.iterdir():
+            if subdir.is_dir() and "_vs_" in subdir.name:
+                vcf_files = list(subdir.glob("*.consensus.vcf.gz"))
+                if vcf_files:
+                    sample_pair = subdir.name
+                    pair_key = self._pair_to_suffix_key(sample_pair)
+                    key = f"consensus_{pair_key}" if pair_key else sample_pair
+                    # Add workflow prefix for realignment
+                    if workflow_name == "realignment":
+                        key = f"realignment_{key}"
+                    vcfs[key] = vcf_files[0]
+                    
+        return vcfs
+
+    def _discover_stage_rescue(
+        self, 
+        stage_path: Path, 
+        workflow_name: str
+    ) -> Dict[str, Path]:
+        """
+        Discover rescue VCFs in a stage directory.
+        
+        Args:
+            stage_path: Path to the rescue stage directory
+            workflow_name: Name of the workflow ("standard" or "realignment")
+            
+        Returns:
+            Dictionary of discovered VCF files
+        """
+        vcfs = {}
+        
+        if not stage_path.exists():
+            return vcfs
+            
+        for subdir in stage_path.iterdir():
+            if subdir.is_dir():
+                vcf_files = list(subdir.glob("*.rescued.vcf.gz"))
+                if vcf_files:
+                    key = self._rescued_pair_to_suffix_key(subdir.name) or subdir.name
+                    # Add workflow prefix for realignment
+                    if workflow_name == "realignment":
+                        key = f"realignment_{key}"
+                    vcfs[key] = vcf_files[0]
+                    
+        return vcfs
+
+    def _discover_stage_annotation(
+        self, 
+        stage_path: Path, 
+        pattern: str,
+        workflow_name: str
+    ) -> Dict[str, Path]:
+        """
+        Discover annotation VCFs in a stage directory.
+        
+        Args:
+            stage_path: Path to the annotation stage directory
+            pattern: Glob pattern for VCF files
+            workflow_name: Name of the workflow ("standard" or "realignment")
+            
+        Returns:
+            Dictionary of discovered VCF files
+        """
+        vcfs = {}
+        
+        if not stage_path.exists():
+            return vcfs
+            
+        for sample_pair_dir in stage_path.iterdir():
+            if sample_pair_dir.is_dir():
+                vcf_files = list(sample_pair_dir.glob(pattern))
+                if vcf_files:
+                    key = self._rescued_pair_to_suffix_key(sample_pair_dir.name) or sample_pair_dir.name
+                    # Add workflow prefix for realignment
+                    if workflow_name == "realignment":
+                        key = f"realignment_{key}"
+                    vcfs[key] = vcf_files[0]
+                    
+        return vcfs
+
+    def _discover_stage_filtered(
+        self, 
+        stage_path: Path, 
+        workflow_name: str
+    ) -> Dict[str, Path]:
+        """
+        Discover filtered VCFs in a stage directory.
+        
+        Args:
+            stage_path: Path to the filtered stage directory
+            workflow_name: Name of the workflow ("standard" or "realignment")
+            
+        Returns:
+            Dictionary of discovered VCF files
+        """
+        vcfs = {}
+        
+        if not stage_path.exists():
+            return vcfs
+            
+        for sample_pair_dir in stage_path.iterdir():
+            if sample_pair_dir.is_dir():
+                vcf_files = list(sample_pair_dir.glob("*.filtered.vcf.gz"))
+                if not vcf_files:
+                    continue
+                # Only include combined rescued filtered result, omit single-modality filtered
+                # i.e., keep keys that contain '_rescued_'
+                if "_rescued_" not in sample_pair_dir.name:
+                    continue
+                key = self._rescued_pair_to_suffix_key(sample_pair_dir.name) or sample_pair_dir.name
+                # Add workflow prefix for realignment
+                if workflow_name == "realignment":
+                    key = f"realignment_{key}"
+                vcfs[key] = vcf_files[0]
+                
+        return vcfs
