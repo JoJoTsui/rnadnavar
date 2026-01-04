@@ -4,6 +4,49 @@ Workflow Abstraction Module
 
 Provides a unified interface for both standard and realignment workflows.
 This module enables seamless handling of different workflow types without code duplication.
+
+Key Components:
+    - WorkflowType: Enum defining supported workflow types (STANDARD, REALIGNMENT)
+    - WorkflowConfig: Configuration dataclass for workflow-specific paths and stages
+    - WorkflowManager: Main class for workflow detection and configuration management
+
+Usage Example:
+    >>> from vcf_stats.workflow import WorkflowManager, WorkflowType
+    >>> 
+    >>> # Initialize manager with pipeline output directory
+    >>> manager = WorkflowManager("/path/to/pipeline/output")
+    >>> 
+    >>> # Detect available workflows
+    >>> workflows = manager.detect_workflows()
+    >>> print(f"Detected: {[w.value for w in workflows]}")
+    >>> # Output: Detected: ['standard', 'realignment']
+    >>> 
+    >>> # Get configuration for a specific workflow
+    >>> standard_config = manager.get_workflow_config(WorkflowType.STANDARD)
+    >>> print(f"Standard base path: {standard_config.base_path}")
+    >>> print(f"Standard stages: {standard_config.stages}")
+    >>> 
+    >>> # Get all configurations
+    >>> all_configs = manager.get_all_configs()
+    >>> for wf_type, config in all_configs.items():
+    >>>     print(f"{wf_type.value}: {config.base_path}")
+
+Workflow Types:
+    Standard Workflow:
+        - Base path: pipeline_output/
+        - Stages: normalized, consensus, rescue, cosmic_gnomad, rna_editing, filtered_rescue
+        - Applies to: DNA and RNA samples
+        
+    Realignment Workflow:
+        - Base path: pipeline_output/vcf_realignment/
+        - Stages: normalized, consensus, rescue, cosmic_gnomad, rna_editing, filtered_rescue
+        - Applies to: RNA samples only (realignment of RNA reads around DNA consensus variants)
+
+Design Principles:
+    - Unified interface: Same API for both workflow types
+    - Configuration-driven: Workflow behavior defined by configuration objects
+    - Automatic detection: System automatically identifies available workflows
+    - Extensible: Easy to add new workflow types in the future
 """
 
 from dataclasses import dataclass
@@ -20,7 +63,32 @@ class WorkflowType(Enum):
 
 @dataclass
 class WorkflowConfig:
-    """Configuration for a workflow type."""
+    """
+    Configuration for a workflow type.
+    
+    This dataclass encapsulates all configuration needed to process a specific workflow,
+    including base paths, processing stages, and stage-to-directory mappings.
+    
+    Attributes:
+        name: Workflow name ("standard" or "realignment")
+        base_path: Base directory for this workflow (Path object)
+        stages: List of processing stage names in order
+        stage_paths: Dictionary mapping stage names to relative directory paths
+        
+    Example:
+        >>> config = WorkflowConfig(
+        ...     name="standard",
+        ...     base_path=Path("/pipeline/output"),
+        ...     stages=["normalized", "consensus", "rescue"],
+        ...     stage_paths={
+        ...         "normalized": "normalized",
+        ...         "consensus": "consensus",
+        ...         "rescue": "rescue"
+        ...     }
+        ... )
+        >>> stage_path = config.get_stage_path("normalized")
+        >>> print(stage_path)  # /pipeline/output/normalized
+    """
     name: str                           # "standard" or "realignment"
     base_path: Path                     # Base directory for this workflow
     stages: List[str]                   # Processing stages
@@ -30,11 +98,24 @@ class WorkflowConfig:
         """
         Get the full path for a specific stage.
         
+        Combines the workflow base path with the stage-specific relative path
+        to produce the complete directory path for a processing stage.
+        
         Args:
-            stage: Stage name (e.g., "normalized", "consensus")
+            stage: Stage name (e.g., "normalized", "consensus", "rescue")
             
         Returns:
             Full path to the stage directory, or None if stage not found
+            
+        Example:
+            >>> config = WorkflowConfig(
+            ...     name="standard",
+            ...     base_path=Path("/pipeline/output"),
+            ...     stages=["normalized"],
+            ...     stage_paths={"normalized": "normalized"}
+            ... )
+            >>> path = config.get_stage_path("normalized")
+            >>> print(path)  # /pipeline/output/normalized
         """
         if stage not in self.stage_paths:
             return None
@@ -42,7 +123,52 @@ class WorkflowConfig:
 
 
 class WorkflowManager:
-    """Manages workflow detection and configuration."""
+    """
+    Manages workflow detection and configuration.
+    
+    This class provides the main interface for working with multiple workflow types.
+    It automatically detects which workflows are present in a pipeline output directory
+    and provides configuration objects for each detected workflow.
+    
+    Key Features:
+        - Automatic workflow detection based on directory structure
+        - Unified configuration interface for all workflow types
+        - Caching of detection results for performance
+        - Support for both standard and realignment workflows
+        
+    Workflow Detection Logic:
+        Standard Workflow:
+            - Checks for: normalized/, consensus/, rescue/ directories
+            - Base path: pipeline_output/
+            
+        Realignment Workflow:
+            - Checks for: vcf_realignment/normalized/, vcf_realignment/consensus/, etc.
+            - Base path: pipeline_output/vcf_realignment/
+            
+    Usage Example:
+        >>> manager = WorkflowManager("/path/to/pipeline/output")
+        >>> 
+        >>> # Detect workflows
+        >>> workflows = manager.detect_workflows()
+        >>> print(f"Found: {[w.value for w in workflows]}")
+        >>> 
+        >>> # Get configuration for standard workflow
+        >>> if WorkflowType.STANDARD in workflows:
+        ...     config = manager.get_workflow_config(WorkflowType.STANDARD)
+        ...     print(f"Standard stages: {config.stages}")
+        >>> 
+        >>> # Get all configurations at once
+        >>> all_configs = manager.get_all_configs()
+        >>> for wf_type, config in all_configs.items():
+        ...     print(f"{wf_type.value}: {len(config.stages)} stages")
+        
+    Attributes:
+        base_dir: Base directory of the pipeline output
+        STANDARD_STAGES: List of standard workflow processing stages
+        STANDARD_STAGE_PATHS: Mapping of stage names to directory paths for standard workflow
+        REALIGNMENT_STAGES: List of realignment workflow processing stages
+        REALIGNMENT_STAGE_PATHS: Mapping of stage names to directory paths for realignment workflow
+    """
     
     # Standard workflow stages and paths
     STANDARD_STAGES = [

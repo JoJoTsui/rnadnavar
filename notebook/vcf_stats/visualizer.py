@@ -1,10 +1,83 @@
 #!/usr/bin/env python3
 """
-VCF Statistics Visualizer Module (Fixed Version)
+VCF Statistics Visualizer Module
 
-Create visualizations for VCF statistics including variant counts,
-quality distributions, and rescue analysis plots.
-Modified to work with the actual data structure returned by vcf_processor.py.
+Create interactive visualizations for VCF statistics including variant counts,
+quality distributions, category distributions, and workflow comparisons.
+
+Key Features:
+    - Interactive Plotly visualizations
+    - Multi-tool and multi-modality comparisons
+    - Stage progression tracking
+    - Workflow comparison plots (standard vs realignment)
+    - RNA-focused comparison visualizations
+    - Integrative view plots (DNA + RNA standard + RNA realignment)
+    - Customizable color schemes and layouts
+
+Enhanced Features (v2.0):
+    - RNA workflow comparison plots
+    - RNA stage progression comparison
+    - RNA annotation impact heatmaps
+    - Integrative view visualizations
+    - Workflow-aware plot generation
+
+Usage Example:
+    >>> from vcf_stats.visualizer import VCFVisualizer
+    >>> 
+    >>> # Create visualizer for standard workflow
+    >>> visualizer = VCFVisualizer(
+    ...     all_stats=standard_workflow_stats,
+    ...     workflow_type="standard"
+    ... )
+    >>> 
+    >>> # Generate standard plots
+    >>> fig1 = visualizer.plot_variant_counts_by_tool()
+    >>> fig1.show()
+    >>> 
+    >>> fig2 = visualizer.plot_category_distribution()
+    >>> fig2.show()
+    >>> 
+    >>> # Generate workflow comparison plots (if realignment available)
+    >>> fig3 = visualizer.plot_rna_workflow_comparison(
+    ...     rna_standard_stats=rna_standard_stats,
+    ...     rna_realignment_stats=rna_realignment_stats
+    ... )
+    >>> fig3.show()
+    >>> 
+    >>> # Generate integrative view
+    >>> fig4 = visualizer.plot_integrative_view(
+    ...     dna_stats=dna_stats,
+    ...     rna_standard_stats=rna_standard_stats,
+    ...     rna_realignment_stats=rna_realignment_stats
+    ... )
+    >>> fig4.show()
+
+Visualization Types:
+    Standard Plots:
+        - Variant counts by tool: Compare variant callers
+        - Category distribution: Somatic, Germline, Artifact, etc.
+        - Stage progression: Track variants through pipeline stages
+        - Quality distributions: Box plots of quality scores
+        
+    Workflow Comparison Plots (NEW):
+        - RNA workflow comparison: Side-by-side RNA standard vs realignment
+        - RNA stage progression: Line plots showing stage-to-stage changes
+        - RNA annotation impact: Heatmap of annotation stage differences
+        - Integrative view: Comprehensive DNA + RNA standard + RNA realignment
+
+Color Scheme:
+    - Somatic: Blue (#1f77b4)
+    - Germline: Orange (#ff7f0e)
+    - Reference: Green (#2ca02c)
+    - Artifact: Red (#d62728)
+    - RNA_Edit: Purple (#9467bd)
+    - NoConsensus: Gray (#7f7f7f)
+
+Design Principles:
+    - Interactive: All plots use Plotly for interactivity
+    - Consistent: Unified color scheme across all plots
+    - Informative: Clear labels, legends, and annotations
+    - Workflow-aware: Support for multiple workflow types
 """
 
 from typing import Dict, Any, Optional
@@ -36,7 +109,52 @@ from .plot_utils import (
 
 
 class VCFVisualizer:
-    """Create visualizations for VCF statistics"""
+    """
+    Create interactive visualizations for VCF statistics.
+    
+    This class provides comprehensive visualization capabilities for VCF statistics
+    across all processing stages and workflow types. It supports both standard and
+    realignment workflows, enabling detailed comparison and analysis.
+    
+    Key Capabilities:
+        - Variant count visualizations by tool and modality
+        - Category distribution plots
+        - Stage progression tracking
+        - Quality score distributions
+        - Workflow comparison plots (standard vs realignment)
+        - RNA-focused comparison visualizations
+        - Integrative view plots
+        
+    Workflow Support:
+        - Standard workflow: DNA + RNA samples
+        - Realignment workflow: RNA samples only
+        - Comparison: RNA standard vs RNA realignment
+        
+    Usage Example:
+        >>> # Create visualizer
+        >>> visualizer = VCFVisualizer(
+        ...     all_stats=workflow_stats,
+        ...     workflow_type="standard"
+        ... )
+        >>> 
+        >>> # Generate standard plots
+        >>> fig1 = visualizer.plot_variant_counts_by_tool()
+        >>> fig1.show()
+        >>> 
+        >>> fig2 = visualizer.plot_category_distribution()
+        >>> fig2.show()
+        >>> 
+        >>> # Generate workflow comparison (if realignment available)
+        >>> fig3 = visualizer.plot_rna_workflow_comparison(
+        ...     rna_standard_stats, rna_realignment_stats
+        ... )
+        >>> fig3.show()
+        
+    Attributes:
+        all_stats: Dictionary containing all VCF statistics
+        workflow_type: Type of workflow ("standard" or "realignment")
+        CATEGORY_COLORS: Color scheme for variant categories
+    """
 
     def __init__(self, all_stats: Dict[str, Any], workflow_type: str = "standard"):
         """
@@ -44,7 +162,21 @@ class VCFVisualizer:
 
         Args:
             all_stats: Dictionary containing all VCF statistics
+                Format: {stage: {sample_name: {stats_dict}}}
             workflow_type: Type of workflow ("standard" or "realignment")
+                Used for labeling plots and organizing visualizations
+                
+        Example:
+            >>> stats = {
+            ...     'filtered_rescue': {
+            ...         'DNA_TUMOR_vs_DNA_NORMAL': {
+            ...             'stats': {
+            ...                 'basic': {'total_variants': 1234, ...}
+            ...             }
+            ...         }
+            ...     }
+            ... }
+            >>> visualizer = VCFVisualizer(stats, workflow_type="standard")
         """
         self.all_stats = all_stats
         self.workflow_type = workflow_type

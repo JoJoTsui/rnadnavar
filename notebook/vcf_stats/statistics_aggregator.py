@@ -5,10 +5,64 @@ VCF Statistics Aggregator Module
 Aggregate and summarize VCF statistics across all processing stages:
 normalized → consensus → rescue → cosmic_gnomad → rna_editing → filtered_rescue.
 
-Features:
-- Category count distribution (replaces pass/filtered metrics)
-- Stage-to-stage progression tracking
-- Support for new categories (RNA_Edit, NoConsensus)
+Key Features:
+    - Category count distribution (Somatic, Germline, Reference, Artifact, RNA_Edit, NoConsensus)
+    - Stage-to-stage progression tracking
+    - Workflow comparison support (standard vs realignment)
+    - Comprehensive summary tables and reports
+    - Export capabilities for downstream analysis
+
+Enhanced Features (v2.0):
+    - Workflow-aware aggregation (standard and realignment workflows)
+    - RNA-focused comparison summaries
+    - Integrative view support (DNA + RNA standard + RNA realignment)
+    - Realignment impact metrics
+
+Usage Example:
+    >>> from vcf_stats.statistics_aggregator import StatisticsAggregator
+    >>> 
+    >>> # Create aggregator for standard workflow
+    >>> aggregator = StatisticsAggregator(
+    ...     all_stats=standard_workflow_stats,
+    ...     workflow_type="standard"
+    ... )
+    >>> 
+    >>> # Generate variant count summary
+    >>> summary = aggregator.create_variant_count_summary()
+    >>> print(summary[['Category', 'Tool', 'Modality', 'Total_Variants']])
+    >>> 
+    >>> # Create workflow comparison (if realignment available)
+    >>> comparison = aggregator.create_workflow_comparison_summary(
+    ...     standard_stats=standard_workflow_stats,
+    ...     realignment_stats=realignment_workflow_stats
+    ... )
+    >>> print(comparison[['Stage', 'Category', 'Standard_Count', 
+    ...                    'Realignment_Count', 'Difference']])
+    >>> 
+    >>> # Export results
+    >>> aggregator.export_report(output_dir)
+
+Processing Stages:
+    1. normalized: Individual variant caller outputs
+    2. consensus: Within-modality consensus (DNA, RNA)
+    3. rescue: Cross-modality rescue (DNA + RNA)
+    4. cosmic_gnomad: COSMIC/gnomAD annotation
+    5. rna_editing: RNA editing annotation
+    6. filtered_rescue: Final filtered variants
+
+Variant Categories:
+    - Somatic: Tumor-specific variants (FILTER=PASS)
+    - Germline: Germline variants (FILTER=germline)
+    - Reference: Reference calls (FILTER=reference)
+    - Artifact: Likely artifacts (other FILTER values)
+    - RNA_Edit: RNA editing sites (FILTER=RNA_Edit)
+    - NoConsensus: No consensus variants (FILTER=NoConsensus)
+
+Design Principles:
+    - Comprehensive: Aggregate all relevant statistics
+    - Workflow-aware: Support multiple workflow types
+    - Exportable: Generate reports for downstream analysis
+    - Flexible: Customizable aggregation and filtering
 """
 
 from typing import Dict, Any, Optional
@@ -20,7 +74,49 @@ from . import CATEGORY_ORDER, VCF_STAGE_ORDER
 
 
 class StatisticsAggregator:
-    """Aggregate and summarize VCF statistics"""
+    """
+    Aggregate and summarize VCF statistics.
+    
+    This class provides comprehensive aggregation and summarization of VCF statistics
+    across all processing stages and workflow types. It supports both standard and
+    realignment workflows, enabling detailed comparison and analysis.
+    
+    Key Capabilities:
+        - Variant count summaries across all stages
+        - Category distribution analysis
+        - Stage-to-stage progression tracking
+        - Workflow comparison (standard vs realignment)
+        - RNA-focused comparison summaries
+        - Export to CSV/Excel formats
+        
+    Workflow Support:
+        - Standard workflow: DNA + RNA samples
+        - Realignment workflow: RNA samples only
+        - Comparison: RNA standard vs RNA realignment
+        
+    Usage Example:
+        >>> # Create aggregator
+        >>> aggregator = StatisticsAggregator(
+        ...     all_stats=workflow_stats,
+        ...     workflow_type="standard"
+        ... )
+        >>> 
+        >>> # Generate summaries
+        >>> variant_summary = aggregator.create_variant_count_summary()
+        >>> stage_progression = aggregator.create_stage_progression_summary()
+        >>> 
+        >>> # Workflow comparison (if realignment available)
+        >>> comparison = aggregator.create_workflow_comparison_summary(
+        ...     standard_stats, realignment_stats
+        ... )
+        >>> 
+        >>> # Export results
+        >>> aggregator.export_report(output_dir)
+        
+    Attributes:
+        all_stats: Dictionary containing all VCF statistics
+        workflow_type: Type of workflow ("standard" or "realignment")
+    """
 
     def __init__(self, all_stats: Dict[str, Any], workflow_type: str = "standard"):
         """
@@ -28,7 +124,21 @@ class StatisticsAggregator:
 
         Args:
             all_stats: Dictionary containing all VCF statistics
+                Format: {stage: {sample_name: {stats_dict}}}
             workflow_type: Type of workflow ("standard" or "realignment")
+                Used for labeling and organizing output
+                
+        Example:
+            >>> stats = {
+            ...     'filtered_rescue': {
+            ...         'DNA_TUMOR_vs_DNA_NORMAL': {
+            ...             'stats': {
+            ...                 'basic': {'total_variants': 1234, ...}
+            ...             }
+            ...         }
+            ...     }
+            ... }
+            >>> aggregator = StatisticsAggregator(stats, workflow_type="standard")
         """
         self.all_stats = all_stats
         self.workflow_type = workflow_type

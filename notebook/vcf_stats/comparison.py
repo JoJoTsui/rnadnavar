@@ -6,12 +6,64 @@ Provides comprehensive comparison capabilities between standard and realignment 
 Focus on RNA-modality comparisons since realignment only applies to RNA samples.
 
 Key Features:
-- RNA-focused variant count comparisons
-- RNA category distribution analysis
-- RNA annotation stage comparisons
-- Integrative view (DNA + RNA standard + RNA realignment)
-- Realignment impact calculation
-- Comprehensive comparison report export
+    - RNA-focused variant count comparisons
+    - RNA category distribution analysis
+    - RNA annotation stage comparisons
+    - Integrative view (DNA + RNA standard + RNA realignment)
+    - Realignment impact calculation
+    - Comprehensive comparison report export
+
+Important Note:
+    Realignment workflow only applies to RNA-tumor samples, not DNA samples.
+    Therefore, all comparisons focus on RNA modality:
+    - Primary comparison: RNA standard vs RNA realignment
+    - Integrative view: DNA (standard) + RNA (standard) + RNA (realignment)
+
+Usage Example:
+    >>> from vcf_stats.comparison import WorkflowComparator
+    >>> 
+    >>> # Create comparator with statistics from both workflows
+    >>> comparator = WorkflowComparator(
+    ...     standard_stats=standard_workflow_stats,
+    ...     realignment_stats=realignment_workflow_stats
+    ... )
+    >>> 
+    >>> # Compare RNA variant counts
+    >>> rna_counts = comparator.compare_rna_variant_counts()
+    >>> print(rna_counts)
+    >>> 
+    >>> # Compare RNA category distribution
+    >>> rna_categories = comparator.compare_rna_category_distribution()
+    >>> print(rna_categories)
+    >>> 
+    >>> # Create integrative view (DNA + RNA standard + RNA realignment)
+    >>> integrative = comparator.create_integrative_view(
+    ...     dna_stats=dna_standard_stats,
+    ...     rna_standard_stats=rna_standard_stats,
+    ...     rna_realignment_stats=realignment_stats
+    ... )
+    >>> print(integrative)
+    >>> 
+    >>> # Calculate realignment impact
+    >>> impact = comparator.calculate_realignment_impact()
+    >>> print(f"Variants added: {impact['rna_variants_added']}")
+    >>> print(f"Improvement: {impact['realignment_improvement']:.2f}%")
+    >>> 
+    >>> # Export comprehensive report
+    >>> comparator.export_comparison_report(output_dir)
+
+Comparison Metrics:
+    - Variant counts: Total variants at each processing stage
+    - Category distribution: Somatic, Germline, Reference, Artifact, RNA_Edit, NoConsensus
+    - Annotation stage impacts: cosmic_gnomad, rna_editing, filtered_rescue
+    - Realignment effectiveness: Net improvement in variant calling
+    - VAF improvements: Variant allele frequency changes
+
+Design Principles:
+    - RNA-focused: All comparisons focus on RNA modality (realignment scope)
+    - Comprehensive: Multiple comparison perspectives (counts, categories, stages)
+    - Quantitative: Calculate concrete impact metrics
+    - Exportable: Generate reports for downstream analysis
 """
 
 from typing import Dict, Any, Optional, List
@@ -24,7 +76,44 @@ from . import CATEGORY_ORDER, VCF_STAGE_ORDER
 
 
 class WorkflowComparator:
-    """Compare statistics between standard and realignment workflows."""
+    """
+    Compare statistics between standard and realignment workflows.
+    
+    This class provides comprehensive comparison capabilities for analyzing the impact
+    of realignment on RNA variant calling. Since realignment only applies to RNA samples,
+    all comparisons focus on RNA modality.
+    
+    Key Comparison Types:
+        1. RNA variant counts: Compare total variants at each stage
+        2. RNA category distribution: Compare variant categories (Somatic, Germline, etc.)
+        3. RNA annotation stages: Compare annotation stage results
+        4. Integrative view: Combine DNA + RNA standard + RNA realignment
+        5. Realignment impact: Quantify effectiveness of realignment
+        
+    Workflow Context:
+        - Standard workflow: DNA + RNA samples with standard alignment
+        - Realignment workflow: RNA samples only with focused realignment
+        - Comparison focus: RNA standard vs RNA realignment
+        
+    Usage Example:
+        >>> comparator = WorkflowComparator(
+        ...     standard_stats=standard_workflow_stats,
+        ...     realignment_stats=realignment_workflow_stats
+        ... )
+        >>> 
+        >>> # Compare RNA variant counts
+        >>> rna_counts = comparator.compare_rna_variant_counts()
+        >>> print(rna_counts[['Stage', 'Category', 'Standard_RNA_Count', 
+        ...                    'Realignment_RNA_Count', 'Difference']])
+        >>> 
+        >>> # Calculate realignment impact
+        >>> impact = comparator.calculate_realignment_impact()
+        >>> print(f"Net improvement: {impact['rna_variants_added'] - impact['rna_variants_removed']}")
+        
+    Attributes:
+        standard_stats: Statistics from standard workflow (DNA + RNA)
+        realignment_stats: Statistics from realignment workflow (RNA only)
+    """
     
     def __init__(
         self,
@@ -39,7 +128,23 @@ class WorkflowComparator:
         
         Args:
             standard_stats: Statistics from standard workflow (DNA + RNA)
+                Format: {stage: {sample_name: {stats_dict}}}
             realignment_stats: Statistics from realignment workflow (RNA only)
+                Format: {stage: {sample_name: {stats_dict}}}
+                
+        Example:
+            >>> standard_stats = {
+            ...     'filtered_rescue': {
+            ...         'DNA_TUMOR_vs_DNA_NORMAL': {...},
+            ...         'RNA_TUMOR_vs_DNA_NORMAL': {...}
+            ...     }
+            ... }
+            >>> realignment_stats = {
+            ...     'filtered_rescue': {
+            ...         'RNA_TUMOR_realign_vs_DNA_NORMAL': {...}
+            ...     }
+            ... }
+            >>> comparator = WorkflowComparator(standard_stats, realignment_stats)
         """
         self.standard_stats = standard_stats
         self.realignment_stats = realignment_stats

@@ -5,6 +5,65 @@ VCF File Discovery Module
 Discovers and organizes all VCF files in the pipeline output directory.
 Refactored to support annotation stages: rescue → cosmic_gnomad → rna_editing → filtered_rescue.
 Enhanced to support realignment workflow discovery.
+
+Key Features:
+    - Automatic VCF file discovery across all processing stages
+    - Support for both standard and realignment workflows
+    - Workflow-aware file organization
+    - BAM/CRAM file discovery for validation
+    - Flexible sample naming conventions (DT/DN/RT suffixes)
+
+Supported Workflows:
+    Standard Workflow:
+        - Base path: pipeline_output/
+        - Stages: normalized, consensus, rescue, cosmic_gnomad, rna_editing, filtered_rescue
+        - Samples: DNA-tumor, DNA-normal, RNA-tumor
+        
+    Realignment Workflow:
+        - Base path: pipeline_output/vcf_realignment/
+        - Stages: normalized, consensus, rescue, cosmic_gnomad, rna_editing, filtered_rescue
+        - Samples: RNA-tumor (realigned)
+
+Usage Example:
+    >>> from vcf_stats.file_discovery import VCFFileDiscovery
+    >>> from vcf_stats.workflow import WorkflowManager
+    >>> 
+    >>> # Basic discovery (standard workflow only)
+    >>> discovery = VCFFileDiscovery("/path/to/pipeline/output")
+    >>> vcf_files = discovery.discover_vcfs()
+    >>> print(f"Found {len(vcf_files['normalized'])} normalized VCFs")
+    >>> 
+    >>> # Workflow-aware discovery
+    >>> manager = WorkflowManager("/path/to/pipeline/output")
+    >>> discovery = VCFFileDiscovery("/path/to/pipeline/output", workflow_manager=manager)
+    >>> 
+    >>> # Discover files for all workflows
+    >>> all_workflows = discovery.discover_all_workflows()
+    >>> for workflow_name, stages in all_workflows.items():
+    ...     print(f"{workflow_name}: {len(stages)} stages")
+    >>> 
+    >>> # Discover files for specific workflow
+    >>> from vcf_stats.workflow import WorkflowType
+    >>> realignment_config = manager.get_workflow_config(WorkflowType.REALIGNMENT)
+    >>> realignment_vcfs = discovery.discover_vcfs_for_workflow(realignment_config)
+    >>> 
+    >>> # Discover BAM files
+    >>> bam_files = discovery.discover_bam_files()
+    >>> print(f"Found {len(bam_files)} BAM/CRAM files")
+
+Processing Stages:
+    1. normalized: VCFs from individual variant callers (DeepSomatic, Mutect2, Strelka)
+    2. consensus: Consensus VCFs within modality (DNA consensus, RNA consensus)
+    3. rescue: Cross-modality rescue VCFs (DNA rescued by RNA)
+    4. cosmic_gnomad: COSMIC/gnomAD annotated VCFs
+    5. rna_editing: RNA editing annotated VCFs
+    6. filtered_rescue: Final filtered VCFs
+
+Design Principles:
+    - Workflow-agnostic: Same discovery logic for all workflow types
+    - Configuration-driven: Uses WorkflowConfig for paths
+    - Flexible naming: Handles various sample naming conventions
+    - Comprehensive: Discovers VCFs and alignment files
 """
 
 from pathlib import Path
@@ -16,7 +75,57 @@ from .workflow import WorkflowManager, WorkflowConfig, WorkflowType
 
 
 class VCFFileDiscovery:
-    """Discover and organize all VCF files in the pipeline output"""
+    """
+    Discover and organize all VCF files in the pipeline output.
+    
+    This class provides comprehensive VCF file discovery across all processing stages
+    and workflow types. It supports both standard and realignment workflows, with
+    automatic detection and organization of files.
+    
+    Key Features:
+        - Multi-stage discovery: normalized, consensus, rescue, annotation stages
+        - Multi-workflow support: standard and realignment workflows
+        - Flexible naming: Handles various sample naming conventions
+        - BAM/CRAM discovery: Finds alignment files for validation
+        - Organized output: Files grouped by stage and workflow
+        
+    Discovery Process:
+        1. Identify workflow type (standard or realignment)
+        2. Scan each processing stage directory
+        3. Match VCF files using naming patterns
+        4. Organize files by stage and sample
+        5. Return structured dictionary of file paths
+        
+    Usage Example:
+        >>> # Basic discovery
+        >>> discovery = VCFFileDiscovery("/path/to/pipeline/output")
+        >>> vcf_files = discovery.discover_vcfs()
+        >>> 
+        >>> # Access discovered files
+        >>> normalized_vcfs = vcf_files['normalized']
+        >>> for name, path in normalized_vcfs.items():
+        ...     print(f"{name}: {path}")
+        >>> 
+        >>> # Workflow-aware discovery
+        >>> from vcf_stats.workflow import WorkflowManager, WorkflowType
+        >>> manager = WorkflowManager("/path/to/pipeline/output")
+        >>> discovery = VCFFileDiscovery("/path/to/pipeline/output", workflow_manager=manager)
+        >>> 
+        >>> # Discover all workflows
+        >>> all_workflows = discovery.discover_all_workflows()
+        >>> standard_vcfs = all_workflows['standard']
+        >>> realignment_vcfs = all_workflows['realignment']
+        >>> 
+        >>> # Discover specific workflow
+        >>> config = manager.get_workflow_config(WorkflowType.REALIGNMENT)
+        >>> realignment_vcfs = discovery.discover_vcfs_for_workflow(config)
+        
+    Attributes:
+        base_dir: Base directory of the pipeline output
+        workflow_manager: Optional WorkflowManager for workflow-aware discovery
+        vcf_files: Dictionary of discovered VCF files organized by stage
+        bam_files: Dictionary of discovered BAM/CRAM files
+    """
 
     def __init__(self, base_dir: Path, workflow_manager: Optional[WorkflowManager] = None):
         """
@@ -25,6 +134,16 @@ class VCFFileDiscovery:
         Args:
             base_dir: Base directory of the pipeline output
             workflow_manager: Optional WorkflowManager for workflow-aware discovery
+                If provided, enables multi-workflow discovery capabilities.
+                If None, only standard workflow discovery is performed.
+                
+        Example:
+            >>> # Standard discovery only
+            >>> discovery = VCFFileDiscovery("/path/to/output")
+            >>> 
+            >>> # Workflow-aware discovery
+            >>> manager = WorkflowManager("/path/to/output")
+            >>> discovery = VCFFileDiscovery("/path/to/output", workflow_manager=manager)
         """
         self.base_dir = Path(base_dir)
         self.workflow_manager = workflow_manager or WorkflowManager(base_dir)

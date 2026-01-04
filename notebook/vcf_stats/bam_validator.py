@@ -4,6 +4,72 @@ BAM Validator Module
 
 Validate variants using BAM/CRAM alignment files to check read support
 and provide independent validation of VCF results.
+
+Key Features:
+    - Read-level variant validation
+    - Variant allele frequency (VAF) calculation
+    - Support for BAM and CRAM formats
+    - Multi-sample validation
+    - Quality filtering (base quality, mapping quality)
+
+Enhanced Features (v2.0):
+    - Comprehensive 4-sample validation (DNA_TUMOR, DNA_NORMAL, RNA_TUMOR, RNA_TUMOR_realign)
+    - RNA realignment VAF comparison
+    - Workflow-aware BAM file discovery
+    - Improved support identification
+
+Usage Example:
+    >>> from vcf_stats.bam_validator import BAMValidator, RealignmentBAMValidator
+    >>> 
+    >>> # Basic validation
+    >>> validator = BAMValidator(reference_fasta="/path/to/reference.fa")
+    >>> results = validator.validate_variants(
+    ...     vcf_path=vcf_file,
+    ...     bam_paths={"DNA_TUMOR": dna_bam, "RNA_TUMOR": rna_bam},
+    ...     max_variants=100
+    ... )
+    >>> 
+    >>> # Comprehensive 4-sample validation (NEW)
+    >>> realignment_validator = RealignmentBAMValidator(
+    ...     filtered_vcf_path=filtered_vcf,
+    ...     bam_files={
+    ...         "DNA_TUMOR": dna_tumor_bam,
+    ...         "DNA_NORMAL": dna_normal_bam,
+    ...         "RNA_TUMOR": rna_tumor_bam,
+    ...         "RNA_TUMOR_realign": rna_tumor_realign_bam
+    ...     }
+    ... )
+    >>> validation_df = realignment_validator.validate_all_samples(max_variants=100)
+    >>> print(validation_df[['CHROM', 'POS', 'REF', 'ALT', 
+    ...                       'RNA_TUMOR_VAF', 'RNA_TUMOR_realign_VAF']])
+
+Validation Process:
+    1. Read VCF file and extract variant positions
+    2. For each variant, query BAM files at that position
+    3. Count reads supporting reference and alternate alleles
+    4. Calculate variant allele frequency (VAF)
+    5. Apply quality filters (base quality, mapping quality)
+    6. Return validation results with read support metrics
+
+Quality Filters:
+    - Minimum base quality: 20 (configurable)
+    - Minimum mapping quality: 0 (configurable)
+    - Skip duplicate reads
+    - Skip secondary alignments
+    - Skip supplementary alignments
+
+Validation Metrics:
+    - ref_count: Number of reads supporting reference allele
+    - alt_count: Number of reads supporting alternate allele
+    - total_depth: Total read depth at position
+    - VAF: Variant allele frequency (alt / (ref + alt))
+    - validation_status: Whether variant is supported by reads
+
+Design Principles:
+    - Independent validation: Use alignment files, not VCF annotations
+    - Quality-aware: Apply quality filters to ensure reliable results
+    - Comprehensive: Validate across all relevant samples
+    - Workflow-aware: Support both standard and realignment workflows
 """
 
 from pathlib import Path
@@ -20,7 +86,49 @@ except ImportError:
 
 
 class BAMValidator:
-    """Validate variants using BAM/CRAM alignment files"""
+    """
+    Validate variants using BAM/CRAM alignment files.
+    
+    This class provides read-level validation of variants by checking alignment files
+    for read support. It calculates variant allele frequencies (VAF) and applies
+    quality filters to ensure reliable validation results.
+    
+    Key Capabilities:
+        - Read support validation (ref/alt counts)
+        - VAF calculation
+        - Quality filtering (base quality, mapping quality)
+        - Multi-sample validation
+        - BAM and CRAM format support
+        
+    Validation Process:
+        1. Open VCF file and iterate through variants
+        2. For each variant, query BAM files at that position
+        3. Count reads supporting ref and alt alleles
+        4. Apply quality filters
+        5. Calculate VAF and validation status
+        6. Return structured validation results
+        
+    Usage Example:
+        >>> validator = BAMValidator(reference_fasta="/path/to/reference.fa")
+        >>> 
+        >>> # Validate variants
+        >>> results = validator.validate_variants(
+        ...     vcf_path=vcf_file,
+        ...     bam_paths={
+        ...         "DNA_TUMOR": dna_tumor_bam,
+        ...         "RNA_TUMOR": rna_tumor_bam
+        ...     },
+        ...     max_variants=100
+        ... )
+        >>> 
+        >>> # Convert to DataFrame
+        >>> import pandas as pd
+        >>> df = pd.DataFrame(results)
+        >>> print(df[['chrom', 'pos', 'ref', 'alt', 'DNA_TUMOR_vaf', 'RNA_TUMOR_vaf']])
+        
+    Attributes:
+        reference_fasta: Path to reference FASTA file (required for CRAM)
+    """
 
     def __init__(self, reference_fasta: Optional[str] = None):
         """
@@ -28,6 +136,15 @@ class BAMValidator:
 
         Args:
             reference_fasta: Optional path to reference FASTA file
+                Required for CRAM file validation
+                Optional for BAM file validation
+                
+        Example:
+            >>> # For BAM files
+            >>> validator = BAMValidator()
+            >>> 
+            >>> # For CRAM files
+            >>> validator = BAMValidator(reference_fasta="/path/to/reference.fa")
         """
         self.reference_fasta = reference_fasta
 
