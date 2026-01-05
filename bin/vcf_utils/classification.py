@@ -8,30 +8,45 @@ Provides unified classification of variants from different callers into biologic
 - Reference: Reference calls (no variant)
 - Artifact: Low-quality or failed filter variants, OR variants with inconsistent classifications across callers (consensus mode)
 - NoConsensus: Variants that don't meet consensus thresholds or don't fit other categories (rescue mode)
+- RNAedit: RNA editing events (added via annotation)
 
 This module standardizes variant classification across Strelka, DeepSomatic, and Mutect2.
+Now integrated with the unified classifier for consistency across all pipeline stages.
 """
+
+# Lazy import for unified classifier to avoid circular imports
+_unified_classifier = None
+
+
+def _get_unified_classifier():
+    """Get or create the unified classifier instance (lazy initialization)."""
+    global _unified_classifier
+    if _unified_classifier is None:
+        from .variant_classifier_unified import UnifiedVariantClassifier
+
+        _unified_classifier = UnifiedVariantClassifier()
+    return _unified_classifier
 
 
 def classify_strelka_variant(filter_val, nt_val, normal_dp):
     """
     Classifies a Strelka variant into Somatic, Germline, Reference, or Artifact.
-    
+
     Strelka uses:
     - FILTER: PASS indicates high-confidence somatic variant
     - INFO/NT: Normal genotype (ref, het, hom)
     - Normal DP: Read depth in normal sample
-    
+
     Args:
         filter_val (str): The value from the VCF FILTER column (e.g., 'PASS', 'LowDepth').
                           Can be None if the VCF parser returns None for PASS.
         nt_val (str): The value of the INFO/NT field (e.g., 'ref', 'het', 'hom').
         normal_dp (int): The read depth of the Normal sample (FORMAT/DP).
-        
+
     Returns:
         str: One of ['Somatic', 'Germline', 'Reference', 'Artifact']
     """
-    
+
     # 1. Somatic: Strictly relies on PASS filter
     # Some parsers return None for PASS, Strelka writes "PASS" string.
     if filter_val == "PASS" or filter_val is None or filter_val == ".":
@@ -58,34 +73,34 @@ def classify_strelka_variant(filter_val, nt_val, normal_dp):
 def classify_deepsomatic_variant(filter_val):
     """
     Classifies a DeepSomatic variant into Somatic, Germline, Reference, or Artifact.
-    
+
     DeepSomatic already provides explicit FILTER labels:
     - PASS: Somatic variant
     - GERMLINE: Germline variant
     - RefCall: Reference (no variant)
     - Other filters: Artifact
-    
+
     Args:
         filter_val (str): The value from the VCF FILTER column.
                           Can be None (treated as PASS by some parsers).
-        
+
     Returns:
         str: One of ['Somatic', 'Germline', 'Reference', 'Artifact']
     """
-    
+
     # Normalize filter value
     if filter_val is None or filter_val == "." or filter_val == "PASS":
         return "Somatic"
-    
+
     # Check explicit DeepSomatic filter labels (case-insensitive)
     filter_upper = str(filter_val).upper()
-    
+
     if "GERMLINE" in filter_upper:
         return "Germline"
-    
+
     if "REFCALL" in filter_upper or "REF_CALL" in filter_upper:
         return "Reference"
-    
+
     # Everything else is an artifact (failed filters)
     return "Artifact"
 
@@ -93,29 +108,29 @@ def classify_deepsomatic_variant(filter_val):
 def classify_mutect2_variant(filter_val, info_dict=None):
     """
     Classifies a Mutect2 variant into Somatic, Germline, Reference, or Artifact.
-    
+
     Note: Mutect2 typically only outputs PASS variants in somatic calling mode.
     This function handles edge cases where other filters might appear.
-    
+
     Args:
         filter_val (str): The value from the VCF FILTER column.
                           Can be None (treated as PASS by some parsers).
         info_dict (dict): Optional INFO field dictionary to check additional flags.
-        
+
     Returns:
         str: One of ['Somatic', 'Germline', 'Reference', 'Artifact']
     """
-    
+
     # Mutect2 in somatic mode primarily outputs PASS variants
     if filter_val is None or filter_val == "." or filter_val == "PASS":
         return "Somatic"
-    
+
     # Check for common Mutect2 germline-related filters (if present)
     filter_upper = str(filter_val).upper()
-    
+
     if "GERMLINE" in filter_upper or "NORMAL_ARTIFACT" in filter_upper:
         return "Germline"
-    
+
     # Other failed filters are artifacts
     return "Artifact"
 
@@ -124,43 +139,47 @@ def classify_variant_from_record(variant, caller_name, sample_indices=None):
     """
     Universal variant classifier that dispatches to caller-specific functions.
     Works with cyvcf2.Variant objects.
-    
+
     Args:
         variant: cyvcf2.Variant object
         caller_name (str): Name of the variant caller ('strelka', 'deepsomatic', 'mutect2')
         sample_indices (dict): Optional dict mapping 'tumor' and 'normal' to sample indices
-        
+
     Returns:
         str: One of ['Somatic', 'Germline', 'Reference', 'Artifact']
     """
-    
+
     filter_val = variant.FILTER
     caller_lower = caller_name.lower()
-    
+
     if caller_lower == "strelka":
         # Strelka requires NT field and normal depth
         try:
             nt_val = variant.INFO.get("NT", "")
-            
+
             # Get normal sample depth
             normal_dp = 0
             if sample_indices and "normal" in sample_indices:
                 normal_idx = sample_indices["normal"]
                 dp_array = variant.format("DP")
                 if dp_array is not None and len(dp_array) > normal_idx:
-                    normal_dp = dp_array[normal_idx][0] if dp_array[normal_idx][0] is not None else 0
-            
+                    normal_dp = (
+                        dp_array[normal_idx][0]
+                        if dp_array[normal_idx][0] is not None
+                        else 0
+                    )
+
             return classify_strelka_variant(filter_val, nt_val, normal_dp)
-        except Exception as e:
+        except Exception:
             # If classification fails, default to Artifact
             return "Artifact"
-    
+
     elif caller_lower == "deepsomatic":
         return classify_deepsomatic_variant(filter_val)
-    
+
     elif caller_lower == "mutect2":
         return classify_mutect2_variant(filter_val)
-    
+
     else:
         # Check if this is a consensus caller
         if "consensus" in caller_lower:
@@ -188,33 +207,33 @@ def classify_variant_from_record(variant, caller_name, sample_indices=None):
 def classify_variant_from_dict(variant_dict, caller_name):
     """
     Classify a variant from a dictionary representation (used in aggregation).
-    
+
     Args:
         variant_dict (dict): Dictionary containing variant info with keys:
                             - 'filter': FILTER value
                             - 'info': INFO dict (for Strelka NT field)
                             - 'normal_dp': Normal depth (for Strelka)
         caller_name (str): Name of the variant caller
-        
+
     Returns:
         str: One of ['Somatic', 'Germline', 'Reference', 'Artifact']
     """
-    
-    filter_val = variant_dict.get('filter')
+
+    filter_val = variant_dict.get("filter")
     caller_lower = caller_name.lower()
-    
+
     if caller_lower == "strelka":
-        nt_val = variant_dict.get('info', {}).get('NT', '')
-        normal_dp = variant_dict.get('normal_dp', 0)
+        nt_val = variant_dict.get("info", {}).get("NT", "")
+        normal_dp = variant_dict.get("normal_dp", 0)
         return classify_strelka_variant(filter_val, nt_val, normal_dp)
-    
+
     elif caller_lower == "deepsomatic":
         return classify_deepsomatic_variant(filter_val)
-    
+
     elif caller_lower == "mutect2":
-        info_dict = variant_dict.get('info', {})
+        info_dict = variant_dict.get("info", {})
         return classify_mutect2_variant(filter_val, info_dict)
-    
+
     else:
         # Unknown caller
         if filter_val is None or filter_val == "." or filter_val == "PASS":
@@ -225,21 +244,21 @@ def classify_variant_from_dict(variant_dict, caller_name):
 def get_sample_indices(vcf_obj, caller_name=None):
     """
     Determine tumor and normal sample indices from VCF samples.
-    
+
     Args:
         vcf_obj: cyvcf2.VCF object
         caller_name (str): Optional name of the variant caller
-        
+
     Returns:
         dict: {'tumor': int, 'normal': int} or None if not paired
     """
     samples = vcf_obj.samples
-    
+
     if len(samples) < 2:
         return None
-    
+
     indices = {}
-    
+
     # Try to identify tumor and normal samples by name
     for i, sample in enumerate(samples):
         sample_lower = sample.lower()
@@ -247,23 +266,23 @@ def get_sample_indices(vcf_obj, caller_name=None):
             indices["tumor"] = i
         elif "normal" in sample_lower:
             indices["normal"] = i
-    
+
     # Fallback: assume first is tumor, second is normal
     if "tumor" not in indices and len(samples) >= 1:
         indices["tumor"] = 0
     if "normal" not in indices and len(samples) >= 2:
         indices["normal"] = 1
-    
+
     return indices
 
 
 def normalize_filter_value(classification):
     """
     Return the biological classification as the normalized filter value.
-    
+
     Args:
         classification (str): One of ['Somatic', 'Germline', 'Reference', 'Artifact']
-        
+
     Returns:
         str: The biological classification itself (Somatic/Germline/Reference/Artifact)
     """
@@ -275,95 +294,101 @@ def normalize_filter_value(classification):
 def get_unified_filter_headers():
     """
     Get biological category FILTER header lines for unified VCF output.
-    
+
+    Includes all classification categories including RNAedit for RNA editing events.
+
     Returns:
         list: List of FILTER header line dictionaries
     """
+    from .classification_config import FILTER_DESCRIPTIONS
+
     return [
         {
-            'ID': 'Somatic',
-            'Description': 'High-confidence somatic variant specific to tumor'
+            "ID": "Somatic",
+            "Description": FILTER_DESCRIPTIONS.get(
+                "Somatic", "High-confidence somatic variant specific to tumor"
+            ),
         },
         {
-            'ID': 'Germline',
-            'Description': 'Germline variant detected in normal sample'
+            "ID": "Germline",
+            "Description": FILTER_DESCRIPTIONS.get(
+                "Germline", "Germline variant detected in normal sample"
+            ),
         },
         {
-            'ID': 'Reference',
-            'Description': 'Reference call - no variant detected'
+            "ID": "Reference",
+            "Description": FILTER_DESCRIPTIONS.get(
+                "Reference", "Reference call - no variant detected"
+            ),
         },
         {
-            'ID': 'Artifact',
-            'Description': 'Low quality variant, technical artifact, or inconsistent classifications across callers'
+            "ID": "Artifact",
+            "Description": FILTER_DESCRIPTIONS.get(
+                "Artifact",
+                "Low quality variant, technical artifact, or inconsistent classifications across callers",
+            ),
         },
         {
-            'ID': 'NoConsensus',
-            'Description': 'Does not meet consensus threshold or does not fit other classification categories'
-        }
+            "ID": "NoConsensus",
+            "Description": FILTER_DESCRIPTIONS.get(
+                "NoConsensus",
+                "Does not meet consensus threshold or does not fit other classification categories",
+            ),
+        },
+        {
+            "ID": "RNAedit",
+            "Description": FILTER_DESCRIPTIONS.get(
+                "RNAedit",
+                "RNA editing event confirmed by REDIportal database and RNA evidence",
+            ),
+        },
     ]
 
 
-def compute_unified_classification_consensus(variant_data, snv_threshold, indel_threshold):
+def compute_unified_classification_consensus(
+    variant_data, snv_threshold, indel_threshold
+):
     """
     Compute unified biological classification for consensus mode.
-    
+
+    This function now delegates to the unified classifier to ensure consistency
+    across all classification stages in the pipeline.
+
     CORRECTED logic for consensus mode:
     1. Check if total caller count meets threshold
     2. If not enough callers -> NoConsensus
     3. If enough callers -> Use majority vote among classifications
     4. If clear majority -> Use majority classification
     5. If tie -> Artifact (disagreement indicates inconsistency)
-    
+
     Args:
         variant_data (dict): Aggregated variant data with 'callers', 'filters_normalized', 'is_snv'
         snv_threshold (int): SNV consensus threshold
         indel_threshold (int): Indel consensus threshold
-    
+
     Returns:
         str: Unified biological classification
     """
-    from collections import Counter
-    
-    # Get individual caller classifications (exclude consensus callers)
-    individual_filters = []
-    for i, caller in enumerate(variant_data['callers']):
-        if not caller.endswith('_consensus'):
-            if i < len(variant_data['filters_normalized']):
-                individual_filters.append(variant_data['filters_normalized'][i])
-    
-    # Check if we have enough callers for consensus
-    caller_count = len(individual_filters)
-    required_threshold = snv_threshold if variant_data.get('is_snv', True) else indel_threshold
-    
-    if caller_count < required_threshold:
-        return 'NoConsensus'  # Not enough callers
-    
-    # Use majority vote to determine classification
-    classification_counts = Counter(individual_filters)
-    
-    # Find the most frequent classification(s)
-    max_count = max(classification_counts.values())
-    majority_classifications = [cls for cls, count in classification_counts.items() if count == max_count]
-    
-    # Check if there's a clear majority (no tie)
-    if len(majority_classifications) == 1:
-        # Clear majority - use the majority classification
-        majority_classification = majority_classifications[0]
-        
-        # Future extension point: Add quality-based Artifact rules here
-        # if is_low_quality_artifact(variant_data, majority_classification):
-        #     return 'Artifact'
-        
-        return majority_classification
-    else:
-        # Tie between classifications - mark as Artifact due to disagreement
-        return 'Artifact'
+    # Create classifier with custom thresholds (lazy import to avoid circular refs)
+    from .variant_classifier_unified import UnifiedVariantClassifier
+
+    config = {
+        "consensus_snv_threshold": snv_threshold,
+        "consensus_indel_threshold": indel_threshold,
+    }
+    classifier = UnifiedVariantClassifier(config)
+
+    # Delegate to unified classifier
+    return classifier.classify_consensus_variant(variant_data)
 
 
 def compute_unified_classification_rescue(variant_data, modality_map):
     """
     Compute unified biological classification for rescue mode.
-    
+
+    This function now delegates to the unified classifier to ensure consistency
+    across all classification stages in the pipeline.
+
     COMPLETE rescue logic handling both consensus and individual callers:
     1. Separate consensus callers from individual callers
     2. If both DNA and RNA consensus available -> Apply cross-modality consensus rules
@@ -371,181 +396,88 @@ def compute_unified_classification_rescue(variant_data, modality_map):
     4. If no consensus labels -> Analyze individual caller cross-modality patterns
     5. Single modality or insufficient cross-modality support -> NoConsensus
     6. Future: Add quality-based Artifact rules
-    
+
     Args:
         variant_data (dict): Complete variant data with both consensus and individual callers
         modality_map (dict): Maps caller names to modalities ('DNA' or 'RNA')
-    
+
     Returns:
         str: Unified biological classification
     """
-    # Step 1: Separate consensus callers from individual callers
-    dna_consensus_label = None
-    rna_consensus_label = None
-    individual_callers = []
-    individual_filters = []
-    
-    for i, caller in enumerate(variant_data['callers']):
-        if caller.endswith('_consensus'):
-            # Extract consensus labels
-            if 'DNA' in caller.upper():
-                dna_consensus_label = variant_data['filters_normalized'][i]
-            elif 'RNA' in caller.upper():
-                rna_consensus_label = variant_data['filters_normalized'][i]
-        else:
-            # Collect individual callers
-            individual_callers.append(caller)
-            if i < len(variant_data['filters_normalized']):
-                individual_filters.append(variant_data['filters_normalized'][i])
-    # Get individual callers by modality
-    dna_callers = []
-    rna_callers = []
-    
-    for i, caller in enumerate(individual_callers):
-        modality = modality_map.get(caller, 'UNKNOWN')
-        if modality == 'DNA' and i < len(individual_filters):
-            dna_callers.append(individual_filters[i])
-        elif modality == 'RNA' and i < len(individual_filters):
-            rna_callers.append(individual_filters[i])
-    # print(f'DNA: {dna_consensus_label}\tRNA: {rna_consensus_label}')
-    # print(individual_filters)
-    # Step 2: Apply cross-modality consensus rules if both available
-    if dna_consensus_label and rna_consensus_label:
-        # Both modalities have consensus
-        if dna_consensus_label == rna_consensus_label:
-            # Agreement across modalities - use agreed classification
-            return dna_consensus_label
-        elif dna_consensus_label == 'Artifact' and rna_consensus_label == 'Artifact':
-            # Both modalities are Artifact
-            return 'Artifact'
-        elif dna_consensus_label != 'Artifact' and rna_consensus_label != 'Artifact':
-            # Cross-modality disagreement on non-Artifact classifications
-            if len(dna_callers) >= 2 and len(rna_callers) >= 2:
-                return 'Artifact'
-            elif len(dna_callers) >= 2:
-                return dna_consensus_label
-            elif len(rna_callers) >= 2:
-                return rna_consensus_label
-            else:
-                return 'NoConsensus'
-        elif rna_consensus_label != 'Artifact' and len(rna_callers) >= 2:
-            # One modality is Artifact, other is not - use DNA priority
-            return rna_consensus_label
-        elif dna_consensus_label != 'Artifact' and len(dna_callers) >= 2:
-            return dna_consensus_label
-        else:
-            return 'Artifact'
-    
-    # Step 3: Single modality consensus - check for cross-modality support from individual callers
-    elif dna_consensus_label and not rna_consensus_label:
-        return dna_consensus_label
-    
-    elif rna_consensus_label and not dna_consensus_label:
-        return rna_consensus_label
-    
-    # Step 4: No consensus labels - analyze individual caller patterns
-    else:
-        
-        # Check if we have sufficient cross-modality support
-        has_dna_support = len(dna_callers) > 0
-        has_rna_support = len(rna_callers) > 0
-        
-        if not (has_dna_support and has_rna_support):
-            # Insufficient cross-modality support
-            return 'NoConsensus'
-        
-        # Check for cross-modality consistency
-        dna_classifications = set(dna_callers)
-        rna_classifications = set(rna_callers)
-        
-        # If both modalities have consistent internal classifications
-        if len(dna_classifications) == 1 and len(rna_classifications) == 1:
-            dna_class = list(dna_classifications)[0]
-            rna_class = list(rna_classifications)[0]
-            
-            if dna_class == rna_class:
-                # Cross-modality agreement
-                # Future extension point: Add quality-based Artifact rules here
-                # if is_low_quality_artifact(variant_data, dna_class):
-                #     return 'Artifact'
-                if dna_class != 'Artifact':
-                    return 'NoConsensus'
-            else:
-                # Cross-modality disagreement
-                return 'Artifact'
-        else:
-            # Internal inconsistency within modalities
-            return 'Artifact'
+    # Delegate to the global unified classifier instance (lazy initialization)
+    return _get_unified_classifier().classify_rescue_variant(variant_data, modality_map)
 
 
-def is_low_quality_artifact(variant_data, proposed_classification, min_dp=10, min_vaf=0.05):
+def is_low_quality_artifact(
+    variant_data, proposed_classification, min_dp=10, min_vaf=0.05
+):
     """
     Future extension: Check if variant should be classified as Artifact based on quality metrics.
-    
+
     This function provides a framework for quality-based Artifact classification that can be
     enabled in the future. Currently returns False (disabled) but can be extended with:
     - Low allelic depth (AD) thresholds
-    - Low total depth (DP) thresholds  
+    - Low total depth (DP) thresholds
     - Low variant allele frequency (VAF) thresholds
     - Strand bias metrics
     - Mapping quality thresholds
-    
+
     Args:
         variant_data (dict): Aggregated variant data with genotype information
         proposed_classification (str): The classification that would be assigned
         min_dp (int): Minimum depth threshold (default: 10)
         min_vaf (float): Minimum VAF threshold (default: 0.05)
-    
+
     Returns:
         bool: True if variant should be classified as Artifact based on quality
     """
     # Currently disabled - return False to use proposed_classification
     # Future implementation could check:
-    
+
     # # Skip quality checks for Reference calls (expected to have low VAF)
     # if proposed_classification == 'Reference':
     #     return False
-    # 
+    #
     # # Get aggregated genotype statistics
     # gt_agg = variant_data.get('gt_aggregated', {})
-    # 
+    #
     # # Check depth thresholds
     # mean_dp = gt_agg.get('dp_mean')
     # if mean_dp is not None and mean_dp < min_dp:
     #     return True
-    # 
+    #
     # # Check VAF thresholds for non-Reference calls
     # mean_vaf = gt_agg.get('vaf_mean')
     # if mean_vaf is not None and mean_vaf < min_vaf:
     #     return True
-    # 
+    #
     # # Future: Add more quality checks here
     # # - Strand bias detection
     # # - Mapping quality thresholds
     # # - Allelic depth ratios
     # # - Base quality scores
-    
+
     return False
 
 
 def get_classification_info_headers():
     """
     Get INFO header lines for classification metadata.
-    
+
     Returns:
         list: List of INFO header line dictionaries
     """
     return [
         {
-            'ID': 'VC',
-            'Number': '1',
-            'Type': 'String',
-            'Description': 'Variant Classification: Somatic, Germline, Reference, Artifact, or NoConsensus'
+            "ID": "VC",
+            "Number": "1",
+            "Type": "String",
+            "Description": "Variant Classification: Somatic, Germline, Reference, Artifact, or NoConsensus",
         },
         {
-            'ID': 'VC_CALLERS',
-            'Number': '.',
-            'Type': 'String',
-            'Description': 'Callers that classified this variant (with classification)'
-        }
+            "ID": "VC_CALLERS",
+            "Number": ".",
+            "Type": "String",
+            "Description": "Callers that classified this variant (with classification)",
+        },
     ]
