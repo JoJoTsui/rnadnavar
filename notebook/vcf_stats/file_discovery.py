@@ -572,6 +572,10 @@ class VCFFileDiscovery:
         """
         Discover BAM/CRAM files for a specific workflow.
 
+        Checks multiple locations:
+        - preprocessing/recalibrated/ (standard workflow, *.recal.cram)
+        - preprocessing/markduplicates/ (realignment workflow, *.md.cram)
+
         Args:
             workflow_config: Configuration for the workflow
 
@@ -580,30 +584,42 @@ class VCFFileDiscovery:
         """
         bam_files = {}
 
-        # Look for preprocessing/recalibrated directory in the workflow base path
+        # Try recalibrated directory first (standard workflow)
         recal_dir = workflow_config.base_path / "preprocessing" / "recalibrated"
+        markdup_dir = workflow_config.base_path / "preprocessing" / "markduplicates"
 
-        if not recal_dir.exists():
+        # Check which directory exists and use appropriate patterns
+        search_dirs = []
+        if recal_dir.exists():
+            search_dirs.append((recal_dir, ["*.recal.cram", "*.cram", "*.bam"]))
+        if markdup_dir.exists():
+            search_dirs.append((markdup_dir, ["*.md.cram", "*.cram", "*.bam"]))
+
+        if not search_dirs:
             return bam_files
 
-        for sample_dir in recal_dir.iterdir():
-            if not sample_dir.is_dir():
-                continue
+        for base_dir, patterns in search_dirs:
+            for sample_dir in base_dir.iterdir():
+                if not sample_dir.is_dir():
+                    continue
 
-            sample_name = sample_dir.name
+                sample_name = sample_dir.name
 
-            # Add workflow prefix to sample name for realignment
-            if workflow_config.name == "realignment":
-                sample_name = f"realignment_{sample_name}"
+                # Skip if we already found this sample (prioritize recalibrated)
+                if sample_name in bam_files:
+                    continue
 
-            # Look for CRAM first, then BAM
-            cram_files = list(sample_dir.glob("*.cram"))
-            bam_files_list = list(sample_dir.glob("*.bam"))
+                # Add workflow prefix to sample name for realignment
+                full_sample_name = sample_name
+                if workflow_config.name == "realignment":
+                    full_sample_name = f"realignment_{sample_name}"
 
-            if cram_files:
-                bam_files[sample_name] = cram_files[0]
-            elif bam_files_list:
-                bam_files[sample_name] = bam_files_list[0]
+                # Try each pattern in order
+                for pattern in patterns:
+                    found_files = list(sample_dir.glob(pattern))
+                    if found_files:
+                        bam_files[full_sample_name] = found_files[0]
+                        break
 
         return bam_files
 
