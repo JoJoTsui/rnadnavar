@@ -527,20 +527,18 @@ class VCFVisualizer:
 
         # Create main plot with all categories
         full_fig = _create_variant_type_plot(df)
-        if full_fig:
-            full_fig.show()
 
         # Create NoConsensus-free plot if requested
+        figures = [full_fig]
         if exclude_no_consensus_view:
             df_filtered = df[df["Category"] != "NoConsensus"].copy()
             if not df_filtered.empty:
                 filtered_fig = _create_variant_type_plot(
                     df_filtered, " (excluding NoConsensus)"
                 )
-                if filtered_fig:
-                    filtered_fig.show()
+                figures.append(filtered_fig)
 
-        return full_fig
+        return tuple(figures)
 
     def plot_consensus_comparison(self):
         """
@@ -879,8 +877,8 @@ class VCFVisualizer:
         for i in range(1, n_subplots + 1):
             fig.update_yaxes(range=[0, max_y * 1.1], row=1, col=i)
 
-        # Show main figure
-        fig.show()
+        # Initialize figures list
+        figures = [fig]
 
         # Optional secondary view excluding NoConsensus to improve minor category visibility
         if dual_view_no_consensus and data:
@@ -962,9 +960,9 @@ class VCFVisualizer:
                 )
                 for i in range(1, len(available_subplots) + 1):
                     fig_small.update_yaxes(range=[0, max_y2 * 1.1], row=1, col=i)
-                fig_small.show()
+                figures.append(fig_small)
 
-        return fig
+        return tuple(figures) if len(figures) > 1 else (figures[0],)
 
     def plot_annotation_progression(self, dual_view_no_consensus: bool = True):
         """
@@ -1086,18 +1084,16 @@ class VCFVisualizer:
 
         # Full view including NoConsensus
         full_fig = _build_progression(df)
-        if full_fig:
-            full_fig.show()
+        figures = [full_fig]
 
         # Optional view excluding NoConsensus to improve readability
         if dual_view_no_consensus:
             df_small = df[df["Category"] != "NoConsensus"].copy()
             if not df_small.empty:
                 small_fig = _build_progression(df_small, " (excluding NoConsensus)")
-                if small_fig:
-                    small_fig.show()
+                figures.append(small_fig)
 
-        return full_fig
+        return tuple(figures)
 
     def plot_category_heatmap(
         self, stages: Optional[list] = None, dual_view_without_no_consensus: bool = True
@@ -1201,26 +1197,24 @@ class VCFVisualizer:
 
         # Full view (counts) with all categories
         fig_full = _create_heatmap(df)
-        fig_full.show()
 
         # Percent-per-stage normalized view
         fig_pct = _create_heatmap(df, " (percent per stage)", normalize="stage")
-        fig_pct.show()
+        figures = [fig_full, fig_pct]
 
         # Secondary views without NoConsensus to improve visibility
         if dual_view_without_no_consensus:
             df_no_nc = df[df["Category"] != "NoConsensus"].copy()
             if not df_no_nc.empty:
                 fig_no_nc = _create_heatmap(df_no_nc, " (excluding NoConsensus)")
-                fig_no_nc.show()
                 fig_no_nc_pct = _create_heatmap(
                     df_no_nc,
                     " (percent per stage, excluding NoConsensus)",
                     normalize="stage",
                 )
-                fig_no_nc_pct.show()
+                figures.extend([fig_no_nc, fig_no_nc_pct])
 
-        return fig_full
+        return tuple(figures)
 
     def plot_stage_transition_sankey(self, categories_to_show: Optional[list] = None):
         """
@@ -1344,7 +1338,6 @@ class VCFVisualizer:
             template="plotly_white",
         )
 
-        fig.show()
         return fig
 
     def plot_tier_distribution(
@@ -1487,8 +1480,7 @@ class VCFVisualizer:
 
         # Full view with all categories
         fig_full = _create_tier_plot(tiered_df)
-        if fig_full:
-            fig_full.show()
+        figures = [fig_full]
 
         # Secondary view excluding NoConsensus
         if dual_view_no_consensus:
@@ -1499,8 +1491,9 @@ class VCFVisualizer:
                 fig_no_nc = _create_tier_plot(
                     tiered_df_no_nc, " (excluding NoConsensus)"
                 )
-                if fig_no_nc:
-                    fig_no_nc.show()
+                figures.append(fig_no_nc)
+
+        return tuple(figures)
 
     def plot_rna_workflow_comparison(
         self, rna_standard_stats: Dict[str, Any], rna_realignment_stats: Dict[str, Any]
