@@ -527,6 +527,8 @@ class VCFVisualizer:
 
         # Create main plot with all categories
         full_fig = _create_variant_type_plot(df)
+        if full_fig:
+            full_fig.show()
 
         # Create NoConsensus-free plot if requested
         if exclude_no_consensus_view:
@@ -535,6 +537,10 @@ class VCFVisualizer:
                 filtered_fig = _create_variant_type_plot(
                     df_filtered, " (excluding NoConsensus)"
                 )
+                if filtered_fig:
+                    filtered_fig.show()
+
+        return full_fig
 
     def plot_consensus_comparison(self):
         """
@@ -873,6 +879,9 @@ class VCFVisualizer:
         for i in range(1, n_subplots + 1):
             fig.update_yaxes(range=[0, max_y * 1.1], row=1, col=i)
 
+        # Show main figure
+        fig.show()
+
         # Optional secondary view excluding NoConsensus to improve minor category visibility
         if dual_view_no_consensus and data:
             df_small = df[df["FilterCategory"] != "NoConsensus"].copy()
@@ -954,6 +963,8 @@ class VCFVisualizer:
                 for i in range(1, len(available_subplots) + 1):
                     fig_small.update_yaxes(range=[0, max_y2 * 1.1], row=1, col=i)
                 fig_small.show()
+
+        return fig
 
     def plot_annotation_progression(self, dual_view_no_consensus: bool = True):
         """
@@ -1075,12 +1086,18 @@ class VCFVisualizer:
 
         # Full view including NoConsensus
         full_fig = _build_progression(df)
+        if full_fig:
+            full_fig.show()
 
         # Optional view excluding NoConsensus to improve readability
         if dual_view_no_consensus:
             df_small = df[df["Category"] != "NoConsensus"].copy()
             if not df_small.empty:
                 small_fig = _build_progression(df_small, " (excluding NoConsensus)")
+                if small_fig:
+                    small_fig.show()
+
+        return full_fig
 
     def plot_category_heatmap(
         self, stages: Optional[list] = None, dual_view_without_no_consensus: bool = True
@@ -1203,6 +1220,8 @@ class VCFVisualizer:
                 )
                 fig_no_nc_pct.show()
 
+        return fig_full
+
     def plot_stage_transition_sankey(self, categories_to_show: Optional[list] = None):
         """
         Sankey diagram showing variant flow through pipeline stages.
@@ -1324,6 +1343,9 @@ class VCFVisualizer:
             font=dict(size=11, family="Arial"),
             template="plotly_white",
         )
+
+        fig.show()
+        return fig
 
     def plot_tier_distribution(
         self, rescue_vcf_path: Optional[str] = None, dual_view_no_consensus: bool = True
