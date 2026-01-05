@@ -159,12 +159,21 @@ class VCFFileDiscovery:
         }
         self.bam_files = {}
 
-    def discover_vcfs(self) -> Dict[str, Dict[str, Path]]:
+    def discover_vcfs(self) -> Dict[str, Dict[str, Dict[str, any]]]:
         """
         Discover all VCF files organized by processing stage.
 
         Only discovers normalized, consensus, rescue, and annotated (cosmic_gnomad,
         rna_editing, filtered_rescue) VCFs. Raw variant_calling VCFs are skipped.
+
+        Returns:
+            Dictionary mapping stage -> {name: {path, stage, tool, sample, file_id}}
+            Each VCF entry contains metadata:
+                - path: Path object to the VCF file
+                - stage: Processing stage (e.g., "normalized", "consensus")
+                - tool: Tool name (e.g., "deepsomatic", "consensus")
+                - sample: Sample identifier (e.g., "DT_vs_DN", "RT_vs_DN")
+                - file_id: Full file identifier key
         """
         # 1. Normalized VCFs - from standalone callers (primary input for analysis)
         self._discover_normalized_vcfs()
@@ -673,7 +682,14 @@ class VCFFileDiscovery:
                 if workflow_name == "realignment":
                     key = f"realignment_{key}"
 
-                vcfs[key] = vcf_path
+                # Store with metadata
+                vcfs[key] = {
+                    "path": vcf_path,
+                    "stage": "normalized",
+                    "tool": tool.lower(),
+                    "sample": pair_key or sample_pair,
+                    "file_id": key,
+                }
 
         return vcfs
 
@@ -724,7 +740,14 @@ class VCFFileDiscovery:
             if workflow_name == "realignment":
                 key = f"realignment_{key}"
 
-            vcfs[key] = vcf_path
+            # Store with metadata
+            vcfs[key] = {
+                "path": vcf_path,
+                "stage": "consensus",
+                "tool": "consensus",
+                "sample": pair_key or sample_pair,
+                "file_id": key,
+            }
 
         return vcfs
 
@@ -750,11 +773,19 @@ class VCFFileDiscovery:
             if subdir.is_dir():
                 vcf_files = list(subdir.glob("*.rescued.vcf.gz"))
                 if vcf_files:
-                    key = self._rescued_pair_to_suffix_key(subdir.name) or subdir.name
+                    rescued_key = self._rescued_pair_to_suffix_key(subdir.name)
+                    key = rescued_key or subdir.name
                     # Add workflow prefix for realignment
                     if workflow_name == "realignment":
                         key = f"realignment_{key}"
-                    vcfs[key] = vcf_files[0]
+                    # Store with metadata
+                    vcfs[key] = {
+                        "path": vcf_files[0],
+                        "stage": "rescue",
+                        "tool": "rescue",
+                        "sample": rescued_key or subdir.name,
+                        "file_id": key,
+                    }
 
         return vcfs
 
@@ -792,14 +823,27 @@ class VCFFileDiscovery:
             if sample_pair_dir.is_dir() and "rescued" in sample_pair_dir.name:
                 vcf_files = list(sample_pair_dir.glob(pattern))
                 if vcf_files:
-                    key = (
-                        self._rescued_pair_to_suffix_key(sample_pair_dir.name)
-                        or sample_pair_dir.name
-                    )
+                    rescued_key = self._rescued_pair_to_suffix_key(sample_pair_dir.name)
+                    key = rescued_key or sample_pair_dir.name
                     # Add workflow prefix for realignment
                     if workflow_name == "realignment":
                         key = f"realignment_{key}"
-                    vcfs[key] = vcf_files[0]
+
+                    # Infer stage from pattern
+                    stage_name = "annotation"
+                    if "cosmic_gnomad" in pattern:
+                        stage_name = "cosmic_gnomad"
+                    elif "rna_annotated" in pattern:
+                        stage_name = "rna_editing"
+
+                    # Store with metadata
+                    vcfs[key] = {
+                        "path": vcf_files[0],
+                        "stage": stage_name,
+                        "tool": stage_name,
+                        "sample": rescued_key or sample_pair_dir.name,
+                        "file_id": key,
+                    }
 
         return vcfs
 
@@ -846,13 +890,19 @@ class VCFFileDiscovery:
                 if "_rescued_" not in sample_pair_dir.name:
                     continue
 
-                key = (
-                    self._rescued_pair_to_suffix_key(sample_pair_dir.name)
-                    or sample_pair_dir.name
-                )
+                rescued_key = self._rescued_pair_to_suffix_key(sample_pair_dir.name)
+                key = rescued_key or sample_pair_dir.name
                 # Add workflow prefix for realignment
                 if workflow_name == "realignment":
                     key = f"realignment_{key}"
-                vcfs[key] = vcf_files[0]
+
+                # Store with metadata
+                vcfs[key] = {
+                    "path": vcf_files[0],
+                    "stage": "filtered_rescue",
+                    "tool": "filtered_rescue",
+                    "sample": rescued_key or sample_pair_dir.name,
+                    "file_id": key,
+                }
 
         return vcfs

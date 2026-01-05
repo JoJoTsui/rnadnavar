@@ -6,29 +6,24 @@ This file is a clean implementation extracted directly from the notebook
 to serve as a working replacement for the refactored module with syntax errors.
 """
 
-from pathlib import Path
-from typing import Dict, Optional, Any, Tuple
-import pandas as pd
 import traceback
 from collections import defaultdict
-
-# Import classification functions
-from .classifiers import (
-    classify_by_filter,
-    classify_annotated_variant,
-    get_sample_indices
-)
+from pathlib import Path
 
 # Import constants from main module
-from . import TOOLS, MODALITIES, CATEGORY_ORDER, VCF_STAGE_ORDER
+from . import TOOLS
+
+# Import classification functions
+from .classifiers import classify_by_filter
 
 # Try to import optional dependencies
 try:
     import matplotlib.pyplot as plt
-    import seaborn as sns
     import plotly.express as px
     import plotly.graph_objects as go
+    import seaborn as sns
     from plotly.subplots import make_subplots
+
     VISUALIZATION_AVAILABLE = True
 except ImportError:
     VISUALIZATION_AVAILABLE = False
@@ -56,21 +51,22 @@ class VCFStatisticsExtractor:
     def extract_basic_stats(self):
         """
         Extract basic variant statistics with unified FILTER-based classification.
-        
+
         Uses classify_by_filter() for all VCF types, providing consistent
         classification based solely on the FILTER field.
-        
+
         Returns statistics including:
         - Total variants, SNPs, INDELs, MNPs, complex variants
         - Chromosomes
         - Variant types
         - Classification by category (Somatic, Germline, Reference, Artifact, RNA_Edit, NoConsensus)
         - Category distribution percentages
-        
+
         Note: Quality scores are not extracted as they are not always available.
         """
         try:
             from cyvcf2 import VCF
+
             self.vcf = VCF(str(self.vcf_path))
 
             stats = {
@@ -108,13 +104,13 @@ class VCFStatisticsExtractor:
                 # Unified classification using FILTER field only
                 try:
                     classification = classify_by_filter(variant)
-                    
+
                     # Count this category
                     stats["classification"][classification] = (
                         stats["classification"].get(classification, 0) + 1
                     )
-                    
-                except Exception as e:
+
+                except Exception:
                     # Fallback: default to Artifact if classification fails
                     stats["classification"]["Artifact"] = (
                         stats["classification"].get("Artifact", 0) + 1
@@ -122,7 +118,7 @@ class VCFStatisticsExtractor:
 
             # Convert chromosomes to sorted list
             stats["chromosomes"] = sorted(list(stats["chromosomes"]))
-            
+
             # Compute category distribution percentages
             total = stats["total_variants"]
             if total > 0:
@@ -142,12 +138,13 @@ class VCFStatisticsExtractor:
         """Extract INFO field statistics."""
         try:
             from cyvcf2 import VCF
+
             # Always reopen VCF to reset the iterator
             self.vcf = VCF(str(self.vcf_path))
 
             # Get available INFO fields from header
             info_fields = {}
-            print(f"  [DEBUG] Starting header parsing...")
+            print("  [DEBUG] Starting header parsing...")
             try:
                 for key in self.vcf.header_iter():
                     try:
@@ -159,7 +156,7 @@ class VCFStatisticsExtractor:
                                 field_type = key["Type"]
                             except KeyError:
                                 field_type = "String"
-                            
+
                             info_fields[field_id] = {
                                 "type": field_type,
                                 "values": [],
@@ -168,7 +165,9 @@ class VCFStatisticsExtractor:
                         # Skip this header entry if we can't parse it
                         continue
             except Exception as header_err:
-                print(f"  Error parsing header: {type(header_err).__name__}: {header_err}")
+                print(
+                    f"  Error parsing header: {type(header_err).__name__}: {header_err}"
+                )
                 # Continue without header parsing, we'll collect from actual data
 
             print(f"  [DEBUG] Found {len(info_fields)} INFO fields in header")
@@ -189,10 +188,13 @@ class VCFStatisticsExtractor:
                 if variant_count > 10000:
                     break
 
-            print(f"  [DEBUG] Processed {variant_count} variants, calculating statistics...")
+            print(
+                f"  [DEBUG] Processed {variant_count} variants, calculating statistics..."
+            )
 
             # Calculate statistics for numeric fields
             import numpy as np
+
             info_stats = {}
             for info_id, data in info_fields.items():
                 if data["values"]:
@@ -239,8 +241,9 @@ class VCFStatisticsExtractor:
     def extract_format_fields(self):
         """Extract FORMAT field statistics (sample-level)."""
         try:
-            from cyvcf2 import VCF
             import numpy as np
+            from cyvcf2 import VCF
+
             # Always reopen VCF to reset the iterator
             self.vcf = VCF(str(self.vcf_path))
 
@@ -319,12 +322,28 @@ class VCFStatisticsExtractor:
             return {}
 
     # ...existing code...
-    def extract_all_stats(self, verbose: bool = True):
+    def extract_all_stats(self, verbose: bool = True, metadata: dict = None):
         """
         Extract all statistics from VCF file.
+
+        Args:
+            verbose: Whether to print progress information
+            metadata: Optional metadata dict with stage, tool, sample, file_id
         """
         if verbose:
             print(f"\nProcessing: {self.vcf_path.name}")
+
+            # Print metadata if available
+            if metadata:
+                print("  📋 Metadata:")
+                if metadata.get("stage"):
+                    print(f"     Stage: {metadata['stage']}")
+                if metadata.get("tool"):
+                    print(f"     Tool: {metadata['tool']}")
+                if metadata.get("sample"):
+                    print(f"     Sample: {metadata['sample']}")
+                if metadata.get("file_id"):
+                    print(f"     File ID: {metadata['file_id']}")
 
         # Extract basic statistics
         basic = self.extract_basic_stats()
@@ -340,7 +359,7 @@ class VCFStatisticsExtractor:
             "info": info,
             "format": format_stats,
             "file_path": str(self.vcf_path),
-            "caller_name": self.caller_name
+            "caller_name": self.caller_name,
         }
 
         if verbose and basic:
@@ -348,12 +367,12 @@ class VCFStatisticsExtractor:
             print(f"  ✓ SNPs: {basic.get('snps', 0):,}")
             print(f"  ✓ INDELs: {basic.get('indels', 0):,}")
 
-            if basic.get('classification'):
+            if basic.get("classification"):
                 print(f"  ✓ Classification: {basic['classification']}")
-            elif basic.get('filter_categories'):
+            elif basic.get("filter_categories"):
                 print(f"  ✓ Filter categories: {basic['filter_categories']}")
 
-            if basic.get('chromosomes'):
+            if basic.get("chromosomes"):
                 print(f"  ✓ Chromosomes: {len(basic['chromosomes'])}")
 
         return all_stats
@@ -362,6 +381,13 @@ class VCFStatisticsExtractor:
 def process_all_vcfs(vcf_files_dict):
     """
     Process all VCF files and collect statistics.
+
+    Args:
+        vcf_files_dict: Dictionary mapping stage -> {name: {path, stage, tool, sample, file_id}}
+                       Each entry contains VCF metadata including the file path
+
+    Returns:
+        Dictionary mapping stage -> {name: {path, stats, metadata}}
     """
     all_stats = {}
 
@@ -375,21 +401,42 @@ def process_all_vcfs(vcf_files_dict):
 
         category_stats = {}
 
-        for tool_modality, vcf_path in files.items():
-            # Extract caller name from tool/modality string
-            caller_name = None
-            for tool in TOOLS:
-                if tool in tool_modality.lower():
-                    caller_name = tool
-                    break
+        for tool_modality, vcf_info in files.items():
+            # Handle both old format (Path) and new format (dict with metadata)
+            if isinstance(vcf_info, dict):
+                vcf_path = vcf_info["path"]
+                metadata = {
+                    "stage": vcf_info.get("stage", category),
+                    "tool": vcf_info.get("tool"),
+                    "sample": vcf_info.get("sample"),
+                    "file_id": vcf_info.get("file_id", tool_modality),
+                }
+            else:
+                # Backward compatibility: treat as Path
+                vcf_path = vcf_info
+                metadata = {
+                    "stage": category,
+                    "tool": None,
+                    "sample": None,
+                    "file_id": tool_modality,
+                }
 
-            # Extract statistics
+            # Extract caller name from tool/modality string or metadata
+            caller_name = metadata.get("tool")
+            if not caller_name:
+                for tool in TOOLS:
+                    if tool in tool_modality.lower():
+                        caller_name = tool
+                        break
+
+            # Extract statistics with metadata
             extractor = VCFStatisticsExtractor(vcf_path, caller_name)
-            stats = extractor.extract_all_stats(verbose=True)
+            stats = extractor.extract_all_stats(verbose=True, metadata=metadata)
 
             category_stats[tool_modality] = {
                 "path": vcf_path,
-                "stats": stats
+                "stats": stats,
+                "metadata": metadata,
             }
 
         all_stats[category] = category_stats
