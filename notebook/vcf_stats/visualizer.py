@@ -1887,9 +1887,9 @@ class VCFVisualizer:
         Comprehensive visualization of all three modalities.
 
         Creates grouped bar charts showing:
-        - DNA-tumor (standard only)
-        - RNA-tumor (standard)
-        - RNA-tumor (realignment)
+        - For normalized/consensus stages: DNA, RNA-standard, RNA-realignment (3 samples)
+        - For rescue/cosmic_gnomad/rna_editing/filtered_rescue stages: RNA-standard, RNA-realignment only (2 samples)
+          (DNA is dropped because these VCFs combine DNA+RNA and DNA=RNA-std)
 
         This provides a complete picture of variant calling across
         all samples and workflows, highlighting the realignment impact
@@ -1918,14 +1918,17 @@ class VCFVisualizer:
         )
 
         # Create figure with subplots for each stage
-        annotation_stages = [
+        # Include consensus stage (modality-specific VCFs) and rescue onwards (combined VCFs)
+        all_stages = [
+            "normalized",
+            "consensus",
             "rescue",
             "cosmic_gnomad",
             "rna_editing",
             "filtered_rescue",
         ]
         available_stages = [
-            s for s in annotation_stages if s in integrative_df["Stage"].values
+            s for s in all_stages if s in integrative_df["Stage"].values
         ]
         n_stages = len(available_stages)
 
@@ -1944,9 +1947,17 @@ class VCFVisualizer:
         # Track categories for legend
         categories_in_legend = set()
 
+        # Stages with modality-specific VCFs (show all 3 samples)
+        modality_specific_stages = ["normalized", "consensus"]
+
         # For each stage, create grouped bars by category
         for i, stage in enumerate(available_stages, 1):
             stage_data = integrative_df[integrative_df["Stage"] == stage]
+
+            # Determine which samples to show
+            # For modality-specific stages: DNA, RNA-Std, RNA-Real
+            # For combined VCF stages: RNA-Std, RNA-Real only (DNA is same as RNA-Std)
+            show_dna = stage in modality_specific_stages
 
             # For each category, add grouped bars
             for category in CATEGORY_ORDER:
@@ -1961,22 +1972,44 @@ class VCFVisualizer:
                     if show_legend:
                         categories_in_legend.add(category)
 
-                    # Add three bars for this category (DNA, RNA Standard, RNA Realignment)
-                    fig.add_trace(
-                        go.Bar(
-                            name=category,
-                            x=["DNA", "RNA-Std", "RNA-Real"],
-                            y=[dna_count, rna_std_count, rna_real_count],
-                            marker_color=self.CATEGORY_COLORS.get(category, "#8A8A8A"),
-                            text=[dna_count, rna_std_count, rna_real_count],
-                            textposition="inside",
-                            showlegend=show_legend,
-                            legendgroup=category,
-                            hovertemplate=f"<b>%{{x}}</b><br>{category}: %{{y}}<extra></extra>",
-                        ),
-                        row=1,
-                        col=i,
-                    )
+                    if show_dna:
+                        # Modality-specific stages: show all 3 samples
+                        fig.add_trace(
+                            go.Bar(
+                                name=category,
+                                x=["DNA", "RNA-Std", "RNA-Real"],
+                                y=[dna_count, rna_std_count, rna_real_count],
+                                marker_color=self.CATEGORY_COLORS.get(
+                                    category, "#8A8A8A"
+                                ),
+                                text=[dna_count, rna_std_count, rna_real_count],
+                                textposition="inside",
+                                showlegend=show_legend,
+                                legendgroup=category,
+                                hovertemplate=f"<b>%{{x}}</b><br>{category}: %{{y}}<extra></extra>",
+                            ),
+                            row=1,
+                            col=i,
+                        )
+                    else:
+                        # Combined VCF stages: show only RNA samples (DNA=RNA-Std for these)
+                        fig.add_trace(
+                            go.Bar(
+                                name=category,
+                                x=["RNA-Std", "RNA-Real"],
+                                y=[rna_std_count, rna_real_count],
+                                marker_color=self.CATEGORY_COLORS.get(
+                                    category, "#8A8A8A"
+                                ),
+                                text=[rna_std_count, rna_real_count],
+                                textposition="inside",
+                                showlegend=show_legend,
+                                legendgroup=category,
+                                hovertemplate=f"<b>%{{x}}</b><br>{category}: %{{y}}<extra></extra>",
+                            ),
+                            row=1,
+                            col=i,
+                        )
 
             # Update axes
             fig.update_xaxes(title_text="Sample Type", row=1, col=i)
@@ -1985,7 +2018,7 @@ class VCFVisualizer:
 
         # Update layout
         fig.update_layout(
-            title_text="Integrative View: DNA + RNA Standard + RNA Realignment<br><sub>Comparing all modalities across annotation stages</sub>",
+            title_text="Integrative View: DNA + RNA Standard + RNA Realignment<br><sub>Modality-specific VCFs (normalized, consensus) show all 3 samples; Combined VCFs (rescue onwards) show RNA only</sub>",
             template="plotly_white",
             height=600,
             barmode="stack",
