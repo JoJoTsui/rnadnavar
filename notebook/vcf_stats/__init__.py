@@ -127,8 +127,7 @@ except (ImportError, ModuleNotFoundError):
     # VCF processing stages in order (complete pipeline from normalization to final filtering)
     VCF_STAGE_ORDER = [
         "normalized",  # Individual caller VCFs (Strelka, DeepSomatic, Mutect2)
-        "dna_consensus",  # DNA consensus VCF (combined DNA callers)
-        "rna_consensus",  # RNA consensus VCF (combined RNA callers)
+        "consensus",  # Consensus VCFs (DNA and RNA consensus combined)
         "rescue",  # Rescue VCF (DNA + RNA combined)
         "cosmic_gnomad",  # Cosmic/gnomAD annotated rescue VCF
         "rna_editing",  # RNA editing annotated rescue VCF
@@ -138,14 +137,14 @@ except (ImportError, ModuleNotFoundError):
     # Human-readable display names for stages
     STAGE_DISPLAY_NAMES = {
         "normalized": "Normalized",
-        "dna_consensus": "DNA Consensus",
-        "rna_consensus": "RNA Consensus",
+        "consensus": "Consensus",
         "rescue": "Rescued",
         "cosmic_gnomad": "COSMIC/GnomAD",
         "rna_editing": "RNA Editing",
         "filtered_rescue": "Filtered",
-        # Alias for consensus detection
-        "consensus": "Consensus",
+        # Backward compatibility aliases
+        "dna_consensus": "DNA Consensus",
+        "rna_consensus": "RNA Consensus",
     }
 
     # Color scheme for variant categories and annotations

@@ -12,7 +12,7 @@ pipeline stages across the entire workflow.
 Usage:
     # In vcf_utils (Nextflow scripts):
     from bin.common.vcf_config import CATEGORY_ORDER, CATEGORY_COLORS
-    
+
     # In vcf_stats (Jupyter notebooks):
     from vcf_config import CATEGORY_ORDER, CATEGORY_COLORS
 """
@@ -36,16 +36,16 @@ CATEGORY_ORDER = [
     "Reference",
     "Artifact",
     "RNA_Edit",
-    "NoConsensus"
+    "NoConsensus",
 ]
 
 CATEGORY_COLORS = {
-    "Somatic": "#636EFA",      # Blue
-    "Germline": "#00CC96",     # Green
-    "Reference": "#FFA15A",    # Orange
-    "Artifact": "#EF553B",     # Red
-    "RNA_Edit": "#AB63FA",     # Purple
-    "NoConsensus": "#8A8A8A"   # Gray
+    "Somatic": "#636EFA",  # Blue
+    "Germline": "#00CC96",  # Green
+    "Reference": "#FFA15A",  # Orange
+    "Artifact": "#EF553B",  # Red
+    "RNA_Edit": "#AB63FA",  # Purple
+    "NoConsensus": "#8A8A8A",  # Gray
 }
 
 
@@ -55,33 +55,32 @@ CATEGORY_COLORS = {
 #
 # These define the complete VCF processing pipeline flow:
 # 1. normalized: Individual caller VCFs (Strelka, DeepSomatic, Mutect2)
-# 2. dna_consensus: Consensus of DNA callers
-# 3. rna_consensus: Consensus of RNA callers
-# 4. rescue: Combined DNA+RNA variants (rescue analysis)
-# 5. cosmic_gnomad: After COSMIC/GnomAD annotation
-# 6. rna_editing: After RNA editing detection
-# 7. filtered_rescue: Final filtered variants
+# 2. consensus: Consensus VCFs (DNA and RNA consensus combined)
+# 3. rescue: Combined DNA+RNA variants (rescue analysis)
+# 4. cosmic_gnomad: After COSMIC/GnomAD annotation
+# 5. rna_editing: After RNA editing detection
+# 6. filtered_rescue: Final filtered variants
 #
 
 VCF_STAGE_ORDER = [
     "normalized",
-    "dna_consensus",
-    "rna_consensus",
+    "consensus",
     "rescue",
     "cosmic_gnomad",
     "rna_editing",
-    "filtered_rescue"
+    "filtered_rescue",
 ]
 
 STAGE_DISPLAY_NAMES = {
     "normalized": "Normalized",
-    "dna_consensus": "DNA Consensus",
-    "rna_consensus": "RNA Consensus",
+    "consensus": "Consensus",
     "rescue": "Rescued",
     "cosmic_gnomad": "COSMIC/GnomAD",
     "rna_editing": "RNA Editing",
     "filtered_rescue": "Filtered",
-    "consensus": "Consensus"  # Backward compatibility
+    # Backward compatibility aliases
+    "dna_consensus": "DNA Consensus",
+    "rna_consensus": "RNA Consensus",
 }
 
 
@@ -116,12 +115,30 @@ MODALITIES = ["DNA_TUMOR", "DNA_NORMAL", "RNA_TUMOR"]
 
 TIER_DEFINITIONS = {
     "T1": {"dna_min": 2, "rna_min": 2, "description": "2+ DNA + 2+ RNA consensus"},
-    "T2": {"dna_min": 2, "rna_min": 1, "dna_max": 2, "rna_max": 1, "description": "2+ DNA + 1 RNA"},
+    "T2": {
+        "dna_min": 2,
+        "rna_min": 1,
+        "dna_max": 2,
+        "rna_max": 1,
+        "description": "2+ DNA + 1 RNA",
+    },
     "T3": {"dna_min": 2, "rna_min": 0, "rna_max": 0, "description": "2+ DNA only"},
     "T4": {"dna_min": 1, "dna_max": 1, "rna_min": 1, "description": "1 DNA + 1+ RNA"},
-    "T5": {"dna_min": 1, "dna_max": 1, "rna_min": 0, "rna_max": 0, "description": "1 DNA only"},
+    "T5": {
+        "dna_min": 1,
+        "dna_max": 1,
+        "rna_min": 0,
+        "rna_max": 0,
+        "description": "1 DNA only",
+    },
     "T6": {"dna_min": 0, "dna_max": 0, "rna_min": 2, "description": "2+ RNA only"},
-    "T7": {"dna_min": 0, "dna_max": 0, "rna_min": 1, "rna_max": 1, "description": "1 RNA only"}
+    "T7": {
+        "dna_min": 0,
+        "dna_max": 0,
+        "rna_min": 1,
+        "rna_max": 1,
+        "description": "1 RNA only",
+    },
 }
 
 TIER_ORDER = ["T1", "T2", "T3", "T4", "T5", "T6", "T7"]
@@ -154,7 +171,15 @@ TIER_ORDER = ["T1", "T2", "T3", "T4", "T5", "T6", "T7"]
 #   - N_RNA_CALLERS_SUPPORT=<int>  # Number of RNA callers supporting variant
 #
 
-FILTER_FIELD_VALUES = ["PASS", "Somatic", "Germline", "Reference", "Artifact", "NoConsensus", "RNA_Edit"]
+FILTER_FIELD_VALUES = [
+    "PASS",
+    "Somatic",
+    "Germline",
+    "Reference",
+    "Artifact",
+    "NoConsensus",
+    "RNA_Edit",
+]
 INFO_FIELD_NAMES = ["N_DNA_CALLERS_SUPPORT", "N_RNA_CALLERS_SUPPORT"]
 
 
@@ -162,13 +187,14 @@ INFO_FIELD_NAMES = ["N_DNA_CALLERS_SUPPORT", "N_RNA_CALLERS_SUPPORT"]
 # UTILITY FUNCTIONS
 # ============================================================================
 
+
 def get_category_color(category: str) -> str:
     """
     Get the color code for a variant category.
-    
+
     Args:
         category: One of CATEGORY_ORDER values
-    
+
     Returns:
         Hex color code or gray (#8A8A8A) if category not found
     """
@@ -178,10 +204,10 @@ def get_category_color(category: str) -> str:
 def get_stage_display_name(stage: str) -> str:
     """
     Get the human-readable display name for a VCF processing stage.
-    
+
     Args:
         stage: One of VCF_STAGE_ORDER values
-    
+
     Returns:
         Display name or stage title if not found
     """
@@ -191,10 +217,10 @@ def get_stage_display_name(stage: str) -> str:
 def is_annotation_stage(stage: str) -> bool:
     """
     Check if a stage is part of the annotation pipeline (not normalized/consensus).
-    
+
     Args:
         stage: VCF stage name
-    
+
     Returns:
         True if stage is in annotation pipeline
     """
@@ -205,10 +231,10 @@ def is_annotation_stage(stage: str) -> bool:
 def validate_category(category: str) -> bool:
     """
     Validate that a category is in the defined CATEGORY_ORDER.
-    
+
     Args:
         category: Category name to validate
-    
+
     Returns:
         True if valid, False otherwise
     """
@@ -218,10 +244,10 @@ def validate_category(category: str) -> bool:
 def validate_stage(stage: str) -> bool:
     """
     Validate that a stage is in the defined VCF_STAGE_ORDER.
-    
+
     Args:
         stage: Stage name to validate
-    
+
     Returns:
         True if valid, False otherwise
     """
@@ -260,20 +286,20 @@ if __name__ == "__main__":
     print("=" * 70)
     print("VCF CONFIGURATION SUMMARY")
     print("=" * 70)
-    
+
     print("\nVariant Categories:")
     for cat in CATEGORY_ORDER:
         color = CATEGORY_COLORS[cat]
         print(f"  {cat:<15} : {color}")
-    
+
     print("\nPipeline Stages:")
     for i, stage in enumerate(VCF_STAGE_ORDER, 1):
         display = STAGE_DISPLAY_NAMES.get(stage, stage.title())
         print(f"  {i}. {stage:<20} -> {display}")
-    
+
     print("\nTier System:")
     for tier in TIER_ORDER:
         desc = TIER_DEFINITIONS[tier]["description"]
         print(f"  {tier}: {desc}")
-    
+
     print("\n" + "=" * 70)

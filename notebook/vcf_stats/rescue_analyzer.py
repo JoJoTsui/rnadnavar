@@ -6,7 +6,8 @@ Analyze and visualize rescue VCF statistics with FILTER category tracking
 and transition analysis between DNA consensus, RNA consensus, and rescued variants.
 """
 
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Any, Dict
+
 import pandas as pd
 
 # Import visualization dependencies with error handling
@@ -14,17 +15,19 @@ try:
     import plotly.express as px
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
+
     VISUALIZATION_AVAILABLE = True
 except ImportError:
     VISUALIZATION_AVAILABLE = False
 
 # Import constants and utilities from main module
-from . import CATEGORY_ORDER, CATEGORY_COLORS, STAGE_DISPLAY_NAMES
-from .utils import should_show_legend
-from .plot_utils import build_legend_tracker, should_add_to_legend, legend_config
+from . import CATEGORY_COLORS, CATEGORY_ORDER, STAGE_DISPLAY_NAMES
+from .plot_utils import build_legend_tracker, legend_config, should_add_to_legend
 
 
-def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) -> Dict[str, Any]:
+def analyze_rescue_vcf(
+    all_vcf_stats: Dict[str, Any], show_plot: bool = True
+) -> Dict[str, Any]:
     """
     Analyze and visualize rescue VCF statistics with FILTER category tracking and transition analysis.
 
@@ -53,7 +56,7 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
         "rna_editing": {},
         "filtered_rescue": {},
         "transitions": {},
-        "summary": {}
+        "summary": {},
     }
 
     # Collect classification data for each stage
@@ -68,20 +71,30 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
     # Get DNA consensus classification
     if "consensus" in all_vcf_stats:
         for name, data in all_vcf_stats["consensus"].items():
-            if "DNA_TUMOR" in name:
+            # Check for DNA samples (DNA_TUMOR, DT_vs_DN, or similar patterns)
+            if (
+                "DNA_TUMOR" in name or "DT_vs_DN" in name or name.startswith("DT_")
+            ) and "RNA" not in name:
                 basic = data.get("stats", {}).get("basic", {})
                 dna_classification = basic.get("classification", {})
                 dna_total = basic.get("total_variants", 0)
                 rescue_analysis["dna_consensus"] = basic
+                break  # Take first DNA consensus file found
 
     # Get RNA consensus classification
     if "consensus" in all_vcf_stats:
         for name, data in all_vcf_stats["consensus"].items():
-            if "RNA_TUMOR" in name:
+            # Check for RNA samples (RNA_TUMOR, RT_vs_DN, or similar patterns)
+            if (
+                "RNA_TUMOR" in name
+                or "RT_vs_DN" in name
+                or (name.startswith("RT_") and "realign" not in name)
+            ):
                 basic = data.get("stats", {}).get("basic", {})
                 rna_classification = basic.get("classification", {})
                 rna_total = basic.get("total_variants", 0)
                 rescue_analysis["rna_consensus"] = basic
+                break  # Take first RNA consensus file found
 
     # Get rescued classification
     if "rescue" in all_vcf_stats:
@@ -119,24 +132,39 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
         f"\n{'Category':<15} {'DNA Consensus':<15} {'RNA Consensus':<15} {'Rescued':<15} {'COSMIC':<15} {'RNA_Edit':<15} {'Filtered':<15}"
     )
     print("-" * 60)
-    for filter_cat in CATEGORY_ORDER + ["PASS", "LowQual", "StrandBias", "Clustered", "Other"]:
+    for filter_cat in CATEGORY_ORDER + [
+        "PASS",
+        "LowQual",
+        "StrandBias",
+        "Clustered",
+        "Other",
+    ]:
         dna_count = dna_classification.get(filter_cat, 0)
         rna_count = rna_classification.get(filter_cat, 0)
         rescue_count = rescue_classification.get(filter_cat, 0)
         cg_count = rescue_analysis["cosmic_gnomad"]["classification"].get(filter_cat, 0)
         re_count = rescue_analysis["rna_editing"]["classification"].get(filter_cat, 0)
-        flt_count = rescue_analysis["filtered_rescue"]["classification"].get(filter_cat, 0)
-        print(f"{filter_cat:<15} {dna_count:<15,} {rna_count:<15,} {rescue_count:<15,} {cg_count:<15,} {re_count:<15,} {flt_count:<15,}")
+        flt_count = rescue_analysis["filtered_rescue"]["classification"].get(
+            filter_cat, 0
+        )
+        print(
+            f"{filter_cat:<15} {dna_count:<15,} {rna_count:<15,} {rescue_count:<15,} {cg_count:<15,} {re_count:<15,} {flt_count:<15,}"
+        )
 
     print("-" * 60)
     print(f"{'TOTAL':<15} {dna_total:<15,} {rna_total:<15,} {rescue_total:<15,}")
-    
+
     # Add more informative output if all values are 0
     if dna_total == 0 and rna_total == 0 and rescue_total == 0:
-        print("\nNote: No consensus or rescue data found. This dataset may not contain these files.")
+        print(
+            "\nNote: No consensus or rescue data found. This dataset may not contain these files."
+        )
         print("The rescue analysis requires consensus or rescue VCF files.")
         print("Check if the 'consensus' and 'rescue' directories exist in your data.")
-        if "consensus" not in all_vcf_stats or len(all_vcf_stats.get("consensus", {})) == 0:
+        if (
+            "consensus" not in all_vcf_stats
+            or len(all_vcf_stats.get("consensus", {})) == 0
+        ):
             print("  - No consensus data found")
         if "rescue" not in all_vcf_stats or len(all_vcf_stats.get("rescue", {})) == 0:
             print("  - No rescue data found")
@@ -149,7 +177,9 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
         rescue_count = rescue_classification.get(filter_cat, 0)
         cg_count = rescue_analysis["cosmic_gnomad"]["classification"].get(filter_cat, 0)
         re_count = rescue_analysis["rna_editing"]["classification"].get(filter_cat, 0)
-        flt_count = rescue_analysis["filtered_rescue"]["classification"].get(filter_cat, 0)
+        flt_count = rescue_analysis["filtered_rescue"]["classification"].get(
+            filter_cat, 0
+        )
 
         if any([dna_count, rna_count, rescue_count, cg_count, re_count, flt_count]):
             print(f"\n{filter_cat} Category:")
@@ -183,7 +213,7 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
                 "max_input": max_dna_rna,
                 "rescue": rescue_count,
                 "gain": rescue_gain,
-                "gain_percent": (rescue_gain / max_dna_rna) * 100
+                "gain_percent": (rescue_gain / max_dna_rna) * 100,
             }
 
     rescue_analysis["transitions"] = transitions
@@ -198,24 +228,31 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
         "filtered_total": rescue_analysis["filtered_rescue"].get("total_variants", 0),
         "max_input_total": max(dna_total, rna_total),
         "total_gain": rescue_total - max(dna_total, rna_total),
-        "total_gain_percent": ((rescue_total - max(dna_total, rna_total)) / max(dna_total, rna_total)) * 100 if max(dna_total, rna_total) > 0 else 0
+        "total_gain_percent": (
+            (rescue_total - max(dna_total, rna_total)) / max(dna_total, rna_total)
+        )
+        * 100
+        if max(dna_total, rna_total) > 0
+        else 0,
     }
     rescue_analysis["summary"] = summary
 
-    print(f"\nOverall Rescue Summary:")
+    print("\nOverall Rescue Summary:")
     print(f"  DNA Consensus: {dna_total:,}")
     print(f"  RNA Consensus: {rna_total:,}")
     print(f"  Rescued Total: {rescue_total:,}")
-    print(f"  Overall Rescue Gain: {summary['total_gain']:,} ({summary['total_gain_percent']:.1f}%)")
+    print(
+        f"  Overall Rescue Gain: {summary['total_gain']:,} ({summary['total_gain_percent']:.1f}%)"
+    )
 
     # Print category color legend for visualization interpretation
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Category Color Legend (for plots):")
-    print("="*60)
+    print("=" * 60)
     for category in CATEGORY_ORDER:
         color = CATEGORY_COLORS.get(category, "#8A8A8A")
         print(f"  {category:<15} : {color}")
-    print("="*60)
+    print("=" * 60)
 
     # Create visualization if requested
     if show_plot and VISUALIZATION_AVAILABLE:
@@ -228,25 +265,49 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
 
             # Use stage display names from constants
             stages = [
-                (STAGE_DISPLAY_NAMES.get("dna_consensus", "DNA Consensus"), dna_classification, 1),
-                (STAGE_DISPLAY_NAMES.get("rna_consensus", "RNA Consensus"), rna_classification, 2),
-                (STAGE_DISPLAY_NAMES.get("rescue", "Rescued"), rescue_classification, 3),
-                (STAGE_DISPLAY_NAMES.get("cosmic_gnomad", "COSMIC/GnomAD"), rescue_analysis["cosmic_gnomad"]["classification"], 4),
-                (STAGE_DISPLAY_NAMES.get("rna_editing", "RNA Editing"), rescue_analysis["rna_editing"]["classification"], 5),
-                (STAGE_DISPLAY_NAMES.get("filtered_rescue", "Filtered"), rescue_analysis["filtered_rescue"]["classification"], 6),
+                (
+                    STAGE_DISPLAY_NAMES.get("dna_consensus", "DNA Consensus"),
+                    dna_classification,
+                    1,
+                ),
+                (
+                    STAGE_DISPLAY_NAMES.get("rna_consensus", "RNA Consensus"),
+                    rna_classification,
+                    2,
+                ),
+                (
+                    STAGE_DISPLAY_NAMES.get("rescue", "Rescued"),
+                    rescue_classification,
+                    3,
+                ),
+                (
+                    STAGE_DISPLAY_NAMES.get("cosmic_gnomad", "COSMIC/GnomAD"),
+                    rescue_analysis["cosmic_gnomad"]["classification"],
+                    4,
+                ),
+                (
+                    STAGE_DISPLAY_NAMES.get("rna_editing", "RNA Editing"),
+                    rescue_analysis["rna_editing"]["classification"],
+                    5,
+                ),
+                (
+                    STAGE_DISPLAY_NAMES.get("filtered_rescue", "Filtered"),
+                    rescue_analysis["filtered_rescue"]["classification"],
+                    6,
+                ),
             ]
 
             def _create_rescue_plot(include_no_consensus=True, title_suffix=""):
                 """Helper to create rescue analysis plot with count labels."""
                 fig_rescue = go.Figure()
                 categories_seen = build_legend_tracker()
-                
+
                 for stage_name, classification, col_idx in stages:
                     for filter_cat in CATEGORY_ORDER:
                         # Skip NoConsensus if not included
                         if not include_no_consensus and filter_cat == "NoConsensus":
                             continue
-                            
+
                         count = classification.get(filter_cat, 0)
                         if count > 0:
                             fig_rescue.add_trace(
@@ -254,13 +315,19 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
                                     name=filter_cat,
                                     x=[stage_name],
                                     y=[count],
-                                    marker_color=category_colors.get(filter_cat, "#8A8A8A"),
+                                    marker_color=category_colors.get(
+                                        filter_cat, "#8A8A8A"
+                                    ),
                                     text=[count],  # Add count label
                                     textposition="inside",  # Display count inside bar
-                                    textfont=dict(color="white", size=12),  # White text for visibility
-                                    showlegend=should_add_to_legend(categories_seen, filter_cat),
+                                    textfont=dict(
+                                        color="white", size=12
+                                    ),  # White text for visibility
+                                    showlegend=should_add_to_legend(
+                                        categories_seen, filter_cat
+                                    ),
                                     legendgroup=filter_cat,
-                                    hovertemplate=f"<b>{stage_name}</b><br>{filter_cat}: {count}<extra></extra>"
+                                    hovertemplate=f"<b>{stage_name}</b><br>{filter_cat}: {count}<extra></extra>",
                                 )
                             )
 
@@ -271,16 +338,18 @@ def analyze_rescue_vcf(all_vcf_stats: Dict[str, Any], show_plot: bool = True) ->
                     barmode="stack",
                     height=600,
                     width=1000,
-                    legend=legend_config("top")
+                    legend=legend_config("top"),
                 )
                 return fig_rescue
 
             # Create main plot with all categories
             fig = _create_rescue_plot(include_no_consensus=True)
             fig.show()
-            
+
             # Create NoConsensus-free plot for better visibility of other categories
-            fig_no_nc = _create_rescue_plot(include_no_consensus=False, title_suffix=" (excluding NoConsensus)")
+            fig_no_nc = _create_rescue_plot(
+                include_no_consensus=False, title_suffix=" (excluding NoConsensus)"
+            )
             fig_no_nc.show()
 
         except Exception as e:
@@ -303,15 +372,17 @@ def create_resuce_transition_matrix(rescue_analysis: Dict[str, Any]) -> pd.DataF
 
     rows = []
     for category, transition_data in transitions.items():
-        rows.append({
-            "Category": category,
-            "DNA_Count": transition_data["dna"],
-            "RNA_Count": transition_data["rna"],
-            "Max_Input": transition_data["max_input"],
-            "Rescue_Count": transition_data["rescue"],
-            "Rescue_Gain": transition_data["gain"],
-            "Rescue_Gain_Percent": transition_data["gain_percent"]
-        })
+        rows.append(
+            {
+                "Category": category,
+                "DNA_Count": transition_data["dna"],
+                "RNA_Count": transition_data["rna"],
+                "Max_Input": transition_data["max_input"],
+                "Rescue_Count": transition_data["rescue"],
+                "Rescue_Gain": transition_data["gain"],
+                "Rescue_Gain_Percent": transition_data["gain_percent"],
+            }
+        )
 
     df = pd.DataFrame(rows)
     return df.sort_values("Rescue_Gain", ascending=False)
@@ -327,10 +398,7 @@ def compare_rescue_strategies(all_vcf_stats: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dictionary with strategy comparison results
     """
-    comparison = {
-        "strategies": {},
-        "summary": {}
-    }
+    comparison = {"strategies": {}, "summary": {}}
 
     # Identify different rescue strategies
     rescue_categories = {}
@@ -347,7 +415,7 @@ def compare_rescue_strategies(all_vcf_stats: Dict[str, Any]) -> Dict[str, Any]:
         strategy_analysis = {
             "total_variants": 0,
             "classification": {},
-            "files": list(strategy_data.keys())
+            "files": list(strategy_data.keys()),
         }
 
         for file_name, file_data in strategy_data.items():
@@ -390,9 +458,7 @@ def compare_rescue_strategies(all_vcf_stats: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def export_rescue_analysis(
-    rescue_analysis: Dict[str, Any],
-    output_path: str,
-    format: str = "excel"
+    rescue_analysis: Dict[str, Any], output_path: str, format: str = "excel"
 ):
     """
     Export rescue analysis results to file.
@@ -403,6 +469,7 @@ def export_rescue_analysis(
         format: Export format ('excel', 'csv', 'both')
     """
     from pathlib import Path
+
     output_dir = Path(output_path)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -415,7 +482,7 @@ def export_rescue_analysis(
 
     if format in ["excel", "both"]:
         excel_path = output_dir / "rescue_analysis.xlsx"
-        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
             transition_df.to_excel(writer, sheet_name="Transition_Matrix", index=False)
             summary_df.to_excel(writer, sheet_name="Summary", index=False)
 
@@ -424,11 +491,17 @@ def export_rescue_analysis(
                 if stage in rescue_analysis:
                     stage_data = rescue_analysis[stage]
                     if "classification" in stage_data:
-                        classification_df = pd.DataFrame([
-                            {"Category": cat, "Count": count}
-                            for cat, count in stage_data["classification"].items()
-                        ])
-                        classification_df.to_excel(writer, sheet_name=f"{stage.title()}_Classification", index=False)
+                        classification_df = pd.DataFrame(
+                            [
+                                {"Category": cat, "Count": count}
+                                for cat, count in stage_data["classification"].items()
+                            ]
+                        )
+                        classification_df.to_excel(
+                            writer,
+                            sheet_name=f"{stage.title()}_Classification",
+                            index=False,
+                        )
 
         print(f"✓ Rescue analysis exported to Excel: {excel_path}")
 
