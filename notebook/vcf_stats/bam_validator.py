@@ -20,7 +20,7 @@ Enhanced Features (v2.0):
 
 Usage Example:
     >>> from vcf_stats.bam_validator import BAMValidator, RealignmentBAMValidator
-    >>> 
+    >>>
     >>> # Basic validation
     >>> validator = BAMValidator(reference_fasta="/path/to/reference.fa")
     >>> results = validator.validate_variants(
@@ -28,7 +28,7 @@ Usage Example:
     ...     bam_paths={"DNA_TUMOR": dna_bam, "RNA_TUMOR": rna_bam},
     ...     max_variants=100
     ... )
-    >>> 
+    >>>
     >>> # Comprehensive 4-sample validation (NEW)
     >>> realignment_validator = RealignmentBAMValidator(
     ...     filtered_vcf_path=filtered_vcf,
@@ -40,7 +40,7 @@ Usage Example:
     ...     }
     ... )
     >>> validation_df = realignment_validator.validate_all_samples(max_variants=100)
-    >>> print(validation_df[['CHROM', 'POS', 'REF', 'ALT', 
+    >>> print(validation_df[['CHROM', 'POS', 'REF', 'ALT',
     ...                       'RNA_TUMOR_VAF', 'RNA_TUMOR_realign_VAF']])
 
 Validation Process:
@@ -73,12 +73,14 @@ Design Principles:
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
 
 # Try to import pysam for BAM handling
 try:
     import pysam
+
     BAM_SUPPORT = True
 except ImportError:
     BAM_SUPPORT = False
@@ -88,18 +90,18 @@ except ImportError:
 class BAMValidator:
     """
     Validate variants using BAM/CRAM alignment files.
-    
+
     This class provides read-level validation of variants by checking alignment files
     for read support. It calculates variant allele frequencies (VAF) and applies
     quality filters to ensure reliable validation results.
-    
+
     Key Capabilities:
         - Read support validation (ref/alt counts)
         - VAF calculation
         - Quality filtering (base quality, mapping quality)
         - Multi-sample validation
         - BAM and CRAM format support
-        
+
     Validation Process:
         1. Open VCF file and iterate through variants
         2. For each variant, query BAM files at that position
@@ -107,10 +109,10 @@ class BAMValidator:
         4. Apply quality filters
         5. Calculate VAF and validation status
         6. Return structured validation results
-        
+
     Usage Example:
         >>> validator = BAMValidator(reference_fasta="/path/to/reference.fa")
-        >>> 
+        >>>
         >>> # Validate variants
         >>> results = validator.validate_variants(
         ...     vcf_path=vcf_file,
@@ -120,12 +122,12 @@ class BAMValidator:
         ...     },
         ...     max_variants=100
         ... )
-        >>> 
+        >>>
         >>> # Convert to DataFrame
         >>> import pandas as pd
         >>> df = pd.DataFrame(results)
         >>> print(df[['chrom', 'pos', 'ref', 'alt', 'DNA_TUMOR_vaf', 'RNA_TUMOR_vaf']])
-        
+
     Attributes:
         reference_fasta: Path to reference FASTA file (required for CRAM)
     """
@@ -138,11 +140,11 @@ class BAMValidator:
             reference_fasta: Optional path to reference FASTA file
                 Required for CRAM file validation
                 Optional for BAM file validation
-                
+
         Example:
             >>> # For BAM files
             >>> validator = BAMValidator()
-            >>> 
+            >>>
             >>> # For CRAM files
             >>> validator = BAMValidator(reference_fasta="/path/to/reference.fa")
         """
@@ -197,7 +199,9 @@ class BAMValidator:
                     break
 
                 variant_count += 1
-                validation_result = self._validate_single_variant(variant, filtered_bams)
+                validation_result = self._validate_single_variant(
+                    variant, filtered_bams
+                )
                 validation_results.append(validation_result)
 
             vcf.close()
@@ -208,9 +212,7 @@ class BAMValidator:
         return validation_results
 
     def _validate_single_variant(
-        self,
-        variant: Any,
-        bam_paths: Dict[str, Path]
+        self, variant: Any, bam_paths: Dict[str, Path]
     ) -> Dict[str, Any]:
         """
         Validate a single variant against BAM files.
@@ -229,7 +231,7 @@ class BAMValidator:
             "alt": str(variant.alts[0]) if variant.alts else "",
             "qual": variant.qual,
             "filter": variant.filter.keys() if variant.filter else [],
-            "sample_results": {}
+            "sample_results": {},
         }
 
         # Validate against each BAM file
@@ -242,10 +244,7 @@ class BAMValidator:
         return result
 
     def _validate_variant_in_bam(
-        self,
-        variant: Any,
-        bam_path: Path,
-        sample_name: str
+        self, variant: Any, bam_path: Path, sample_name: str
     ) -> Dict[str, Any]:
         """
         Validate a variant in a single BAM file.
@@ -267,7 +266,7 @@ class BAMValidator:
             "support": "unknown",
             "quality": 0.0,
             "mapping_quality": 0.0,
-            "read_positions": []
+            "read_positions": [],
         }
 
         try:
@@ -275,17 +274,29 @@ class BAMValidator:
             with pysam.AlignmentFile(str(bam_path), "rb") as bam:
                 # Get reference name
                 chrom = variant.chrom
-                if chrom.startswith('chr') and any(ref.startswith('chr') for ref in bam.references):
+                if chrom.startswith("chr") and any(
+                    ref.startswith("chr") for ref in bam.references
+                ):
                     pass  # Keep chr prefix
-                elif not chrom.startswith('chr') and any(not ref.startswith('chr') for ref in bam.references):
+                elif not chrom.startswith("chr") and any(
+                    not ref.startswith("chr") for ref in bam.references
+                ):
                     pass  # Keep no chr prefix
-                elif chrom.startswith('chr') and any(not ref.startswith('chr') for ref in bam.references):
+                elif chrom.startswith("chr") and any(
+                    not ref.startswith("chr") for ref in bam.references
+                ):
                     chrom = chrom[3:]  # Remove chr prefix
-                elif not chrom.startswith('chr') and any(ref.startswith('chr') for ref in bam.references):
+                elif not chrom.startswith("chr") and any(
+                    ref.startswith("chr") for ref in bam.references
+                ):
                     chrom = f"chr{chrom}"  # Add chr prefix
 
                 # Fetch reads at variant position
-                reads = list(bam.fetch(chrom, variant.pos - 1, variant.pos + len(variant.ref) - 1))
+                reads = list(
+                    bam.fetch(
+                        chrom, variant.pos - 1, variant.pos + len(variant.ref) - 1
+                    )
+                )
 
                 # Process reads
                 total_depth = len(reads)
@@ -324,7 +335,9 @@ class BAMValidator:
                 result["alt_depth"] = alt_depth
                 result["alt_fraction"] = alt_depth / max(total_depth, 1)
                 result["quality"] = sum(qualities) / max(len(qualities), 1)
-                result["mapping_quality"] = sum(mapping_qualities) / max(len(mapping_qualities), 1)
+                result["mapping_quality"] = sum(mapping_qualities) / max(
+                    len(mapping_qualities), 1
+                )
                 result["read_positions"] = read_positions
 
                 # Determine support
@@ -365,23 +378,25 @@ class BAMValidator:
                 "ref": result["ref"],
                 "alt": result["alt"],
                 "qual": result["qual"],
-                "filter": ";".join(result["filter"]) if result["filter"] else "PASS"
+                "filter": ";".join(result["filter"]) if result["filter"] else "PASS",
             }
 
             # Add sample-specific results
             for sample_name, sample_result in result["sample_results"].items():
                 row = base_row.copy()
-                row.update({
-                    "sample": sample_name,
-                    "bam_file": sample_result["bam_file"],
-                    "total_depth": sample_result["total_depth"],
-                    "ref_depth": sample_result["ref_depth"],
-                    "alt_depth": sample_result["alt_depth"],
-                    "alt_fraction": sample_result["alt_fraction"],
-                    "support": sample_result["support"],
-                    "quality": sample_result["quality"],
-                    "mapping_quality": sample_result["mapping_quality"],
-                })
+                row.update(
+                    {
+                        "sample": sample_name,
+                        "bam_file": sample_result["bam_file"],
+                        "total_depth": sample_result["total_depth"],
+                        "ref_depth": sample_result["ref_depth"],
+                        "alt_depth": sample_result["alt_depth"],
+                        "alt_fraction": sample_result["alt_fraction"],
+                        "support": sample_result["support"],
+                        "quality": sample_result["quality"],
+                        "mapping_quality": sample_result["mapping_quality"],
+                    }
+                )
 
                 if "error" in sample_result:
                     row["error"] = sample_result["error"]
@@ -391,10 +406,7 @@ class BAMValidator:
         df = pd.DataFrame(rows)
         return df
 
-    def analyze_validation_quality(
-        self,
-        validation_df: pd.DataFrame
-    ) -> Dict[str, Any]:
+    def analyze_validation_quality(self, validation_df: pd.DataFrame) -> Dict[str, Any]:
         """
         Analyze validation quality metrics.
 
@@ -412,7 +424,7 @@ class BAMValidator:
             "variants_per_sample": {},
             "support_rates": {},
             "depth_statistics": {},
-            "quality_statistics": {}
+            "quality_statistics": {},
         }
 
         # Analysis per sample
@@ -427,9 +439,15 @@ class BAMValidator:
 
             analysis["support_rates"][sample] = {
                 "supported": support_counts.get("supported", 0) / total_sample * 100,
-                "weak_support": support_counts.get("weak_support", 0) / total_sample * 100,
-                "minimal_support": support_counts.get("minimal_support", 0) / total_sample * 100,
-                "unsupported": support_counts.get("unsupported", 0) / total_sample * 100,
+                "weak_support": support_counts.get("weak_support", 0)
+                / total_sample
+                * 100,
+                "minimal_support": support_counts.get("minimal_support", 0)
+                / total_sample
+                * 100,
+                "unsupported": support_counts.get("unsupported", 0)
+                / total_sample
+                * 100,
             }
 
             # Depth statistics
@@ -453,10 +471,7 @@ class BAMValidator:
         return analysis
 
     def export_validation_results(
-        self,
-        validation_results: List[Dict],
-        output_path: str,
-        format: str = "excel"
+        self, validation_results: List[Dict], output_path: str, format: str = "excel"
     ):
         """
         Export validation results to file.
@@ -467,6 +482,7 @@ class BAMValidator:
             format: Export format ('excel', 'csv', 'json')
         """
         from pathlib import Path
+
         output_dir = Path(output_path)
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -480,22 +496,23 @@ class BAMValidator:
         # Export in requested format
         if format in ["excel", "both"]:
             excel_path = output_dir / "bam_validation_results.xlsx"
-            with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+            with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
                 df.to_excel(writer, sheet_name="Validation_Results", index=False)
 
                 # Add quality analysis
                 analysis = self.analyze_validation_quality(df)
                 if analysis:
-                    analysis_df = pd.DataFrame([
-                        {
-                            "Metric": metric_type,
-                            "Value": str(metric_value)
-                        }
-                        for metric_type, metric_data in analysis.items()
-                        if isinstance(metric_data, dict)
-                        for key, value in metric_data.items()
-                    ])
-                    analysis_df.to_excel(writer, sheet_name="Quality_Analysis", index=False)
+                    analysis_df = pd.DataFrame(
+                        [
+                            {"Metric": metric_type, "Value": str(metric_value)}
+                            for metric_type, metric_data in analysis.items()
+                            if isinstance(metric_data, dict)
+                            for key, value in metric_data.items()
+                        ]
+                    )
+                    analysis_df.to_excel(
+                        writer, sheet_name="Quality_Analysis", index=False
+                    )
 
             print(f"✓ Validation results exported to Excel: {excel_path}")
 
@@ -506,8 +523,9 @@ class BAMValidator:
 
         if format == "json":
             import json
+
             json_path = output_dir / "bam_validation_results.json"
-            with open(json_path, 'w') as f:
+            with open(json_path, "w") as f:
                 json.dump(validation_results, f, indent=2, default=str)
             print(f"✓ Validation results exported to JSON: {json_path}")
 
@@ -517,21 +535,21 @@ class BAMValidator:
 class RealignmentBAMValidator:
     """
     Validate realignment filtered VCF against all relevant BAM files.
-    
+
     This validator focuses on comprehensive validation of the final filtered VCF
     across all four samples: DNA_TUMOR, DNA_NORMAL, RNA_TUMOR (standard), and
     RNA_TUMOR_realign (realignment workflow).
     """
-    
+
     def __init__(
         self,
         filtered_vcf_path: Path,
         bam_files: Dict[str, Path],
-        reference_fasta: Optional[str] = None
+        reference_fasta: Optional[str] = None,
     ):
         """
         Initialize validator with filtered VCF and BAM files.
-        
+
         Args:
             filtered_vcf_path: Path to final realignment filtered VCF
             bam_files: Dictionary mapping sample names to BAM paths:
@@ -544,36 +562,35 @@ class RealignmentBAMValidator:
             reference_fasta: Optional path to reference FASTA file
         """
         if not BAM_SUPPORT:
-            raise ImportError("pysam is required for BAM validation. Please install it.")
-        
+            raise ImportError(
+                "pysam is required for BAM validation. Please install it."
+            )
+
         self.filtered_vcf_path = Path(filtered_vcf_path)
         self.bam_files = {k: Path(v) for k, v in bam_files.items()}
         self.reference_fasta = reference_fasta
-        
+
         # Validate that all required samples are provided
         required_samples = {"DNA_TUMOR", "DNA_NORMAL", "RNA_TUMOR", "RNA_TUMOR_realign"}
         provided_samples = set(self.bam_files.keys())
-        
+
         if not required_samples.issubset(provided_samples):
             missing = required_samples - provided_samples
             print(f"Warning: Missing BAM files for samples: {missing}")
-    
-    def validate_all_samples(
-        self,
-        max_variants: int = 100
-    ) -> pd.DataFrame:
+
+    def validate_all_samples(self, max_variants: int = 100) -> pd.DataFrame:
         """
         Validate variants across all four samples.
-        
+
         For each variant, check read support in:
         - DNA tumor
         - DNA normal
         - RNA tumor (standard)
         - RNA tumor (realignment)
-        
+
         Args:
             max_variants: Maximum number of variants to validate (for performance)
-        
+
         Returns:
             DataFrame with columns:
             - CHROM, POS, REF, ALT
@@ -587,50 +604,52 @@ class RealignmentBAMValidator:
         if not BAM_SUPPORT:
             print("BAM validation not available (pysam not installed)")
             return pd.DataFrame()
-        
+
         validation_results = []
-        
+
         try:
             # Open VCF file
             vcf = pysam.VariantFile(str(self.filtered_vcf_path))
-            
+
             variant_count = 0
             for variant in vcf:
                 if variant_count >= max_variants:
                     break
-                
+
                 variant_count += 1
                 result = self._validate_variant_all_samples(variant)
                 validation_results.append(result)
-            
+
             vcf.close()
-            
+
         except Exception as e:
             print(f"Error validating variants in {self.filtered_vcf_path}: {e}")
             return pd.DataFrame()
-        
+
         # Convert to DataFrame
         if not validation_results:
             return pd.DataFrame()
-        
+
         df = pd.DataFrame(validation_results)
-        
+
         # Calculate RNA VAF improvement
         if "RNA_TUMOR_VAF" in df.columns and "RNA_TUMOR_realign_VAF" in df.columns:
-            df["RNA_VAF_improvement"] = df["RNA_TUMOR_realign_VAF"] - df["RNA_TUMOR_VAF"]
-        
+            df["RNA_VAF_improvement"] = (
+                df["RNA_TUMOR_realign_VAF"] - df["RNA_TUMOR_VAF"]
+            )
+
         # Determine validation status
         df["Validation_status"] = df.apply(self._determine_validation_status, axis=1)
-        
+
         return df
-    
+
     def _validate_variant_all_samples(self, variant: Any) -> Dict[str, Any]:
         """
         Validate a single variant against all four BAM files.
-        
+
         Args:
             variant: pysam.VariantRecord object
-        
+
         Returns:
             Dictionary with validation results for all samples
         """
@@ -640,34 +659,30 @@ class RealignmentBAMValidator:
             "REF": str(variant.ref) if variant.ref else "",
             "ALT": str(variant.alts[0]) if variant.alts else "",
             "QUAL": variant.qual,
-            "FILTER": ";".join(variant.filter.keys()) if variant.filter else "PASS"
+            "FILTER": ";".join(variant.filter.keys()) if variant.filter else "PASS",
         }
-        
+
         # Validate against each BAM file
         for sample_name, bam_path in self.bam_files.items():
             sample_result = self._validate_variant_in_bam(variant, bam_path)
-            
+
             # Add sample-specific columns
             result[f"{sample_name}_ref_depth"] = sample_result["ref_depth"]
             result[f"{sample_name}_alt_depth"] = sample_result["alt_depth"]
             result[f"{sample_name}_total_depth"] = sample_result["total_depth"]
             result[f"{sample_name}_VAF"] = sample_result["vaf"]
             result[f"{sample_name}_support"] = sample_result["support"]
-        
+
         return result
-    
-    def _validate_variant_in_bam(
-        self,
-        variant: Any,
-        bam_path: Path
-    ) -> Dict[str, Any]:
+
+    def _validate_variant_in_bam(self, variant: Any, bam_path: Path) -> Dict[str, Any]:
         """
         Validate a variant in a single BAM file.
-        
+
         Args:
             variant: pysam.VariantRecord object
             bam_path: Path to BAM/CRAM file
-        
+
         Returns:
             Dictionary with validation results for this sample
         """
@@ -676,39 +691,37 @@ class RealignmentBAMValidator:
             "alt_depth": 0,
             "total_depth": 0,
             "vaf": 0.0,
-            "support": "unknown"
+            "support": "unknown",
         }
-        
+
         try:
             # Open BAM file
             with pysam.AlignmentFile(str(bam_path), "rb") as bam:
                 # Handle chromosome naming (chr prefix)
                 chrom = self._normalize_chromosome_name(variant.chrom, bam.references)
-                
+
                 # Fetch reads at variant position
-                reads = list(bam.fetch(
-                    chrom, 
-                    variant.pos - 1, 
-                    variant.pos + len(variant.ref)
-                ))
-                
+                reads = list(
+                    bam.fetch(chrom, variant.pos - 1, variant.pos + len(variant.ref))
+                )
+
                 # Process reads
                 ref_depth = 0
                 alt_depth = 0
                 total_depth = 0
-                
+
                 ref_base = str(variant.ref)
                 alt_base = str(variant.alts[0]) if variant.alts else ""
-                
+
                 for read in reads:
                     # Skip low quality or unmapped reads
                     if read.mapping_quality < 20:
                         continue
                     if read.is_unmapped:
                         continue
-                    
+
                     total_depth += 1
-                    
+
                     # Get base at variant position
                     try:
                         read_positions = read.get_reference_positions()
@@ -716,7 +729,7 @@ class RealignmentBAMValidator:
                             idx = read_positions.index(variant.pos - 1)
                             if idx < len(read.query_sequence):
                                 base = read.query_sequence[idx]
-                                
+
                                 # Count reference vs alternate
                                 if base == ref_base:
                                     ref_depth += 1
@@ -724,13 +737,13 @@ class RealignmentBAMValidator:
                                     alt_depth += 1
                     except (IndexError, AttributeError):
                         continue
-                
+
                 # Calculate metrics
                 result["ref_depth"] = ref_depth
                 result["alt_depth"] = alt_depth
                 result["total_depth"] = total_depth
                 result["vaf"] = alt_depth / max(total_depth, 1)
-                
+
                 # Determine support level
                 if total_depth >= 10 and alt_depth >= 3:
                     result["support"] = "supported"
@@ -740,57 +753,60 @@ class RealignmentBAMValidator:
                     result["support"] = "minimal_support"
                 else:
                     result["support"] = "unsupported"
-        
+
         except Exception as e:
             result["error"] = str(e)
             result["support"] = "error"
-        
+
         return result
-    
+
     def _normalize_chromosome_name(self, chrom: str, bam_references: List[str]) -> str:
         """
         Normalize chromosome name to match BAM file references.
-        
+
         Args:
             chrom: Chromosome name from VCF
             bam_references: List of reference names in BAM file
-        
+
         Returns:
             Normalized chromosome name
         """
         # Check if BAM uses chr prefix
-        has_chr_prefix = any(ref.startswith('chr') for ref in bam_references)
-        
-        if chrom.startswith('chr') and not has_chr_prefix:
+        has_chr_prefix = any(ref.startswith("chr") for ref in bam_references)
+
+        if chrom.startswith("chr") and not has_chr_prefix:
             # Remove chr prefix
             return chrom[3:]
-        elif not chrom.startswith('chr') and has_chr_prefix:
+        elif not chrom.startswith("chr") and has_chr_prefix:
             # Add chr prefix
             return f"chr{chrom}"
         else:
             # Keep as is
             return chrom
-    
+
     def _determine_validation_status(self, row: pd.Series) -> str:
         """
         Determine overall validation status for a variant.
-        
+
         Args:
             row: DataFrame row with validation results
-        
+
         Returns:
             Validation status string
         """
         # Check DNA tumor support (primary evidence)
         dna_tumor_support = row.get("DNA_TUMOR_support", "unknown")
-        
+
         # Check RNA realignment improvement
         rna_improvement = row.get("RNA_VAF_improvement", 0.0)
         rna_realign_support = row.get("RNA_TUMOR_realign_support", "unknown")
-        
+
         # Determine status
         if dna_tumor_support == "supported":
-            if rna_improvement > 0.1 and rna_realign_support in ["supported", "weak_support"]:
+            if rna_improvement > 0.1 and rna_realign_support in [
+                "supported",
+                "weak_support",
+            ]:
                 return "validated_with_realignment_improvement"
             elif rna_realign_support in ["supported", "weak_support"]:
                 return "validated"
@@ -803,51 +819,64 @@ class RealignmentBAMValidator:
                 return "weak_validation"
         else:
             return "unsupported"
-    
+
     def get_realignment_improvements(self, validation_df: pd.DataFrame) -> pd.DataFrame:
         """
         Identify variants with improved support in realignment.
-        
+
         Args:
             validation_df: DataFrame from validate_all_samples()
-        
+
         Returns:
             DataFrame with only variants showing realignment improvement
         """
         if validation_df.empty:
             return pd.DataFrame()
-        
+
         # Filter for variants with positive RNA VAF improvement
         improved = validation_df[
-            (validation_df["RNA_VAF_improvement"] > 0.05) &
-            (validation_df["RNA_TUMOR_realign_support"].isin(["supported", "weak_support"]))
+            (validation_df["RNA_VAF_improvement"] > 0.05)
+            & (
+                validation_df["RNA_TUMOR_realign_support"].isin(
+                    ["supported", "weak_support"]
+                )
+            )
         ].copy()
-        
+
         # Sort by improvement
         improved = improved.sort_values("RNA_VAF_improvement", ascending=False)
-        
+
         return improved
-    
+
     def summarize_validation(self, validation_df: pd.DataFrame) -> Dict[str, Any]:
         """
         Create summary statistics for validation results.
-        
+
         Args:
             validation_df: DataFrame from validate_all_samples()
-        
+
         Returns:
             Dictionary with summary statistics
         """
         if validation_df.empty:
             return {}
-        
+
+        # Check if RNA_VAF_improvement column exists (requires both RNA samples)
+        has_improvement_col = "RNA_VAF_improvement" in validation_df.columns
+
         summary = {
             "total_variants": len(validation_df),
-            "validation_status_counts": validation_df["Validation_status"].value_counts().to_dict(),
-            "realignment_improvements": len(validation_df[validation_df["RNA_VAF_improvement"] > 0.05]),
-            "sample_statistics": {}
+            "validation_status_counts": validation_df["Validation_status"]
+            .value_counts()
+            .to_dict(),
+            "realignment_improvements": len(
+                validation_df[validation_df["RNA_VAF_improvement"] > 0.05]
+            )
+            if has_improvement_col
+            else 0,
+            "sample_statistics": {},
         }
-        
+
         # Statistics per sample
         for sample in ["DNA_TUMOR", "DNA_NORMAL", "RNA_TUMOR", "RNA_TUMOR_realign"]:
             if f"{sample}_VAF" in validation_df.columns:
@@ -856,32 +885,58 @@ class RealignmentBAMValidator:
                     "median_VAF": validation_df[f"{sample}_VAF"].median(),
                     "mean_depth": validation_df[f"{sample}_total_depth"].mean(),
                     "median_depth": validation_df[f"{sample}_total_depth"].median(),
-                    "supported_count": len(validation_df[validation_df[f"{sample}_support"] == "supported"]),
-                    "weak_support_count": len(validation_df[validation_df[f"{sample}_support"] == "weak_support"]),
-                    "unsupported_count": len(validation_df[validation_df[f"{sample}_support"] == "unsupported"])
+                    "supported_count": len(
+                        validation_df[validation_df[f"{sample}_support"] == "supported"]
+                    ),
+                    "weak_support_count": len(
+                        validation_df[
+                            validation_df[f"{sample}_support"] == "weak_support"
+                        ]
+                    ),
+                    "unsupported_count": len(
+                        validation_df[
+                            validation_df[f"{sample}_support"] == "unsupported"
+                        ]
+                    ),
                 }
-        
+
         # RNA comparison
-        if "RNA_TUMOR_VAF" in validation_df.columns and "RNA_TUMOR_realign_VAF" in validation_df.columns:
-            summary["rna_comparison"] = {
+        if (
+            "RNA_TUMOR_VAF" in validation_df.columns
+            and "RNA_TUMOR_realign_VAF" in validation_df.columns
+        ):
+            rna_comp = {
                 "mean_standard_VAF": validation_df["RNA_TUMOR_VAF"].mean(),
                 "mean_realignment_VAF": validation_df["RNA_TUMOR_realign_VAF"].mean(),
-                "mean_improvement": validation_df["RNA_VAF_improvement"].mean(),
-                "variants_with_improvement": len(validation_df[validation_df["RNA_VAF_improvement"] > 0]),
-                "variants_with_significant_improvement": len(validation_df[validation_df["RNA_VAF_improvement"] > 0.1])
             }
-        
+
+            # Add improvement metrics if column exists
+            if "RNA_VAF_improvement" in validation_df.columns:
+                rna_comp.update(
+                    {
+                        "mean_improvement": validation_df["RNA_VAF_improvement"].mean(),
+                        "variants_with_improvement": len(
+                            validation_df[validation_df["RNA_VAF_improvement"] > 0]
+                        ),
+                        "variants_with_significant_improvement": len(
+                            validation_df[validation_df["RNA_VAF_improvement"] > 0.1]
+                        ),
+                    }
+                )
+
+            summary["rna_comparison"] = rna_comp
+
         return summary
-    
+
     def export_validation_results(
         self,
         validation_df: pd.DataFrame,
         output_dir: Path,
-        prefix: str = "realignment_validation"
+        prefix: str = "realignment_validation",
     ):
         """
         Export validation results to files.
-        
+
         Args:
             validation_df: DataFrame from validate_all_samples()
             output_dir: Directory to save results
@@ -889,38 +944,42 @@ class RealignmentBAMValidator:
         """
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         if validation_df.empty:
             print("No validation results to export")
             return
-        
+
         # Export full results to Excel
         excel_path = output_dir / f"{prefix}_full_results.xlsx"
-        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
             validation_df.to_excel(writer, sheet_name="All_Variants", index=False)
-            
+
             # Export realignment improvements
             improvements = self.get_realignment_improvements(validation_df)
             if not improvements.empty:
-                improvements.to_excel(writer, sheet_name="Realignment_Improvements", index=False)
-            
+                improvements.to_excel(
+                    writer, sheet_name="Realignment_Improvements", index=False
+                )
+
             # Export summary
             summary = self.summarize_validation(validation_df)
             if summary:
-                summary_df = pd.DataFrame([
-                    {"Metric": k, "Value": str(v)}
-                    for k, v in summary.items()
-                    if not isinstance(v, dict)
-                ])
+                summary_df = pd.DataFrame(
+                    [
+                        {"Metric": k, "Value": str(v)}
+                        for k, v in summary.items()
+                        if not isinstance(v, dict)
+                    ]
+                )
                 summary_df.to_excel(writer, sheet_name="Summary", index=False)
-        
+
         print(f"✓ Validation results exported to: {excel_path}")
-        
+
         # Export CSV for easy analysis
         csv_path = output_dir / f"{prefix}_full_results.csv"
         validation_df.to_csv(csv_path, index=False)
         print(f"✓ Validation results exported to: {csv_path}")
-        
+
         # Export improvements separately
         improvements = self.get_realignment_improvements(validation_df)
         if not improvements.empty:
