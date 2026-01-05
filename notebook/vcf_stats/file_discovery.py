@@ -70,7 +70,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 # Import constants from main module
-from . import MODALITIES, TOOLS, VCF_STAGE_ORDER
+from . import TOOLS, VCF_STAGE_ORDER
 from .workflow import WorkflowConfig, WorkflowManager
 
 
@@ -675,36 +675,40 @@ class VCFFileDiscovery:
             Dictionary of discovered VCF files
         """
         vcfs = {}
-        vcf_dir = stage_path / "vcf"
+        seen_files = set()  # Track discovered files to avoid duplicates
 
-        if not vcf_dir.exists():
+        if not stage_path.exists():
             return vcfs
 
-        # Try modality-based structure
-        for modality in MODALITIES:
-            modality_vcf_dir = vcf_dir / modality
-            if modality_vcf_dir.exists():
-                vcf_files = list(modality_vcf_dir.glob("*.consensus.vcf.gz"))
-                if vcf_files:
-                    suffix_pair = self._modality_to_suffix_pair(modality)
-                    key = f"consensus_{suffix_pair}" if suffix_pair else modality
-                    # Add workflow prefix for realignment
-                    if workflow_name == "realignment":
-                        key = f"realignment_{key}"
-                    vcfs[key] = vcf_files[0]
+        # Consensus files are in subdirectories with _vs_ pattern
+        for subdir in stage_path.iterdir():
+            if not subdir.is_dir() or "_vs_" not in subdir.name:
+                continue
 
-        # Also try sample-pair structure
-        for subdir in vcf_dir.iterdir():
-            if subdir.is_dir() and "_vs_" in subdir.name:
-                vcf_files = list(subdir.glob("*.consensus.vcf.gz"))
-                if vcf_files:
-                    sample_pair = subdir.name
-                    pair_key = self._pair_to_suffix_key(sample_pair)
-                    key = f"consensus_{pair_key}" if pair_key else sample_pair
-                    # Add workflow prefix for realignment
-                    if workflow_name == "realignment":
-                        key = f"realignment_{key}"
-                    vcfs[key] = vcf_files[0]
+            vcf_files = list(subdir.glob("*.consensus.vcf.gz"))
+            if not vcf_files:
+                continue
+
+            vcf_path = vcf_files[0]
+            # Skip if we've already added this file
+            if str(vcf_path) in seen_files:
+                continue
+
+            seen_files.add(str(vcf_path))
+            sample_pair = subdir.name
+
+            # Extract suffix key
+            pair_key = self._pair_to_suffix_key(sample_pair)
+            if pair_key:
+                key = pair_key
+            else:
+                key = sample_pair
+
+            # Add workflow prefix for realignment
+            if workflow_name == "realignment":
+                key = f"realignment_{key}"
+
+            vcfs[key] = vcf_path
 
         return vcfs
 
