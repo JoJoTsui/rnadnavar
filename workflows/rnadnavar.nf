@@ -380,8 +380,8 @@ workflow RNADNAVAR {
                 SECOND_RESCUE_WORKFLOW(
                     first_round_dna_consensus_vcf,
                     realigned_rna_consensus_vcf,
-                    Channel.empty(),  // DNA caller VCFs (consensus-only for now)
-                    Channel.empty(),  // RNA caller VCFs (consensus-only for now)
+                    BAM_PROCESSING.out.vcf_normalized,           // First round DNA individual caller VCFs
+                    RNA_REALIGNMENT_WORKFLOW.out.vcf_normalized, // Realigned RNA individual caller VCFs
                     fasta,
                     rediportal_vcf,
                     rediportal_tbi,

@@ -210,6 +210,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     vcf_stripped                = filtered_vcf_stripped
     vcf_rescue                  = filtered_rescue_vcf
     vcf_rescue_stripped         = filtered_rescue_vcf_stripped
+    vcf_normalized              = vcf_normalized  // Individual caller VCFs for second rescue
     versions                    = versions  // channel: [ versions.yml ]
     reports                     = reports
 }

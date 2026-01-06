@@ -4,6 +4,10 @@
 // This workflow performs cross-modality rescue between DNA consensus (from first round)
 // and realigned RNA consensus VCFs. It applies full annotation and filtering to the rescued VCF.
 //
+// IMPORTANT: Individual caller VCFs must be passed for correct N_RNA_CALLERS_SUPPORT calculation.
+// Without individual caller VCFs, all variants will have N_RNA_CALLERS_SUPPORT=0 and
+// RNA editing annotation will not work correctly.
+//
 include { VCF_RESCUE_WORKFLOW              } from '../vcf_rescue_workflow/main'
 include { VCF_RESCUE_POST_PROCESSING      } from '../vcf_rescue_post_processing/main'
 
@@ -12,8 +16,8 @@ workflow SECOND_RESCUE_WORKFLOW {
     take:
         first_round_dna_consensus_vcf   // DNA consensus from first round
         realigned_rna_consensus_vcf     // RNA consensus from realigned BAM
-        first_round_dna_caller_vcfs     // Optional: Individual DNA caller VCFs
-        realigned_rna_caller_vcfs       // Optional: Individual RNA caller VCFs
+        first_round_dna_vcf_normalized  // Individual DNA caller VCFs from first round (vcf_normalized)
+        realigned_rna_vcf_normalized    // Individual RNA caller VCFs from realignment (vcf_normalized)
         fasta
         rediportal_vcf
         rediportal_tbi
@@ -29,12 +33,30 @@ workflow SECOND_RESCUE_WORKFLOW {
         versions           = Channel.empty()
         second_rescued_vcf = Channel.empty()
 
-        // Run rescue workflow
+        // Prepare DNA caller VCFs from first round vcf_normalized
+        // Filter to DNA samples (status <= 1) and format for VCF_RESCUE_WORKFLOW
+        dna_caller_vcfs = first_round_dna_vcf_normalized
+            .filter { meta, vcf, tbi -> meta.status <= 1 }
+            .map { meta, vcf, tbi ->
+                def caller = meta.variantcaller ?: 'unknown'
+                [meta, vcf, tbi, caller]
+            }
+
+        // Prepare RNA caller VCFs from realignment vcf_normalized
+        // Filter to RNA samples (status == 2) and format for VCF_RESCUE_WORKFLOW
+        rna_caller_vcfs = realigned_rna_vcf_normalized
+            .filter { meta, vcf, tbi -> meta.status == 2 }
+            .map { meta, vcf, tbi ->
+                def caller = meta.variantcaller ?: 'unknown'
+                [meta, vcf, tbi, caller]
+            }
+
+        // Run rescue workflow with individual caller VCFs for correct N_RNA_CALLERS_SUPPORT
         VCF_RESCUE_WORKFLOW(
             first_round_dna_consensus_vcf,
             realigned_rna_consensus_vcf,
-            first_round_dna_caller_vcfs ?: Channel.empty(),
-            realigned_rna_caller_vcfs ?: Channel.empty()
+            dna_caller_vcfs,
+            rna_caller_vcfs
         )
         versions = versions.mix(VCF_RESCUE_WORKFLOW.out.versions)
         rescued_vcf = VCF_RESCUE_WORKFLOW.out.vcf

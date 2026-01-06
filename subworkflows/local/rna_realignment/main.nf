@@ -121,6 +121,7 @@ workflow RNA_REALIGNMENT_WORKFLOW {
     emit:
         rna_consensus_vcf    = rna_consensus_vcf      // RNA consensus VCF from realigned BAM
         filtered_rna_vcf     = filtered_rna_vcf       // Filtered RNA VCF from realigned BAM
+        vcf_normalized       = vcf_normalized         // Individual caller VCFs for second rescue
         versions             = versions
         reports              = reports
 }
