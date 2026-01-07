@@ -366,7 +366,7 @@ def main():
     print("Computing rescue statistics...")
     print("=" * 80)
 
-    from vcf_utils.statistics import compute_rescue_statistics, print_statistics
+    from vcf_utils.variant_statistics import compute_rescue_statistics, print_statistics
 
     stats = compute_rescue_statistics(variant_data, dna_variant_keys, rna_variant_keys)
 

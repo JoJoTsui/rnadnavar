@@ -12,11 +12,11 @@ Supports:
 - FILTER_NORMALIZED_* field extraction for category-aware caller counting
 """
 
-import traceback
 import re
+import traceback
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict
 
 # Import constants from main module
 from . import TOOLS
@@ -29,7 +29,6 @@ try:
     import matplotlib.pyplot as plt
     import plotly.express as px
     import plotly.graph_objects as go
-    import seaborn as sns
     from plotly.subplots import make_subplots
 
     VISUALIZATION_AVAILABLE = True
@@ -40,27 +39,6 @@ except ImportError:
 # ============================================================================
 # TIERING-RELEVANT INFO FIELDS
 # ============================================================================
-
-# Fields for caller support counting
-CALLER_SUPPORT_FIELDS = [
-    "N_DNA_CALLERS_SUPPORT",
-    "N_RNA_CALLERS_SUPPORT", 
-    "NCALLERS",
-    "NUM_CALLERS",
-]
-
-# Fields for database evidence
-DATABASE_FIELDS = [
-    "gnomAD_AF",
-    "GNOMAD_AF",
-    "gnomad_AF",
-    "COSMIC_CNT",
-    "COSMIC_COUNT",
-    "cosmic_cnt",
-    "REDIportal",
-    "REDIPORTAL",
-    "DARNED",
-]
 
 # Pattern for FILTER_NORMALIZED_* fields
 FILTER_NORMALIZED_PATTERN = re.compile(r"FILTER_NORMALIZED_(\w+)_(\w+)")
@@ -85,6 +63,7 @@ class VCFStatisticsExtractor:
         self.caller_name = caller_name
         self.stage = stage
         self.vcf = None
+        self.sample_indices = None  # Will be detected when VCF is opened
         self.stats = {}
 
     def extract_basic_stats(self):
@@ -108,6 +87,12 @@ class VCFStatisticsExtractor:
             from cyvcf2 import VCF
 
             self.vcf = VCF(str(self.vcf_path))
+
+            # Detect sample indices once for normalized stage Strelka classification
+            if self.stage == "normalized" and self.caller_name:
+                from .classifiers import get_sample_indices
+
+                self.sample_indices = get_sample_indices(self.vcf, self.caller_name)
 
             stats = {
                 "total_variants": 0,
@@ -141,12 +126,13 @@ class VCFStatisticsExtractor:
                     stats["complex"] += 1
                     stats["variant_types"]["COMPLEX"] += 1
 
-                # Stage-aware classification
+                # Stage-aware classification with sample indices for normalized stage
                 try:
                     classification = classify_by_filter(
-                        variant, 
-                        stage=self.stage, 
-                        caller_name=self.caller_name
+                        variant,
+                        stage=self.stage,
+                        caller_name=self.caller_name,
+                        sample_indices=self.sample_indices,
                     )
                     # Normalize category name for consistency
                     classification = normalize_category(classification)
@@ -182,21 +168,21 @@ class VCFStatisticsExtractor:
     def extract_tiering_fields(self) -> Dict[str, Any]:
         """
         Extract tiering-relevant INFO fields for tier assignment.
-        
+
         Parses:
         - N_DNA_CALLERS_SUPPORT, N_RNA_CALLERS_SUPPORT
         - gnomAD_AF, COSMIC_CNT
         - REDIportal, DARNED
         - FILTER_NORMALIZED_* fields for category-aware counting
-        
+
         Returns:
             Dictionary with tiering field statistics
         """
         try:
             from cyvcf2 import VCF
-            
+
             self.vcf = VCF(str(self.vcf_path))
-            
+
             tiering_stats = {
                 "dna_caller_support": [],
                 "rna_caller_support": [],
@@ -207,23 +193,23 @@ class VCFStatisticsExtractor:
                 "filter_normalized_fields": defaultdict(lambda: defaultdict(int)),
                 "variants_with_db_support": 0,
             }
-            
+
             variant_count = 0
             for variant in self.vcf:
                 variant_count += 1
-                
+
                 try:
                     info = variant.INFO
-                    
+
                     # Caller support fields
                     dna_support = info.get("N_DNA_CALLERS_SUPPORT")
                     if dna_support is not None:
                         tiering_stats["dna_caller_support"].append(int(dna_support))
-                    
+
                     rna_support = info.get("N_RNA_CALLERS_SUPPORT")
                     if rna_support is not None:
                         tiering_stats["rna_caller_support"].append(int(rna_support))
-                    
+
                     # Database fields
                     gnomad_af = info.get("gnomAD_AF") or info.get("GNOMAD_AF")
                     if gnomad_af is not None:
@@ -231,29 +217,38 @@ class VCFStatisticsExtractor:
                             tiering_stats["gnomad_af"].append(float(gnomad_af))
                         except (ValueError, TypeError):
                             pass
-                    
+
                     cosmic_cnt = info.get("COSMIC_CNT") or info.get("COSMIC_COUNT")
                     if cosmic_cnt is not None:
                         try:
                             tiering_stats["cosmic_cnt"].append(int(cosmic_cnt))
                         except (ValueError, TypeError):
                             pass
-                    
+
                     # REDIportal / DARNED
                     if info.get("REDIportal") or info.get("REDIPORTAL"):
                         tiering_stats["has_rediportal"] += 1
                     if info.get("DARNED"):
                         tiering_stats["has_darned"] += 1
-                    
+
                     # Track database support
                     has_db = (
-                        (gnomad_af is not None and float(gnomad_af) > 0.001 if gnomad_af else False) or
-                        (cosmic_cnt is not None and int(cosmic_cnt) > 0 if cosmic_cnt else False) or
-                        info.get("REDIportal") or info.get("DARNED")
+                        (
+                            gnomad_af is not None and float(gnomad_af) > 0.001
+                            if gnomad_af
+                            else False
+                        )
+                        or (
+                            cosmic_cnt is not None and int(cosmic_cnt) > 0
+                            if cosmic_cnt
+                            else False
+                        )
+                        or info.get("REDIportal")
+                        or info.get("DARNED")
                     )
                     if has_db:
                         tiering_stats["variants_with_db_support"] += 1
-                    
+
                     # FILTER_NORMALIZED_* fields
                     info_dict = dict(info)
                     for key, value in info_dict.items():
@@ -263,55 +258,75 @@ class VCFStatisticsExtractor:
                             modality = match.group(2)
                             if value:
                                 normalized_val = normalize_category(str(value))
-                                tiering_stats["filter_normalized_fields"][f"{caller}_{modality}"][normalized_val] += 1
-                    
+                                tiering_stats["filter_normalized_fields"][
+                                    f"{caller}_{modality}"
+                                ][normalized_val] += 1
+
                 except Exception:
                     pass
-                
+
                 # Limit for efficiency
                 if variant_count > 10000:
                     break
-            
+
             # Compute summary statistics
             import numpy as np
-            
+
             tiering_summary = {
                 "total_variants_sampled": variant_count,
                 "variants_with_db_support": tiering_stats["variants_with_db_support"],
                 "variants_with_rediportal": tiering_stats["has_rediportal"],
                 "variants_with_darned": tiering_stats["has_darned"],
             }
-            
+
             if tiering_stats["dna_caller_support"]:
-                tiering_summary["dna_support_mean"] = np.mean(tiering_stats["dna_caller_support"])
-                tiering_summary["dna_support_median"] = np.median(tiering_stats["dna_caller_support"])
+                tiering_summary["dna_support_mean"] = np.mean(
+                    tiering_stats["dna_caller_support"]
+                )
+                tiering_summary["dna_support_median"] = np.median(
+                    tiering_stats["dna_caller_support"]
+                )
                 tiering_summary["dna_support_distribution"] = dict(
-                    zip(*np.unique(tiering_stats["dna_caller_support"], return_counts=True))
+                    zip(
+                        *np.unique(
+                            tiering_stats["dna_caller_support"], return_counts=True
+                        )
+                    )
                 )
-            
+
             if tiering_stats["rna_caller_support"]:
-                tiering_summary["rna_support_mean"] = np.mean(tiering_stats["rna_caller_support"])
-                tiering_summary["rna_support_median"] = np.median(tiering_stats["rna_caller_support"])
-                tiering_summary["rna_support_distribution"] = dict(
-                    zip(*np.unique(tiering_stats["rna_caller_support"], return_counts=True))
+                tiering_summary["rna_support_mean"] = np.mean(
+                    tiering_stats["rna_caller_support"]
                 )
-            
+                tiering_summary["rna_support_median"] = np.median(
+                    tiering_stats["rna_caller_support"]
+                )
+                tiering_summary["rna_support_distribution"] = dict(
+                    zip(
+                        *np.unique(
+                            tiering_stats["rna_caller_support"], return_counts=True
+                        )
+                    )
+                )
+
             if tiering_stats["gnomad_af"]:
                 tiering_summary["gnomad_af_mean"] = np.mean(tiering_stats["gnomad_af"])
                 tiering_summary["gnomad_af_max"] = np.max(tiering_stats["gnomad_af"])
-            
+
             if tiering_stats["cosmic_cnt"]:
-                tiering_summary["cosmic_cnt_mean"] = np.mean(tiering_stats["cosmic_cnt"])
+                tiering_summary["cosmic_cnt_mean"] = np.mean(
+                    tiering_stats["cosmic_cnt"]
+                )
                 tiering_summary["cosmic_cnt_max"] = np.max(tiering_stats["cosmic_cnt"])
-            
+
             # Convert filter_normalized_fields to regular dict
             tiering_summary["filter_normalized_fields"] = {
                 k: dict(v) for k, v in tiering_stats["filter_normalized_fields"].items()
             }
-            
+
             self.stats["tiering"] = tiering_summary
             return tiering_summary
-            
+
         except Exception as e:
             print(f"Error extracting tiering fields from {self.vcf_path}: {e}")
             traceback.print_exc()
@@ -519,7 +534,7 @@ class VCFStatisticsExtractor:
                 self.stage = metadata.get("stage")
             if metadata.get("tool") and not self.caller_name:
                 self.caller_name = metadata.get("tool")
-        
+
         if verbose:
             print(f"\nProcessing: {self.vcf_path.name}")
 
@@ -543,7 +558,7 @@ class VCFStatisticsExtractor:
 
         # Extract FORMAT field statistics
         format_stats = self.extract_format_fields()
-        
+
         # Extract tiering-relevant fields for rescue/annotation stages
         tiering = {}
         if self.stage in ("rescue", "cosmic_gnomad", "rna_editing", "filtered_rescue"):
@@ -571,7 +586,7 @@ class VCFStatisticsExtractor:
 
             if basic.get("chromosomes"):
                 print(f"  ✓ Chromosomes: {len(basic['chromosomes'])}")
-            
+
             if tiering and tiering.get("variants_with_db_support"):
                 print(f"  ✓ DB Support: {tiering['variants_with_db_support']} variants")
 
@@ -628,12 +643,14 @@ def process_all_vcfs(vcf_files_dict):
                     if tool in tool_modality.lower():
                         caller_name = tool
                         break
-            
+
             # Get stage for stage-aware classification
             stage = metadata.get("stage", category)
 
             # Extract statistics with metadata and stage-aware classification
-            extractor = VCFStatisticsExtractor(vcf_path, caller_name=caller_name, stage=stage)
+            extractor = VCFStatisticsExtractor(
+                vcf_path, caller_name=caller_name, stage=stage
+            )
             stats = extractor.extract_all_stats(verbose=True, metadata=metadata)
 
             category_stats[tool_modality] = {

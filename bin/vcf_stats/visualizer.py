@@ -89,7 +89,6 @@ try:
     import pandas as pd
     import plotly.express as px
     import plotly.graph_objects as go
-    import seaborn as sns
     from plotly.subplots import make_subplots
 
     VISUALIZATION_AVAILABLE = True

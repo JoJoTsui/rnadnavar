@@ -26,7 +26,7 @@ from vcf_utils.classification_config import DEFAULT_THRESHOLDS
 from vcf_utils.io_utils import get_caller_name, write_union_vcf
 
 # Import statistics utilities
-from vcf_utils.statistics import compute_consensus_statistics, print_statistics
+from vcf_utils.variant_statistics import compute_consensus_statistics, print_statistics
 
 
 def argparser():

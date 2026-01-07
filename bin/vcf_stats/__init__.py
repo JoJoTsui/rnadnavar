@@ -77,96 +77,42 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 # Constants
-TOOLS = ["strelka", "deepsomatic", "mutect2"]
 MODALITIES = ["DNA_TUMOR_vs_DNA_NORMAL", "RNA_TUMOR_vs_DNA_NORMAL"]
 
-# Try to import from shared vcf_config module (for integration with vcf_utils)
-# Fall back to local definitions if shared module not available
-try:
-    # Attempt to import from bin/common/vcf_config
-    import sys
-    from pathlib import Path as _Path
+# Import from shared vcf_config module (for integration with vcf_utils)
+from pathlib import Path as _Path
 
-    # bin/vcf_stats is a sibling of bin/common, so go up one level then down to common
-    _current_dir = _Path(__file__).parent  # bin/vcf_stats
-    _bin_common = _current_dir.parent / "common"  # bin/common
-    if _bin_common.exists() and str(_bin_common) not in sys.path:
-        sys.path.insert(0, str(_bin_common))
+# bin/vcf_stats is a sibling of bin/common, so go up one level then down to common
+_current_dir = _Path(__file__).parent  # bin/vcf_stats
+_bin_common = _current_dir.parent / "common"  # bin/common
+if _bin_common.exists() and str(_bin_common) not in sys.path:
+    sys.path.insert(0, str(_bin_common))
 
-    from vcf_config import (
-        CATEGORY_COLORS as _SHARED_CATEGORY_COLORS,
-    )
-    from vcf_config import (
-        CATEGORY_ORDER as _SHARED_CATEGORY_ORDER,
-    )
-    from vcf_config import (
-        STAGE_DISPLAY_NAMES as _SHARED_STAGE_DISPLAY_NAMES,
-    )
-    from vcf_config import (
-        VCF_STAGE_ORDER as _SHARED_VCF_STAGE_ORDER,
-    )
+from vcf_config import (
+    CATEGORY_COLORS,
+    CATEGORY_ORDER,
+    STAGE_DISPLAY_NAMES,
+    VCF_STAGE_ORDER,
+)
+from vcf_config import (
+    TOOLS as _SHARED_TOOLS,
+)
 
-    # Use shared definitions
-    CATEGORY_ORDER = _SHARED_CATEGORY_ORDER
-    VCF_STAGE_ORDER = _SHARED_VCF_STAGE_ORDER
-    STAGE_DISPLAY_NAMES = _SHARED_STAGE_DISPLAY_NAMES
-    CATEGORY_COLORS = _SHARED_CATEGORY_COLORS
-    print("✓ Using shared vcf_config module from bin/common/")
-except (ImportError, ModuleNotFoundError):
-    # Fall back to local definitions
-    # Variant categories for classification and aggregation
-    CATEGORY_ORDER = [
-        "Somatic",
-        "Germline",
-        "Reference",
-        "Artifact",
-        "RNAedit",
-        "NoConsensus",
-    ]
+# Standardize TOOLS to lowercase for pattern matching
+TOOLS = [tool.lower() for tool in _SHARED_TOOLS]
 
-    # VCF processing stages in order (complete pipeline from normalization to final filtering)
-    VCF_STAGE_ORDER = [
-        "normalized",  # Individual caller VCFs (Strelka, DeepSomatic, Mutect2)
-        "consensus",  # Consensus VCFs (DNA and RNA consensus combined)
-        "rescue",  # Rescue VCF (DNA + RNA combined)
-        "cosmic_gnomad",  # Cosmic/gnomAD annotated rescue VCF
-        "rna_editing",  # RNA editing annotated rescue VCF
-        "filtered_rescue",  # Final filtered rescue VCF
-    ]
-
-    # Human-readable display names for stages
-    STAGE_DISPLAY_NAMES = {
-        "normalized": "Normalized",
-        "consensus": "Consensus",
-        "rescue": "Rescued",
-        "cosmic_gnomad": "COSMIC/GnomAD",
-        "rna_editing": "RNA Editing",
-        "filtered_rescue": "Filtered",
-        # Backward compatibility aliases
-        "dna_consensus": "DNA Consensus",
-        "rna_consensus": "RNA Consensus",
-    }
-
-    # Color scheme for variant categories and annotations
-    CATEGORY_COLORS = {
-        "Somatic": "#636EFA",  # Blue
-        "Germline": "#00CC96",  # Green
-        "Reference": "#FFA15A",  # Orange
-        "Artifact": "#EF553B",  # Red
-        "RNAedit": "#AB63FA",  # Purple (standardized name)
-        "NoConsensus": "#8A8A8A",  # Gray
-        "PASS": "#636EFA",  # Same as Somatic
-        "LowQual": "#EF553B",  # Same as Artifact
-        "StrandBias": "#AB63FA",  # Purple
-        "Clustered": "#FFA500",  # Orange
-    }
+print("✓ Using shared vcf_config module from bin/common/")
 
 # Import utilities first (no circular dependency)
+# Import validate_category from shared vcf_config
+from vcf_config import validate_category
+
 from .bam_validator import BAMValidator, RealignmentBAMValidator
 from .classifiers import (
     classify_annotated_variant,
     classify_by_filter,
     get_sample_indices,
+    normalize_category,
 )
 
 # Import workflow comparison
