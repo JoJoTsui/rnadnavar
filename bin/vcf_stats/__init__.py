@@ -108,6 +108,14 @@ print("✓ Using shared vcf_config module from bin/common/")
 from vcf_config import validate_category
 
 from .bam_validator import BAMValidator, RealignmentBAMValidator
+
+# Import caller comparison
+from .caller_comparison import (
+    CallerComparator,
+    compute_3way_venn_plotly,
+    compute_venn_overlaps,
+    extract_classified_variant_sets,
+)
 from .classifiers import (
     classify_annotated_variant,
     classify_by_filter,
@@ -224,6 +232,11 @@ __all__ = [
     # Tier visualization
     "TierVisualizer",
     "create_tier_visualization_report",
+    # Caller comparison
+    "CallerComparator",
+    "extract_classified_variant_sets",
+    "compute_venn_overlaps",
+    "compute_3way_venn_plotly",
     # Constants
     "TOOLS",
     "MODALITIES",
