@@ -41,6 +41,7 @@ env/
 # VCF statistics
 notebook/P2374372_statistics_output/
 notebook/COO8801_statistics_output/
+notebook/COO8801.subset_statistics_output/
 
 # AI-assisted development intermediate files
 dev_docs/
