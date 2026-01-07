@@ -1536,6 +1536,10 @@ class VCFVisualizer:
 
         - Final tiers: CxDy format (14 total tiers from C1D1 to C7D0)
 
+        QUALITY-BASED SORTING:
+        - Tiers sorted by quality score (C1D1=160 highest, C7D0=20 lowest)
+        - Hover shows concordant caller details and quality score
+
         Args:
             rescue_vcf_path: Path to rescue VCF (auto-detected if None)
             dual_view_no_consensus: If True, creates secondary plot excluding NoConsensus
@@ -1556,22 +1560,27 @@ class VCFVisualizer:
             if str(bin_common) not in sys.path:
                 sys.path.insert(0, str(bin_common))
 
-            from tier_config import TIER_COLORS, TIER_ORDER, get_tier_display_name
+            from tier_config import TIER_COLORS, TIER_ORDER, get_tier_display_name, get_tier_quality
         except ImportError as e:
             print(f"Required modules not available: {e}")
             return None
 
         # Auto-detect rescue VCF if not provided
+        # IMPORTANT: Always use filtered_rescue because:
+        # - filtered_rescue has COSMIC/gnomAD/RNAedit annotations (required for D1 tier)
+        # - Other stages (rescue, rna_editing, cosmic_gnomad) are intermediate/incomplete
         if rescue_vcf_path is None:
-            if "rescue" in self.all_stats and self.all_stats["rescue"]:
-                first_rescue = next(iter(self.all_stats["rescue"].values()))
-                rescue_vcf_path = first_rescue.get("path")
+            if "filtered_rescue" in self.all_stats and self.all_stats["filtered_rescue"]:
+                first_rescue = next(iter(self.all_stats["filtered_rescue"].values()))
+                rescue_vcf_path = first_rescue.get("path") if isinstance(first_rescue, dict) else first_rescue
+            else:
+                print("Error: filtered_rescue stage not found in stats - tier distribution requires filtered rescue VCF")
 
         if not rescue_vcf_path:
             print("No rescue VCF found for tier distribution")
             return None
 
-        # Get tiered data
+        # Get tiered data (will raise on validation errors - no error catching)
         from pathlib import Path
 
         tiered_df = tier_rescue_variants(Path(rescue_vcf_path))
@@ -1581,22 +1590,41 @@ class VCFVisualizer:
             return None
 
         def _create_tier_plot(plot_df, title_suffix=""):
-            """Helper function to create tier distribution plot with CxDy tiers."""
+            """Helper function to create tier distribution plot with CxDy tiers and quality-based sorting."""
             # Create stacked bar chart data by tier
             data = []
             for category in CATEGORY_ORDER:
                 cat_data = plot_df[plot_df["filter_category"] == category]
                 if not cat_data.empty:
-                    tier_counts = cat_data["tier"].value_counts().sort_index()
+                    tier_counts = cat_data["tier"].value_counts()
+                    
+                    # Calculate average concordant callers per tier for hover info
                     for tier, count in tier_counts.items():
-                        data.append(
-                            {"Category": category, "Tier": tier, "Count": count}
-                        )
+                        tier_variants = cat_data[cat_data["tier"] == tier]
+                        avg_dna = tier_variants["dna_caller_count"].mean()
+                        avg_rna = tier_variants["rna_caller_count"].mean()
+                        tier_quality = get_tier_quality(tier)
+                        
+                        data.append({
+                            "Category": category,
+                            "Tier": tier,
+                            "Count": count,
+                            "Avg_DNA_Callers": avg_dna,
+                            "Avg_RNA_Callers": avg_rna,
+                            "Quality": tier_quality,
+                        })
 
             if not data:
                 return None
 
             df = pd.DataFrame(data)
+
+            # Sort tiers by quality score (descending) for x-axis display
+            tier_quality_map = {tier: get_tier_quality(tier) for tier in TIER_ORDER}
+            sorted_tiers = sorted(TIER_ORDER, key=lambda t: tier_quality_map[t], reverse=True)
+            
+            # Filter to only tiers present in data
+            existing_tiers = [t for t in sorted_tiers if t in df["Tier"].values]
 
             # Create stacked bar chart (stacked by category, x-axis = tier)
             fig = go.Figure()
@@ -1605,41 +1633,45 @@ class VCFVisualizer:
             for category in CATEGORY_ORDER:
                 cat_df = df[df["Category"] == category]
                 if not cat_df.empty:
-                    # Ensure we have all tiers represented (fill with 0 if missing)
-                    # Use TIER_ORDER from tier_config (C1D1, C1D0, C2D1, ...)
-                    tier_counts = {tier: 0 for tier in TIER_ORDER}
+                    # Build data arrays aligned to existing_tiers
+                    tier_counts = {tier: 0 for tier in existing_tiers}
+                    tier_hover = {tier: "" for tier in existing_tiers}
+                    
                     for _, row in cat_df.iterrows():
-                        if row["Tier"] in tier_counts:
-                            tier_counts[row["Tier"]] = row["Count"]
+                        tier = row["Tier"]
+                        if tier in tier_counts:
+                            tier_counts[tier] = row["Count"]
+                            tier_hover[tier] = (
+                                f"<b>{tier}</b> (Quality: {row['Quality']})<br>"
+                                f"Category: {category}<br>"
+                                f"Count: {row['Count']}<br>"
+                                f"Avg DNA callers: {row['Avg_DNA_Callers']:.1f}<br>"
+                                f"Avg RNA callers: {row['Avg_RNA_Callers']:.1f}"
+                            )
 
                     fig.add_trace(
                         go.Bar(
                             name=category,
-                            x=TIER_ORDER,
-                            y=[tier_counts[t] for t in TIER_ORDER],
+                            x=existing_tiers,
+                            y=[tier_counts[t] for t in existing_tiers],
                             marker_color=self.CATEGORY_COLORS.get(category, "#8A8A8A"),
                             text=[
                                 tier_counts[t] if tier_counts[t] > 0 else ""
-                                for t in TIER_ORDER
+                                for t in existing_tiers
                             ],
                             textposition="inside",
                             showlegend=True,
                             legendgroup=category,
-                            hovertemplate="<b>%{x}</b><br>"
-                            + category
-                            + ": %{y}<extra></extra>",
+                            hovertemplate=[tier_hover[t] + "<extra></extra>" for t in existing_tiers],
                         )
                     )
 
-            # Filter to show only tiers that have data
-            existing_tiers = [t for t in TIER_ORDER if t in df["Tier"].values]
-
             fig.update_layout(
-                title=f"Rescue VCF Tier Distribution by Category{title_suffix}<br><sub>CxDy format: Caller tier (C1-C7) + Database tier (D0-D1)</sub>",
+                title=f"Rescue VCF Tier Distribution by Category{title_suffix}<br><sub>CxDy format: Caller tier (C1-C7) + Database tier (D0-D1) | Sorted by quality score</sub>",
                 xaxis=dict(
-                    title="Tier (Caller × Database)",
+                    title="Tier (Caller × Database) - Sorted by Quality Score ▼",
                     categoryorder="array",
-                    categoryarray=existing_tiers if existing_tiers else TIER_ORDER,
+                    categoryarray=existing_tiers,
                     tickangle=-45,
                 ),
                 yaxis_title="Number of Variants",
@@ -1658,7 +1690,72 @@ class VCFVisualizer:
             )
             return fig
 
-        # Full view with all categories
+        def _create_d0_d1_comparison_plot(plot_df, title_suffix=""):
+            """Create a grouped bar chart comparing D0 vs D1 by category."""
+            # Aggregate D0 and D1 counts by category
+            d0_counts = {}
+            d1_counts = {}
+            
+            for category in CATEGORY_ORDER:
+                cat_data = plot_df[plot_df["filter_category"] == category]
+                if not cat_data.empty:
+                    d0_counts[category] = len(cat_data[cat_data["tier"].str.endswith("D0")])
+                    d1_counts[category] = len(cat_data[cat_data["tier"].str.endswith("D1")])
+            
+            if not d0_counts and not d1_counts:
+                return None
+            
+            # Get categories with data
+            categories_with_data = [c for c in CATEGORY_ORDER if d0_counts.get(c, 0) > 0 or d1_counts.get(c, 0) > 0]
+            
+            fig = go.Figure()
+            
+            # D0 bars
+            fig.add_trace(
+                go.Bar(
+                    name="D0 (No Database Support)",
+                    x=categories_with_data,
+                    y=[d0_counts.get(c, 0) for c in categories_with_data],
+                    marker_color="#ff7f0e",
+                    text=[d0_counts.get(c, 0) for c in categories_with_data],
+                    textposition="outside",
+                    hovertemplate="<b>%{x}</b><br>D0 (No DB): %{y}<extra></extra>",
+                )
+            )
+            
+            # D1 bars
+            fig.add_trace(
+                go.Bar(
+                    name="D1 (Has Database Support)",
+                    x=categories_with_data,
+                    y=[d1_counts.get(c, 0) for c in categories_with_data],
+                    marker_color="#2ca02c",
+                    text=[d1_counts.get(c, 0) for c in categories_with_data],
+                    textposition="outside",
+                    hovertemplate="<b>%{x}</b><br>D1 (Has DB): %{y}<extra></extra>",
+                )
+            )
+            
+            fig.update_layout(
+                title=f"D0 vs D1 Database Support by Category{title_suffix}<br><sub>D0 = No database evidence | D1 = Has COSMIC/gnomAD/RNAedit database support</sub>",
+                xaxis_title="Category",
+                yaxis_title="Number of Variants",
+                barmode="group",
+                template="plotly_white",
+                height=500,
+                showlegend=True,
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="center",
+                    x=0.5,
+                ),
+            )
+            
+            return fig
+
+        # Full view with all categories (errors will propagate - no try/except)
         fig_full = _create_tier_plot(tiered_df)
         figures = [fig_full]
 
@@ -1672,6 +1769,11 @@ class VCFVisualizer:
                     tiered_df_no_nc, " (excluding NoConsensus)"
                 )
                 figures.append(fig_no_nc)
+        
+        # Add D0 vs D1 comparison plot
+        fig_d0_d1 = _create_d0_d1_comparison_plot(tiered_df)
+        if fig_d0_d1:
+            figures.append(fig_d0_d1)
 
         return tuple(figures)
 

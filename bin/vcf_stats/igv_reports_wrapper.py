@@ -451,6 +451,11 @@ def organize_by_category_tier(
     This function creates a hierarchical directory structure (Category/Tier)
     with indexed VCF subsets and interactive IGV-reports for each combination.
     
+    QUALITY-BASED VARIANT SELECTION:
+    - Variants are sorted by tier_quality score (descending)
+    - Top k_per_tier variants by quality are selected for IGV visualization
+    - Higher quality tiers (C1D1=160) prioritized over lower (C7D0=20)
+    
     Prerequisites:
     - igv-reports must be installed: pip install igv-reports
     - create_report command must be available in PATH
@@ -459,7 +464,7 @@ def organize_by_category_tier(
     - Original VCF must be indexed (.tbi)
     
     Args:
-        variants_df: DataFrame with tiered variants (must have 'tier' and 'filter_category' columns)
+        variants_df: DataFrame with tiered variants (must have 'tier', 'tier_quality', and 'filter_category' columns)
         original_vcf: Path to original rescue VCF (bgzip+tabix indexed)
         bam_files: Sample name -> BAM/CRAM path mapping
         ref_fasta: Path to indexed reference FASTA
@@ -471,9 +476,19 @@ def organize_by_category_tier(
         
     Raises:
         RuntimeError: If create_report not found or prerequisites not met
+        ValueError: If tier_quality column missing from variants_df
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Validate DataFrame has required columns
+    required_cols = ["tier", "tier_quality", "filter_category"]
+    missing_cols = [col for col in required_cols if col not in variants_df.columns]
+    if missing_cols:
+        raise ValueError(
+            f"Missing required columns in variants_df: {missing_cols}. "
+            f"Available columns: {list(variants_df.columns)}"
+        )
     
     # Check prerequisites
     if not check_igv_reports_available():
@@ -517,16 +532,22 @@ def organize_by_category_tier(
         
         # Within this category, process each tier
         for tier in sorted(cat_variants["tier"].unique()):
-            tier_df = cat_variants[cat_variants["tier"] == tier]
+            tier_df = cat_variants[cat_variants["tier"] == tier].copy()
             count = len(tier_df)
             pct = (count / len(cat_variants)) * 100
             
-            print(f"  {tier}: {count:6d} variants ({pct:5.1f}%)", end=" → ")
+            # Get tier quality for metadata
+            tier_quality = tier_df["tier_quality"].iloc[0] if not tier_df.empty else 0
             
-            # Sample if needed
+            print(f"  {tier} (Q={tier_quality:3.0f}): {count:6d} variants ({pct:5.1f}%)", end=" → ")
+            
+            # Sort by quality score descending for selection
+            tier_df = tier_df.sort_values("tier_quality", ascending=False)
+            
+            # Sample if needed (now quality-based: top k variants by quality)
             if k_per_tier and len(tier_df) > k_per_tier:
-                sampled = tier_df.sample(n=k_per_tier, random_state=42)
-                print(f"sampled to {k_per_tier}", end=" → ")
+                sampled = tier_df.head(k_per_tier)
+                print(f"selected top {k_per_tier} by quality", end=" → ")
             else:
                 sampled = tier_df
             
@@ -543,15 +564,22 @@ def organize_by_category_tier(
                 print(f"✗ Failed to create subset VCF: {e}")
                 continue
             
-            # Generate IGV report
+            # Generate IGV report with tier metadata
             try:
                 print("generating report", end=" → ")
+                report_title = (
+                    f"{category} - Tier {tier} Variants<br>"
+                    f"<sub>Quality Score: {tier_quality} | "
+                    f"Total: {count} variants | "
+                    f"Shown: {len(sampled)} variants</sub>"
+                )
+                
                 report_path = generate_igv_report_subprocess(
                     subset_vcf,
                     bam_files,
                     ref_fasta,
                     cat_tier_dir,
-                    report_title=f"{category} - Tier {tier} Variants"
+                    report_title=report_title
                 )
                 
                 if report_path:
