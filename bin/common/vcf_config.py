@@ -35,7 +35,7 @@ CATEGORY_ORDER = [
     "Germline",
     "Reference",
     "Artifact",
-    "RNA_Edit",
+    "RNAedit",
     "NoConsensus",
 ]
 
@@ -44,7 +44,7 @@ CATEGORY_COLORS = {
     "Germline": "#00CC96",  # Green
     "Reference": "#FFA15A",  # Orange
     "Artifact": "#EF553B",  # Red
-    "RNA_Edit": "#AB63FA",  # Purple
+    "RNAedit": "#AB63FA",  # Purple
     "NoConsensus": "#8A8A8A",  # Gray
 }
 
@@ -178,7 +178,7 @@ FILTER_FIELD_VALUES = [
     "Reference",
     "Artifact",
     "NoConsensus",
-    "RNA_Edit",
+    "RNAedit",
 ]
 INFO_FIELD_NAMES = ["N_DNA_CALLERS_SUPPORT", "N_RNA_CALLERS_SUPPORT"]
 

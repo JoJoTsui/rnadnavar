@@ -10,12 +10,12 @@ Final tiers use CxDy notation for clarity and maintainability.
 
 Usage:
     from tier_config import CALLER_TIER_RULES, DATABASE_TIER_RULES, TIER_ORDER
-    
+
     # Get tier display name
     tier_name = TIER_DISPLAY_NAMES["C1D1"]  # "C1D1: ≥2 DNA + ≥2 RNA, Database"
 """
 
-from typing import Dict, List, Tuple, Callable
+from typing import Dict, List, Tuple
 
 # ============================================================================
 # CALLER SUPPORT TIER DEFINITIONS (C1-C7)
@@ -88,10 +88,10 @@ DATABASE_TIER_RULES = {
         "description": "Has database support",
         "databases": ["gnomAD", "COSMIC", "REDIportal", "DARNED"],
         "thresholds": {
-            "gnomAD_AF": 0.001,      # Allele frequency > 0.1%
-            "COSMIC_CNT": 0,          # Any COSMIC count > 0
-            "REDIportal": True,       # Present in REDIportal
-            "DARNED": True,           # Present in DARNED
+            "gnomAD_AF": 0.001,  # Allele frequency > 0.1%
+            "COSMIC_CNT": 0,  # Any COSMIC count > 0
+            "REDIportal": True,  # Present in REDIportal
+            "DARNED": True,  # Present in DARNED
         },
     },
     "D0": {
@@ -124,9 +124,7 @@ TIER_COMBINATIONS: List[Tuple[str, str]] = [
 ]
 
 # Ordered list of all final tiers (for visualization and sorting)
-TIER_ORDER: List[str] = [
-    f"{caller}{db}" for caller, db in TIER_COMBINATIONS
-]
+TIER_ORDER: List[str] = [f"{caller}{db}" for caller, db in TIER_COMBINATIONS]
 
 # Display names for all final tiers
 TIER_DISPLAY_NAMES: Dict[str, str] = {}
@@ -139,13 +137,20 @@ for caller_tier in CALLER_TIER_ORDER:
 
 # Short descriptions for compact display
 TIER_SHORT_NAMES: Dict[str, str] = {
-    "C1D1": "≥2D+≥2R,DB", "C1D0": "≥2D+≥2R",
-    "C2D1": "≥2D,DB", "C2D0": "≥2D",
-    "C3D1": "≥2R,DB", "C3D0": "≥2R",
-    "C4D1": "1D+1R,DB", "C4D0": "1D+1R",
-    "C5D1": "1D,DB", "C5D0": "1D",
-    "C6D1": "1R,DB", "C6D0": "1R",
-    "C7D1": "0D+0R,DB", "C7D0": "0D+0R",
+    "C1D1": "≥2D+≥2R,DB",
+    "C1D0": "≥2D+≥2R",
+    "C2D1": "≥2D,DB",
+    "C2D0": "≥2D",
+    "C3D1": "≥2R,DB",
+    "C3D0": "≥2R",
+    "C4D1": "1D+1R,DB",
+    "C4D0": "1D+1R",
+    "C5D1": "1D,DB",
+    "C5D0": "1D",
+    "C6D1": "1R,DB",
+    "C6D0": "1R",
+    "C7D1": "0D+0R,DB",
+    "C7D0": "0D+0R",
 }
 
 
@@ -159,19 +164,26 @@ TIER_SHORT_NAMES: Dict[str, str] = {
 
 TIER_QUALITY_SCORES: Dict[str, int] = {
     # C1 tiers: Highest quality (both modalities strong)
-    "C1D1": 140, "C1D0": 130,
+    "C1D1": 140,
+    "C1D0": 130,
     # C2 tiers: DNA-strong
-    "C2D1": 120, "C2D0": 110,
+    "C2D1": 120,
+    "C2D0": 110,
     # C3 tiers: RNA-strong
-    "C3D1": 100, "C3D0": 90,
+    "C3D1": 100,
+    "C3D0": 90,
     # C4 tiers: Both modalities weak but present
-    "C4D1": 80, "C4D0": 70,
+    "C4D1": 80,
+    "C4D0": 70,
     # C5 tiers: DNA-only weak
-    "C5D1": 60, "C5D0": 50,
+    "C5D1": 60,
+    "C5D0": 50,
     # C6 tiers: RNA-only weak
-    "C6D1": 40, "C6D0": 30,
+    "C6D1": 40,
+    "C6D0": 30,
     # C7 tiers: No caller support (lowest quality)
-    "C7D1": 20, "C7D0": 10,
+    "C7D1": 20,
+    "C7D0": 10,
 }
 
 
@@ -180,7 +192,7 @@ TIER_QUALITY_SCORES: Dict[str, int] = {
 # ============================================================================
 #
 # Some categories typically fall into specific tiers:
-# - RNA_Edit: Usually C7D1 (no callers, but in REDIportal/DARNED)
+# - RNAedit: Usually C7D1 (no callers, but in REDIportal/DARNED)
 # - NoConsensus: Usually C7D0 or C7D1 (DNA/RNA disagree, no consensus)
 # - Somatic: Expected in C1-C6 range (caller-supported)
 # - Germline: Often C1D1, C2D1 (high caller + gnomAD support)
@@ -191,7 +203,7 @@ CATEGORY_TYPICAL_TIERS = {
     "Germline": ["C1D1", "C2D1", "C3D1", "C4D1"],
     "Reference": ["C1D1", "C2D1"],  # Usually strong caller + gnomAD support
     "Artifact": ["C5D0", "C6D0", "C7D0"],  # Weak caller, no database
-    "RNA_Edit": ["C7D1"],  # No callers, REDIportal/DARNED database
+    "RNAedit": ["C7D1"],  # No callers, REDIportal/DARNED database
     "NoConsensus": ["C7D0", "C7D1"],  # No consensus, variable database
 }
 
@@ -207,19 +219,26 @@ CATEGORY_TYPICAL_TIERS = {
 
 TIER_COLORS: Dict[str, str] = {
     # C1 tiers: Dark blue (highest quality)
-    "C1D1": "#1f77b4", "C1D0": "#4292c6",
+    "C1D1": "#1f77b4",
+    "C1D0": "#4292c6",
     # C2 tiers: Blue
-    "C2D1": "#6baed6", "C2D0": "#9ecae1",
+    "C2D1": "#6baed6",
+    "C2D0": "#9ecae1",
     # C3 tiers: Cyan/Teal
-    "C3D1": "#41ab5d", "C3D0": "#74c476",
+    "C3D1": "#41ab5d",
+    "C3D0": "#74c476",
     # C4 tiers: Green
-    "C4D1": "#a1d99b", "C4D0": "#c7e9c0",
+    "C4D1": "#a1d99b",
+    "C4D0": "#c7e9c0",
     # C5 tiers: Yellow
-    "C5D1": "#fdae6b", "C5D0": "#fdd0a2",
+    "C5D1": "#fdae6b",
+    "C5D0": "#fdd0a2",
     # C6 tiers: Orange
-    "C6D1": "#fd8d3c", "C6D0": "#fdae6b",
+    "C6D1": "#fd8d3c",
+    "C6D0": "#fdae6b",
     # C7 tiers: Red/Gray (lowest quality)
-    "C7D1": "#d94801", "C7D0": "#a63603",
+    "C7D1": "#d94801",
+    "C7D0": "#a63603",
 }
 
 
@@ -227,13 +246,14 @@ TIER_COLORS: Dict[str, str] = {
 # UTILITY FUNCTIONS
 # ============================================================================
 
+
 def get_tier_quality(tier: str) -> int:
     """
     Get numeric quality score for a tier.
-    
+
     Args:
         tier: Tier name (e.g., "C1D1", "C7D0")
-    
+
     Returns:
         Quality score (higher = better), or 0 if tier not recognized
     """
@@ -243,10 +263,10 @@ def get_tier_quality(tier: str) -> int:
 def get_tier_color(tier: str) -> str:
     """
     Get color code for a tier.
-    
+
     Args:
         tier: Tier name (e.g., "C1D1")
-    
+
     Returns:
         Hex color code, or gray if tier not recognized
     """
@@ -256,11 +276,11 @@ def get_tier_color(tier: str) -> str:
 def get_tier_display_name(tier: str, short: bool = False) -> str:
     """
     Get human-readable display name for a tier.
-    
+
     Args:
         tier: Tier name (e.g., "C1D1")
         short: If True, return short name (e.g., "≥2D+≥2R,DB")
-    
+
     Returns:
         Display name
     """
@@ -272,42 +292,42 @@ def get_tier_display_name(tier: str, short: bool = False) -> str:
 def parse_tier(tier: str) -> Tuple[str, str]:
     """
     Parse a tier name into caller and database components.
-    
+
     Args:
         tier: Tier name (e.g., "C1D1")
-    
+
     Returns:
         Tuple of (caller_tier, database_tier), e.g., ("C1", "D1")
-    
+
     Raises:
         ValueError: If tier format is invalid
     """
     if not tier or len(tier) < 4:
         raise ValueError(f"Invalid tier format: {tier}")
-    
+
     # Expected format: CxDy where x is 1-7, y is 0-1
-    if tier[0] != 'C' or tier[2] != 'D':
+    if tier[0] != "C" or tier[2] != "D":
         raise ValueError(f"Invalid tier format: {tier} (expected CxDy)")
-    
+
     caller_tier = tier[:2]  # e.g., "C1"
-    db_tier = tier[2:]      # e.g., "D1"
-    
+    db_tier = tier[2:]  # e.g., "D1"
+
     if caller_tier not in CALLER_TIER_ORDER:
         raise ValueError(f"Invalid caller tier: {caller_tier}")
     if db_tier not in DATABASE_TIER_ORDER:
         raise ValueError(f"Invalid database tier: {db_tier}")
-    
+
     return caller_tier, db_tier
 
 
 def is_high_quality_tier(tier: str, threshold: int = 100) -> bool:
     """
     Check if a tier meets high quality threshold.
-    
+
     Args:
         tier: Tier name (e.g., "C1D1")
         threshold: Minimum quality score (default: 100 = C3D1 and above)
-    
+
     Returns:
         True if tier quality >= threshold
     """
@@ -317,11 +337,11 @@ def is_high_quality_tier(tier: str, threshold: int = 100) -> bool:
 def filter_tiers_by_quality(tiers: List[str], min_quality: int) -> List[str]:
     """
     Filter tiers by minimum quality score.
-    
+
     Args:
         tiers: List of tier names
         min_quality: Minimum quality score threshold
-    
+
     Returns:
         Filtered list of tiers meeting quality threshold
     """
@@ -351,10 +371,10 @@ OLD_TO_NEW_TIER_MAPPING = {
 def convert_old_tier_to_new(old_tier: str) -> str:
     """
     Convert old tier system (T1-T8) to new CxDy system.
-    
+
     Args:
         old_tier: Old tier name (e.g., "T1")
-    
+
     Returns:
         New tier name (e.g., "C1D0")
     """
@@ -366,17 +386,17 @@ if __name__ == "__main__":
     print("=" * 80)
     print("TIER CONFIGURATION SUMMARY")
     print("=" * 80)
-    
+
     print("\n📊 CALLER SUPPORT TIERS (C1-C7):")
     for tier in CALLER_TIER_ORDER:
         desc = CALLER_TIER_RULES[tier]["description"]
         print(f"  {tier}: {desc}")
-    
+
     print("\n🗄️  DATABASE EVIDENCE TIERS (D0-D1):")
     for tier in DATABASE_TIER_ORDER:
         desc = DATABASE_TIER_RULES[tier]["description"]
         print(f"  {tier}: {desc}")
-    
+
     print(f"\n🎯 FINAL TIER COMBINATIONS: {len(TIER_ORDER)} total")
     print("  Quality ranking (best to worst):")
     for i, tier in enumerate(TIER_ORDER, 1):
@@ -384,5 +404,5 @@ if __name__ == "__main__":
         color = get_tier_color(tier)
         short = get_tier_display_name(tier, short=True)
         print(f"    {i:2d}. {tier} ({score:3d}): {short:<15} {color}")
-    
+
     print("\n" + "=" * 80)
