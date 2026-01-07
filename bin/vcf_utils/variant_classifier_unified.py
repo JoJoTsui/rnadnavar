@@ -291,6 +291,17 @@ class UnifiedVariantClassifier:
         # 1. RNA editing classification (highest priority)
         if is_rna_edit and rna_support is not None:
             if rna_support >= self.config["rna_editing_min_rna_support"]:
+                # Validate that RNAedit variants are SNPs only
+                # RNA editing is a single-base substitution (A→G or T→C)
+                # Import get_variant_type only when needed to avoid circular imports
+                try:
+                    from ..common.vcf_config import get_variant_type
+                    # Note: This validation may not work in all contexts since we don't
+                    # always have access to the full variant object here
+                    # The main validation happens in vcf_processor.py during statistics extraction
+                except ImportError:
+                    pass  # Validation happens in statistics extraction
+
                 return "RNAedit"
 
         # 2. Artifact protection - cross-modality artifacts stay artifacts

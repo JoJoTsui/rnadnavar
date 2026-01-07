@@ -86,6 +86,12 @@ class VCFStatisticsExtractor:
         try:
             from cyvcf2 import VCF
 
+            # Import variant type helper
+            try:
+                from vcf_config import VARIANT_TYPE_ORDER, get_variant_type
+            except ImportError:
+                from ..common.vcf_config import VARIANT_TYPE_ORDER, get_variant_type
+
             self.vcf = VCF(str(self.vcf_path))
 
             # Detect sample indices once for normalized stage Strelka classification
@@ -102,6 +108,10 @@ class VCFStatisticsExtractor:
                 "complex": 0,
                 "chromosomes": set(),
                 "variant_types": defaultdict(int),
+                # NEW: Track variant types per category (SNP/INDEL/OTHER × category)
+                "category_variant_types": defaultdict(
+                    lambda: {vt: 0 for vt in VARIANT_TYPE_ORDER}
+                ),
                 # Classification: count distribution by category
                 "classification": {},
                 # Category counts (for tracking distribution across categories)
@@ -112,7 +122,7 @@ class VCFStatisticsExtractor:
                 stats["total_variants"] += 1
                 stats["chromosomes"].add(variant.CHROM)
 
-                # Variant type
+                # Variant type (legacy format for backward compatibility)
                 if variant.is_snp:
                     stats["snps"] += 1
                     stats["variant_types"]["SNP"] += 1
@@ -125,6 +135,9 @@ class VCFStatisticsExtractor:
                 else:
                     stats["complex"] += 1
                     stats["variant_types"]["COMPLEX"] += 1
+
+                # NEW: Get 3-category variant type (SNP/INDEL/OTHER)
+                variant_type = get_variant_type(variant)
 
                 # Stage-aware classification with sample indices for normalized stage
                 try:
@@ -142,14 +155,25 @@ class VCFStatisticsExtractor:
                         stats["classification"].get(classification, 0) + 1
                     )
 
+                    # NEW: Track variant type within this category
+                    stats["category_variant_types"][classification][variant_type] += 1
+
                 except Exception:
                     # Fallback: default to Artifact if classification fails
                     stats["classification"]["Artifact"] = (
                         stats["classification"].get("Artifact", 0) + 1
                     )
+                    # Also track variant type for Artifact fallback
+                    stats["category_variant_types"]["Artifact"][variant_type] += 1
 
             # Convert chromosomes to sorted list
             stats["chromosomes"] = sorted(list(stats["chromosomes"]))
+
+            # Convert category_variant_types defaultdict to regular dict
+            stats["category_variant_types"] = {
+                cat: dict(vtypes)
+                for cat, vtypes in stats["category_variant_types"].items()
+            }
 
             # Compute category distribution percentages
             total = stats["total_variants"]

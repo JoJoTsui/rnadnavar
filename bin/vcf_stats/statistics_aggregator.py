@@ -150,13 +150,19 @@ class StatisticsAggregator:
 
         Includes:
         - Total variant counts
-        - Variant type breakdown (SNPs, Indels)
+        - Variant type breakdown (SNPs, INDELs, OTHER)
         - Category distribution (counts and percentages)
-        - Removed: pass/filtered counts
+        - Validation: RNAedit must have zero INDEL + OTHER counts
 
         Returns:
             DataFrame with variant counts and category distributions for each VCF
         """
+        # Import variant type constants
+        try:
+            from vcf_config import VARIANT_TYPE_ORDER
+        except ImportError:
+            pass
+
         rows = []
 
         for category, files in self.all_stats.items():
@@ -188,15 +194,38 @@ class StatisticsAggregator:
                         tool = name
                         modality = "Unknown"
 
+                # Get 3-category variant type counts
+                category_variant_types = basic.get("category_variant_types", {})
+
+                # Calculate total SNP/INDEL/OTHER across all categories
+                total_snp = 0
+                total_indel = 0
+                total_other = 0
+                for cat_name, type_counts in category_variant_types.items():
+                    total_snp += type_counts.get("SNP", 0)
+                    total_indel += type_counts.get("INDEL", 0)
+                    total_other += type_counts.get("OTHER", 0)
+
                 row = {
                     "Category": category,
                     "Tool": tool,
                     "Modality": modality,
                     "File": name,
                     "Total_Variants": basic.get("total_variants", 0),
-                    "SNPs": basic.get("snps", 0),
-                    "Indels": basic.get("indels", 0),
+                    "SNP": total_snp,
+                    "INDEL": total_indel,
+                    "OTHER": total_other,
                 }
+
+                # Validation: Check RNAedit has zero INDEL + OTHER
+                if "classification" in basic and "RNAedit" in basic["classification"]:
+                    rna_edit_types = category_variant_types.get("RNAedit", {})
+                    rna_edit_indel = rna_edit_types.get("INDEL", 0)
+                    rna_edit_other = rna_edit_types.get("OTHER", 0)
+                    if rna_edit_indel > 0 or rna_edit_other > 0:
+                        row["RNAedit_VALIDATION_ERROR"] = (
+                            f"INDEL={rna_edit_indel}, OTHER={rna_edit_other}"
+                        )
 
                 # Add classification counts for each category
                 if "classification" in basic:
@@ -217,8 +246,9 @@ class StatisticsAggregator:
             "Modality",
             "File",
             "Total_Variants",
-            "SNPs",
-            "Indels",
+            "SNP",
+            "INDEL",
+            "OTHER",
         ]
 
         # Add category columns and their percentages

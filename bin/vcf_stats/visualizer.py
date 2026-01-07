@@ -312,26 +312,32 @@ class VCFVisualizer:
 
         return fig
 
-    def plot_variant_type_distribution(
-        self, exclude_no_consensus_view: bool = True, debug_rna_edit: bool = False
-    ):
+    def plot_variant_type_distribution(self, exclude_no_consensus_view: bool = True):
         """
-        Stacked bar charts showing SNP vs INDEL distribution with FILTER categories.
+        Stacked bar charts showing SNP/INDEL/OTHER distribution with FILTER categories.
 
+        Uses actual variant type counts from category_variant_types (no proportional allocation).
         Shows variant type breakdown across all pipeline stages including:
         - DNA Consensus, RNA Consensus, Rescue
         - COSMIC/GnomAD, RNA Editing, Filtered
 
         Args:
             exclude_no_consensus_view: If True, creates second plot excluding NoConsensus
-            debug_rna_edit: If True, prints debug info about RNA_Edit variant type distribution
+
+        Returns:
+            Tuple of figures (full plot, optionally no-consensus plot)
         """
         if not VISUALIZATION_AVAILABLE:
             print("Visualization libraries not available. Skipping plot.")
             return None
 
+        # Import variant type constants
+        try:
+            from vcf_config import VARIANT_TYPE_COLORS, VARIANT_TYPE_ORDER
+        except ImportError:
+            from ..common.vcf_config import VARIANT_TYPE_ORDER
+
         data = []
-        debug_info = []  # Collect debug information
 
         # Stage mapping for consistent naming
         stage_mapping = {
@@ -355,7 +361,13 @@ class VCFVisualizer:
                 for name, vcf_data in self.all_stats[vcf_type].items():
                     if "stats" in vcf_data and "basic" in vcf_data["stats"]:
                         basic = vcf_data["stats"]["basic"]
-                        classification = basic.get("classification", {})
+
+                        # Get actual category×type counts
+                        category_variant_types = basic.get("category_variant_types", {})
+
+                        # Skip if no data available
+                        if not category_variant_types:
+                            continue
 
                         # Determine stage name
                         if vcf_type == "consensus":
@@ -370,77 +382,34 @@ class VCFVisualizer:
                                 vcf_type, vcf_type.title()
                             )
 
-                        # Get variant types
-                        variant_types = basic.get("variant_types", {})
-                        snps = variant_types.get("SNP", 0)
-                        indels = variant_types.get("DEL", 0) + variant_types.get(
-                            "INS", 0
-                        )
-
-                        # For each FILTER category, calculate proportional SNP/INDEL split
-                        total_vars = basic.get("total_variants", 1)
+                        # For each category, get actual variant type counts
                         for filter_cat in CATEGORY_ORDER:
-                            count = classification.get(filter_cat, 0)
-                            if count > 0:
-                                # Proportionally split into SNPs and INDELs
-                                snp_count = int(count * (snps / total_vars))
-                                indel_count = count - snp_count
+                            if filter_cat not in category_variant_types:
+                                continue
 
-                                if snp_count > 0:
+                            type_counts = category_variant_types[filter_cat]
+
+                            # Validate RNAedit must be SNP-only
+                            if filter_cat == "RNAedit":
+                                indel_count = type_counts.get("INDEL", 0)
+                                other_count = type_counts.get("OTHER", 0)
+                                if indel_count > 0 or other_count > 0:
+                                    print(
+                                        f"⚠️  WARNING: {stage_name} has {indel_count} INDEL + {other_count} OTHER RNAedit variants (should be 0)"
+                                    )
+
+                            # Add data for each variant type
+                            for var_type in VARIANT_TYPE_ORDER:
+                                count = type_counts.get(var_type, 0)
+                                if count > 0:
                                     data.append(
                                         {
                                             "Stage": stage_name,
-                                            "Type": "SNP",
+                                            "Type": var_type,
                                             "Category": filter_cat,
-                                            "Count": snp_count,
+                                            "Count": count,
                                         }
                                     )
-                                if indel_count > 0:
-                                    data.append(
-                                        {
-                                            "Stage": stage_name,
-                                            "Type": "INDEL",
-                                            "Category": filter_cat,
-                                            "Count": indel_count,
-                                        }
-                                    )
-
-                                # Collect debug info for RNA_Edit
-                                if debug_rna_edit and filter_cat == "RNA_Edit":
-                                    debug_info.append(
-                                        {
-                                            "stage": stage_name,
-                                            "total_variants": total_vars,
-                                            "total_snps": snps,
-                                            "total_indels": indels,
-                                            "rna_edit_count": count,
-                                            "rna_edit_snps": snp_count,
-                                            "rna_edit_indels": indel_count,
-                                        }
-                                    )
-
-        # Debug output for RNA_Edit INDEL handling
-        if debug_rna_edit and debug_info:
-            print("\n" + "=" * 80)
-            print("DEBUG: RNA_Edit Variant Type Distribution")
-            print("=" * 80)
-            for info in debug_info:
-                print(f"\n{info['stage']}:")
-                print(f"  Total variants: {info['total_variants']:,}")
-                print(
-                    f"  SNPs (total): {info['total_snps']:,} ({info['total_snps'] / info['total_variants'] * 100:.1f}%)"
-                )
-                print(
-                    f"  INDELs (total): {info['total_indels']:,} ({info['total_indels'] / info['total_variants'] * 100:.1f}%)"
-                )
-                print(f"  RNA_Edit count: {info['rna_edit_count']:,}")
-                print(
-                    f"    - SNPs: {info['rna_edit_snps']:,} ({info['rna_edit_snps'] / info['rna_edit_count'] * 100:.1f}%)"
-                )
-                print(
-                    f"    - INDELs: {info['rna_edit_indels']:,} ({info['rna_edit_indels'] / info['rna_edit_count'] * 100:.1f}%)"
-                )
-            print("=" * 80 + "\n")
 
         if not data:
             print("No data available for plotting")
@@ -479,8 +448,8 @@ class VCFVisualizer:
             for i, stage in enumerate(available_stages, 1):
                 df_stage = plot_df[plot_df["Stage"] == stage]
 
-                # Group by Type (SNP/INDEL) and stack by Category
-                for var_type in ["SNP", "INDEL"]:
+                # Group by Type (SNP/INDEL/OTHER) and stack by Category
+                for var_type in VARIANT_TYPE_ORDER:
                     df_type = df_stage[df_stage["Type"] == var_type]
                     if not df_type.empty:
                         for filter_cat in CATEGORY_ORDER:
@@ -516,7 +485,7 @@ class VCFVisualizer:
                     fig.update_yaxes(title_text="Number of Variants", row=1, col=i)
 
             fig.update_layout(
-                title_text=f"Variant Type Distribution (SNP vs INDEL) Across Pipeline Stages{title_suffix}",
+                title_text=f"Variant Type Distribution (SNP/INDEL/OTHER) Across Pipeline Stages{title_suffix}",
                 height=500,
                 barmode="stack",
                 template="plotly_white",

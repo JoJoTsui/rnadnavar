@@ -184,8 +184,101 @@ INFO_FIELD_NAMES = ["N_DNA_CALLERS_SUPPORT", "N_RNA_CALLERS_SUPPORT"]
 
 
 # ============================================================================
+# VARIANT TYPE SYSTEM (SNP/INDEL/OTHER)
+# ============================================================================
+#
+# 3-category variant type classification:
+# - SNP: Single nucleotide polymorphism (len(REF)==1, len(ALT)==1)
+# - INDEL: Insertion or deletion (len(REF) != len(ALT))
+# - OTHER: Multi-allelic mixed types, MNPs, or complex variants
+#
+# The OTHER category includes:
+# 1. Multi-allelic variants with mixed types (e.g., REF=A, ALT=G,AT)
+# 2. MNPs (Multi-Nucleotide Polymorphisms): len(REF)>1, len(ALT)>1, equal lengths
+# 3. Complex variants not fitting SNP/INDEL definitions
+#
+
+VARIANT_TYPE_ORDER = ["SNP", "INDEL", "OTHER"]
+
+VARIANT_TYPE_COLORS = {
+    "SNP": "#1f77b4",  # Blue
+    "INDEL": "#ff7f0e",  # Orange
+    "OTHER": "#9467bd",  # Purple
+}
+
+
+# ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
+
+
+def get_variant_type(variant) -> str:
+    """
+    Determine the variant type using cyvcf2 properties.
+
+    Classifies variants into 3 categories:
+    - SNP: Single nucleotide polymorphism
+    - INDEL: Insertion or deletion
+    - OTHER: Multi-allelic mixed types, MNPs, or complex variants
+
+    Args:
+        variant: cyvcf2.Variant object
+
+    Returns:
+        One of: "SNP", "INDEL", "OTHER"
+
+    Examples:
+        REF=A, ALT=G         -> SNP
+        REF=A, ALT=AT        -> INDEL
+        REF=AT, ALT=A        -> INDEL
+        REF=A, ALT=G,AT      -> OTHER (multi-allelic mixed)
+        REF=AC, ALT=GT       -> OTHER (MNP)
+        REF=A, ALT=G,C       -> SNP (multi-allelic, all SNPs)
+        REF=A, ALT=AT,ACC    -> INDEL (multi-allelic, all INDELs)
+    """
+    # Handle multi-allelic variants
+    if len(variant.ALT) > 1:
+        # Check if all ALTs are the same type
+        types = set()
+        for alt in variant.ALT:
+            ref_len = len(variant.REF)
+            alt_len = len(alt)
+
+            if ref_len == 1 and alt_len == 1:
+                types.add("SNP")
+            elif ref_len != alt_len:
+                types.add("INDEL")
+            else:
+                types.add("OTHER")  # MNP or complex
+
+        # If mixed types, classify as OTHER
+        if len(types) > 1:
+            return "OTHER"
+
+        # All same type, return that type
+        return types.pop()
+
+    # Single ALT: use cyvcf2 properties
+    if variant.is_snp:
+        return "SNP"
+    elif variant.is_indel:
+        return "INDEL"
+    else:
+        # MNP or complex variant
+        return "OTHER"
+
+
+def get_variant_type_color(variant_type: str) -> str:
+    """
+    Get the color code for a variant type.
+
+    Args:
+        variant_type: One of VARIANT_TYPE_ORDER values (SNP, INDEL, OTHER)
+
+    Returns:
+        Hex color code or gray (#8A8A8A) if variant type not found
+    """
+    return VARIANT_TYPE_COLORS.get(variant_type, "#8A8A8A")
 
 
 def get_category_color(category: str) -> str:
@@ -291,6 +384,11 @@ if __name__ == "__main__":
     for cat in CATEGORY_ORDER:
         color = CATEGORY_COLORS[cat]
         print(f"  {cat:<15} : {color}")
+
+    print("\nVariant Types:")
+    for vtype in VARIANT_TYPE_ORDER:
+        color = VARIANT_TYPE_COLORS[vtype]
+        print(f"  {vtype:<15} : {color}")
 
     print("\nPipeline Stages:")
     for i, stage in enumerate(VCF_STAGE_ORDER, 1):
