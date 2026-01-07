@@ -1095,6 +1095,218 @@ class VCFVisualizer:
 
         return tuple(figures)
 
+    def plot_full_pipeline_progression(
+        self,
+        include_consensus: bool = True,
+        dual_view_no_consensus: bool = True,
+        workflow_type: Optional[str] = None,
+    ):
+        """
+        Plot variant count progression through ALL pipeline stages including consensus.
+
+        This is an enhanced version of plot_annotation_progression that includes:
+        - DNA Consensus and RNA Consensus stages (from modality-specific VCFs)
+        - Rescue and all annotation stages (from combined VCFs)
+
+        Stages shown (in order):
+          1. DNA Consensus (from consensus stage, DNA_TUMOR samples)
+          2. RNA Consensus (from consensus stage, RNA_TUMOR samples)
+          3. Rescue (combined DNA+RNA)
+          4. COSMIC/GnomAD annotated
+          5. RNA Editing annotated
+          6. Filtered (final output)
+
+        Args:
+            include_consensus: If True, include DNA/RNA consensus stages
+            dual_view_no_consensus: If True, creates secondary plot excluding NoConsensus
+            workflow_type: Optional workflow label to add to title
+
+        Returns:
+            Tuple of plotly figures (full view, and optionally no-consensus view)
+        """
+        if not VISUALIZATION_AVAILABLE:
+            print("Visualization libraries not available. Skipping plot.")
+            return None
+
+        data = []
+
+        # Define all stages to include
+        all_stages = []
+        if include_consensus:
+            all_stages.extend(["consensus_DNA", "consensus_RNA"])
+        all_stages.extend(
+            [
+                "rescue",
+                "cosmic_gnomad",
+                "rna_editing",
+                "filtered_rescue",
+            ]
+        )
+
+        # Stage display names for x-axis
+        stage_display = {
+            "consensus_DNA": "DNA Consensus",
+            "consensus_RNA": "RNA Consensus",
+            "rescue": "Rescue",
+            "cosmic_gnomad": "COSMIC/GnomAD",
+            "rna_editing": "RNA Editing",
+            "filtered_rescue": "Filtered",
+        }
+
+        # Collect data from consensus stage (modality-specific VCFs)
+        if include_consensus and "consensus" in self.all_stats:
+            for name, vcf_data in self.all_stats["consensus"].items():
+                if "stats" not in vcf_data or "basic" not in vcf_data["stats"]:
+                    continue
+
+                basic = vcf_data["stats"]["basic"]
+                classification = basic.get("classification", {})
+
+                # Determine if DNA or RNA consensus
+                name_upper = name.upper()
+                if any(p in name_upper for p in ["DNA_TUMOR", "DT_VS_DN", "_DT_"]):
+                    stage_key = "consensus_DNA"
+                elif any(p in name_upper for p in ["RNA_TUMOR", "RT_VS_DN", "_RT_"]):
+                    stage_key = "consensus_RNA"
+                else:
+                    # Skip if modality unclear
+                    continue
+
+                for category in CATEGORY_ORDER:
+                    count = classification.get(category, 0)
+                    if count > 0:
+                        data.append(
+                            {
+                                "Stage": stage_key,
+                                "Stage_Order": all_stages.index(stage_key),
+                                "Category": category,
+                                "Count": count,
+                            }
+                        )
+
+        # Collect data from annotation stages
+        annotation_stages = [
+            "rescue",
+            "cosmic_gnomad",
+            "rna_editing",
+            "filtered_rescue",
+        ]
+        for stage in annotation_stages:
+            if stage not in self.all_stats:
+                continue
+
+            for name, vcf_data in self.all_stats[stage].items():
+                if "stats" not in vcf_data or "basic" not in vcf_data["stats"]:
+                    continue
+
+                basic = vcf_data["stats"]["basic"]
+                classification = basic.get("classification", {})
+
+                for category in CATEGORY_ORDER:
+                    count = classification.get(category, 0)
+                    if count > 0:
+                        data.append(
+                            {
+                                "Stage": stage,
+                                "Stage_Order": all_stages.index(stage)
+                                if stage in all_stages
+                                else 999,
+                                "Category": category,
+                                "Count": count,
+                            }
+                        )
+
+        if not data:
+            print("No pipeline progression data available")
+            return None
+
+        df = pd.DataFrame(data)
+
+        def _build_full_progression(fig_df, title_suffix=""):
+            """Build the full pipeline progression figure."""
+            fig = go.Figure()
+
+            # Get ordered list of stages present in data
+            stages_ordered = []
+            for stage_key in all_stages:
+                if stage_key in fig_df["Stage"].values:
+                    stages_ordered.append(stage_key)
+
+            # Map stage keys to display names for x-axis
+            display_labels = [stage_display.get(s, s) for s in stages_ordered]
+
+            categories_shown = set()
+
+            for category in CATEGORY_ORDER:
+                df_cat = fig_df[fig_df["Category"] == category]
+                if df_cat.empty:
+                    continue
+
+                counts_by_stage = []
+                for stage in stages_ordered:
+                    stage_data = df_cat[df_cat["Stage"] == stage]
+                    counts_by_stage.append(
+                        stage_data["Count"].sum() if not stage_data.empty else 0
+                    )
+
+                if sum(counts_by_stage) > 0:
+                    show_legend = category not in categories_shown
+                    categories_shown.add(category)
+
+                    fig.add_trace(
+                        go.Bar(
+                            name=category,
+                            x=display_labels,
+                            y=counts_by_stage,
+                            marker_color=self.CATEGORY_COLORS.get(category, "#8A8A8A"),
+                            text=counts_by_stage,
+                            textposition="inside",
+                            textfont=dict(color="white", size=10),
+                            showlegend=show_legend,
+                            legendgroup=category,
+                            hovertemplate=f"<b>%{{x}}</b><br>{category}: %{{y}}<extra></extra>",
+                        )
+                    )
+
+            # Build title with workflow type if provided
+            title_base = "Variant Count Progression Through Pipeline"
+            if workflow_type:
+                title_base = f"{title_base} ({workflow_type})"
+
+            fig.update_layout(
+                title_text=f"{title_base}{title_suffix}",
+                xaxis_title="Processing Stage",
+                yaxis_title="Number of Variants",
+                barmode="stack",
+                template="plotly_white",
+                height=550,
+                showlegend=True,
+                legend=dict(
+                    orientation="v",
+                    yanchor="top",
+                    y=1.0,
+                    xanchor="left",
+                    x=1.02,
+                    title="Category",
+                ),
+            )
+            return fig
+
+        # Full view including NoConsensus
+        full_fig = _build_full_progression(df)
+        figures = [full_fig]
+
+        # Optional view excluding NoConsensus
+        if dual_view_no_consensus:
+            df_no_nc = df[df["Category"] != "NoConsensus"].copy()
+            if not df_no_nc.empty:
+                no_nc_fig = _build_full_progression(
+                    df_no_nc, " (excluding NoConsensus)"
+                )
+                figures.append(no_nc_fig)
+
+        return tuple(figures)
+
     def plot_category_heatmap(
         self, stages: Optional[list] = None, dual_view_without_no_consensus: bool = True
     ):

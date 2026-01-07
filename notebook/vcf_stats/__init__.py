@@ -17,8 +17,8 @@ VARIANT CATEGORIES:
   - Germline      - Germline variants
   - Reference     - Reference calls
   - Artifact      - Filtering artifacts
-  - RNA_Edit      - RNA editing events (NEW)
-  - NoConsensus   - Non-consensus variants (NEW)
+  - RNAedit       - RNA editing events
+  - NoConsensus   - Non-consensus variants
 
 KEY FEATURES:
   ✓ Automated VCF discovery with support for sample-pair naming (DT/DN/RT)
@@ -120,7 +120,7 @@ except (ImportError, ModuleNotFoundError):
         "Germline",
         "Reference",
         "Artifact",
-        "RNA_Edit",
+        "RNAedit",
         "NoConsensus",
     ]
 
@@ -153,7 +153,7 @@ except (ImportError, ModuleNotFoundError):
         "Germline": "#00CC96",  # Green
         "Reference": "#FFA15A",  # Orange
         "Artifact": "#EF553B",  # Red
-        "RNA_Edit": "#AB63FA",  # Purple
+        "RNAedit": "#AB63FA",  # Purple (standardized name)
         "NoConsensus": "#8A8A8A",  # Gray
         "PASS": "#636EFA",  # Same as Somatic
         "LowQual": "#EF553B",  # Same as Artifact
