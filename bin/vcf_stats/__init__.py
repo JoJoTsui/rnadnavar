@@ -138,6 +138,22 @@ from .igv_reports_wrapper import (
     organize_by_category_tier,
     visualize_rescue_variants_with_igvreports,
 )
+
+# Import indel analysis utilities
+from .indel_analysis import (
+    INDEL_SIZE_BINS,
+    aggregate_indel_statistics,
+    categorize_indel_size,
+    indel_stats_by_bin,
+    summarize_indel_sizes,
+)
+from .indel_visualization import (
+    DELETIONS_COLOR,
+    INSERTIONS_COLOR,
+    plot_indel_binned_distribution,
+    plot_indel_per_sample_heatmap,
+    plot_indel_per_sample_stacked,
+)
 from .rescue_analyzer import (
     analyze_rescue_vcf,
     create_resuce_transition_matrix,
@@ -187,6 +203,18 @@ __all__ = [
     "create_dual_view_plots",
     "ensure_all_categories_in_legend",
     "collect_stage_statistics",
+    # Indel analysis functions
+    "INDEL_SIZE_BINS",
+    "categorize_indel_size",
+    "indel_stats_by_bin",
+    "aggregate_indel_statistics",
+    "summarize_indel_sizes",
+    # Indel visualization functions
+    "INSERTIONS_COLOR",
+    "DELETIONS_COLOR",
+    "plot_indel_binned_distribution",
+    "plot_indel_per_sample_heatmap",
+    "plot_indel_per_sample_stacked",
     # Workflow abstraction
     "WorkflowType",
     "WorkflowConfig",
