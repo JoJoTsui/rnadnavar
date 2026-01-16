@@ -511,12 +511,26 @@ class BcftoolsAnnotator:
         """Build standard bcftools annotate command for VCF-to-VCF annotation."""
         logger.info("Building standard VCF-to-VCF annotation command...")
         
-        # Use VCF-to-VCF annotation without requiring separate header files
-        # bcftools will automatically match INFO fields from annotation VCF
+        # CRITICAL: Use --pair-logic exact for VCF-to-VCF annotation
+        # This ensures exact CHROM,POS,REF,ALT matching without modifying input alleles
+        # See: https://samtools.github.io/bcftools/howtos/annotate.html
+        #
+        # With --pair-logic exact:
+        # 1. Variants only get annotated when CHROM, POS, REF, and ALT all match exactly
+        # 2. Input VCF alleles are NEVER modified
+        # 3. Only INFO fields are transferred from annotation database
+        # 4. If alleles don't match (e.g., G>A vs A>G), no annotation is added
+        #
+        # This prevents the allele flip bug where input variants like G>A would be
+        # incorrectly changed to A>G when the annotation database (e.g., REDIportal)
+        # has the opposite allele representation at the same position.
+        #
+        # See: Requirements 1.3, 1.4, 2.1 in vcf-allele-flip-fix spec
         cmd = [
             str(self.tool_paths['bcftools']), 'annotate',
             '-a', str(self.annotation_vcf),
-            '-c', 'CHROM,POS,REF,ALT,INFO',  # Copy all INFO fields from annotation VCF
+            '--pair-logic', 'exact',  # Exact CHROM,POS,REF,ALT matching
+            '-c', 'INFO',             # Only transfer INFO fields
             '-o', str(self.output_vcf),
             str(self.input_vcf)
         ]
@@ -546,13 +560,28 @@ class BcftoolsAnnotator:
         safe_fields = annotation_fields - conflicting_fields
         
         if safe_fields:
-            # Annotate only non-conflicting fields
-            columns = 'CHROM,POS,REF,ALT,' + ','.join(f'INFO/{field}' for field in safe_fields)
+            # CRITICAL: Use --pair-logic exact for VCF-to-VCF annotation
+            # This ensures exact CHROM,POS,REF,ALT matching without modifying input alleles
+            # See: https://samtools.github.io/bcftools/howtos/annotate.html
+            #
+            # With --pair-logic exact:
+            # 1. Variants only get annotated when CHROM, POS, REF, and ALT all match exactly
+            # 2. Input VCF alleles are NEVER modified
+            # 3. Only INFO fields are transferred from annotation database
+            # 4. If alleles don't match (e.g., G>A vs A>G), no annotation is added
+            #
+            # This prevents the allele flip bug where input variants like G>A would be
+            # incorrectly changed to A>G when the annotation database (e.g., REDIportal)
+            # has the opposite allele representation at the same position.
+            #
+            # See: Requirements 1.3, 1.4 in vcf-allele-flip-fix spec
+            columns = ','.join(f'INFO/{field}' for field in safe_fields)
             
             cmd = [
                 str(self.tool_paths['bcftools']), 'annotate',
                 '-a', str(self.annotation_vcf),
-                '-c', columns,
+                '--pair-logic', 'exact',  # Exact CHROM,POS,REF,ALT matching
+                '-c', columns,            # Only transfer INFO fields
                 '-o', str(self.output_vcf),
                 str(self.input_vcf)
             ]
@@ -560,10 +589,12 @@ class BcftoolsAnnotator:
             logger.info(f"Selective annotation for fields: {safe_fields}")
         else:
             # If all fields conflict, just mark sites without adding INFO fields
+            # Still use --pair-logic exact to ensure exact allele matching
             cmd = [
                 str(self.tool_paths['bcftools']), 'annotate',
                 '-a', str(self.annotation_vcf),
                 '--mark-sites', '+ANNOTATION_MATCH',
+                '--pair-logic', 'exact',  # Exact CHROM,POS,REF,ALT matching
                 '-o', str(self.output_vcf),
                 str(self.input_vcf)
             ]

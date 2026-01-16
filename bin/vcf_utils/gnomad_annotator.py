@@ -381,11 +381,15 @@ class GnomadAnnotator:
             )
             
             # Optimized annotation with field renaming for clear identification
+            # CRITICAL: Use --pair-logic exact for VCF-to-VCF annotation
+            # This ensures exact CHROM,POS,REF,ALT matching without modifying input alleles
+            # See: https://samtools.github.io/bcftools/howtos/annotate.html
             logger.debug(f"Annotating chromosome {chromosome} with gnomAD...")
             annotate_cmd = [
                 'bcftools', 'annotate',
                 '-a', str(gnomad_file),
-                '-c', 'CHROM,POS,REF,ALT,INFO/GNOMAD_AF:=INFO/AF',  # Rename AF to GNOMAD_AF for clarity
+                '--pair-logic', 'exact',
+                '-c', 'INFO/GNOMAD_AF:=INFO/AF',
                 '-O', 'z',
                 '--threads', '2',  # Use threads for compression
                 '-o', str(chr_output),

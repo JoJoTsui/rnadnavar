@@ -199,12 +199,23 @@ class CosmicAnnotator:
         # Get available COSMIC annotation fields
         cosmic_fields = self.get_cosmic_annotation_fields()
         
-        # Use VCF-to-VCF annotation with field renaming for clear identification
-        # Extract COSMIC fields and rename them with COSMIC_ prefix for clarity
+        # CRITICAL: Use --pair-logic exact for VCF-to-VCF annotation
+        # 
+        # This ensures exact CHROM,POS,REF,ALT matching without modifying input alleles.
+        # Variants only get annotated when all four fields match exactly.
+        # Input VCF alleles are NEVER modified with this approach.
+        #
+        # This prevents the allele flip bug where input variants like G>A would be
+        # incorrectly changed to A>G when the COSMIC database has the opposite allele
+        # representation at the same position.
+        #
+        # See: https://samtools.github.io/bcftools/howtos/annotate.html
+        # See: Requirements 4.1 in vcf-allele-flip-fix spec
         cmd = [
             'bcftools', 'annotate',
             '-a', str(self.cosmic_vcf),
-            '-c', 'CHROM,POS,REF,ALT,INFO/COSMIC_CNT:=INFO/GENOME_SCREEN_SAMPLE_COUNT,INFO/COSMIC_ID:=ID',
+            '--pair-logic', 'exact',
+            '-c', 'INFO/COSMIC_CNT:=INFO/GENOME_SCREEN_SAMPLE_COUNT,INFO/COSMIC_ID:=ID',
             '-o', str(self.output_vcf),
             str(self.input_vcf)
         ]
