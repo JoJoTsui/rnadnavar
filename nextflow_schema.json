@@ -101,6 +101,13 @@
                     "description": "Saves output from Markduplicates & Baserecalibration as BAM file instead of CRAM",
                     "fa_icon": "fas fa-download"
                 },
+                "reorder_bam_contigs": {
+                    "type": "boolean",
+                    "description": "Reorder BAM contigs to match reference dictionary",
+                    "help_text": "Enable this option if your BAM files contain contigs (e.g., viral sequences like CMV, HBV, HPV) that are not present in the reference genome. This will automatically detect mismatched contigs and use Picard ReorderSam to filter them out before variant calling.",
+                    "fa_icon": "fas fa-sort",
+                    "default": false
+                },
                 "rna": {
                     "type": "boolean",
                     "fa_icon": "fas fa-download",

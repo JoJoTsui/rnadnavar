@@ -18,6 +18,8 @@ include { BAM_APPLYBQSR                                        } from '../../loc
 include { CHANNEL_APPLYBQSR_CREATE_CSV                         } from '../../local/channel_applybqsr_create_csv/main'
 include { CRAM_QC_MOSDEPTH_SAMTOOLS as CRAM_QC_RECAL           } from '../../local/cram_qc_mosdepth_samtools/main'
 include { SAMTOOLS_CONVERT as CRAM_TO_BAM_RECAL                } from '../../../modules/nf-core/samtools/convert/main'
+// Reorder BAM contigs to match reference (optional, for mismatched contigs)
+include { BAM_REORDER_CONTIGS                                  } from '../../local/bam_reorder_contigs/main'
 
 
 workflow BAM_GATK_PREPROCESSING {
@@ -353,8 +355,22 @@ workflow BAM_GATK_PREPROCESSING {
             cram: it[0].data_type == "cram"
         }
 
+        // Optionally reorder BAM contigs to match reference (handles viral contigs mismatch)
+        if (params.reorder_bam_contigs) {
+            BAM_REORDER_CONTIGS(
+                input_variant_calling_convert.bam,
+                fasta.map{ meta, fa -> fa },
+                fasta_fai,
+                dict.map{ meta, d -> d }
+            )
+            versions = versions.mix(BAM_REORDER_CONTIGS.out.versions)
+            bam_for_conversion = BAM_REORDER_CONTIGS.out.bam
+        } else {
+            bam_for_conversion = input_variant_calling_convert.bam
+        }
+
         // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-        BAM_TO_CRAM(input_variant_calling_convert.bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
+        BAM_TO_CRAM(bam_for_conversion, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
         versions = versions.mix(BAM_TO_CRAM.out.versions)
         BAM_TO_CRAM.out.cram.dump(tag:"BAM_TO_CRAM.out.cram")
         converted = BAM_TO_CRAM.out.cram.join(BAM_TO_CRAM.out.crai, failOnDuplicate: true, failOnMismatch: true)

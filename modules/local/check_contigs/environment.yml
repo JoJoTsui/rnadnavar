@@ -1,0 +1,7 @@
+name: check_contigs
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - bioconda::samtools=1.21
