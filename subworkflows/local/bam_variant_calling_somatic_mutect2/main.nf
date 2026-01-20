@@ -239,10 +239,25 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         LEARNREADORIENTATIONMODEL.out.artifactprior.dump(tag:"LEARNREADORIENTATIONMODEL.out.artifactpriorMUTECT2")
         ch_seg_to_filtermutectcalls.dump(tag:"ch_seg_to_filtermutectcallsMUTECT2")
         ch_cont_to_filtermutectcalls.dump(tag:"ch_cont_to_filtermutectcallsMUTECT2")
+        
+        // Normalize all channels to use the same meta keys for joining
+        vcf_normalized = vcf.map{ meta, vcf_file -> 
+            [ meta.subMap('id', 'patient', 'status'), vcf_file ] 
+        }
+        tbi_normalized = tbi.map{ meta, tbi_file -> 
+            [ meta.subMap('id', 'patient', 'status'), tbi_file ] 
+        }
+        stats_normalized = stats.map{ meta, stats_file -> 
+            [ meta.subMap('id', 'patient', 'status'), stats_file ] 
+        }
+        artifactprior_normalized = LEARNREADORIENTATIONMODEL.out.artifactprior.map{ meta, ap_file -> 
+            [ meta.subMap('id', 'patient', 'status'), ap_file ] 
+        }
+        
         // Mutect2 calls filtered by filtermutectcalls using the artifactpriors, contamination and segmentation tables
-        vcf_to_filter = vcf.join(tbi, failOnDuplicate: true, failOnMismatch: true)
-                            .join(stats, failOnDuplicate: true, failOnMismatch: true)
-                            .join(LEARNREADORIENTATIONMODEL.out.artifactprior, failOnDuplicate: true, failOnMismatch: true)
+        vcf_to_filter = vcf_normalized.join(tbi_normalized, failOnDuplicate: true, failOnMismatch: true)
+                            .join(stats_normalized, failOnDuplicate: true, failOnMismatch: true)
+                            .join(artifactprior_normalized, failOnDuplicate: true, failOnMismatch: true)
                             .join(ch_seg_to_filtermutectcalls)
                             .join(ch_cont_to_filtermutectcalls)
                         .map{ meta, vcf_file, tbi_file, stats_file, orientation, seg, cont -> [ meta, vcf_file, tbi_file, stats_file, orientation, seg, cont, [] ] }
