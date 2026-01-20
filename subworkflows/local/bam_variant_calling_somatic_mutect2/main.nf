@@ -170,18 +170,22 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         pileup_table_tumor = Channel.empty()
             .mix(GATHERPILEUPSUMMARIES_TUMOR.out.table, pileup_table_tumor_branch.no_intervals)
             .map{ meta, table ->
-                def new_meta = meta.findAll { key, value -> !(key in ['normal_id', 'tumor_id', 'num_intervals']) }
-                new_meta.id = meta.patient
-                [ new_meta, meta.id, table ]
+                // Convert GroupKey to regular map if needed
+                def meta_map = (meta instanceof Map) ? meta : meta.getGroupTarget()
+                def new_meta = meta_map.findAll { key, value -> !(key in ['normal_id', 'tumor_id', 'num_intervals']) }
+                new_meta.id = meta_map.patient
+                [ new_meta, meta_map.id, table ]
             }
             .groupTuple(by: 0)
 
         pileup_table_normal = Channel.empty()
             .mix(GATHERPILEUPSUMMARIES_NORMAL.out.table, pileup_table_normal_branch.no_intervals)
             .map{ meta, table ->
-                def new_meta = meta.findAll { key, value -> !(key in ['normal_id', 'tumor_id', 'num_intervals']) }
-                new_meta.id = meta.patient
-                [ new_meta, meta.id, table ]
+                // Convert GroupKey to regular map if needed
+                def meta_map = (meta instanceof Map) ? meta : meta.getGroupTarget()
+                def new_meta = meta_map.findAll { key, value -> !(key in ['normal_id', 'tumor_id', 'num_intervals']) }
+                new_meta.id = meta_map.patient
+                [ new_meta, meta_map.id, table ]
             }
             .groupTuple(by: 0)
 
