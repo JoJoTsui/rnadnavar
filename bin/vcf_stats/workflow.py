@@ -60,6 +60,7 @@ class WorkflowType(Enum):
 
     STANDARD = "standard"
     REALIGNMENT = "realignment"
+    DNA_ONLY = "dna_only"
 
 
 @dataclass
@@ -210,6 +211,16 @@ class WorkflowManager:
         "filtered_rescue": "filtered",
     }
 
+    # DNA-only workflow stages and paths
+    # DNA-only mode runs variant calling with DNA-tumor and DNA-normal samples only,
+    # producing a simpler two-stage pipeline without rescue or annotation stages
+    DNA_ONLY_STAGES = ["variant_calling", "consensus"]
+
+    DNA_ONLY_STAGE_PATHS = {
+        "variant_calling": "variant_calling",
+        "consensus": "consensus",
+    }
+
     def __init__(self, base_dir: Path):
         """
         Initialize workflow manager with pipeline output directory.
@@ -225,8 +236,13 @@ class WorkflowManager:
         Detect which workflows are present in the output directory.
 
         Checks for the existence of expected directory structures:
-        - Standard workflow: base_dir/normalized, base_dir/consensus, etc.
+        - DNA-only workflow: base_dir/variant_calling AND base_dir/consensus exist,
+          BUT base_dir/vcf_realignment AND base_dir/rescue do NOT exist
+        - Standard workflow: base_dir/normalized, base_dir/consensus, base_dir/rescue exist
         - Realignment workflow: base_dir/vcf_realignment/normalized, etc.
+
+        Detection priority: DNA_ONLY is checked first to ensure proper detection
+        when variant_calling and consensus exist without rescue/vcf_realignment.
 
         Returns:
             List of detected workflow types
@@ -235,6 +251,24 @@ class WorkflowManager:
             return self._detected_workflows
 
         detected = []
+
+        # Check for DNA-only workflow FIRST (highest priority for this specific structure)
+        # DNA-only mode: variant_calling/ AND consensus/ exist,
+        # BUT vcf_realignment/ AND rescue/ do NOT exist
+        variant_calling_dir = self.base_dir / "variant_calling"
+        consensus_dir = self.base_dir / "consensus"
+        vcf_realignment_dir = self.base_dir / "vcf_realignment"
+        rescue_dir = self.base_dir / "rescue"
+
+        dna_only_required_present = (
+            variant_calling_dir.exists() and consensus_dir.exists()
+        )
+        dna_only_excluded_absent = (
+            not vcf_realignment_dir.exists() and not rescue_dir.exists()
+        )
+
+        if dna_only_required_present and dna_only_excluded_absent:
+            detected.append(WorkflowType.DNA_ONLY)
 
         # Check for standard workflow
         # Look for at least one standard stage directory
@@ -287,6 +321,13 @@ class WorkflowManager:
                 base_path=self.base_dir / "vcf_realignment",
                 stages=self.REALIGNMENT_STAGES.copy(),
                 stage_paths=self.REALIGNMENT_STAGE_PATHS.copy(),
+            )
+        elif workflow_type == WorkflowType.DNA_ONLY:
+            return WorkflowConfig(
+                name="dna_only",
+                base_path=self.base_dir,
+                stages=self.DNA_ONLY_STAGES.copy(),
+                stage_paths=self.DNA_ONLY_STAGE_PATHS.copy(),
             )
         else:
             raise ValueError(f"Unknown workflow type: {workflow_type}")
@@ -366,7 +407,7 @@ class WorkflowManager:
 
 
 # Workflow constants for easy access
-WORKFLOW_TYPES = [WorkflowType.STANDARD, WorkflowType.REALIGNMENT]
+WORKFLOW_TYPES = [WorkflowType.STANDARD, WorkflowType.REALIGNMENT, WorkflowType.DNA_ONLY]
 
 # Stage names (shared across workflows)
 STAGE_NORMALIZED = "normalized"
@@ -376,6 +417,9 @@ STAGE_COSMIC_GNOMAD = "cosmic_gnomad"
 STAGE_RNA_EDITING = "rna_editing"
 STAGE_FILTERED_RESCUE = "filtered_rescue"
 
+# DNA-only specific stage names
+STAGE_VARIANT_CALLING = "variant_calling"
+
 ALL_STAGES = [
     STAGE_NORMALIZED,
     STAGE_CONSENSUS,
@@ -383,4 +427,10 @@ ALL_STAGES = [
     STAGE_COSMIC_GNOMAD,
     STAGE_RNA_EDITING,
     STAGE_FILTERED_RESCUE,
+]
+
+# DNA-only stages (simpler two-stage pipeline)
+DNA_ONLY_STAGES = [
+    STAGE_VARIANT_CALLING,
+    STAGE_CONSENSUS,
 ]

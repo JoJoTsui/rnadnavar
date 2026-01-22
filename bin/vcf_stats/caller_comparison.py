@@ -385,6 +385,10 @@ class CallerComparator:
     - Summary statistics tables
     - Interactive HTML visualizations
 
+    Supports graceful handling of missing modalities and stages:
+    - Skips RNA-related comparisons when RNA VCFs are missing (DNA-only mode)
+    - Skips rescue/consensus comparisons when those stages are missing
+
     Attributes:
         all_vcfs: Dictionary of all discovered VCF files organized by stage
         variant_sets: Cached variant sets by modality and caller
@@ -402,6 +406,67 @@ class CallerComparator:
         self.all_vcfs = all_vcfs
         self.variant_sets = {}
         self.comparison_results = {}
+
+    def _check_available_modalities(
+        self, stage_vcfs: Dict[str, Any]
+    ) -> List[str]:
+        """
+        Check which modalities (DNA/RNA) are available in the given stage VCFs.
+
+        This method examines the VCF files in a stage to determine which modalities
+        are present. Used to gracefully skip RNA-related comparisons when RNA VCFs
+        are missing (DNA-only mode).
+
+        Args:
+            stage_vcfs: Dictionary of VCF files for a stage
+                       Format: {file_id: path_or_metadata}
+
+        Returns:
+            List of available modalities (e.g., ["DNA"], ["DNA", "RNA"])
+
+        Validates: Requirements 6.5
+        """
+        modalities = set()
+
+        for file_id, vcf_info in stage_vcfs.items():
+            # Extract path from metadata dict or use directly
+            if isinstance(vcf_info, dict):
+                vcf_path = vcf_info.get("path", vcf_info)
+            else:
+                vcf_path = vcf_info
+
+            # Ensure we have a Path object
+            if not isinstance(vcf_path, Path):
+                vcf_path = Path(vcf_path)
+
+            modality = self._extract_modality_from_filename(vcf_path.name)
+            if modality:
+                modalities.add(modality)
+
+        return sorted(list(modalities))
+
+    def _check_available_stages(
+        self, workflow: str
+    ) -> List[str]:
+        """
+        Check which stages are available in the given workflow.
+
+        This method examines the workflow to determine which stages are present.
+        Used to gracefully skip rescue/consensus comparisons when those stages
+        are missing.
+
+        Args:
+            workflow: Workflow name (e.g., "standard", "realignment", "dna_only")
+
+        Returns:
+            List of available stages (e.g., ["variant_calling", "consensus"])
+
+        Validates: Requirements 6.6
+        """
+        if workflow not in self.all_vcfs:
+            return []
+
+        return list(self.all_vcfs[workflow].keys())
 
     def _extract_caller_from_filename(self, filename: str) -> Optional[str]:
         """Extract caller name from VCF filename."""
@@ -639,25 +704,45 @@ class CallerComparator:
 
     def compare_dna_callers(
         self, workflow: str = "standard", stage: str = "normalized"
-    ) -> Tuple[pd.DataFrame, Dict[str, go.Figure]]:
+    ) -> Tuple[Optional[pd.DataFrame], Dict[str, go.Figure]]:
         """
         Compare DNA variant callers (Strelka, DeepSomatic, Mutect2) with per-category Venn diagrams.
 
+        Supports both standard/realignment workflows (using normalized stage) and
+        DNA-only workflow (using variant_calling stage).
+
+        Gracefully handles missing stages by returning None and empty dict.
+
         Args:
-            workflow: Workflow name ("standard" or "realignment")
-            stage: Processing stage ("normalized" recommended for caller comparison)
+            workflow: Workflow name ("standard", "realignment", or "dna_only")
+            stage: Processing stage ("normalized" for standard/realignment,
+                   "variant_calling" for dna_only). When workflow="dna_only",
+                   this parameter is automatically set to "variant_calling".
 
         Returns:
             Tuple of (summary_df, figures_dict) where:
-            - summary_df: DataFrame with variant counts and overlaps per category
-            - figures_dict: Dictionary of plotly figures keyed by "{category}_{vartype}"
-        """
-        # Extract DNA normalized VCFs
-        if workflow not in self.all_vcfs:
-            raise ValueError(f"Workflow '{workflow}' not found in VCF files")
+            - summary_df: DataFrame with variant counts and overlaps per category,
+                         or None if stage is missing
+            - figures_dict: Dictionary of plotly figures keyed by "{category}_{vartype}",
+                           or empty dict if comparison cannot be performed
 
-        if stage not in self.all_vcfs[workflow]:
-            raise ValueError(f"Stage '{stage}' not found in workflow '{workflow}'")
+        Validates: Requirements 6.1, 6.6
+        """
+        # For DNA-only workflow, use variant_calling stage instead of normalized
+        if workflow == "dna_only":
+            stage = "variant_calling"
+
+        # Check if workflow exists
+        if workflow not in self.all_vcfs:
+            print(f"  Skipping DNA caller comparison: workflow '{workflow}' not found")
+            return None, {}
+
+        # Check available stages before attempting comparison
+        available_stages = self._check_available_stages(workflow)
+        if stage not in available_stages:
+            print(f"  Skipping DNA caller comparison: stage '{stage}' not available in workflow '{workflow}'")
+            print(f"    Available stages: {available_stages}")
+            return None, {}
 
         stage_vcfs = self.all_vcfs[workflow][stage]
 
@@ -667,23 +752,35 @@ class CallerComparator:
             # Extract path from metadata dict or use directly
             if isinstance(vcf_info, dict):
                 vcf_path = vcf_info.get("path", vcf_info)
+                # For DNA-only workflow, use the tool field from metadata
+                caller_from_metadata = vcf_info.get("tool")
             else:
                 vcf_path = vcf_info
+                caller_from_metadata = None
 
             # Ensure we have a Path object
             if not isinstance(vcf_path, Path):
                 vcf_path = Path(vcf_path)
 
-            caller = self._extract_caller_from_filename(vcf_path.name)
-            modality = self._extract_modality_from_filename(vcf_path.name)
+            # Extract caller name - prefer metadata for DNA-only, fallback to filename
+            if caller_from_metadata:
+                caller = caller_from_metadata.lower()
+            else:
+                caller = self._extract_caller_from_filename(vcf_path.name)
 
-            if caller and modality == "DNA":
-                dna_vcfs[caller] = vcf_path
+            # For DNA-only workflow, all VCFs are DNA (no RNA), so skip modality check
+            if workflow == "dna_only":
+                if caller:
+                    dna_vcfs[caller] = vcf_path
+            else:
+                # For standard/realignment workflows, filter by DNA modality
+                modality = self._extract_modality_from_filename(vcf_path.name)
+                if caller and modality == "DNA":
+                    dna_vcfs[caller] = vcf_path
 
         if len(dna_vcfs) < 2:
-            raise ValueError(
-                f"Need at least 2 DNA callers, found {len(dna_vcfs)}: {list(dna_vcfs.keys())}"
-            )
+            print(f"  Skipping DNA caller comparison: need at least 2 DNA callers, found {len(dna_vcfs)}: {list(dna_vcfs.keys())}")
+            return None, {}
 
         print(f"Found DNA callers: {list(dna_vcfs.keys())}")
 
@@ -738,11 +835,12 @@ class CallerComparator:
 
     def compare_rna_callers(
         self, workflow: str = "standard", stage: str = "normalized"
-    ) -> Tuple[pd.DataFrame, Dict[str, go.Figure]]:
+    ) -> Tuple[Optional[pd.DataFrame], Dict[str, go.Figure]]:
         """
         Compare RNA variant callers with per-category Venn diagrams.
 
         Similar to compare_dna_callers() but for RNA modality.
+        Gracefully handles missing RNA VCFs by returning None and empty dict.
 
         Args:
             workflow: Workflow name ("standard" or "realignment")
@@ -750,17 +848,31 @@ class CallerComparator:
 
         Returns:
             Tuple of (summary_df, figures_dict) where:
-            - summary_df: DataFrame with variant counts and overlaps per category
-            - figures_dict: Dictionary of plotly figures keyed by "{category}_{vartype}"
-        """
-        # Extract RNA normalized VCFs
-        if workflow not in self.all_vcfs:
-            raise ValueError(f"Workflow '{workflow}' not found in VCF files")
+            - summary_df: DataFrame with variant counts and overlaps per category,
+                         or None if RNA VCFs are missing
+            - figures_dict: Dictionary of plotly figures keyed by "{category}_{vartype}",
+                           or empty dict if RNA VCFs are missing
 
+        Validates: Requirements 6.5
+        """
+        # Check if workflow exists
+        if workflow not in self.all_vcfs:
+            print(f"  Skipping RNA caller comparison: workflow '{workflow}' not found")
+            return None, {}
+
+        # Check if stage exists
         if stage not in self.all_vcfs[workflow]:
-            raise ValueError(f"Stage '{stage}' not found in workflow '{workflow}'")
+            print(f"  Skipping RNA caller comparison: stage '{stage}' not found in workflow '{workflow}'")
+            return None, {}
 
         stage_vcfs = self.all_vcfs[workflow][stage]
+
+        # Check available modalities before attempting comparison
+        available_modalities = self._check_available_modalities(stage_vcfs)
+        if "RNA" not in available_modalities:
+            print(f"  Skipping RNA caller comparison: RNA VCFs not available (DNA-only mode)")
+            print(f"    Available modalities: {available_modalities}")
+            return None, {}
 
         # Group by caller
         rna_vcfs = {}
@@ -782,9 +894,8 @@ class CallerComparator:
                 rna_vcfs[caller] = vcf_path
 
         if len(rna_vcfs) < 2:
-            raise ValueError(
-                f"Need at least 2 RNA callers, found {len(rna_vcfs)}: {list(rna_vcfs.keys())}"
-            )
+            print(f"  Skipping RNA caller comparison: need at least 2 RNA callers, found {len(rna_vcfs)}: {list(rna_vcfs.keys())}")
+            return None, {}
 
         print(f"Found RNA callers: {list(rna_vcfs.keys())}")
 
@@ -839,7 +950,7 @@ class CallerComparator:
 
     def compare_consensus_vcfs(
         self, include_realignment: bool = True
-    ) -> Tuple[pd.DataFrame, Dict[str, go.Figure]]:
+    ) -> Tuple[Optional[pd.DataFrame], Dict[str, go.Figure]]:
         """
         Create 3-way Venn diagrams comparing DNA, RNA standard, and RNA realignment consensus VCFs.
 
@@ -848,21 +959,42 @@ class CallerComparator:
         - RNA standard consensus
         - RNA realignment consensus (if available)
 
+        Gracefully handles missing stages and modalities:
+        - Skips comparison if consensus stage is missing
+        - Skips RNA comparisons if RNA VCFs are missing (DNA-only mode)
+        - Falls back to 2-way comparison if realignment is missing
+
         Args:
             include_realignment: Whether to include realignment consensus comparison
 
         Returns:
-            Tuple of (summary_df, figures_dict) where figures are keyed by "{category}_{vartype}"
+            Tuple of (summary_df, figures_dict) where:
+            - summary_df: DataFrame with comparison results, or None if consensus stage missing
+            - figures_dict: Dictionary of figures keyed by "{category}_{vartype}",
+                           or empty dict if comparison cannot be performed
+
+        Validates: Requirements 6.5, 6.6
         """
         stage = "consensus"
 
+        # Check available stages before attempting comparison
+        available_stages = self._check_available_stages("standard")
+        if stage not in available_stages:
+            print(f"  Skipping consensus comparison: '{stage}' stage not available")
+            print(f"    Available stages: {available_stages}")
+            return None, {}
+
         # Get standard consensus VCFs
         if "standard" not in self.all_vcfs:
-            raise ValueError("Standard workflow not found")
-        if stage not in self.all_vcfs["standard"]:
-            raise ValueError(f"Stage '{stage}' not found in standard workflow")
+            print("  Skipping consensus comparison: standard workflow not found")
+            return None, {}
 
         standard_vcfs = self.all_vcfs["standard"][stage]
+
+        # Check available modalities in consensus stage
+        available_modalities = self._check_available_modalities(standard_vcfs)
+        print(f"  Available modalities in consensus: {available_modalities}")
+
         dna_consensus = None
         rna_standard_consensus = None
 
@@ -883,7 +1015,8 @@ class CallerComparator:
         # Get realignment consensus VCF if available
         rna_realign_consensus = None
         if include_realignment and "realignment" in self.all_vcfs:
-            if stage in self.all_vcfs["realignment"]:
+            realign_stages = self._check_available_stages("realignment")
+            if stage in realign_stages:
                 realign_vcfs = self.all_vcfs["realignment"][stage]
                 for file_id, vcf_info in realign_vcfs.items():
                     if isinstance(vcf_info, dict):
@@ -897,6 +1030,45 @@ class CallerComparator:
                     if modality == "RNA":
                         rna_realign_consensus = vcf_path
                         break
+            else:
+                print(f"  Note: realignment workflow does not have '{stage}' stage")
+
+        # Handle DNA-only mode: only DNA consensus available
+        if dna_consensus and not rna_standard_consensus:
+            print("  DNA-only mode detected: skipping RNA consensus comparisons")
+            print(f"    DNA consensus: {dna_consensus.name}")
+
+            # For DNA-only, we can still return DNA consensus statistics
+            # but no comparison is possible without RNA
+            dna_sets = extract_classified_variant_sets(
+                dna_consensus, stage=stage, caller_name="consensus"
+            )
+
+            # Create summary with just DNA counts
+            summary_rows = []
+            for var_type in VARIANT_TYPE_ORDER:
+                # Get all categories in DNA consensus
+                categories = set()
+                for var_key in dna_sets[var_type]:
+                    categories.add(var_key[4])
+
+                for category in sorted(categories):
+                    cat_count = len([vk for vk in dna_sets[var_type] if vk[4] == category])
+                    if cat_count > 0:
+                        summary_rows.append({
+                            "Comparison": "DNA_Only_Consensus",
+                            "Category": category,
+                            "Variant_Type": var_type,
+                            "DNA_Consensus": cat_count,
+                            "RNA_Consensus": 0,
+                            "Overlap": 0,
+                            "Only_DNA": cat_count,
+                            "Only_RNA": 0,
+                        })
+
+            if summary_rows:
+                return pd.DataFrame(summary_rows), {}
+            return None, {}
 
         # Check if we have all three consensus VCFs for 3-way comparison
         if dna_consensus and rna_standard_consensus and rna_realign_consensus:
@@ -999,7 +1171,13 @@ class CallerComparator:
 
             summary_df = pd.DataFrame(all_summary_rows)
         else:
-            raise ValueError("Need at least DNA and RNA standard consensus VCFs")
+            # Neither DNA nor RNA consensus available, or only RNA available
+            print("  Skipping consensus comparison: need at least DNA consensus VCF")
+            if not dna_consensus:
+                print("    DNA consensus VCF not found")
+            if not rna_standard_consensus:
+                print("    RNA standard consensus VCF not found (expected in DNA-only mode)")
+            return None, {}
 
         return summary_df, figures
 

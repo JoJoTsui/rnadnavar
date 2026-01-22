@@ -179,16 +179,26 @@ from .visualizer import VCFVisualizer
 # Import workflow abstraction
 from .workflow import (
     ALL_STAGES,
+    DNA_ONLY_STAGES,
     STAGE_CONSENSUS,
     STAGE_COSMIC_GNOMAD,
     STAGE_FILTERED_RESCUE,
     STAGE_NORMALIZED,
     STAGE_RESCUE,
     STAGE_RNA_EDITING,
+    STAGE_VARIANT_CALLING,
     WORKFLOW_TYPES,
     WorkflowConfig,
     WorkflowManager,
     WorkflowType,
+)
+
+# Import truth set comparison
+from .truth_comparison import (
+    TruthComparisonResult,
+    TruthSetComparator,
+    compare_vcfs,
+    parse_som_py_metrics,
 )
 
 # Export all public classes and constants
@@ -227,7 +237,14 @@ __all__ = [
     "STAGE_COSMIC_GNOMAD",
     "STAGE_RNA_EDITING",
     "STAGE_FILTERED_RESCUE",
+    "STAGE_VARIANT_CALLING",
     "ALL_STAGES",
+    "DNA_ONLY_STAGES",
+    # Truth set comparison
+    "TruthSetComparator",
+    "TruthComparisonResult",
+    "compare_vcfs",
+    "parse_som_py_metrics",
     # Core classes
     "VCFFileDiscovery",
     "VCFStatisticsExtractor",

@@ -504,5 +504,201 @@ class StatisticsAggregator:
 
         return report
 
+    def aggregate_dna_only_stats(
+        self, vcf_files: Dict[str, Dict[str, Any]]
+    ) -> pd.DataFrame:
+        """
+        Aggregate statistics for DNA-only workflow.
+
+        This method handles the two-stage DNA-only pipeline (variant_calling → consensus)
+        without expecting rescue or annotation stages. It computes per-caller statistics
+        at the variant_calling stage and consensus statistics.
+
+        The DNA-only workflow has only two stages:
+        - variant_calling: Individual caller outputs (Strelka, DeepSomatic, Mutect2)
+        - consensus: Combined consensus VCF
+
+        Args:
+            vcf_files: Dictionary mapping file_id to VCF metadata
+                Format: {file_id: {path, stage, tool, sample, file_id}}
+                Example:
+                    {
+                        'mutect2_WES_T_vs_N': {
+                            'path': Path('/path/to/vcf.gz'),
+                            'stage': 'variant_calling',
+                            'tool': 'mutect2',
+                            'sample': 'WES_T_vs_N',
+                            'file_id': 'mutect2_WES_T_vs_N'
+                        },
+                        'consensus_WES_T_vs_N': {
+                            'path': Path('/path/to/consensus.vcf.gz'),
+                            'stage': 'consensus',
+                            'tool': 'consensus',
+                            'sample': 'WES_T_vs_N',
+                            'file_id': 'consensus_WES_T_vs_N'
+                        }
+                    }
+
+        Returns:
+            DataFrame with columns:
+            - Stage: Processing stage (variant_calling, consensus)
+            - Tool: Variant caller name (strelka, deepsomatic, mutect2, consensus)
+            - Sample: Sample pair identifier
+            - Total_Variants: Total variant count
+            - SNP: SNP count
+            - INDEL: INDEL count
+            - OTHER: Other variant type count
+            - Somatic: Somatic variant count
+            - Germline: Germline variant count
+            - Reference: Reference call count
+            - Artifact: Artifact count
+            - Somatic_pct: Somatic percentage
+            - Germline_pct: Germline percentage
+            - Reference_pct: Reference percentage
+            - Artifact_pct: Artifact percentage
+
+        Example:
+            >>> aggregator = StatisticsAggregator({}, workflow_type="dna_only")
+            >>> vcf_files = {
+            ...     'mutect2_sample': {'path': Path('...'), 'stage': 'variant_calling', ...},
+            ...     'consensus_sample': {'path': Path('...'), 'stage': 'consensus', ...}
+            ... }
+            >>> df = aggregator.aggregate_dna_only_stats(vcf_files)
+            >>> print(df[['Stage', 'Tool', 'Total_Variants', 'Somatic']])
+
+        Requirements:
+            - 5.1: Per-caller statistics at variant_calling stage
+            - 5.2: Consensus statistics
+            - 5.3: Handle two-stage pipeline without rescue/annotation stages
+            - 5.4: Return DataFrame compatible with existing aggregation format
+        """
+        from .vcf_processor import VCFStatisticsExtractor
+
+        rows = []
+
+        # DNA-only stages in order
+        dna_only_stages = ["variant_calling", "consensus"]
+
+        # Group VCF files by stage
+        files_by_stage: Dict[str, Dict[str, Any]] = {}
+        for file_id, metadata in vcf_files.items():
+            stage = metadata.get("stage", "unknown")
+            if stage not in files_by_stage:
+                files_by_stage[stage] = {}
+            files_by_stage[stage][file_id] = metadata
+
+        # Process each stage in order
+        for stage in dna_only_stages:
+            if stage not in files_by_stage:
+                continue
+
+            stage_files = files_by_stage[stage]
+
+            for file_id, metadata in stage_files.items():
+                vcf_path = metadata.get("path")
+                tool = metadata.get("tool", "unknown")
+                sample = metadata.get("sample", "unknown")
+
+                if vcf_path is None:
+                    continue
+
+                # Extract statistics from VCF file
+                try:
+                    extractor = VCFStatisticsExtractor(
+                        vcf_path, caller_name=tool, stage=stage
+                    )
+                    stats = extractor.extract_basic_stats()
+
+                    if stats is None:
+                        continue
+
+                    # Get variant type counts from category_variant_types
+                    category_variant_types = stats.get("category_variant_types", {})
+
+                    # Calculate total SNP/INDEL/OTHER across all categories
+                    total_snp = 0
+                    total_indel = 0
+                    total_other = 0
+                    for cat_name, type_counts in category_variant_types.items():
+                        total_snp += type_counts.get("SNP", 0)
+                        total_indel += type_counts.get("INDEL", 0)
+                        total_other += type_counts.get("OTHER", 0)
+
+                    # Build row with basic info
+                    row = {
+                        "Stage": stage,
+                        "Tool": tool,
+                        "Sample": sample,
+                        "File_ID": file_id,
+                        "Total_Variants": stats.get("total_variants", 0),
+                        "SNP": total_snp,
+                        "INDEL": total_indel,
+                        "OTHER": total_other,
+                    }
+
+                    # Add classification counts and percentages
+                    classification = stats.get("classification", {})
+                    total_variants = stats.get("total_variants", 1)
+
+                    # DNA-only mode uses these categories
+                    for cat in CATEGORY_ORDER:
+                        count = classification.get(cat, 0)
+                        row[cat] = count
+                        # Calculate percentage
+                        pct = (count / total_variants * 100) if total_variants > 0 else 0
+                        row[f"{cat}_pct"] = pct
+
+                    rows.append(row)
+
+                except Exception as e:
+                    print(f"Warning: Failed to process {vcf_path}: {e}")
+                    continue
+
+        # Define expected columns for consistent output
+        expected_cols = [
+            "Stage",
+            "Tool",
+            "Sample",
+            "File_ID",
+            "Total_Variants",
+            "SNP",
+            "INDEL",
+            "OTHER",
+        ]
+
+        # Add category columns and their percentages
+        for cat in CATEGORY_ORDER:
+            expected_cols.append(cat)
+            expected_cols.append(f"{cat}_pct")
+
+        if rows:
+            df = pd.DataFrame(rows)
+
+            # Add any missing columns with default values
+            for col in expected_cols:
+                if col not in df.columns:
+                    df[col] = 0
+
+            # Ensure numeric columns are numeric
+            numeric_cols = [
+                c
+                for c in expected_cols
+                if c not in {"Stage", "Tool", "Sample", "File_ID"}
+            ]
+            for c in numeric_cols:
+                df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
+
+            # Sort by stage order, then by tool
+            stage_order_map = {stage: i for i, stage in enumerate(dna_only_stages)}
+            df["_stage_order"] = df["Stage"].map(
+                lambda x: stage_order_map.get(x, 999)
+            )
+            df = df.sort_values(["_stage_order", "Tool"]).drop("_stage_order", axis=1)
+
+            return df[expected_cols]
+        else:
+            # Return empty DataFrame with expected columns
+            return pd.DataFrame(columns=expected_cols)
+
 
 print("✓ Enhanced Statistics Aggregator imported successfully")

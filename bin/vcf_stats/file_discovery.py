@@ -67,7 +67,7 @@ Design Principles:
 """
 
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 # Import constants from main module
 from . import TOOLS, VCF_STAGE_ORDER
@@ -159,7 +159,7 @@ class VCFFileDiscovery:
         }
         self.bam_files = {}
 
-    def discover_vcfs(self) -> Dict[str, Dict[str, Dict[str, any]]]:
+    def discover_vcfs(self) -> Dict[str, Dict[str, Dict[str, Any]]]:
         """
         Discover all VCF files organized by processing stage.
 
@@ -254,6 +254,102 @@ class VCFFileDiscovery:
         right_key = cls._pair_to_suffix_key(right) or ""
         if left_key and right_key:
             return f"{left_key}_rescued_{right_key}"
+        return None
+
+    @staticmethod
+    def _extract_sample_pair(dir_name: str) -> Optional[str]:
+        """
+        Extract sample pair identifier using the *T*_vs_*N* pattern.
+
+        This method handles various tumor vs normal naming conventions used in
+        DNA-only mode and other workflows. It uses regex pattern matching to
+        identify valid sample pairs.
+
+        Supported naming formats:
+            - Full sample names: "WES_LL_T_1_vs_WES_LL_N_1"
+            - DT/DN suffix patterns: "2374372DT_vs_2374372DN"
+            - RT/DN suffix patterns: "2374372RT_vs_2374372DN"
+            - Mixed patterns: "Sample_T_vs_Sample_N"
+            - Underscore variations: "SAMPLE_T_1_vs_SAMPLE_N_1"
+
+        Pattern matching rules:
+            1. Must contain "_vs_" separator
+            2. Tumor part (before _vs_) must contain "T" indicator:
+               - Ends with "DT" (DNA Tumor)
+               - Ends with "RT" (RNA Tumor)
+               - Contains "_T_" or "_T" followed by optional suffix
+            3. Normal part (after _vs_) must contain "N" indicator:
+               - Ends with "DN" (DNA Normal)
+               - Contains "_N_" or "_N" followed by optional suffix
+
+        Args:
+            dir_name: Directory name representing a sample pair
+                     (e.g., "WES_LL_T_1_vs_WES_LL_N_1")
+
+        Returns:
+            The sample pair identifier if pattern matches, None otherwise.
+            Returns the original dir_name if it matches the pattern.
+
+        Example:
+            >>> VCFFileDiscovery._extract_sample_pair("WES_LL_T_1_vs_WES_LL_N_1")
+            'WES_LL_T_1_vs_WES_LL_N_1'
+            >>> VCFFileDiscovery._extract_sample_pair("2374372DT_vs_2374372DN")
+            '2374372DT_vs_2374372DN'
+            >>> VCFFileDiscovery._extract_sample_pair("invalid_name")
+            None
+
+        Validates: Requirements 2.3
+        """
+        import re
+
+        if not dir_name or "_vs_" not in dir_name:
+            return None
+
+        # Split into tumor and normal parts
+        parts = dir_name.split("_vs_", 1)
+        if len(parts) != 2:
+            return None
+
+        tumor_part, normal_part = parts
+
+        # Define regex patterns for tumor identification
+        # Pattern 1: Ends with DT or RT (e.g., "2374372DT", "2374372RT")
+        # Pattern 2: Contains _T_ or ends with _T followed by optional suffix
+        #            (e.g., "WES_LL_T_1", "Sample_T", "Sample_T_1")
+        tumor_patterns = [
+            r".*[DR]T$",           # Ends with DT or RT
+            r".*_T_.*",            # Contains _T_ in the middle
+            r".*_T$",              # Ends with _T
+            r".*_T\d+$",           # Ends with _T followed by digits (e.g., _T1)
+        ]
+
+        # Define regex patterns for normal identification
+        # Pattern 1: Ends with DN (e.g., "2374372DN")
+        # Pattern 2: Contains _N_ or ends with _N followed by optional suffix
+        #            (e.g., "WES_LL_N_1", "Sample_N", "Sample_N_1")
+        normal_patterns = [
+            r".*DN$",              # Ends with DN
+            r".*_N_.*",            # Contains _N_ in the middle
+            r".*_N$",              # Ends with _N
+            r".*_N\d+$",           # Ends with _N followed by digits (e.g., _N1)
+        ]
+
+        # Check if tumor part matches any tumor pattern
+        tumor_match = any(
+            re.match(pattern, tumor_part, re.IGNORECASE)
+            for pattern in tumor_patterns
+        )
+
+        # Check if normal part matches any normal pattern
+        normal_match = any(
+            re.match(pattern, normal_part, re.IGNORECASE)
+            for pattern in normal_patterns
+        )
+
+        # Return the sample pair if both parts match their respective patterns
+        if tumor_match and normal_match:
+            return dir_name
+
         return None
 
     def _discover_normalized_vcfs(self):
@@ -549,6 +645,11 @@ class VCFFileDiscovery:
         """
         Discover VCF files for all detected workflows.
 
+        Supports three workflow types:
+        - standard: Full RNA+DNA pipeline with normalized, consensus, rescue, annotation stages
+        - realignment: RNA realignment workflow with same stages as standard
+        - dna_only: DNA-only pipeline with variant_calling and consensus stages only
+
         Returns:
             Dictionary organized by workflow type and stage:
             {
@@ -561,9 +662,17 @@ class VCFFileDiscovery:
                     "normalized": {name: path},
                     "consensus": {name: path},
                     ...
+                },
+                "dna_only": {
+                    "variant_calling": {name: {path, stage, tool, sample, file_id}},
+                    "consensus": {name: {path, stage, tool, sample, file_id}},
                 }
             }
+
+        Validates: Requirements 2.4
         """
+        from .workflow import WorkflowType
+
         all_workflows = {}
 
         # Get all detected workflow configurations
@@ -571,7 +680,13 @@ class VCFFileDiscovery:
 
         for workflow_type, config in workflow_configs.items():
             workflow_name = config.name
-            all_workflows[workflow_name] = self.discover_vcfs_for_workflow(config)
+
+            # Use DNA-only specific discovery for DNA_ONLY workflow
+            if workflow_type == WorkflowType.DNA_ONLY:
+                all_workflows[workflow_name] = self.discover_vcfs_for_dna_only(config)
+            else:
+                # Use standard discovery for STANDARD and REALIGNMENT workflows
+                all_workflows[workflow_name] = self.discover_vcfs_for_workflow(config)
 
         return all_workflows
 
@@ -904,5 +1019,259 @@ class VCFFileDiscovery:
                     "sample": rescued_key or sample_pair_dir.name,
                     "file_id": key,
                 }
+
+        return vcfs
+
+    def _discover_variant_calling_vcfs(self, base_path: Path) -> Dict[str, Dict[str, Any]]:
+        """
+        Discover VCFs from variant_calling stage for DNA-only workflow.
+
+        Scans variant_calling/deepsomatic/, variant_calling/mutect2/, and
+        variant_calling/strelka/ subdirectories for VCF files.
+
+        Expected directory structure:
+            variant_calling/{caller}/{sample_pair}/*.vcf.gz
+
+        Sample pair pattern: *T*_vs_*N* (tumor vs normal naming convention)
+
+        Args:
+            base_path: Base path of the pipeline output directory
+
+        Returns:
+            Dictionary mapping file_id to metadata dict containing:
+                - path: Path object to the VCF file
+                - stage: "variant_calling"
+                - tool: Tool name (e.g., "deepsomatic", "mutect2", "strelka")
+                - sample: Sample pair identifier (e.g., "WES_LL_T_1_vs_WES_LL_N_1")
+                - file_id: Full file identifier key (e.g., "deepsomatic_WES_LL_T_1_vs_WES_LL_N_1")
+
+        Example:
+            >>> discovery = VCFFileDiscovery("/path/to/output")
+            >>> vcfs = discovery._discover_variant_calling_vcfs(Path("/path/to/output"))
+            >>> for file_id, metadata in vcfs.items():
+            ...     print(f"{file_id}: {metadata['tool']} - {metadata['sample']}")
+            deepsomatic_WES_LL_T_1_vs_WES_LL_N_1: deepsomatic - WES_LL_T_1_vs_WES_LL_N_1
+            mutect2_WES_LL_T_1_vs_WES_LL_N_1: mutect2 - WES_LL_T_1_vs_WES_LL_N_1
+            strelka_WES_LL_T_1_vs_WES_LL_N_1: strelka - WES_LL_T_1_vs_WES_LL_N_1
+
+        Validates: Requirements 2.1
+        """
+        vcfs = {}
+        seen_files = set()  # Track files we've already added to avoid duplicates
+
+        variant_calling_dir = base_path / "variant_calling"
+        if not variant_calling_dir.exists():
+            return vcfs
+
+        # Scan each caller subdirectory (deepsomatic, mutect2, strelka)
+        for tool in TOOLS:
+            tool_dir = variant_calling_dir / tool
+            if not tool_dir.exists():
+                continue
+
+            # Scan sample pair subdirectories with _vs_ pattern
+            for subdir in tool_dir.iterdir():
+                if not subdir.is_dir() or "_vs_" not in subdir.name:
+                    continue
+
+                # Look for VCF files (*.vcf.gz)
+                vcf_files = list(subdir.glob("*.vcf.gz"))
+                if not vcf_files:
+                    continue
+
+                # Use the first VCF file found
+                vcf_path = vcf_files[0]
+
+                # Skip if we've already added this file
+                if str(vcf_path) in seen_files:
+                    continue
+
+                seen_files.add(str(vcf_path))
+                sample_pair = subdir.name
+
+                # Extract suffix key using existing pattern (e.g., "DT_vs_DN")
+                # For DNA-only, we may have different naming conventions like "WES_LL_T_1_vs_WES_LL_N_1"
+                pair_key = self._pair_to_suffix_key(sample_pair)
+
+                # Use the sample pair name directly if suffix extraction fails
+                # This handles DNA-only naming conventions like "*T*_vs_*N*"
+                sample_identifier = pair_key or sample_pair
+
+                # Create file identifier key
+                key = f"{tool}_{sample_identifier}"
+
+                # Store with metadata
+                vcfs[key] = {
+                    "path": vcf_path,
+                    "stage": "variant_calling",
+                    "tool": tool.lower(),
+                    "sample": sample_identifier,
+                    "file_id": key,
+                }
+
+        return vcfs
+
+    def discover_vcfs_for_dna_only(
+        self, workflow_config: WorkflowConfig
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Discover VCFs for DNA-only workflow.
+
+        DNA-only mode runs variant calling with DNA-tumor and DNA-normal samples only,
+        producing a simpler two-stage pipeline:
+        - variant_calling/{caller}/{sample_pair}/*.vcf.gz
+        - consensus/{sample_pair}/*.consensus.vcf.gz
+
+        This method explicitly does NOT discover from normalized/, rescue/, filtered/,
+        or annotation/ directories, as these are not present in DNA-only mode.
+
+        Sample pair pattern: *T*_vs_*N* (tumor vs normal naming convention)
+
+        Args:
+            workflow_config: Configuration for the DNA_ONLY workflow type.
+                            Must have stages=["variant_calling", "consensus"]
+
+        Returns:
+            Dictionary organized by stage, with VCF metadata:
+            {
+                "variant_calling": {
+                    file_id: {
+                        "path": Path,
+                        "stage": "variant_calling",
+                        "tool": str,
+                        "sample": str,
+                        "file_id": str
+                    },
+                    ...
+                },
+                "consensus": {
+                    file_id: {
+                        "path": Path,
+                        "stage": "consensus",
+                        "tool": "consensus",
+                        "sample": str,
+                        "file_id": str
+                    },
+                    ...
+                }
+            }
+
+        Example:
+            >>> from vcf_stats.workflow import WorkflowManager, WorkflowType
+            >>> manager = WorkflowManager("/path/to/dna_only_output")
+            >>> discovery = VCFFileDiscovery("/path/to/dna_only_output", workflow_manager=manager)
+            >>> config = manager.get_workflow_config(WorkflowType.DNA_ONLY)
+            >>> vcfs = discovery.discover_vcfs_for_dna_only(config)
+            >>> print(f"Found {len(vcfs['variant_calling'])} variant_calling VCFs")
+            >>> print(f"Found {len(vcfs['consensus'])} consensus VCFs")
+
+        Validates: Requirements 2.2, 2.5
+        """
+        workflow_vcfs = {}
+
+        # Only discover from the two DNA-only stages: variant_calling and consensus
+        # Explicitly skip normalized/, rescue/, filtered/, annotation/ directories
+        for stage in workflow_config.stages:
+            stage_path = workflow_config.get_stage_path(stage)
+
+            if not stage_path or not stage_path.exists():
+                workflow_vcfs[stage] = {}
+                continue
+
+            if stage == "variant_calling":
+                # Use the existing _discover_variant_calling_vcfs method
+                workflow_vcfs[stage] = self._discover_variant_calling_vcfs(
+                    workflow_config.base_path
+                )
+            elif stage == "consensus":
+                # Discover consensus VCFs using the DNA-only pattern
+                workflow_vcfs[stage] = self._discover_consensus_vcfs_dna_only(
+                    stage_path
+                )
+            else:
+                # Skip any other stages (should not happen for DNA_ONLY workflow)
+                workflow_vcfs[stage] = {}
+
+        return workflow_vcfs
+
+    def _discover_consensus_vcfs_dna_only(
+        self, stage_path: Path
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Discover consensus VCFs for DNA-only workflow.
+
+        Expected directory structure:
+            consensus/{sample_pair}/*.consensus.vcf.gz
+
+        Sample pair pattern: *T*_vs_*N* (tumor vs normal naming convention)
+
+        Args:
+            stage_path: Path to the consensus stage directory
+
+        Returns:
+            Dictionary mapping file_id to metadata dict containing:
+                - path: Path object to the VCF file
+                - stage: "consensus"
+                - tool: "consensus"
+                - sample: Sample pair identifier (e.g., "WES_LL_T_1_vs_WES_LL_N_1")
+                - file_id: Full file identifier key
+
+        Example:
+            >>> discovery = VCFFileDiscovery("/path/to/output")
+            >>> vcfs = discovery._discover_consensus_vcfs_dna_only(Path("/path/to/output/consensus"))
+            >>> for file_id, metadata in vcfs.items():
+            ...     print(f"{file_id}: {metadata['sample']}")
+            WES_LL_T_1_vs_WES_LL_N_1: WES_LL_T_1_vs_WES_LL_N_1
+
+        Validates: Requirements 2.2
+        """
+        vcfs = {}
+        seen_files = set()  # Track discovered files to avoid duplicates
+
+        if not stage_path.exists():
+            return vcfs
+
+        # Consensus files are in subdirectories with _vs_ pattern
+        for subdir in stage_path.iterdir():
+            if not subdir.is_dir() or "_vs_" not in subdir.name:
+                continue
+
+            # Validate sample pair pattern using *T*_vs_*N* convention
+            sample_pair = self._extract_sample_pair(subdir.name)
+            if sample_pair is None:
+                # If pattern doesn't match, use directory name as-is
+                sample_pair = subdir.name
+
+            # Look for consensus VCF files (*.consensus.vcf.gz)
+            vcf_files = list(subdir.glob("*.consensus.vcf.gz"))
+            if not vcf_files:
+                continue
+
+            vcf_path = vcf_files[0]
+
+            # Skip if we've already added this file
+            if str(vcf_path) in seen_files:
+                continue
+
+            seen_files.add(str(vcf_path))
+
+            # Extract suffix key (e.g., "DT_vs_DN") if applicable
+            pair_key = self._pair_to_suffix_key(sample_pair)
+
+            # Use the sample pair name directly if suffix extraction fails
+            # This handles DNA-only naming conventions like "*T*_vs_*N*"
+            sample_identifier = pair_key or sample_pair
+
+            # Create file identifier key
+            key = sample_identifier
+
+            # Store with metadata
+            vcfs[key] = {
+                "path": vcf_path,
+                "stage": "consensus",
+                "tool": "consensus",
+                "sample": sample_identifier,
+                "file_id": key,
+            }
 
         return vcfs

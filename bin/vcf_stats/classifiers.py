@@ -116,20 +116,21 @@ def classify_by_filter(
     """
     Classify variant with stage-awareness.
 
-    For normalized stage: Uses caller-specific classification from vcf_utils
+    For normalized/variant_calling stage: Uses caller-specific classification from vcf_utils
     For other stages: Uses unified FILTER-based classification
 
     Args:
         variant: cyvcf2 Variant object
-        stage: VCF processing stage (normalized, consensus, rescue, etc.)
-        caller_name: Name of variant caller (for normalized stage)
+        stage: VCF processing stage (normalized, variant_calling, consensus, rescue, etc.)
+        caller_name: Name of variant caller (for normalized/variant_calling stage)
         sample_indices: Optional dict with 'tumor' and 'normal' sample indices
 
     Returns:
         Category name
     """
-    # For normalized stage, use caller-specific classification from vcf_utils
-    if stage == "normalized" and caller_name:
+    # For normalized/variant_calling stage, use caller-specific classification from vcf_utils
+    # Both stages contain individual caller outputs that need caller-specific logic
+    if stage in ("normalized", "variant_calling") and caller_name:
         return classify_variant_from_record(variant, caller_name, sample_indices)
 
     # For all other stages, use unified FILTER-based classification
@@ -187,4 +188,4 @@ def normalize_category(category: str) -> str:
     return category  # Return as-is if unknown
 
 
-print("✓ Variant classification functions loaded from shared modules (stage-aware)")
+print("✓ Variant classification functions loaded from shared modules (stage-aware: normalized/variant_calling)")

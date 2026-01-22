@@ -94,8 +94,9 @@ class VCFStatisticsExtractor:
 
             self.vcf = VCF(str(self.vcf_path))
 
-            # Detect sample indices once for normalized stage Strelka classification
-            if self.stage == "normalized" and self.caller_name:
+            # Detect sample indices for normalized/variant_calling stage Strelka classification
+            # Both stages contain individual caller outputs that need sample indices
+            if self.stage in ("normalized", "variant_calling") and self.caller_name:
                 from .classifiers import get_sample_indices
 
                 self.sample_indices = get_sample_indices(self.vcf, self.caller_name)
