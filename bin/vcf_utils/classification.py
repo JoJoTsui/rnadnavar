@@ -14,6 +14,64 @@ This module standardizes variant classification across Strelka, DeepSomatic, and
 Now integrated with the unified classifier for consistency across all pipeline stages.
 """
 
+# =============================================================================
+# Mutect2 FILTER Classification Mapping
+# =============================================================================
+# Maps Mutect2 FILTER labels to biological categories.
+# Used for reference - actual classification uses priority-based logic in
+# classify_mutect2_variant() function.
+#
+# Priority Hierarchy:
+# 1. Somatic   (FILTER == 'PASS', None, or '.' - unfiltered/passing variants)
+# 2. Germline  (Contains 'germline' or 'haplotype')
+# 3. Reference (Contains 'panel_of_normals', 'contamination', 'possible_numt')
+# 4. Artifact  (Everything else - technical filter failures)
+#
+# Note: Mutect2 VCFs can be unfiltered (FILTER='.') or filtered (FILTER='PASS'/labels)
+# Unfiltered variants are treated as Somatic candidates.
+
+MUTECT2_FILTER_CLASSIFICATION = {
+    # Somatic (PASS or unfiltered)
+    "PASS": "Somatic",
+    ".": "Somatic",  # Unfiltered variant
+    
+    # Germline (germline-related filters)
+    "germline": "Germline",
+    "haplotype": "Germline",
+    
+    # Reference (systematic/external reference issues)
+    "panel_of_normals": "Reference",
+    "contamination": "Reference",
+    "possible_numt": "Reference",
+    
+    # Artifact (all other technical filters)
+    "FAIL": "Artifact",
+    "base_qual": "Artifact",
+    "clustered_events": "Artifact",
+    "duplicate": "Artifact",
+    "fragment": "Artifact",
+    "low_allele_frac": "Artifact",
+    "map_qual": "Artifact",
+    "multiallelic": "Artifact",
+    "n_ratio": "Artifact",
+    "normal_artifact": "Artifact",
+    "orientation": "Artifact",
+    "position": "Artifact",
+    "slippage": "Artifact",
+    "strand_bias": "Artifact",
+    "strict_strand": "Artifact",
+    "weak_evidence": "Artifact",
+}
+
+# Priority order for multi-filter classification (highest to lowest)
+# When a variant has multiple FILTER values, the classification with the
+# highest priority (lowest index) takes precedence.
+# Note: For multi-filter classification, the priority is:
+#   Germline > Reference > Artifact (Somatic only applies when PASS is alone)
+CLASSIFICATION_PRIORITY = ["Somatic", "Germline", "Reference", "Artifact"]
+
+# =============================================================================
+
 # Lazy import for unified classifier to avoid circular imports
 _unified_classifier = None
 
@@ -107,31 +165,71 @@ def classify_deepsomatic_variant(filter_val):
 
 def classify_mutect2_variant(filter_val, info_dict=None):
     """
-    Classifies a Mutect2 variant into Somatic, Germline, Reference, or Artifact.
+    Classifies a Mutect2 VCF FILTER string into exactly ONE of 4 categories:
+    Somatic, Germline, Reference, Artifact.
 
-    Note: Mutect2 typically only outputs PASS variants in somatic calling mode.
-    This function handles edge cases where other filters might appear.
+    Priority Hierarchy:
+    1. Somatic   (FILTER == 'PASS', None, or '.' - unfiltered/passing variants)
+    2. Germline  (Contains 'germline' or 'haplotype')
+    3. Reference (Contains 'panel_of_normals', 'contamination', 'possible_numt')
+    4. Artifact  (Everything else - technical filter failures)
+
+    Note: Mutect2 VCFs can be:
+    - Unfiltered (before FilterMutectCalls): FILTER = '.' or None → Somatic candidates
+    - Filtered (after FilterMutectCalls): FILTER = 'PASS' or specific filter labels
 
     Args:
         filter_val (str): The value from the VCF FILTER column.
-                          Can be None (treated as PASS by some parsers).
-        info_dict (dict): Optional INFO field dictionary to check additional flags.
+                          Can be None (unfiltered variant - treated as Somatic).
+                          Can be semicolon-separated for multiple filters.
+        info_dict (dict): Optional INFO field dictionary (unused, kept for API compatibility).
 
     Returns:
         str: One of ['Somatic', 'Germline', 'Reference', 'Artifact']
     """
-
-    # Mutect2 in somatic mode primarily outputs PASS variants
-    if filter_val is None or filter_val == "." or filter_val == "PASS":
+    # 1. Handle None, empty, or '.' as Somatic (unfiltered/passing variants)
+    # cyvcf2 returns None for FILTER when VCF has '.' (unfiltered)
+    # These are somatic candidates that haven't been filtered out
+    if filter_val is None or filter_val == "" or filter_val == ".":
         return "Somatic"
-
-    # Check for common Mutect2 germline-related filters (if present)
-    filter_upper = str(filter_val).upper()
-
-    if "GERMLINE" in filter_upper or "NORMAL_ARTIFACT" in filter_upper:
+    
+    # Convert to string and normalize
+    filter_str = str(filter_val).strip()
+    
+    # Handle empty string after stripping
+    if not filter_str or filter_str == ".":
+        return "Somatic"
+    
+    # 2. Explicit PASS → Somatic
+    if filter_str == "PASS":
+        return "Somatic"
+    
+    # 3. Parse Filters
+    # Split by semicolon to handle multiple filters (e.g., "map_qual;germline")
+    filters = [f.strip().lower() for f in filter_str.split(";") if f.strip()]
+    
+    # If no valid filters after parsing, treat as Somatic
+    if not filters:
+        return "Somatic"
+    
+    # 4. Priority Check: Germline
+    # If any filter is germline-related, the biological classification is Germline.
+    germline_triggers = {"germline", "haplotype"}
+    if any(f in germline_triggers for f in filters):
         return "Germline"
-
-    # Other failed filters are artifacts
+    
+    # 5. Priority Check: Reference
+    # If not germline, check for systematic/external reference issues.
+    reference_triggers = {"panel_of_normals", "contamination", "possible_numt"}
+    if any(f in reference_triggers for f in filters):
+        return "Reference"
+    
+    # 6. Default: Artifact
+    # Falls here if:
+    # - It has explicit filter labels (not PASS/None/.)
+    # - It has no Germline tags
+    # - It has no Reference tags
+    # - Contains technical errors (strand_bias, weak_evidence, base_qual, etc.)
     return "Artifact"
 
 
