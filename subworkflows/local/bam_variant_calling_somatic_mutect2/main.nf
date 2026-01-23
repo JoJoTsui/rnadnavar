@@ -141,6 +141,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     // CALCULATECONTAMINATION, and FILTERMUTECTCALLS
     // =====================================================================================
     if (!realignment){
+        log.debug "[MUTECT2] Entering main branch - full processing with pileup/contamination"
         // Generate artifactpriors using learnreadorientationmodel on the f1r2 output of mutect2
         LEARNREADORIENTATIONMODEL(f1r2)
 
@@ -315,16 +316,16 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     // FILTERMUTECTCALLS runs with empty orientation/segmentation/contamination
     // =====================================================================================
     else {
-        log.info "[MUTECT2] Entering realignment branch - filtering for realignment samples only"
+        log.debug "[MUTECT2] Entering realignment branch - filtering for realignment samples only"
         
         // CRITICAL: Filter to only include realignment samples (those with "_realign" in their ID)
         // This prevents mixing with main branch samples that may flow through the same channels
         vcf_realign_only = vcf.filter{ meta, vcf_file -> 
             def is_realign = meta.id?.toString()?.contains('_realign')
             if (is_realign) {
-                log.info "[MUTECT2 REALIGNMENT] Including sample: ${meta.id}"
+                log.debug "[MUTECT2 REALIGNMENT] Including sample: ${meta.id}"
             } else {
-                log.info "[MUTECT2 REALIGNMENT] Excluding non-realign sample: ${meta.id}"
+                log.debug "[MUTECT2 REALIGNMENT] Excluding non-realign sample: ${meta.id}"
             }
             return is_realign
         }
@@ -338,7 +339,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         // Normalize meta for consistent joining
         vcf_normalized_realign = vcf_realign_only.map{ meta, vcf_file -> 
             def normalized_meta = meta.subMap('id', 'patient', 'status')
-            log.info "[MUTECT2 REALIGNMENT] vcf normalized meta: ${normalized_meta}"
+            log.debug "[MUTECT2 REALIGNMENT] vcf normalized meta: ${normalized_meta}"
             [ normalized_meta, vcf_file ] 
         }
         tbi_normalized_realign = tbi_realign_only.map{ meta, tbi_file -> 
@@ -361,7 +362,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
             .join(tbi_normalized_realign, failOnMismatch: true)
             .join(stats_normalized_realign, failOnMismatch: true)
             .map{ meta, vcf_file, tbi_file, stats_file -> 
-                log.info "[MUTECT2 REALIGNMENT] vcf_to_filter FINAL for FILTERMUTECTCALLS: ${meta.id}"
+                log.debug "[MUTECT2 REALIGNMENT] vcf_to_filter FINAL for FILTERMUTECTCALLS: ${meta.id}"
                 // Pass empty arrays for orientation, seg, cont - FILTERMUTECTCALLS handles this
                 [ meta, vcf_file, tbi_file, stats_file, [], [], [], [] ] 
             }
@@ -382,8 +383,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     if (!realignment) {
         // Debug: Add explicit logging before FILTERMUTECTCALLS
         vcf_to_filter_logged = vcf_to_filter.map{ meta, vcf_file, tbi_file, stats_file, orientation, seg, cont, estimate ->
-            log.info "[MUTECT2] FILTERMUTECTCALLS INPUT: id=${meta.id}, vcf=${vcf_file}, tbi=${tbi_file}, stats=${stats_file}"
-            log.info "[MUTECT2] FILTERMUTECTCALLS INPUT: orientation=${orientation}, seg=${seg}, cont=${cont}"
+            log.debug "[MUTECT2] FILTERMUTECTCALLS INPUT: id=${meta.id}, vcf=${vcf_file}, tbi=${tbi_file}, stats=${stats_file}"
+            log.debug "[MUTECT2] FILTERMUTECTCALLS INPUT: orientation=${orientation}, seg=${seg}, cont=${cont}"
             [ meta, vcf_file, tbi_file, stats_file, orientation, seg, cont, estimate ]
         }
         
@@ -397,17 +398,17 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         
         // Debug output
         vcf_filtered_out.map{ meta, vcf_file ->
-            log.info "[MUTECT2] FILTERMUTECTCALLS OUTPUT: id=${meta.id}, vcf=${vcf_file}"
+            log.debug "[MUTECT2] FILTERMUTECTCALLS OUTPUT: id=${meta.id}, vcf=${vcf_file}"
             [ meta, vcf_file ]
         }
     } else {
         // Realignment branch: use FILTERMUTECTCALLS_REALIGN (separate process alias)
-        log.info "[MUTECT2] Using FILTERMUTECTCALLS_REALIGN for realignment branch"
+        log.debug "[MUTECT2] Using FILTERMUTECTCALLS_REALIGN for realignment branch"
         
         // Debug: Add explicit logging before FILTERMUTECTCALLS_REALIGN
         vcf_to_filter_logged = vcf_to_filter.map{ meta, vcf_file, tbi_file, stats_file, orientation, seg, cont, estimate ->
-            log.info "[MUTECT2 REALIGNMENT] FILTERMUTECTCALLS_REALIGN INPUT: id=${meta.id}, vcf=${vcf_file}, tbi=${tbi_file}, stats=${stats_file}"
-            log.info "[MUTECT2 REALIGNMENT] FILTERMUTECTCALLS_REALIGN INPUT: orientation=${orientation}, seg=${seg}, cont=${cont}"
+            log.debug "[MUTECT2 REALIGNMENT] FILTERMUTECTCALLS_REALIGN INPUT: id=${meta.id}, vcf=${vcf_file}, tbi=${tbi_file}, stats=${stats_file}"
+            log.debug "[MUTECT2 REALIGNMENT] FILTERMUTECTCALLS_REALIGN INPUT: orientation=${orientation}, seg=${seg}, cont=${cont}"
             [ meta, vcf_file, tbi_file, stats_file, orientation, seg, cont, estimate ]
         }
         
@@ -423,9 +424,10 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         stats_filtered_out = FILTERMUTECTCALLS_REALIGN.out.stats
         versions = versions.mix(FILTERMUTECTCALLS_REALIGN.out.versions)
         
-        // Debug output - use view to force evaluation and see output
-        vcf_filtered_out.view { meta, vcf_file ->
-            "[MUTECT2 REALIGNMENT] FILTERMUTECTCALLS_REALIGN OUTPUT: id=${meta.id}, vcf=${vcf_file}"
+        // Debug output
+        vcf_filtered_out.map{ meta, vcf_file ->
+            log.debug "[MUTECT2 REALIGNMENT] FILTERMUTECTCALLS_REALIGN OUTPUT: id=${meta.id}, vcf=${vcf_file}"
+            [ meta, vcf_file ]
         }
     }
 
