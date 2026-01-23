@@ -15,6 +15,7 @@ process BWA_MEM {
 
     output:
     tuple val(meta), path("*.bam")  , emit: bam,    optional: true
+    tuple val(meta), path("*.bai")  , emit: bai,    optional: true
     tuple val(meta), path("*.cram") , emit: cram,   optional: true
     tuple val(meta), path("*.csi")  , emit: csi,    optional: true
     tuple val(meta), path("*.crai") , emit: crai,   optional: true
@@ -45,6 +46,11 @@ process BWA_MEM {
         $reads \\
         | samtools $samtools_command $args2 ${reference} --threads $task.cpus -o ${prefix}.${extension} -
 
+    # Create index for sorted BAM files
+    if [ "${extension}" == "bam" ] && [ "${sort_bam}" == "true" ]; then
+        samtools index -@ $task.cpus ${prefix}.${extension}
+    fi
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         bwa: \$(echo \$(bwa 2>&1) | sed 's/^.*Version: //; s/Contact:.*\$//')
@@ -62,6 +68,9 @@ process BWA_MEM {
                     "bam"
     """
     touch ${prefix}.${extension}
+    if [ "${extension}" == "bam" ]; then
+        touch ${prefix}.bai
+    fi
     touch ${prefix}.csi
     touch ${prefix}.crai
 
