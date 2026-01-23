@@ -5,6 +5,7 @@
 
 include { GATK4_CALCULATECONTAMINATION    as CALCULATECONTAMINATION       } from '../../../modules/nf-core/gatk4/calculatecontamination/main'
 include { GATK4_FILTERMUTECTCALLS         as FILTERMUTECTCALLS            } from '../../../modules/nf-core/gatk4/filtermutectcalls/main'
+include { GATK4_FILTERMUTECTCALLS         as FILTERMUTECTCALLS_REALIGN    } from '../../../modules/nf-core/gatk4/filtermutectcalls/main'
 include { GATK4_GATHERPILEUPSUMMARIES     as GATHERPILEUPSUMMARIES_NORMAL } from '../../../modules/nf-core/gatk4/gatherpileupsummaries/main'
 include { GATK4_GATHERPILEUPSUMMARIES     as GATHERPILEUPSUMMARIES_TUMOR  } from '../../../modules/nf-core/gatk4/gatherpileupsummaries/main'
 include { GATK4_GETPILEUPSUMMARIES        as GETPILEUPSUMMARIES_NORMAL    } from '../../../modules/nf-core/gatk4/getpileupsummaries/main'
@@ -26,7 +27,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     panel_of_normals_tbi      // channel: /path/to/panel/of/normals/index
     intervals                 // channel: [mandatory] [ intervals, num_intervals ] or [ [], 0 ] if no intervals
     joint_mutect2             // boolean: [mandatory] [default: false] run mutect2 in joint mode
-    realignment                // boolean: [mandatory] if realignment
+    realignment               // boolean: [mandatory] if realignment
 
     main:
     versions = Channel.empty()
@@ -66,6 +67,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     }
 
     // Figuring out if there is one or more vcf(s) from the same sample
+    // Use branch to split the channel based on num_intervals
     vcf_branch = MUTECT2_PAIRED.out.vcf.branch{
         // Use meta.num_intervals to asses number of intervals
         intervals:    it[0].num_intervals > 1
@@ -102,23 +104,47 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     MERGEMUTECTSTATS(stats_to_merge)
 
     // Mix intervals and no_intervals channels together and remove no longer necessary field: normal_id, tumor_id, num_intervals
-    vcf = Channel.empty().mix(MERGE_MUTECT2.out.vcf, vcf_branch.no_intervals).map{ meta, vcf ->
-            [ joint_mutect2 ? meta - meta.subMap('normal_id', 'num_intervals') :  meta - meta.subMap('num_intervals') , vcf ]
-    }
-    tbi = Channel.empty().mix(MERGE_MUTECT2.out.tbi, tbi_branch.no_intervals).map{ meta, tbi->
-            [ joint_mutect2 ? meta - meta.subMap('normal_id', 'num_intervals') :  meta - meta.subMap('num_intervals'), tbi ]
-    }
-    stats = Channel.empty().mix(MERGEMUTECTSTATS.out.stats, stats_branch.no_intervals).map{ meta, stats ->
-            [ joint_mutect2 ? meta - meta.subMap('normal_id', 'num_intervals') :  meta - meta.subMap('num_intervals'), stats ]
-            }
-    f1r2 = Channel.empty().mix(f1r2_to_merge, f1r2_branch.no_intervals).map{ meta, f1r2->
-            [ joint_mutect2 ? meta - meta.subMap('normal_id', 'num_intervals') :  meta - meta.subMap('num_intervals') , f1r2 ]
-    }
+    // When num_intervals <= 1, MERGE_MUTECT2 doesn't run, so we use the no_intervals branch directly
+    // When num_intervals > 1, we use the merged output from MERGE_MUTECT2
+    
+    // Create combined channels that work regardless of whether MERGE_MUTECT2 ran
+    // Use ifEmpty to ensure channels don't block when merge processes don't run
+    vcf = MERGE_MUTECT2.out.vcf
+        .mix(vcf_branch.no_intervals)
+        .map{ meta, vcf_file ->
+            [ joint_mutect2 ? meta - meta.subMap('normal_id', 'num_intervals') :  meta - meta.subMap('num_intervals') , vcf_file ]
+        }
+    tbi = MERGE_MUTECT2.out.tbi
+        .mix(tbi_branch.no_intervals)
+        .map{ meta, tbi_file ->
+            [ joint_mutect2 ? meta - meta.subMap('normal_id', 'num_intervals') :  meta - meta.subMap('num_intervals'), tbi_file ]
+        }
+    stats = MERGEMUTECTSTATS.out.stats
+        .mix(stats_branch.no_intervals)
+        .map{ meta, stats_file ->
+            [ joint_mutect2 ? meta - meta.subMap('normal_id', 'num_intervals') :  meta - meta.subMap('num_intervals'), stats_file ]
+        }
+    f1r2 = f1r2_to_merge
+        .mix(f1r2_branch.no_intervals)
+        .map{ meta, f1r2_file ->
+            [ joint_mutect2 ? meta - meta.subMap('normal_id', 'num_intervals') :  meta - meta.subMap('num_intervals') , f1r2_file ]
+        }
+    
+    // Debug: dump the combined channels to verify data flow
+    vcf.dump(tag:'vcf_combined_MUTECT2')
+    tbi.dump(tag:'tbi_combined_MUTECT2')
+    stats.dump(tag:'stats_combined_MUTECT2')
+
+
+    // =====================================================================================
+    // MAIN BRANCH: Full processing with LEARNREADORIENTATIONMODEL, GETPILEUPSUMMARIES, 
+    // CALCULATECONTAMINATION, and FILTERMUTECTCALLS
+    // =====================================================================================
     if (!realignment){
         // Generate artifactpriors using learnreadorientationmodel on the f1r2 output of mutect2
         LEARNREADORIENTATIONMODEL(f1r2)
 
-        artifact_priors        = LEARNREADORIENTATIONMODEL.out.artifactprior
+        artifact_priors = LEARNREADORIENTATIONMODEL.out.artifactprior
 
         pileup = input_intervals.multiMap{  meta, input_list, input_index_list, intervls ->
             tumor: [ meta, input_list[1], input_index_list[1], intervls ]
@@ -223,7 +249,7 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
                     }
                 }
             }
-        ch_calculatecontamination_in_tables.dump(tag:'ch_calculatecontamination_in_tablesMUTECT2')
+        
         CALCULATECONTAMINATION(ch_calculatecontamination_in_tables)
 
         // Initialize empty channel: Contamination calculation is run on pileup table, pileup is not run if germline resource is not provided
@@ -244,10 +270,6 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
             }.groupTuple()
         } else {
             // Keep tumor_vs_normal ID
-            // Debug: dump raw CALCULATECONTAMINATION output before normalization
-            CALCULATECONTAMINATION.out.segmentation.dump(tag:"CALCULATECONTAMINATION_raw_seg_MUTECT2")
-            CALCULATECONTAMINATION.out.contamination.dump(tag:"CALCULATECONTAMINATION_raw_cont_MUTECT2")
-            
             ch_seg_to_filtermutectcalls  = CALCULATECONTAMINATION.out.segmentation.map { meta, file ->
                                                                                         def normalized_meta = meta.subMap('id', 'patient', 'status')
                                                                                         [normalized_meta, file]
@@ -257,12 +279,6 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
                                                                                         [normalized_meta, file]
                                                                                     }
         }
-        LEARNREADORIENTATIONMODEL.out.artifactprior.dump(tag:"LEARNREADORIENTATIONMODEL.out.artifactpriorMUTECT2")
-        ch_seg_to_filtermutectcalls.dump(tag:"ch_seg_to_filtermutectcallsMUTECT2")
-        ch_cont_to_filtermutectcalls.dump(tag:"ch_cont_to_filtermutectcallsMUTECT2")
-        
-        // Debug: dump raw vcf channel before normalization
-        vcf.dump(tag:"vcf_raw_before_normalize_MUTECT2")
         
         // Normalize all channels to use the same meta keys for joining
         vcf_normalized = vcf.map{ meta, vcf_file -> 
@@ -278,12 +294,6 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
             [ meta.subMap('id', 'patient', 'status'), ap_file ] 
         }
         
-        // Debug: dump all normalized channels before join
-        vcf_normalized.dump(tag:"vcf_normalized_MUTECT2")
-        tbi_normalized.dump(tag:"tbi_normalized_MUTECT2")
-        stats_normalized.dump(tag:"stats_normalized_MUTECT2")
-        artifactprior_normalized.dump(tag:"artifactprior_normalized_MUTECT2")
-        
         // Mutect2 calls filtered by filtermutectcalls using the artifactpriors, contamination and segmentation tables
         vcf_to_filter = vcf_normalized.join(tbi_normalized, failOnDuplicate: true, failOnMismatch: true)
                             .join(stats_normalized, failOnDuplicate: true, failOnMismatch: true)
@@ -298,40 +308,135 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
         versions = versions.mix(GATHERPILEUPSUMMARIES_NORMAL.out.versions)
         versions = versions.mix(GATHERPILEUPSUMMARIES_TUMOR.out.versions)
         versions = versions.mix(LEARNREADORIENTATIONMODEL.out.versions)
-    } else{
-        vcf_to_filter = vcf.join(tbi, failOnDuplicate: true, failOnMismatch: true)
-                            .join(stats, failOnDuplicate: true, failOnMismatch: true)
-                            .map{ meta, vcf_file, tbi_file, stats_file -> [ meta, vcf_file, tbi_file, stats_file, [], [], [], [] ] }
-        // TODO: when realignment, can we reuse artifact_priors, calculate contamination and learnorientation?
+    } 
+
+    // =====================================================================================
+    // REALIGNMENT BRANCH: Simplified processing - only samples with "_realign" in ID
+    // FILTERMUTECTCALLS runs with empty orientation/segmentation/contamination
+    // =====================================================================================
+    else {
+        log.info "[MUTECT2] Entering realignment branch - filtering for realignment samples only"
+        
+        // CRITICAL: Filter to only include realignment samples (those with "_realign" in their ID)
+        // This prevents mixing with main branch samples that may flow through the same channels
+        vcf_realign_only = vcf.filter{ meta, vcf_file -> 
+            def is_realign = meta.id?.toString()?.contains('_realign')
+            if (is_realign) {
+                log.info "[MUTECT2 REALIGNMENT] Including sample: ${meta.id}"
+            } else {
+                log.info "[MUTECT2 REALIGNMENT] Excluding non-realign sample: ${meta.id}"
+            }
+            return is_realign
+        }
+        tbi_realign_only = tbi.filter{ meta, tbi_file -> 
+            meta.id?.toString()?.contains('_realign')
+        }
+        stats_realign_only = stats.filter{ meta, stats_file -> 
+            meta.id?.toString()?.contains('_realign')
+        }
+        
+        // Normalize meta for consistent joining
+        vcf_normalized_realign = vcf_realign_only.map{ meta, vcf_file -> 
+            def normalized_meta = meta.subMap('id', 'patient', 'status')
+            log.info "[MUTECT2 REALIGNMENT] vcf normalized meta: ${normalized_meta}"
+            [ normalized_meta, vcf_file ] 
+        }
+        tbi_normalized_realign = tbi_realign_only.map{ meta, tbi_file -> 
+            def normalized_meta = meta.subMap('id', 'patient', 'status')
+            [ normalized_meta, tbi_file ] 
+        }
+        stats_normalized_realign = stats_realign_only.map{ meta, stats_file -> 
+            def normalized_meta = meta.subMap('id', 'patient', 'status')
+            [ normalized_meta, stats_file ] 
+        }
+        
+        // Debug: dump channels before join to verify they have data
+        vcf_normalized_realign.dump(tag:'vcf_normalized_realign_BEFORE_JOIN')
+        tbi_normalized_realign.dump(tag:'tbi_normalized_realign_BEFORE_JOIN')
+        stats_normalized_realign.dump(tag:'stats_normalized_realign_BEFORE_JOIN')
+        
+        // Join the channels and create vcf_to_filter with empty orientation/seg/cont
+        // Use remainder:true to see if any channels are missing matches
+        vcf_to_filter = vcf_normalized_realign
+            .join(tbi_normalized_realign, failOnMismatch: true)
+            .join(stats_normalized_realign, failOnMismatch: true)
+            .map{ meta, vcf_file, tbi_file, stats_file -> 
+                log.info "[MUTECT2 REALIGNMENT] vcf_to_filter FINAL for FILTERMUTECTCALLS: ${meta.id}"
+                // Pass empty arrays for orientation, seg, cont - FILTERMUTECTCALLS handles this
+                [ meta, vcf_file, tbi_file, stats_file, [], [], [], [] ] 
+            }
+        
+        // Empty channels for realignment mode - these are not computed
         artifact_priors              = Channel.empty()
         ch_cont_to_filtermutectcalls = Channel.empty()
         ch_seg_to_filtermutectcalls  = Channel.empty()
         pileup_table_normal          = Channel.empty()
         pileup_table_tumor           = Channel.empty()
     }
-    vcf_to_filter.dump(tag:'vcf_to_filterMUTECT2')
-    FILTERMUTECTCALLS(vcf_to_filter, fasta, fai, dict)
-
-    // Prefer filtered VCF when available; otherwise fall back to raw Mutect2 VCF so downstream steps (CSV/consensus) still see Mutect2
-    // Priority 1: filtered; Priority 2: raw
-    vcf_filtered_pref = FILTERMUTECTCALLS.out.vcf
-        .map{ meta, vcf_file -> [ meta.subMap('id', 'patient', 'status') + [ variantcaller:'mutect2' ], [1, vcf_file] ] }
-
-    vcf_filtered_fallback = vcf
-        .map{ meta, vcf_file -> [ meta.subMap('id', 'patient', 'status') + [ variantcaller:'mutect2' ], [2, vcf_file] ] }
-
-    vcf_filtered = Channel.empty()
-        .mix(vcf_filtered_pref)
-        .mix(vcf_filtered_fallback)
-        .groupTuple(by: 0)
-        .map{ meta, candidates ->
-            def best = candidates.min { it[0] }
-            [ meta, best[1] ]
+    
+    // =====================================================================================
+    // FILTERMUTECTCALLS - Required for both main and realignment branches
+    // =====================================================================================
+    
+    // Use separate process aliases for main and realignment branches to avoid channel conflicts
+    if (!realignment) {
+        // Debug: Add explicit logging before FILTERMUTECTCALLS
+        vcf_to_filter_logged = vcf_to_filter.map{ meta, vcf_file, tbi_file, stats_file, orientation, seg, cont, estimate ->
+            log.info "[MUTECT2] FILTERMUTECTCALLS INPUT: id=${meta.id}, vcf=${vcf_file}, tbi=${tbi_file}, stats=${stats_file}"
+            log.info "[MUTECT2] FILTERMUTECTCALLS INPUT: orientation=${orientation}, seg=${seg}, cont=${cont}"
+            [ meta, vcf_file, tbi_file, stats_file, orientation, seg, cont, estimate ]
         }
+        
+        // Main branch: use FILTERMUTECTCALLS
+        FILTERMUTECTCALLS(vcf_to_filter_logged, fasta, fai, dict)
+        
+        vcf_filtered_out = FILTERMUTECTCALLS.out.vcf
+        tbi_filtered_out = FILTERMUTECTCALLS.out.tbi
+        stats_filtered_out = FILTERMUTECTCALLS.out.stats
+        versions = versions.mix(FILTERMUTECTCALLS.out.versions)
+        
+        // Debug output
+        vcf_filtered_out.map{ meta, vcf_file ->
+            log.info "[MUTECT2] FILTERMUTECTCALLS OUTPUT: id=${meta.id}, vcf=${vcf_file}"
+            [ meta, vcf_file ]
+        }
+    } else {
+        // Realignment branch: use FILTERMUTECTCALLS_REALIGN (separate process alias)
+        log.info "[MUTECT2] Using FILTERMUTECTCALLS_REALIGN for realignment branch"
+        
+        // Debug: Add explicit logging before FILTERMUTECTCALLS_REALIGN
+        vcf_to_filter_logged = vcf_to_filter.map{ meta, vcf_file, tbi_file, stats_file, orientation, seg, cont, estimate ->
+            log.info "[MUTECT2 REALIGNMENT] FILTERMUTECTCALLS_REALIGN INPUT: id=${meta.id}, vcf=${vcf_file}, tbi=${tbi_file}, stats=${stats_file}"
+            log.info "[MUTECT2 REALIGNMENT] FILTERMUTECTCALLS_REALIGN INPUT: orientation=${orientation}, seg=${seg}, cont=${cont}"
+            [ meta, vcf_file, tbi_file, stats_file, orientation, seg, cont, estimate ]
+        }
+        
+        // Dump the channel to verify data is present
+        vcf_to_filter_logged.dump(tag:'vcf_to_filter_REALIGN_FINAL')
+        
+        // Call FILTERMUTECTCALLS_REALIGN
+        FILTERMUTECTCALLS_REALIGN(vcf_to_filter_logged, fasta, fai, dict)
+        
+        // Capture outputs
+        vcf_filtered_out = FILTERMUTECTCALLS_REALIGN.out.vcf
+        tbi_filtered_out = FILTERMUTECTCALLS_REALIGN.out.tbi
+        stats_filtered_out = FILTERMUTECTCALLS_REALIGN.out.stats
+        versions = versions.mix(FILTERMUTECTCALLS_REALIGN.out.versions)
+        
+        // Debug output - use view to force evaluation and see output
+        vcf_filtered_out.view { meta, vcf_file ->
+            "[MUTECT2 REALIGNMENT] FILTERMUTECTCALLS_REALIGN OUTPUT: id=${meta.id}, vcf=${vcf_file}"
+        }
+    }
+
+    // Use filtered VCF directly - FILTERMUTECTCALLS should always run
+    // Add variantcaller tag for downstream processing
+    vcf_filtered = vcf_filtered_out
+        .map{ meta, vcf_file -> [ meta.subMap('id', 'patient', 'status') + [ variantcaller:'mutect2' ], vcf_file ] }
+    
     vcf_filtered.dump(tag:'vcf_filteredMUTECT2')
 
     versions = versions.mix(MERGE_MUTECT2.out.versions)
-    versions = versions.mix(FILTERMUTECTCALLS.out.versions)
     versions = versions.mix(MERGEMUTECTSTATS.out.versions)
     versions = versions.mix(MUTECT2_PAIRED.out.versions)
 
@@ -340,8 +445,8 @@ workflow BAM_VARIANT_CALLING_SOMATIC_MUTECT2 {
     stats // channel: [ meta, stats ]
 
     vcf_filtered                                  // channel: [ meta, vcf ]
-    index_filtered = FILTERMUTECTCALLS.out.tbi    // channel: [ meta, tbi ]
-    stats_filtered = FILTERMUTECTCALLS.out.stats  // channel: [ meta, stats ]
+    index_filtered = tbi_filtered_out             // channel: [ meta, tbi ]
+    stats_filtered = stats_filtered_out           // channel: [ meta, stats ]
 
     artifact_priors                                // channel: [ meta, artifactprior ]
 
