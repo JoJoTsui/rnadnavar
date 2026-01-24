@@ -3,6 +3,8 @@
 FA="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta"
 HC_TRUTH="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/benchmark/seqc2/somatic/release/latest/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz"
 HC_BED="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/benchmark/seqc2/somatic/release/latest/High-Confidence_Regions_v1.2.bed"
+WES_BED="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/illumina_beds/hg38_Twist_Bioscience_for_Illumina_Exome_2_5_CSPGx.bed"
+HC_WES_BED="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/benchmark/seqc2/somatic/release/latest/High-Confidence_hg38_Twist_Bioscience_for_Illumina_Exome_2_5_CSPGx.bed"
 
 DS_VCF="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seqc2_benchmark/output/seqc2.wes.ll/variant_calling/deepsomatic/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.deepsomatic.vcf.gz"
 M2_VCF="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seqc2_benchmark/output/seqc2.wes.ll/variant_calling/mutect2/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.mutect2.filtered.vcf.gz"
@@ -10,6 +12,9 @@ S2_VCF="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seqc2_benchmark/output/seqc2.w
 
 OD="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seqc2_benchmark/comparison/wes/aardvark"
 mkdir -p "${OD}"
+
+# intersect the bed
+# bedtools intersect -a "${HC_BED}" -b "${WES_BED}" > "${HC_WES_BED}"
 
 # aardvark compare \
 #     --reference "${FA}" \
@@ -35,30 +40,30 @@ mkdir -p "${OD}"
 #     --output-dir "${OD}" \
 #     --query-sample "WES_LL_T_1"
 
-# micromamba run -n happy som.py \
-#     "${HC_TRUTH}" \
-#     "${DS_VCF}" \
-#     -f "${HC_BED}" \
-#     -o "${OD}/DS" \
-#     -r "${FA}"
-
-# micromamba run -n happy som.py \
-#     "${HC_TRUTH}" \
-#     "${M2_VCF}" \
-#     -f "${HC_BED}" \
-#     -o "${OD}/M2" \
-#     -r "${FA}"
-
-# micromamba run -n happy som.py \
-#     "${HC_TRUTH}" \
-#     "${S2_VCF}" \
-#     -f "${HC_BED}" \
-#     -o "${OD}/S2" \
-#     -r "${FA}"
+micromamba run -n happy som.py \
+    "${HC_TRUTH}" \
+    "${DS_VCF}" \
+    -R "${HC_WES_BED}" \
+    -o "${OD}/DS" \
+    -r "${FA}" -N
 
 micromamba run -n happy som.py \
     "${HC_TRUTH}" \
-    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seqc2_benchmark/comparison/wes/0000.vcf.gz" \
-    -f "${HC_BED}" \
-    -o "${OD}/C3" \
-    -r "${FA}"
+    "${M2_VCF}" \
+    -R "${HC_WES_BED}" \
+    -o "${OD}/M2" \
+    -r "${FA}" -N
+
+micromamba run -n happy som.py \
+    "${HC_TRUTH}" \
+    "${S2_VCF}" \
+    -R "${HC_WES_BED}" \
+    -o "${OD}/S2" \
+    -r "${FA}" -N
+
+# micromamba run -n happy som.py \
+#     "${HC_TRUTH}" \
+#     "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seqc2_benchmark/comparison/wes/0000.vcf.gz" \
+#     -f "${HC_BED}" \
+#     -o "${OD}/C3" \
+#     -r "${FA}"
