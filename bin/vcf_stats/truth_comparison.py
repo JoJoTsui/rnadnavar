@@ -364,16 +364,9 @@ class TruthSetComparator:
         Parse som.py metrics.json output file to extract comparison results.
         
         This method parses pre-computed metrics from som.py output files,
-        which follow a standard JSON format containing TP, FP, FN counts
-        and calculated metrics.
+        which can have two different JSON formats:
         
-        Expected file format: {caller}.metrics.json
-        Example paths:
-            - DS.metrics.json (DeepSomatic)
-            - M2.metrics.json (Mutect2)
-            - S2.metrics.json (Strelka2)
-        
-        Expected JSON structure:
+        1. Simple format (direct key-value pairs):
             {
                 "type": "somatic",
                 "tp": 1234,
@@ -383,6 +376,26 @@ class TruthSetComparator:
                 "recall": 0.940,
                 "f1": 0.948
             }
+        
+        2. Table format (som.py native output):
+            {
+                "metrics": [{
+                    "data": [
+                        {"id": "tp", "values": [17, 390, 407], ...},
+                        {"id": "fp", "values": [0, 13, 13], ...},
+                        {"id": "fn", "values": [5, 108, 113], ...},
+                        {"id": "precision", "values": [1.0, 0.967, 0.969], ...},
+                        {"id": "recall", "values": [0.772, 0.783, 0.782], ...}
+                    ]
+                }]
+            }
+            For table format, uses the "records" row (index 2) which combines SNVs and indels.
+        
+        Expected file format: {caller}.metrics.json
+        Example paths:
+            - DS.metrics.json (DeepSomatic)
+            - M2.metrics.json (Mutect2)
+            - S2.metrics.json (Strelka2)
         
         Args:
             metrics_json_path: Path to the som.py metrics.json file
@@ -409,18 +422,41 @@ class TruthSetComparator:
         with open(metrics_json_path, "r") as f:
             metrics = json.load(f)
         
-        # Extract required fields
-        tp = int(metrics["tp"])
-        fp = int(metrics["fp"])
-        fn = int(metrics["fn"])
+        # Try to parse as table format first (som.py native output)
+        if "metrics" in metrics and isinstance(metrics["metrics"], list):
+            # Extract data from table format
+            data_table = metrics["metrics"][0]["data"]
+            
+            # Build a lookup dictionary for easier access
+            data_dict = {}
+            for item in data_table:
+                field_id = item.get("id")
+                values = item.get("values", [])
+                # Use the last value (index 2 = "records" row, combining SNVs and indels)
+                if values and len(values) > 2:
+                    data_dict[field_id] = values[2]
+                elif values:
+                    data_dict[field_id] = values[-1]
+            
+            # Extract required fields from table
+            tp = int(data_dict.get("tp", 0))
+            fp = int(data_dict.get("fp", 0))
+            fn = int(data_dict.get("fn", 0))
+            precision = float(data_dict.get("precision", 0.0))
+            recall = float(data_dict.get("recall", 0.0))
+            # som.py doesn't provide f1 directly, calculate it
+            f1_score = 0.0
+        else:
+            # Parse as simple format (direct key-value pairs)
+            tp = int(metrics["tp"])
+            fp = int(metrics["fp"])
+            fn = int(metrics["fn"])
+            precision = float(metrics.get("precision", 0.0))
+            recall = float(metrics.get("recall", 0.0))
+            f1_score = float(metrics.get("f1", metrics.get("f1_score", 0.0)))
         
-        # Use provided metrics or calculate if not present
-        precision = float(metrics.get("precision", 0.0))
-        recall = float(metrics.get("recall", 0.0))
-        f1_score = float(metrics.get("f1", metrics.get("f1_score", 0.0)))
-        
-        # If metrics not provided, calculate them
-        if precision == 0.0 and recall == 0.0 and (tp > 0 or fp > 0 or fn > 0):
+        # If metrics not provided or f1 not calculated, calculate them
+        if (precision == 0.0 and recall == 0.0 and (tp > 0 or fp > 0 or fn > 0)) or f1_score == 0.0:
             precision, recall, f1_score = self._calculate_metrics(tp, fp, fn)
         
         # Calculate totals
