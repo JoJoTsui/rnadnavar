@@ -24,10 +24,7 @@ include { validateMeta                                              } from '../s
 include { PREPARE_REFERENCE_AND_INTERVALS                           } from '../subworkflows/local/prepare_reference_and_intervals'
 include { PREPARE_INTERVALS as PREPARE_INTERVALS_FOR_REALIGNMENT    } from '../subworkflows/local/prepare_intervals'
 include { PREPARE_REALIGNMENT_INTERVALS                             } from '../subworkflows/local/prepare_intervals'
-// Download annotation cache if needed
-include { ENSEMBLVEP_DOWNLOAD                                       } from '../modules/nf-core/ensemblvep/download'
-include { UNZIP as UNZIP_VEP_CACHE                                  } from '../modules/nf-core/unzip'
-include { ANNOTATION_CACHE_INITIALISATION                           } from '../subworkflows/local/annotation_cache_initialisation'
+// VEP cache is now mandatory and provided via params.vep_cache
 
 // Alignment
 include { BAM_ALIGN                                                 } from '../subworkflows/local/bam_align'
@@ -59,6 +56,16 @@ workflow RNADNAVAR {
     ch_samplesheet // channel: samplesheet read in from --input
 
     main:
+    // Initialize MAF workflow parameter (default: false)
+    if (!params.containsKey('enable_maf_workflow')) {
+        params.enable_maf_workflow = false
+    }
+    
+    // Log workflow configuration
+    if (params.debug_verbose) {
+        log.info "[DEBUG] Workflow configuration: enable_maf_workflow=${params.enable_maf_workflow}"
+    }
+    
     // To gather all QC reports for MultiQC
     ch_multiqc_files = Channel.empty()
     multiqc_report = Channel.empty()
@@ -77,31 +84,11 @@ workflow RNADNAVAR {
     multiqc_logo = params.multiqc_logo ? Channel.fromPath(params.multiqc_logo, checkIfExists: true) : Channel.empty()
     ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("${projectDir}/assets/methods_description_template.yml", checkIfExists: true)
 
-    // Download cache if needed
-    if (params.download_cache) {
-        ensemblvep_info = Channel.of([[id: "${params.vep_cache_version}_${params.vep_genome}"], params.vep_genome, params.vep_species, params.vep_cache_version])
-        ENSEMBLVEP_DOWNLOAD(ensemblvep_info)
-        vep_cache = ENSEMBLVEP_DOWNLOAD.out.cache.collect().map { meta, cache -> [cache] }
-        versions = versions.mix(ENSEMBLVEP_DOWNLOAD.out.versions)
+    // VEP cache validation - now mandatory
+    if (!params.vep_cache) {
+        error "ERROR: VEP cache path is required. Please provide --vep_cache parameter."
     }
-    else if (params.vep_cache && params.vep_cache.endsWith(".zip")) {
-        UNZIP_VEP_CACHE(Channel.fromPath(params.vep_cache).collect().map { it -> [[id: it[0].baseName], it] })
-        vep_cache = UNZIP_VEP_CACHE.out.unzipped_archive.map { it[1] }
-        versions = versions.mix(UNZIP_VEP_CACHE.out.versions)
-    }
-    else {
-        // Assuming that if the cache is provided, the user has already downloaded it
-        ANNOTATION_CACHE_INITIALISATION(
-            (params.vep_cache && params.tools && (params.tools.split(',').contains("vep") || params.tools.split(',').contains('merge'))),
-            params.vep_cache,
-            params.vep_species,
-            params.vep_cache_version,
-            params.vep_genome,
-            params.vep_custom_args,
-            "Please refer to https://nf-co.re/sarek/docs/usage/#how-to-customise-vep-annotation for more information.",
-        )
-        vep_cache = ANNOTATION_CACHE_INITIALISATION.out.ensemblvep_cache.map { it[1] }
-    }
+    vep_cache = Channel.fromPath(params.vep_cache).collect()
 
     // STEP 0: Build reference and indices if needed
     PREPARE_REFERENCE_AND_INTERVALS()
@@ -369,6 +356,8 @@ workflow RNADNAVAR {
             // Capture realigned RNA outputs
             realigned_rna_consensus_vcf = RNA_REALIGNMENT_WORKFLOW.out.rna_consensus_vcf
             realigned_filtered_rna_vcf = RNA_REALIGNMENT_WORKFLOW.out.filtered_rna_vcf
+            // VEP annotation is already done inside RNA_REALIGNMENT_WORKFLOW via BAM_VARIANT_CALLING_PRE_POST_PROCESSING
+            // The VEP-annotated rescue VCF is available as: RNA_REALIGNMENT_WORKFLOW.out.vcf_rescue_vep
 
             // === Step 3: Second rescue (DNA + realigned RNA) ===
             if (params.tools && params.tools.split(',').contains('rescue')) {
@@ -395,6 +384,8 @@ workflow RNADNAVAR {
                 )
                 versions = versions.mix(SECOND_RESCUE_WORKFLOW.out.versions)
                 second_rescued_vcf = SECOND_RESCUE_WORKFLOW.out.second_rescued_vcf
+                // VEP annotation should be done inside SECOND_RESCUE_WORKFLOW
+                // The VEP-annotated rescue VCF is available as: SECOND_RESCUE_WORKFLOW.out.second_rescued_vcf_vep
             }
         } else {
             // MAF mode: use existing realignment workflow
@@ -442,7 +433,7 @@ workflow RNADNAVAR {
     filtered_maf.dump(tag: "filtered_maf")
     realigned_filtered_maf.dump(tag: "realigned_filtered_maf")
     // MAF filtering only needed for MAF mode (VCF mode is VCF-only workflow)
-    if (params.realignment_mode == 'maf') {
+    if (params.enable_maf_workflow && params.realignment_mode == 'maf') {
         MAF_FILTERING_RNA(
             filtered_maf.branch {
                 dna: it[0].status < 2

@@ -8,8 +8,8 @@ include { BAM_GATK_PREPROCESSING                          } from '../bam_gatk_pr
 include { BAM_VARIANT_CALLING                             } from '../bam_variant_calling/main'
 // Normalize VCFs
 include { VCF_NORMALIZE                                   } from '../vcf_normalize/main'
-// Annotation
-include { VCF_ANNOTATE                                    } from '../vcf_annotate/main'
+// Annotation (early annotation removed - now only annotate final rescue VCFs)
+include { VCF_ANNOTATE as VCF_ANNOTATE_FINAL              } from '../vcf_annotate/main'
 // Consensus
 include { VCF_CONSENSUS as MAF_CONSENSUS                  } from '../vcf_consensus/main'
 // VCF Consensus Workflow (standalone)
@@ -121,40 +121,33 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     vcf_normalized                = VCF_NORMALIZE.out.vcf // channel: [ [meta], vcf, tbi ]
     vcf_normalized.dump(tag:"vcf_normalized")
 
-
-    // ANNOTATION
-    VCF_ANNOTATE(
-                vcf_normalized.map{ meta, vcf, tbi -> [ meta + [ file_name: vcf.baseName ], vcf, [tbi] ] }, // channel: [ [meta], vcf, [tbi] ]
+    // VEP annotation removed from here - now only annotate final rescue VCFs
+    // Feed normalized VCF directly to consensus
+    vcf_to_consensus              = vcf_normalized
+    vcf_to_consensus.dump(tag:"vcf_to_consensus0")
+    
+    // STEP 6: CONSENSUS (MAF-based) - only if MAF workflow enabled
+    dna_consensus_maf             = Channel.empty()
+    dna_varcall_mafs              = Channel.empty()
+    maf_to_filter                 = Channel.empty()
+    
+    if (params.enable_maf_workflow) {
+        MAF_CONSENSUS (
+                vcf_to_consensus,
                 fasta,
+                dna_consensus_maf, // null when first pass
+                dna_varcall_mafs,  // null when first pass
                 input_sample,
-                realignment,
-                vep_cache
+                realignment
                 )
 
-    vcf_annotated                 = VCF_ANNOTATE.out.vcf_ann
-    vcf_to_consensus              = VCF_ANNOTATE.out.vcf_ann
-    versions                      = versions.mix(VCF_ANNOTATE.out.versions)
-    reports                       = reports.mix(VCF_ANNOTATE.out.reports)
+        dna_consensus_maf             = MAF_CONSENSUS.out.maf_consensus_dna
+        dna_varcall_mafs              = MAF_CONSENSUS.out.mafs_dna
+        maf_to_filter                 = MAF_CONSENSUS.out.maf
+        versions                      = versions.mix(MAF_CONSENSUS.out.versions)
 
-    vcf_to_consensus.dump(tag:"vcf_to_consensus0")
-    vcf_annotated.dump(tag:"vcf_annotated0")
-    
-    // STEP 6: CONSENSUS (MAF-based)
-    MAF_CONSENSUS (
-            vcf_to_consensus,
-            fasta,
-            dna_consensus_maf, // null when first pass
-            dna_varcall_mafs,  // null when first pass
-            input_sample,
-            realignment
-            )
-
-    dna_consensus_maf             = MAF_CONSENSUS.out.maf_consensus_dna
-    dna_varcall_mafs              = MAF_CONSENSUS.out.mafs_dna
-    maf_to_filter                 = MAF_CONSENSUS.out.maf
-    versions                      = versions.mix(MAF_CONSENSUS.out.versions)
-
-    maf_to_filter.dump(tag:"maf_to_filter0")
+        maf_to_filter.dump(tag:"maf_to_filter0")
+    }
     
     // STEP 6B: VCF CONSENSUS WORKFLOW (standalone VCF branch)
     VCF_CONSENSUS_WORKFLOW(vcf_normalized, input_sample, realignment)
@@ -165,10 +158,14 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     vcf_consensus.dump(tag:"vcf_consensus0")
     vcf_rescue.dump(tag:"vcf_rescue0")
     
-    // STEP 7: FILTERING (parallel MAF, VCF, and Rescue VCF filtering)
-    MAF_FILTERING(maf_to_filter, fasta, input_sample, realignment)
-    filtered_maf = MAF_FILTERING.out.maf
-    versions     = versions.mix(MAF_FILTERING.out.versions)
+    // STEP 7: FILTERING (parallel VCF and optional MAF filtering)
+    filtered_maf = Channel.empty()
+    
+    if (params.enable_maf_workflow) {
+        MAF_FILTERING(maf_to_filter, fasta, input_sample, realignment)
+        filtered_maf = MAF_FILTERING.out.maf
+        versions     = versions.mix(MAF_FILTERING.out.versions)
+    }
     
     VCF_FILTERING(vcf_consensus, fasta, input_sample, realignment)
     filtered_vcf          = VCF_FILTERING.out.vcf
@@ -178,6 +175,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     // Rescue VCF post-processing (only if rescue workflow was run)
     filtered_rescue_vcf          = Channel.empty()
     filtered_rescue_vcf_stripped = Channel.empty()
+    filtered_rescue_vcf_vep      = Channel.empty()
     
     if (params.tools && params.tools.split(',').contains('rescue')) {
         if (params.debug_verbose) {
@@ -198,6 +196,18 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
         filtered_rescue_vcf          = VCF_RESCUE_POST_PROCESSING.out.vcf
         filtered_rescue_vcf_stripped = VCF_RESCUE_POST_PROCESSING.out.vcf_stripped
         versions                     = versions.mix(VCF_RESCUE_POST_PROCESSING.out.versions)
+        
+        // VEP annotation on rescue filtered stripped VCF
+        VCF_ANNOTATE_FINAL(
+            filtered_rescue_vcf_stripped.map{ meta, vcf, tbi -> [ meta + [ file_name: vcf.baseName ], vcf, [tbi] ] },
+            fasta,
+            input_sample,
+            realignment,
+            vep_cache
+        )
+        filtered_rescue_vcf_vep = VCF_ANNOTATE_FINAL.out.vcf_ann
+        versions                = versions.mix(VCF_ANNOTATE_FINAL.out.versions)
+        reports                 = reports.mix(VCF_ANNOTATE_FINAL.out.reports)
     }
 
 
@@ -205,11 +215,12 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     dna_consensus_maf           = dna_consensus_maf
     dna_varcall_mafs            = dna_varcall_mafs
     cram_variant_calling        = cram_variant_calling
-    maf                         = filtered_maf
+    maf                         = filtered_maf  // Empty if MAF workflow disabled
     vcf                         = filtered_vcf
     vcf_stripped                = filtered_vcf_stripped
     vcf_rescue                  = filtered_rescue_vcf
     vcf_rescue_stripped         = filtered_rescue_vcf_stripped
+    vcf_rescue_vep              = filtered_rescue_vcf_vep  // VEP-annotated rescue VCF
     vcf_normalized              = vcf_normalized  // Individual caller VCFs for second rescue
     versions                    = versions  // channel: [ versions.yml ]
     reports                     = reports
