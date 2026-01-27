@@ -10,6 +10,7 @@
 //
 include { VCF_RESCUE_WORKFLOW              } from '../vcf_rescue_workflow/main'
 include { VCF_RESCUE_POST_PROCESSING      } from '../vcf_rescue_post_processing/main'
+include { VCF_ANNOTATE                     } from '../vcf_annotate/main'
 
 
 workflow SECOND_RESCUE_WORKFLOW {
@@ -28,9 +29,12 @@ workflow SECOND_RESCUE_WORKFLOW {
         gnomad_dir
         enable_cosmic_gnomad_annotation
         cosmic_gnomad_verbose
+        input_sample                    // Required for VEP annotation
+        vep_cache                       // Required for VEP annotation
 
     main:
         versions           = Channel.empty()
+        reports            = Channel.empty()
         second_rescued_vcf = Channel.empty()
 
         // Prepare DNA caller VCFs from first round vcf_normalized
@@ -76,8 +80,24 @@ workflow SECOND_RESCUE_WORKFLOW {
         )
         versions = versions.mix(VCF_RESCUE_POST_PROCESSING.out.versions)
         second_rescued_vcf = VCF_RESCUE_POST_PROCESSING.out.vcf
+        second_rescued_vcf_stripped = VCF_RESCUE_POST_PROCESSING.out.vcf_stripped
+
+        // VEP annotation on second rescue filtered stripped VCF
+        VCF_ANNOTATE(
+            second_rescued_vcf_stripped.map{ meta, vcf, tbi -> [ meta + [ file_name: vcf.baseName ], vcf, [tbi] ] },
+            fasta,
+            input_sample,
+            true,  // realignment = true
+            vep_cache
+        )
+        versions = versions.mix(VCF_ANNOTATE.out.versions)
+        reports = reports.mix(VCF_ANNOTATE.out.reports)
+        second_rescued_vcf_vep = VCF_ANNOTATE.out.vcf_ann
 
     emit:
-        second_rescued_vcf    = second_rescued_vcf     // Final rescued VCF with full annotation
+        second_rescued_vcf    = second_rescued_vcf       // Final rescued VCF with annotation (before VEP)
+        second_rescued_vcf_stripped = second_rescued_vcf_stripped  // Stripped VCF for VEP input
+        second_rescued_vcf_vep = second_rescued_vcf_vep  // VEP-annotated rescue VCF [meta, vcf, tbi]
         versions              = versions
+        reports               = reports
 }

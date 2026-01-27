@@ -380,12 +380,14 @@ workflow RNADNAVAR {
                     cosmic_tbi,
                     gnomad_dir,
                     enable_cosmic_gnomad_annotation,
-                    cosmic_gnomad_verbose
+                    cosmic_gnomad_verbose,
+                    input_sample,
+                    vep_cache
                 )
                 versions = versions.mix(SECOND_RESCUE_WORKFLOW.out.versions)
+                reports = reports.mix(SECOND_RESCUE_WORKFLOW.out.reports)
                 second_rescued_vcf = SECOND_RESCUE_WORKFLOW.out.second_rescued_vcf
-                // VEP annotation should be done inside SECOND_RESCUE_WORKFLOW
-                // The VEP-annotated rescue VCF is available as: SECOND_RESCUE_WORKFLOW.out.second_rescued_vcf_vep
+                // VEP-annotated rescue VCF is available as: SECOND_RESCUE_WORKFLOW.out.second_rescued_vcf_vep [meta, vcf, tbi]
             }
         } else {
             // MAF mode: use existing realignment workflow
