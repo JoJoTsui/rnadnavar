@@ -1034,6 +1034,11 @@ class VCFFileDiscovery:
 
         Sample pair pattern: *T*_vs_*N* (tumor vs normal naming convention)
 
+        File selection priority (per caller):
+            - mutect2: Prefer *.filtered.vcf.gz over raw *.vcf.gz
+            - strelka: Prefer *.variants.vcf.gz over other patterns
+            - deepsomatic: Use *.vcf.gz (single output)
+
         Args:
             base_path: Base path of the pipeline output directory
 
@@ -1074,13 +1079,10 @@ class VCFFileDiscovery:
                 if not subdir.is_dir() or "_vs_" not in subdir.name:
                     continue
 
-                # Look for VCF files (*.vcf.gz)
-                vcf_files = list(subdir.glob("*.vcf.gz"))
-                if not vcf_files:
+                # Look for VCF files with tool-specific priority
+                vcf_path = self._select_vcf_for_tool(subdir, tool)
+                if vcf_path is None:
                     continue
-
-                # Use the first VCF file found
-                vcf_path = vcf_files[0]
 
                 # Skip if we've already added this file
                 if str(vcf_path) in seen_files:
@@ -1110,6 +1112,63 @@ class VCFFileDiscovery:
                 }
 
         return vcfs
+
+    @staticmethod
+    def _select_vcf_for_tool(subdir: Path, tool: str) -> Optional[Path]:
+        """
+        Select the appropriate VCF file for a given tool.
+
+        Different variant callers produce different output files:
+        - mutect2: Produces both raw (*.mutect2.vcf.gz) and filtered (*.mutect2.filtered.vcf.gz)
+                   We prefer the filtered version as it contains quality-filtered variants.
+        - strelka: Produces *.variants.vcf.gz for SNVs/indels
+        - deepsomatic: Produces *.deepsomatic.vcf.gz
+
+        Args:
+            subdir: Directory containing VCF files for a sample pair
+            tool: Tool name (e.g., "mutect2", "strelka", "deepsomatic")
+
+        Returns:
+            Path to the selected VCF file, or None if no suitable file found
+        """
+        # Tool-specific file selection patterns (in priority order)
+        tool_patterns = {
+            "mutect2": [
+                "*.mutect2.filtered.vcf.gz",  # Prefer filtered output
+                "*.filtered.vcf.gz",           # Alternative filtered pattern
+            ],
+            "strelka": [
+                "*.strelka.variants.vcf.gz",  # SNV/indel variants
+                "*.variants.vcf.gz",           # Alternative pattern
+            ],
+            "deepsomatic": [
+                "*.deepsomatic.vcf.gz",       # DeepSomatic output
+            ],
+        }
+
+        # Get patterns for this tool, fallback to generic if not specified
+        patterns = tool_patterns.get(tool.lower(), [])
+
+        # Try each pattern in priority order
+        for pattern in patterns:
+            vcf_files = list(subdir.glob(pattern))
+            if vcf_files:
+                return vcf_files[0]
+
+        # Fallback: use any VCF file, but exclude index files (.tbi)
+        # and prefer non-raw files when multiple exist
+        all_vcfs = [f for f in subdir.glob("*.vcf.gz") if not f.name.endswith(".tbi")]
+        if not all_vcfs:
+            return None
+
+        # If multiple VCFs exist, prefer filtered/processed over raw
+        # Raw mutect2 files typically don't have "filtered" in the name
+        for vcf in all_vcfs:
+            if "filtered" in vcf.name or "variants" in vcf.name:
+                return vcf
+
+        # Last resort: return first VCF found
+        return all_vcfs[0]
 
     def discover_vcfs_for_dna_only(
         self, workflow_config: WorkflowConfig
