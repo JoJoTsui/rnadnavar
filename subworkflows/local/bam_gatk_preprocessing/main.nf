@@ -41,6 +41,40 @@ workflow BAM_GATK_PREPROCESSING {
     reports   = Channel.empty()
     versions  = Channel.empty()
     cram_variant_calling = Channel.empty()
+    
+    // Create mapped channels once to avoid consuming value channels multiple times
+    // CRITICAL: Use .first() to convert to value channel that broadcasts properly
+    // fasta_fai is [path] list - create different formats for different consumers:
+    // 1. For GATK4_APPLYBQSR that expects just path fai (NO tuple)
+    fasta_fai_for_applybqsr = fasta_fai.map{ fai_list -> fai_list[0] }.first()
+    // 2. For GATK4_SPLITNCIGARREADS that expects tuple val(meta3), path(fai)
+    fasta_fai_for_splitncigar = fasta_fai.map{ fai_list -> [ [id:'fai'], fai_list[0] ] }.first()
+    // 3. For CRAM_MERGE_INDEX_SAMTOOLS in BAM_APPLYBQSR
+    fasta_fai_for_merge_applybqsr = fasta_fai.map{ fai_list -> [ [id:'fai'], fai_list[0] ] }.first()
+    // 4. For CRAM_MERGE_INDEX_SAMTOOLS in BAM_SPLITNCIGARREADS
+    fasta_fai_for_merge_splitncigar = fasta_fai.map{ fai_list -> [ [id:'fai'], fai_list[0] ] }.first()
+    // 5. For SAMTOOLS_CONVERT (BAM_TO_CRAM, CRAM_TO_BAM) - needs multiple instances
+    fasta_fai_for_convert = fasta_fai.map{ fai_list -> [ [id:'fai'], fai_list[0] ] }.first()
+    // 6. For CRAM_MERGE_INDEX_SAMTOOLS that expects tuple val(meta2), path(fasta)
+    // Extract fasta path - it might be [meta, path] or [meta, [path]]
+    fasta_for_merge_applybqsr = fasta.map{ meta, fa -> 
+        def fasta_path = (fa instanceof List) ? fa[0] : fa
+        [ [ id:'fasta' ], fasta_path ] 
+    }.first()
+    fasta_for_merge_splitncigar = fasta.map{ meta, fa -> 
+        def fasta_path = (fa instanceof List) ? fa[0] : fa
+        [ [ id:'fasta' ], fasta_path ] 
+    }.first()
+    
+    // Debug: verify channel creation
+    fasta_fai_for_applybqsr.view{ "GATK_PREP:fasta_fai_for_applybqsr: $it" }
+    fasta_fai_for_splitncigar.view{ "GATK_PREP:fasta_fai_for_splitncigar: $it" }
+    fasta_fai_for_merge_applybqsr.view{ "GATK_PREP:fasta_fai_for_merge_applybqsr: $it" }
+    fasta_fai_for_merge_splitncigar.view{ "GATK_PREP:fasta_fai_for_merge_splitncigar: $it" }
+    fasta_fai_for_convert.view{ "GATK_PREP:fasta_fai_for_convert: $it" }
+    fasta_for_merge_applybqsr.view{ "GATK_PREP:fasta_for_merge_applybqsr: $it" }
+    fasta_for_merge_splitncigar.view{ "GATK_PREP:fasta_for_merge_splitncigar: $it" }
+    
     // Markduplicates
     if (params.step in ['mapping', 'markduplicates'] || realignment) {
 
@@ -114,7 +148,7 @@ workflow BAM_GATK_PREPROCESSING {
         // Create CSV to restart from this step
         csv_subfolder = 'markduplicates'
         if (params.save_output_as_bam){
-            CRAM_TO_BAM(ch_md_cram_for_restart, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
+            CRAM_TO_BAM(ch_md_cram_for_restart, fasta, fasta_fai_for_convert)
             versions = versions.mix(CRAM_TO_BAM.out.versions)
             cram_to_bam_bai = CRAM_TO_BAM.out.bam.join(CRAM_TO_BAM.out.bai, failOnDuplicate: true, failOnMismatch: true)
             CHANNEL_MARKDUPLICATES_CREATE_CSV(cram_to_bam_bai, csv_subfolder, params.outdir, params.save_output_as_bam)
@@ -139,7 +173,7 @@ workflow BAM_GATK_PREPROCESSING {
 
                 input_sncr_convert  = input_sncr_convert.bam.map{ meta, bam, bai, table -> [ meta, bam, bai ] }
                 // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-                BAM_TO_CRAM(input_sncr_convert, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
+                BAM_TO_CRAM(input_sncr_convert, fasta, fasta_fai_for_convert)
                 versions = versions.mix(BAM_TO_CRAM.out.versions)
 
                 sncr_cram_from_bam = BAM_TO_CRAM.out.cram
@@ -167,7 +201,9 @@ workflow BAM_GATK_PREPROCESSING {
                 cram_for_splitncigar_status.rna,
                 dict.map{d -> [[id:"dict"], d]},
                 fasta,
-                fasta_fai.map{fai -> [[id:"fai"], fai]},
+                fasta_fai_for_splitncigar,
+                fasta_for_merge_splitncigar,
+                fasta_fai_for_merge_splitncigar,
                 intervals_and_num_intervals
             )
 
@@ -202,7 +238,7 @@ workflow BAM_GATK_PREPROCESSING {
             }
 
             // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-            BAM_TO_CRAM(input_prepare_recal_convert.bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
+            BAM_TO_CRAM(input_prepare_recal_convert.bam, fasta, fasta_fai_for_convert)
             versions = versions.mix(BAM_TO_CRAM.out.versions)
 
             sncr_cram_from_bam = BAM_TO_CRAM.out.cram
@@ -278,7 +314,7 @@ workflow BAM_GATK_PREPROCESSING {
             input_only_bam   = input_recal_convert.bam.map{ meta, bam, bai, table -> [ meta, bam, bai ] }
 
             // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-            BAM_TO_CRAM(input_only_bam, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
+            BAM_TO_CRAM(input_only_bam, fasta, fasta_fai_for_convert)
             versions = versions.mix(BAM_TO_CRAM.out.versions)
 
             cram_applybqsr = Channel.empty().mix(
@@ -295,7 +331,9 @@ workflow BAM_GATK_PREPROCESSING {
                 cram_applybqsr,
                 dict,
                 fasta,
-                fasta_fai,
+                fasta_fai_for_applybqsr,
+                fasta_for_merge_applybqsr,
+                fasta_fai_for_merge_applybqsr,
                 intervals_and_num_intervals)
 
             cram_variant_calling_no_spark = BAM_APPLYBQSR.out.cram
@@ -319,7 +357,7 @@ workflow BAM_GATK_PREPROCESSING {
             versions = versions.mix(CRAM_QC_RECAL.out.versions)
 
             // If params.save_output_as_bam, then convert CRAM files to BAM
-            CRAM_TO_BAM_RECAL(cram_variant_calling, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
+            CRAM_TO_BAM_RECAL(cram_variant_calling, fasta, fasta_fai_for_convert)
             versions = versions.mix(CRAM_TO_BAM_RECAL.out.versions)
 
             converted_cram_to_bam = CRAM_TO_BAM_RECAL.out.bam.join(CRAM_TO_BAM_RECAL.out.bai, failOnDuplicate: true, failOnMismatch: true)
@@ -370,7 +408,7 @@ workflow BAM_GATK_PREPROCESSING {
         }
 
         // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
-        BAM_TO_CRAM(bam_for_conversion, fasta, fasta_fai.map{fai -> [[id:"fai"], fai]})
+        BAM_TO_CRAM(bam_for_conversion, fasta, fasta_fai_for_convert)
         versions = versions.mix(BAM_TO_CRAM.out.versions)
         BAM_TO_CRAM.out.cram.dump(tag:"BAM_TO_CRAM.out.cram")
         converted = BAM_TO_CRAM.out.cram.join(BAM_TO_CRAM.out.crai, failOnDuplicate: true, failOnMismatch: true)

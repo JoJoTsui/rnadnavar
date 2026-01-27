@@ -9,11 +9,13 @@ include { CRAM_MERGE_INDEX_SAMTOOLS } from '../cram_merge_index_samtools/main'
 
 workflow BAM_SPLITNCIGARREADS {
     take:
-    cram            // channel: [mandatory] [ meta, cram_markduplicates, crai ]
-    dict            // channel: [mandatory] [ dict ]
-    fasta           // channel: [mandatory] [ meta, fasta ]
-    fasta_fai       // channel: [mandatory] [ meta, fasta_fai ]
-    intervals       // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
+    cram                // channel: [mandatory] [ meta, cram_markduplicates, crai ]
+    dict                // channel: [mandatory] [ dict ]
+    fasta               // channel: [mandatory] [ meta, fasta ] - for GATK4_SPLITNCIGARREADS
+    fasta_fai           // channel: [mandatory] [ [id:'fai'], path ] - tuple for GATK4_SPLITNCIGARREADS
+    fasta_for_merge     // channel: [mandatory] [ [id:'fasta'], fasta ] - for CRAM_MERGE_INDEX_SAMTOOLS
+    fasta_fai_for_merge // channel: [mandatory] [ [id:'fai'], path ] - for CRAM_MERGE_INDEX_SAMTOOLS
+    intervals           // channel: [mandatory] [ intervals, num_intervals ] (or [ [], 0 ] if no intervals)
 
     main:
     versions = Channel.empty()
@@ -32,9 +34,13 @@ workflow BAM_SPLITNCIGARREADS {
 
     // Gather the recalibrated cram files
     cram_to_merge = GATK4_SPLITNCIGARREADS.out.cram.map{ meta, crm -> [ groupKey(meta, meta.num_intervals), crm ] }.groupTuple()
+    cram_to_merge.view{ "BAM_SPLITNCIGARREADS:cram_to_merge: $it" }
+    fasta_for_merge.view{ "BAM_SPLITNCIGARREADS:fasta_for_merge: $it" }
+    fasta_fai_for_merge.view{ "BAM_SPLITNCIGARREADS:fasta_fai_for_merge: $it" }
 
     // Merge and index the recalibrated cram files
-    CRAM_MERGE_INDEX_SAMTOOLS(cram_to_merge, fasta, fasta_fai)
+    // Use the pre-formatted versions for CRAM_MERGE_INDEX_SAMTOOLS
+    CRAM_MERGE_INDEX_SAMTOOLS(cram_to_merge, fasta_for_merge, fasta_fai_for_merge)
 
     cram_recal = CRAM_MERGE_INDEX_SAMTOOLS.out.cram_crai
     // Remove no longer necessary field: num_intervals

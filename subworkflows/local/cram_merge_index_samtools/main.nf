@@ -9,12 +9,17 @@ include { SAMTOOLS_MERGE as MERGE_CRAM } from '../../../modules/nf-core/samtools
 
 workflow CRAM_MERGE_INDEX_SAMTOOLS {
     take:
-    cram      // channel: [mandatory] meta, cram
-    fasta     // channel: [mandatory] fasta
-    fasta_fai // channel: [mandatory] fai for fasta
+    cram      // channel: [mandatory] meta, cram (list of crams)
+    fasta     // channel: [mandatory] [[id:'fasta'], fasta] - pre-formatted (value channel)
+    fasta_fai // channel: [mandatory] [[id:'fai'], path] - pre-formatted (value channel)
 
     main:
     versions = Channel.empty()
+
+    // Debug: view incoming channels
+    cram.view{ "CRAM_MERGE:cram_input: $it" }
+    fasta.view{ "CRAM_MERGE:fasta_input: $it" }
+    fasta_fai.view{ "CRAM_MERGE:fasta_fai_input: $it" }
 
     // Figuring out if there is one or more cram(s) from the same sample
     cram_to_merge = cram.branch{ meta, c ->
@@ -25,7 +30,9 @@ workflow CRAM_MERGE_INDEX_SAMTOOLS {
     }
 
     // Only when using intervals
-    MERGE_CRAM(cram_to_merge.multiple, fasta.map{ it -> [ [ id:'fasta' ], it ] }, fasta_fai.map{ it -> [ [ id:'fasta_fai' ], it ] }, [])
+    // fasta and fasta_fai are pre-formatted value channels that broadcast to all MERGE_CRAM invocations
+    // gzi is empty but needs to be a tuple for SAMTOOLS_MERGE
+    MERGE_CRAM(cram_to_merge.multiple, fasta, fasta_fai, [[id:'gzi'], []])
 
     // Mix intervals and no_intervals channels together
     cram_all = MERGE_CRAM.out.cram.mix(cram_to_merge.single)
