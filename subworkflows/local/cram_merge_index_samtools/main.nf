@@ -16,11 +16,6 @@ workflow CRAM_MERGE_INDEX_SAMTOOLS {
     main:
     versions = Channel.empty()
 
-    // Debug: view incoming channels
-    cram.view{ "CRAM_MERGE:cram_input: $it" }
-    fasta.view{ "CRAM_MERGE:fasta_input: $it" }
-    fasta_fai.view{ "CRAM_MERGE:fasta_fai_input: $it" }
-
     // Figuring out if there is one or more cram(s) from the same sample
     cram_to_merge = cram.branch{ meta, c ->
         // c is a list, so use c.size() to asses number of intervals
