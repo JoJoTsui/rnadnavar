@@ -66,15 +66,6 @@ workflow BAM_GATK_PREPROCESSING {
         [ [ id:'fasta' ], fasta_path ] 
     }.first()
     
-    // Debug: verify channel creation
-    fasta_fai_for_applybqsr.view{ "GATK_PREP:fasta_fai_for_applybqsr: $it" }
-    fasta_fai_for_splitncigar.view{ "GATK_PREP:fasta_fai_for_splitncigar: $it" }
-    fasta_fai_for_merge_applybqsr.view{ "GATK_PREP:fasta_fai_for_merge_applybqsr: $it" }
-    fasta_fai_for_merge_splitncigar.view{ "GATK_PREP:fasta_fai_for_merge_splitncigar: $it" }
-    fasta_fai_for_convert.view{ "GATK_PREP:fasta_fai_for_convert: $it" }
-    fasta_for_merge_applybqsr.view{ "GATK_PREP:fasta_for_merge_applybqsr: $it" }
-    fasta_for_merge_splitncigar.view{ "GATK_PREP:fasta_for_merge_splitncigar: $it" }
-    
     // Markduplicates
     if (params.step in ['mapping', 'markduplicates'] || realignment) {
 

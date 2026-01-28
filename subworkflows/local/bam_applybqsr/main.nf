@@ -24,7 +24,6 @@ workflow BAM_APPLYBQSR {
     cram_intervals = cram.combine(intervals)
         // Move num_intervals to meta map
         .map{ meta, c, crai, recal, intervls, num_intervals -> [ meta + [ num_intervals:num_intervals ], c, crai, recal, intervls ] }
-    cram_intervals.dump(tag:"cram_intervalsGATK4_APPLYBQSR")
     // RUN APPLYBQSR
     GATK4_APPLYBQSR(
                     cram_intervals,
@@ -32,12 +31,8 @@ workflow BAM_APPLYBQSR {
                     fasta_fai,
                     dict.map{ _meta, it -> [ it ] }
                     )
-    GATK4_APPLYBQSR.out.cram.dump(tag:"GATK4_APPLYBQSR.out.cram")
     // Gather the recalibrated cram files
     cram_to_merge = GATK4_APPLYBQSR.out.cram.map{ meta, c -> [ groupKey(meta, meta.num_intervals), c ] }.groupTuple()
-    cram_to_merge.view{ "BAM_APPLYBQSR:cram_to_merge: $it" }
-    fasta_for_merge.view{ "BAM_APPLYBQSR:fasta_for_merge: $it" }
-    fasta_fai_for_merge.view{ "BAM_APPLYBQSR:fasta_fai_for_merge: $it" }
     
     // Merge and index the recalibrated cram files
     // Use the pre-formatted versions for CRAM_MERGE_INDEX_SAMTOOLS
