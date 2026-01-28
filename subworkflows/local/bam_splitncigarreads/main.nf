@@ -34,9 +34,6 @@ workflow BAM_SPLITNCIGARREADS {
 
     // Gather the recalibrated cram files
     cram_to_merge = GATK4_SPLITNCIGARREADS.out.cram.map{ meta, crm -> [ groupKey(meta, meta.num_intervals), crm ] }.groupTuple()
-    cram_to_merge.view{ "BAM_SPLITNCIGARREADS:cram_to_merge: $it" }
-    fasta_for_merge.view{ "BAM_SPLITNCIGARREADS:fasta_for_merge: $it" }
-    fasta_fai_for_merge.view{ "BAM_SPLITNCIGARREADS:fasta_fai_for_merge: $it" }
 
     // Merge and index the recalibrated cram files
     // Use the pre-formatted versions for CRAM_MERGE_INDEX_SAMTOOLS

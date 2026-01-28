@@ -42,29 +42,28 @@ workflow BAM_GATK_PREPROCESSING {
     versions  = Channel.empty()
     cram_variant_calling = Channel.empty()
     
-    // Create mapped channels once to avoid consuming value channels multiple times
-    // CRITICAL: Use .first() to convert to value channel that broadcasts properly
+    // Create mapped channels once - broadcast to all processes
     // fasta_fai is [path] list - create different formats for different consumers:
     // 1. For GATK4_APPLYBQSR that expects just path fai (NO tuple)
-    fasta_fai_for_applybqsr = fasta_fai.map{ fai_list -> fai_list[0] }.first()
+    fasta_fai_for_applybqsr = fasta_fai.map{ fai_list -> fai_list[0] }
     // 2. For GATK4_SPLITNCIGARREADS that expects tuple val(meta3), path(fai)
-    fasta_fai_for_splitncigar = fasta_fai.map{ fai_list -> [ [id:'fai'], fai_list[0] ] }.first()
+    fasta_fai_for_splitncigar = fasta_fai.map{ fai_list -> [ [id:'fai'], fai_list[0] ] }
     // 3. For CRAM_MERGE_INDEX_SAMTOOLS in BAM_APPLYBQSR
-    fasta_fai_for_merge_applybqsr = fasta_fai.map{ fai_list -> [ [id:'fai'], fai_list[0] ] }.first()
+    fasta_fai_for_merge_applybqsr = fasta_fai.map{ fai_list -> [ [id:'fai'], fai_list[0] ] }
     // 4. For CRAM_MERGE_INDEX_SAMTOOLS in BAM_SPLITNCIGARREADS
-    fasta_fai_for_merge_splitncigar = fasta_fai.map{ fai_list -> [ [id:'fai'], fai_list[0] ] }.first()
+    fasta_fai_for_merge_splitncigar = fasta_fai.map{ fai_list -> [ [id:'fai'], fai_list[0] ] }
     // 5. For SAMTOOLS_CONVERT (BAM_TO_CRAM, CRAM_TO_BAM) - needs multiple instances
-    fasta_fai_for_convert = fasta_fai.map{ fai_list -> [ [id:'fai'], fai_list[0] ] }.first()
+    fasta_fai_for_convert = fasta_fai.map{ fai_list -> [ [id:'fai'], fai_list[0] ] }
     // 6. For CRAM_MERGE_INDEX_SAMTOOLS that expects tuple val(meta2), path(fasta)
     // Extract fasta path - it might be [meta, path] or [meta, [path]]
     fasta_for_merge_applybqsr = fasta.map{ meta, fa -> 
         def fasta_path = (fa instanceof List) ? fa[0] : fa
         [ [ id:'fasta' ], fasta_path ] 
-    }.first()
+    }
     fasta_for_merge_splitncigar = fasta.map{ meta, fa -> 
         def fasta_path = (fa instanceof List) ? fa[0] : fa
         [ [ id:'fasta' ], fasta_path ] 
-    }.first()
+    }
     
     // Markduplicates
     if (params.step in ['mapping', 'markduplicates'] || realignment) {
@@ -111,10 +110,6 @@ workflow BAM_GATK_PREPROCESSING {
             // Gather used softwares versions
             versions = versions.mix(CRAM_QC_NO_MD.out.versions)
         } else {
-            cram_for_markduplicates.dump(tag:"cram_for_markduplicates")
-            fasta.dump(tag:"fasta_for_markduplicates")
-            fasta_fai.dump(tag:"fasta_fai_for_markduplicates")
-            intervals_for_preprocessing.dump(tag:"intervals_for_preprocessing_for_markduplicates")
             BAM_MARKDUPLICATES(
                 cram_for_markduplicates,
                 fasta,
@@ -183,7 +178,6 @@ workflow BAM_GATK_PREPROCESSING {
             .map{ meta, cram, crai -> [ meta + [data_type: "cram"], cram, crai ] }
         cram_splitncigar_no_spark = Channel.empty()
         if (!(params.skip_tools && params.skip_tools.split(',').contains('splitncigar')) || realignment) {
-            cram_skip_splitncigar.dump(tag:"cram_skip_splitncigar")
             cram_for_splitncigar_status = cram_skip_splitncigar.branch{
                                                 dna:  it[0].status < 2
                                                 rna:  it[0].status >= 2
@@ -256,7 +250,6 @@ workflow BAM_GATK_PREPROCESSING {
         if (!(params.skip_tools && params.skip_tools.split(',').contains('baserecalibrator')) && !realignment) {
 
             ch_table_bqsr_no_spark = Channel.empty()
-            ch_cram_for_bam_baserecalibrator.dump(tag:"ch_cram_for_bam_baserecalibrator")
             BAM_BASERECALIBRATOR(
                     ch_cram_for_bam_baserecalibrator,
                     dict,
@@ -279,7 +272,6 @@ workflow BAM_GATK_PREPROCESSING {
 
             reports = reports.mix(ch_table_bqsr.collect{ meta, table -> table })
             cram_applybqsr = ch_cram_for_bam_baserecalibrator.join(ch_table_bqsr, failOnDuplicate: true, failOnMismatch: true)
-            cram_applybqsr = cram_applybqsr.dump(tag:"cram_applybqsr")
             // Create CSV to restart from this step
             CHANNEL_BASERECALIBRATOR_CREATE_CSV(ch_sncr_cram_for_restart.join(ch_table_bqsr, failOnDuplicate: true), params.tools, params.skip_tools, params.save_output_as_bam, params.outdir)
         }
@@ -317,7 +309,6 @@ workflow BAM_GATK_PREPROCESSING {
         if (!(params.skip_tools && params.skip_tools.split(',').contains('baserecalibrator')) && !realignment) {
 
             cram_variant_calling_no_spark = Channel.empty()
-            cram_applybqsr.dump(tag:"cram_applybqsr")
             BAM_APPLYBQSR(
                 cram_applybqsr,
                 dict,
@@ -328,7 +319,6 @@ workflow BAM_GATK_PREPROCESSING {
                 intervals_and_num_intervals)
 
             cram_variant_calling_no_spark = BAM_APPLYBQSR.out.cram
-            cram_variant_calling_no_spark.dump(tag:"cram_variant_calling_no_spark")
 
             // Gather used softwares versions
             versions = versions.mix(BAM_APPLYBQSR.out.versions)
@@ -401,21 +391,17 @@ workflow BAM_GATK_PREPROCESSING {
         // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
         BAM_TO_CRAM(bam_for_conversion, fasta, fasta_fai_for_convert)
         versions = versions.mix(BAM_TO_CRAM.out.versions)
-        BAM_TO_CRAM.out.cram.dump(tag:"BAM_TO_CRAM.out.cram")
         converted = BAM_TO_CRAM.out.cram.join(BAM_TO_CRAM.out.crai, failOnDuplicate: true, failOnMismatch: true)
-        converted.dump(tag:"converted")
         cram_variant_calling = Channel.empty().mix(converted, input_variant_calling_convert.cram)
 
     }
-    cram_variant_calling.dump(tag:"cram_variant_calling_BEFORE")
     // Remove lane from id (which is sample)
     cram_variant_calling = cram_variant_calling.map{meta, cram, crai ->
-//													meta['read_group'] = meta['read_group'].replaceFirst(/ID:[^\s]+/, "ID:" + meta['sample'])
+//														meta['read_group'] = meta['read_group'].replaceFirst(/ID:[^\s]+/, "ID:" + meta['sample'])
                                                     if (!realignment) {
                                                         meta['id'] = meta['sample']
                                                     }
                                                     [meta, cram, crai]}
-    cram_variant_calling.dump(tag:"cram_variant_calling_AFTER")
 
     emit:
     cram_variant_calling    = cram_variant_calling
