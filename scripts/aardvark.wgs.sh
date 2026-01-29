@@ -15,12 +15,54 @@ OD="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seqc2_benchmark/comparison/wgs/aar
 mkdir -p "${OD}"
 
 
-# comparison using high confidence region
-bcftools isec -n +3 -p wgs -f 'PASS' -O z \
-  "${DS_VCF}" \
-  "${M2_VCF}" \
-  "${S2_VCF}"
+# # comparison using high confidence region
+# bcftools isec -n +3 -p wgs -f 'PASS' -O z \
+#   "${DS_VCF}" \
+#   "${M2_VCF}" \
+#   "${S2_VCF}"
 
+
+# micromamba run -n happy som.py \
+#     "${HC_TRUTH}" \
+#     "${DS_VCF}" \
+#     -R "${HC_BED}" \
+#     -o "${OD}/DS" \
+#     -r "${FA}" -N
+
+# micromamba run -n happy som.py \
+#     "${HC_TRUTH}" \
+#     "${M2_VCF}" \
+#     -R "${HC_BED}" \
+#     -o "${OD}/M2" \
+#     -r "${FA}" -N
+
+# micromamba run -n happy som.py \
+#     "${HC_TRUTH}" \
+#     "${S2_VCF}" \
+#     -R "${HC_BED}" \
+#     -o "${OD}/S2" \
+#     -r "${FA}" -N
+
+
+# benchmark using consensus VCF
+
+C_VCF="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seqc2_benchmark/output/seqc2.wgs.ll/consensus/WGS_LL_T_1_vs_WGS_LL_N_1/WGS_LL_T_1_vs_WGS_LL_N_1.consensus.vcf.gz"
+SOM_VCF="${OD}/WGS_LL_T_1_vs_WGS_LL_N_1.consensus.somatic.vcf.gz"
+
+# Filter for variants that are either PASS or Somatic
+bcftools view -i 'FILTER="PASS" || FILTER="Somatic"' "${C_VCF}" -Oz -o "${SOM_VCF}"
+bcftools index "${SOM_VCF}"
+
+micromamba run -n happy som.py \
+    "${HC_TRUTH}" \
+    "${SOM_VCF}" \
+    -f "${HC_BED}" \
+    -o "${OD}/C3" \
+    -r "${FA}" -P -N
+
+
+
+# failed aardvark, needs SAMPLE column
 # aardvark compare \
 #     --reference "${FA}" \
 #     --truth-vcf "${HC_TRUTH}" \
@@ -44,31 +86,3 @@ bcftools isec -n +3 -p wgs -f 'PASS' -O z \
 #     --regions "${HC_BED}" \
 #     --output-dir "${OD}" \
 #     --query-sample "WES_LL_T_1"
-
-micromamba run -n happy som.py \
-    "${HC_TRUTH}" \
-    "${DS_VCF}" \
-    -R "${HC_BED}" \
-    -o "${OD}/DS" \
-    -r "${FA}" -N
-
-micromamba run -n happy som.py \
-    "${HC_TRUTH}" \
-    "${M2_VCF}" \
-    -R "${HC_BED}" \
-    -o "${OD}/M2" \
-    -r "${FA}" -N
-
-micromamba run -n happy som.py \
-    "${HC_TRUTH}" \
-    "${S2_VCF}" \
-    -R "${HC_BED}" \
-    -o "${OD}/S2" \
-    -r "${FA}" -N
-
-# micromamba run -n happy som.py \
-#     "${HC_TRUTH}" \
-#     "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seqc2_benchmark/comparison/wes/0000.vcf.gz" \
-#     -f "${HC_BED}" \
-#     -o "${OD}/C3" \
-#     -r "${FA}"
