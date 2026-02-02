@@ -26,13 +26,17 @@ workflow  SAMPLESHEET_TO_CHANNEL{
             (meta, fastq_1, fastq_2, table, cram, crai, bam, bai, vcf, variantcaller, maf) = ch_items
             if (meta.lane && fastq_2) {
                 meta           = meta + [id: "${meta.sample}-${meta.lane}".toString()]
-                def CN         = params.seq_center ? "CN:${params.seq_center}\\t" : ''
+                def CN         = params.seq_center ? "CN:${sanitizeRGValue(params.seq_center)}\\t" : ''
 
-                def flowcell   = flowcellLaneFromFastq(fastq_1)
+                def flowcell   = sanitizeRGValue(flowcellLaneFromFastq(fastq_1))
+                def sample_san = sanitizeRGValue(meta.sample)
+                def lane_san   = sanitizeRGValue(meta.lane)
+                def fasta_san  = sanitizeRGValue(params.fasta)
+                def platform_san = sanitizeRGValue(params.seq_platform)
                 // Don't use a random element for ID, it breaks resuming
-                def read_group = "\"@RG\\tID:${flowcell}.${meta.sample}.${meta.lane}\\t${CN}PU:${meta.lane}\\tSM:${meta.sample}\\tLB:${meta.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
+                def read_group = "\"@RG\\tID:${flowcell}.${sample_san}.${lane_san}\\t${CN}PU:${lane_san}\\tSM:${sample_san}\\tLB:${sample_san}\\tDS:${fasta_san}\\tPL:${platform_san}\""
                 if (meta.status >= 2) { // STAR does not need '@RG'
-                    read_group  = "ID:${flowcell}.${meta.sample}.${meta.lane} ${CN}PU:${meta.lane} SM:${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
+                    read_group  = "ID:${flowcell}.${sample_san}.${lane_san} ${CN}PU:${lane_san} SM:${sample_san} LB:${sample_san} DS:${fasta_san} PL:${platform_san}"
                 }
                 meta           = meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'fastq', size: 1]
 
@@ -46,10 +50,14 @@ workflow  SAMPLESHEET_TO_CHANNEL{
 
                 if ((meta.status >= 2 || meta.status==0) && !maf){ // these are the files that will go through realignment
                     meta            = meta + [id: "${meta.sample}-${meta.lane}-realign".toString()]
-                    def CN          = params.seq_center ? "CN:${params.seq_center}\\t" : ''
-                    def read_group  = "\"@RG\\tID:${meta.sample}_${meta.lane}_realign\\t${CN}PU:${meta.lane}\\tSM:${meta.sample}\\tLB:${meta.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
+                    def CN          = params.seq_center ? "CN:${sanitizeRGValue(params.seq_center)}\\t" : ''
+                    def sample_san  = sanitizeRGValue(meta.sample)
+                    def lane_san    = sanitizeRGValue(meta.lane)
+                    def fasta_san   = sanitizeRGValue(params.fasta)
+                    def platform_san = sanitizeRGValue(params.seq_platform)
+                    def read_group  = "\"@RG\\tID:${sample_san}_${lane_san}_realign\\t${CN}PU:${lane_san}\\tSM:${sample_san}\\tLB:${sample_san}\\tDS:${fasta_san}\\tPL:${platform_san}\""
                     if (meta.status >= 2) { // STAR does not need '@RG'
-                        read_group  = "ID:${meta.sample}_${meta.lane}_realign ${CN}PU:${meta.lane} SM:${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
+                        read_group  = "ID:${sample_san}_${lane_san}_realign ${CN}PU:${lane_san} SM:${sample_san} LB:${sample_san} DS:${fasta_san} PL:${platform_san}"
                     }
                     if (cram)  return [ meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'cram', size: 1], cram, crai, maf ]
                     else if (bam) return [ meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'bam', size: 1], bam, bai, maf ]
@@ -72,10 +80,14 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                     error("BAM index (bai) should be provided.")
                 }
                 meta            = meta + [id: "${meta.sample}-${meta.lane}".toString()]
-                def CN          = params.seq_center ? "CN:${params.seq_center}\\t" : ''
-                def read_group  = "\"@RG\\tID:${meta.sample}_${meta.lane}\\t${CN}PU:${meta.lane}\\tSM:${meta.sample}\\tLB:${meta.sample}\\tDS:${params.fasta}\\tPL:${params.seq_platform}\""
+                def CN          = params.seq_center ? "CN:${sanitizeRGValue(params.seq_center)}\\t" : ''
+                def sample_san  = sanitizeRGValue(meta.sample)
+                def lane_san    = sanitizeRGValue(meta.lane)
+                def fasta_san   = sanitizeRGValue(params.fasta)
+                def platform_san = sanitizeRGValue(params.seq_platform)
+                def read_group  = "\"@RG\\tID:${sample_san}_${lane_san}\\t${CN}PU:${lane_san}\\tSM:${sample_san}\\tLB:${sample_san}\\tDS:${fasta_san}\\tPL:${platform_san}\""
                 if (meta.status >= 2) { // STAR does not need '@RG'
-                    read_group  = "ID:${meta.sample}_${meta.lane} ${CN}PU:${meta.lane} SM:${meta.sample} LB:${meta.sample} DS:${params.fasta} PL:${params.seq_platform}"
+                    read_group  = "ID:${sample_san}_${lane_san} ${CN}PU:${lane_san} SM:${sample_san} LB:${sample_san} DS:${fasta_san} PL:${platform_san}"
                 }
                 meta            = meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'bam', size: 1]
 
@@ -230,6 +242,13 @@ workflow  SAMPLESHEET_TO_CHANNEL{
     FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
+// Sanitize read group values by replacing whitespace with underscores.
+// SAM format requires key:value pairs without spaces in values.
+def sanitizeRGValue(value) {
+    if (value == null) return ''
+    return value.toString().replaceAll('\\s+', '_')
+}
+
 // Parse first line of a FASTQ file, return the flowcell id and lane number.
 def flowcellLaneFromFastq(path) {
     // expected format:
