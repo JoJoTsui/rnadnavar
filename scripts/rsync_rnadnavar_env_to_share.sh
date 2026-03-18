@@ -16,3 +16,13 @@ rsync -avP /t9k/mnt/hdd/work/Vax/deepvariant/models /t9k/mnt/WorkSpace/data/ngs/
 rsync -avP /t9k/mnt/hdd/work/Vax/sequencing/aim_exp/rdv_test/C008801/input/ /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/rnadnavar_test/C008801/input/
 # rnadnavar pipeline
 rsync -avP /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/ /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/
+
+
+
+# make a copy & lock
+rsync -avP --exclude 'bio_db' /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/ /t9k/mnt/WorkSpace/data/ngs/joey/
+find /t9k/mnt/WorkSpace/data/ngs/joey -maxdepth 3 ! -type l -print0 | xargs -0 -P 16 chmod u-w
+find /t9k/mnt/WorkSpace/data/ngs/xuzhenyu -maxdepth 3 ! -type l -print0 | xargs -0 -P 16 chmod u-w
+# unlock
+find /t9k/mnt/WorkSpace/data/ngs/joey -maxdepth 3 ! -type l -print0 | xargs -0 -P 16 chmod u+w
+find /t9k/mnt/WorkSpace/data/ngs/xuzhenyu -maxdepth 3 ! -type l -print0 | xargs -0 -P 16 chmod u+w
