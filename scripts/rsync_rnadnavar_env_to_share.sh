@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# mkdirs
+mkdir /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/ 
+mkdir /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo
+mkdir /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/rnadnavar_test/C008801
 
 # nf-core configs
 rsync -avP /t9k/mnt/hdd/work/Vax/pipeline/configs/ /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/configs/
