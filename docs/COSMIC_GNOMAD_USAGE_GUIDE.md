@@ -181,10 +181,34 @@ The annotated VCF files contain additional INFO fields and updated FILTER classi
 - `Somatic_Rescue`: Flag indicating cross-modal rescue classification
 
 **FILTER Classifications:**
-- `Germline`: High population frequency variants (>0.001 by default)
-- `Somatic`: High-confidence somatic variants (unanimous caller support or rescue)
+- `Germline`: High population frequency variants (gnomAD AF > threshold, default 0.001) with at least 1 Germline-labeled caller in both DNA and RNA modalities, and no Artifact label in both modalities simultaneously
+- `Somatic`: High-confidence somatic variants (majority DNA Somatic-labeled caller support, or cross-modality Somatic-labeled support + COSMIC recurrence)
 - `Artifact`: Low-quality or conflicting evidence variants
 - Original filters preserved when evidence is insufficient
+
+### Variant Classification Rules
+
+Classification is applied after annotation using `FILTERS_NORMALIZED` (e.g. `DNA_mutect2:Somatic|RNA_deepsomatic:Germline`) and population/COSMIC data. Rules fire in strict priority order:
+
+**Rule 1 — Majority DNA Somatic consensus (highest priority)**
+- Condition: `dna_somatic_caller_count >= somatic_consensus_threshold` (default: 2) AND `dna_somatic_caller_count > total_dna_callers / 2`
+- Only callers with an explicit `Somatic` label in `FILTERS_NORMALIZED` are counted
+- The >50% majority requirement is equivalent to within-modality consensus and avoids requiring 100% unanimity
+- Result: `FILTER=Somatic`, `COSMIC_RESCUE` INFO flag added if reclassified
+
+**Rule 2 — Cross-modality Somatic + COSMIC recurrence rescue**
+- Condition: `dna_somatic_caller_count >= cross_modality_min_support` (default: 1) AND `rna_somatic_caller_count >= 1` AND `COSMIC_CNT >= cosmic_recurrence_threshold` (default: 5)
+- Both modalities must have at least one caller that explicitly labeled the variant `Somatic` in `FILTERS_NORMALIZED` — callers with Germline/Artifact labels do not count
+- Result: `FILTER=Somatic`, `COSMIC_RESCUE` INFO flag added if reclassified
+
+**Rule 3 — Population frequency Germline rescue**
+- Condition: `GNOMAD_AF > germline_freq_threshold` (default: 0.001) AND `dna_germline_caller_count >= 1` AND `rna_germline_caller_count >= 1`
+- Requires at least 1 Germline-labeled caller in each modality from `FILTERS_NORMALIZED`
+- Blocked (artifact protection) if BOTH DNA and RNA modalities have at least one Artifact-labeled caller — a single modality having Artifact is not sufficient to block, since cross-modality data naturally varies
+- Result: `FILTER=Germline`, `GNOMAD_RESCUE` INFO flag added if reclassified
+
+**Rule 4 — Preserve original (fallback)**
+- If none of the above conditions are met, the original `FILTER` value is kept unchanged
 
 ### Statistics Report (JSON)
 When `--stats-output` is used, a comprehensive JSON report is generated:
