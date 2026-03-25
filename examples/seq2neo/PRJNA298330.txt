@@ -1,0 +1,124 @@
+PRJNA298330
+    Study Title--Immunogenicity ofsomatic mutations in gastrointestinal cancers
+    Paper--https://pmc.ncbi.nlm.nih.gov/articles/PMC6819109/pdf/jci-129-127967.pdf
+    Sequencing platform--Illumina
+    
+
+PatientID--3812
+    |->README:Sample--SAMN04158397,SRA--SRS1112127
+    |->WES
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3812/DT/SRR2635082_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3812/DT/SRR2635082_2.fastq.gz
+        |->Normal
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3812/DN/SRR2635083_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3812/DN/SRR2635083_2.fastq.gz
+    |->RNA
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3812/RT/SRR5438853_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3812/RT/SRR5438853_2.fastq.gz
+
+
+PatientID--3942
+    |->README:Sample--SAMN04158398,SRA--SRS1112128
+    |->WES
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3942/DT/SRR2636946_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3942/DT/SRR2636946_2.fastq.gz
+        |->Normal
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3942/DN/SRR2636947_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3942/DN/SRR2636947_2.fastq.gz
+    |->RNA
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3942/RT/SRR4176783_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3942/RT/SRR4176783_2.fastq.gz
+
+
+PatientID--3948
+    |->README:Sample--SAMN04158399,SRA--SRS1112179
+    |->WES
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3948/DT/SRR2636949_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3948/DT/SRR2636949_2.fastq.gz
+        |->Normal
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3948/DN/SRR2636950_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3948/DN/SRR2636950_2.fastq.gz
+    |->RNA
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3948/RT/SRR4203093_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3948/RT/SRR4203093_2.fastq.gz
+
+
+PatientID--3978
+    |->README:Sample--SAMN04158401,SRA--SRS1112180
+    |->WES
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3978/DT/SRR2637130_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3978/DT/SRR2637130_2.fastq.gz
+        |->Normal
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3978/DN/SRR2637203_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3978/DN/SRR2637203_2.fastq.gz
+    |->RNA
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3978/RT/SRR4204471_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3978/RT/SRR4204471_2.fastq.gz
+
+
+PatientID--3995
+    |->README:Sample--SAMN04158402,SRA--SRS1112231
+    |->WES
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3995/DT/SRR2637256_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3995/DT/SRR2637256_2.fastq.gz
+        |->Normal
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3995/DN/SRR2637257_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3995/DN/SRR2637257_2.fastq.gz
+    |->RNA
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3995/RT/SRR4204474_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3995/RT/SRR4204474_2.fastq.gz
+
+
+PatientID--4007
+    |->README:Sample--SAMN04158403,SRA--SRS1112234
+    |->WES
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4007/DT/SRR2637310_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4007/DT/SRR2637310_2.fastq.gz
+        |->Normal
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4007/DN/SRR2637311_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4007/DN/SRR2637311_2.fastq.gz
+    |->RNA
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4007/RT/SRR4204475_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4007/RT/SRR4204475_2.fastq.gz
+
+
+PatientID--4032
+    |->README:Sample--SAMN04158404,SRA--SRS1112293
+    |->WES
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4032/DT/SRR2637312_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4032/DT/SRR2637312_2.fastq.gz
+        |->Normal
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4032/DN/SRR2637313_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4032/DN/SRR2637313_2.fastq.gz
+    |->RNA
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4032/RT/SRR4204476_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4032/RT/SRR4204476_2.fastq.gz
+
+
+PatientID--4096
+    |->README:Sample--SAMN04158405,SRA--SRS1112760
+    |->WES
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4096/DT/SRR2637385_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4096/DT/SRR2637385_2.fastq.gz
+        |->Normal
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4096/DN/SRR2637386_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4096/DN/SRR2637386_2.fastq.gz
+    |->RNA
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4096/RT/SRR4204477_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4096/RT/SRR4204477_2.fastq.gz

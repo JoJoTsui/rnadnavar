@@ -1,0 +1,983 @@
+PRJNA298376
+    Study Title--Prospective Procurement of Solid Tumor Tissue to Identify Novel Therapeutic Targets 
+    Paper--https://pmc.ncbi.nlm.nih.gov/articles/PMC7445892/pdf/nihms-999157.pdf
+    Sequencing platform--Illumina
+
+
+
+PatientID--3812
+   ├──README--Cholangiocarcinoma cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3812/DN/SRR9697858_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3812/DN/SRR9697858_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3812/DT/SRR9697698_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3812/DT/SRR9697698_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3812/RT/SRR9697882_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3812/RT/SRR9697882_2.fastq.gz
+
+PatientID--3942
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3942/DN/SRR9697895_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3942/DN/SRR9697895_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3942/DT/SRR9697814_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3942/DT/SRR9697814_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3942/RT/SRR9697860_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3942/RT/SRR9697860_2.fastq.gz
+
+PatientID--3948
+   ├──README--Esophageal cancer 
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3948/DN/SRR9697804_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3948/DN/SRR9697804_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3948/DT/SRR9697807_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3948/DT/SRR9697807_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3948/RT/SRR9697861_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3948/RT/SRR9697861_2.fastq.gz
+
+PatientID--3971
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3971/DN/SRR9697785_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3971/DN/SRR9697785_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3971/DT/SRR9697756_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3971/DT/SRR9697756_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3971/RT/SRR9697856_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3971/RT/SRR9697856_2.fastq.gz
+
+PatientID--3978
+   ├──README--Cholangiocarcinoma cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3978/DN/SRR9697641_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3978/DN/SRR9697641_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3978/DT/SRR9697642_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3978/DT/SRR9697642_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3978/RT/SRR9697800_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3978/RT/SRR9697800_2.fastq.gz
+
+PatientID--3995
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3995/DN/SRR9697639_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3995/DN/SRR9697639_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3995/DT/SRR9697640_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3995/DT/SRR9697640_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3995/RT/SRR9697799_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3995/RT/SRR9697799_2.fastq.gz
+
+PatientID--4007
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4007/DN/SRR9697637_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4007/DN/SRR9697637_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4007/DT/SRR9697638_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4007/DT/SRR9697638_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4007/RT/SRR9697631_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4007/RT/SRR9697631_2.fastq.gz
+
+PatientID--4060
+   ├──README--Colorectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4060/DN/SRR9697645_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4060/DN/SRR9697645_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4060/DT/SRR9697644_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4060/DT/SRR9697644_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4060/RT/SRR9697632_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4060/RT/SRR9697632_2.fastq.gz
+
+PatientID--4069
+   ├──README--Pancreatic cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4069/DN/SRR9697829_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4069/DN/SRR9697829_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4069/DT/SRR9697828_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4069/DT/SRR9697828_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4069/RT/SRR9697633_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4069/RT/SRR9697633_2.fastq.gz
+
+PatientID--4071
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4071/DN/SRR9697827_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4071/DN/SRR9697827_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4071/DT/SRR9697826_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4071/DT/SRR9697826_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4071/RT/SRR9697634_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4071/RT/SRR9697634_2.fastq.gz
+
+PatientID--4072
+   ├──README--Colorectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4072/DN/SRR9697825_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4072/DN/SRR9697825_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4072/DT/SRR9697824_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4072/DT/SRR9697824_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4072/RT/SRR9697627_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4072/RT/SRR9697627_2.fastq.gz
+
+PatientID--4077
+   ├──README--Cholangiocarcinoma cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4077/DN/SRR9697823_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4077/DN/SRR9697823_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4077/DT/SRR9697822_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4077/DT/SRR9697822_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4077/RT/SRR9697628_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4077/RT/SRR9697628_2.fastq.gz
+
+PatientID--4078
+   ├──README--Metastatic Cancer/adrenal
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4078/DN/SRR8496544_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4078/DN/SRR8496544_2.fastq.gz
+   └── DT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4078/DT/SRR8496545_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4078/DT/SRR8496545_2.fastq.gz
+
+PatientID--4081
+   ├──README--Colorectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/DN/SRR9697896_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/DN/SRR9697896_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/DT/SRR9697897_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/DT/SRR9697897_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/RT/SRR9697629_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/RT/SRR9697629_2.fastq.gz
+
+PatientID--4090
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/DN/SRR9697899_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/DN/SRR9697899_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/DT/SRR9697623_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/DT/SRR9697623_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/RT/SRR9697625_1.fastq.gz(29.9M spots, 9G bases)
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/RT/SRR9697625_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/RT/SRR9697630_1.fastq.gz(34.7M spots, 10.4G bases)
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/RT/SRR9697630_2.fastq.gz
+
+PatientID--4095
+   ├──README--Colorectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DN/SRR9697903_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DN/SRR9697903_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DT/SRR9697838_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DT/SRR9697838_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DT/SRR9697901_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DT/SRR9697901_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DT/SRR9697902_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DT/SRR9697902_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/RT/SRR9697626_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/RT/SRR9697626_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/RT/SRR9697671_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/RT/SRR9697671_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/RT/SRR9697672_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/RT/SRR9697672_2.fastq.gz
+
+PatientID--4107
+   ├──README--Cholangiocarcinoma cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4107/DN/SRR9697894_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4107/DN/SRR9697894_2.fastq.gz
+   ├── T
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4107/DT/SRR9697892_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4107/DT/SRR9697892_2.fastq.gz
+   └── RT
+
+PatientID--4110
+   ├──README--Cholangiocarcinoma cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/DN/SRR8496546_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/DN/SRR8496546_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/DT/SRR9697736_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/DT/SRR9697736_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/DT/SRR9697890_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/DT/SRR9697890_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/RT/SRR9697666_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/RT/SRR9697666_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/RT/SRR9697847_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/RT/SRR9697847_2.fastq.gz
+
+PatientID--4112
+   ├──README--Cholangiocarcinoma cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/DN/SRR9697739_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/DN/SRR9697739_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/DT/SRR9697805_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/DT/SRR9697805_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/DT/SRR9697859_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/DT/SRR9697859_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/RT/SRR9697848_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/RT/SRR9697848_2.fastq.gz
+
+PatientID--4115
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DN/SRR9697738_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DN/SRR9697738_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DT/SRR9697599_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DT/SRR9697599_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DT/SRR9697757_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DT/SRR9697757_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DT/SRR9697880_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DT/SRR9697880_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/RT/SRR9697846_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/RT/SRR9697846_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/RT/SRR9697885_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/RT/SRR9697885_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/RT/SRR9697886_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/RT/SRR9697886_2.fastq.gz
+
+PatientID--4141
+   ├──README--Colon cancer
+   ├── DN
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4141/DT/SRR9697754_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4141/DT/SRR9697754_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4141/RT/SRR9697849_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4141/RT/SRR9697849_2.fastq.gz
+
+PatientID--4145
+   ├──README--Pancreatic cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4145/DN/SRR9697600_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4145/DN/SRR9697600_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4145/DT/SRR9697680_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4145/DT/SRR9697680_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4145/RT/SRR9697850_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4145/RT/SRR9697850_2.fastq.gz
+
+PatientID--4151
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/DN/SRR9697677_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/DN/SRR9697677_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/DT/SRR9697678_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/DT/SRR9697678_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/DT/SRR9697679_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/DT/SRR9697679_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/RT/SRR9697843_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/RT/SRR9697843_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/RT/SRR9697844_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/RT/SRR9697844_2.fastq.gz
+
+PatientID--4160
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4160/DN/SRR9697684_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4160/DN/SRR9697684_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4160/DT/SRR9697683_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4160/DT/SRR9697683_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4160/RT/SRR9697582_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4160/RT/SRR9697582_2.fastq.gz
+
+PatientID--4166
+   ├──README--Tumor DNA sample from lung of a human female participant
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4166/DN/SRR8496550_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4166/DN/SRR8496550_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4166/DT/SRR8496551_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4166/DT/SRR8496551_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4166/RT/SRR9697581_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4166/RT/SRR9697581_2.fastq.gz
+
+PatientID--4182
+   ├──README--Appendiceal Adenocarcinoma cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4182/DN/SRR9697815_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4182/DN/SRR9697815_2.fastq.gz
+   └── DT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4182/DT/SRR9697730_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4182/DT/SRR9697730_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4182/DT/SRR9697731_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4182/DT/SRR9697731_2.fastq.gz
+
+PatientID--4196
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/DN/SRR9697727_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/DN/SRR9697727_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/DT/SRR9697842_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/DT/SRR9697842_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/DT/SRR9697888_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/DT/SRR9697888_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/RT/SRR9697583_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/RT/SRR9697583_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/RT/SRR9697586_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/RT/SRR9697586_2.fastq.gz
+
+PatientID--4200
+   ├──README--Cholangiocarcinoma cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/DN/SRR9697881_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/DN/SRR9697881_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/DT/SRR9697728_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/DT/SRR9697728_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/DT/SRR9697729_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/DT/SRR9697729_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/RT/SRR9697585_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/RT/SRR9697585_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/RT/SRR9697588_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/RT/SRR9697588_2.fastq.gz
+
+PatientID--4203
+   ├──README--Cholangiocarcinoma cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DN/SRR9697809_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DN/SRR9697809_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DT/SRR9697753_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DT/SRR9697753_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DT/SRR9697803_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DT/SRR9697803_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DT/SRR9697887_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DT/SRR9697887_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/RT/SRR9697577_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/RT/SRR9697577_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/RT/SRR9697578_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/RT/SRR9697578_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/RT/SRR9697587_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/RT/SRR9697587_2.fastq.gz
+
+PatientID--4207
+   ├──README--Colorectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DN/SRR9697643_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DN/SRR9697643_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DT/SRR9697755_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DT/SRR9697755_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DT/SRR9697758_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DT/SRR9697758_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DT/SRR9697806_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DT/SRR9697806_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/RT/SRR9697691_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/RT/SRR9697691_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/RT/SRR9697696_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/RT/SRR9697696_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/RT/SRR9697808_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/RT/SRR9697808_2.fastq.gz
+
+PatientID--4214
+   ├──README--Lung cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/DN/SRR9697664_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/DN/SRR9697664_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/DT/SRR9697857_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/DT/SRR9697857_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/RT/SRR9697598_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/RT/SRR9697598_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/RT/SRR9697726_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/RT/SRR9697726_2.fastq.gz
+
+PatientID--4220
+   ├──README--Cholangiocarcinoma cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DN/SRR9697855_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DN/SRR9697855_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DT/SRR9697647_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DT/SRR9697647_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DT/SRR9697852_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DT/SRR9697852_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DT/SRR9697853_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DT/SRR9697853_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/RT/SRR9697780_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/RT/SRR9697780_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/RT/SRR9697781_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/RT/SRR9697781_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/RT/SRR9697782_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/RT/SRR9697782_2.fastq.gz
+
+PatientID--4223
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4223/DN/SRR9697817_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4223/DN/SRR9697817_2.fastq.gz
+   └── DT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4223/DT/SRR9697854_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4223/DT/SRR9697854_2.fastq.gz
+
+PatientID--4228
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/DN/SRR9697818_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/DN/SRR9697818_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/DT/SRR9697816_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/DT/SRR9697816_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/DT/SRR9697851_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/DT/SRR9697851_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/RT/SRR9697777_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/RT/SRR9697777_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/RT/SRR9697778_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/RT/SRR9697778_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/RT/SRR9697779_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/RT/SRR9697779_2.fastq.gz
+
+PatientID--4230
+   ├──README--Cholangiocarcinoma cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4230/DN/SRR9697812_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4230/DN/SRR9697812_2.fastq.gz
+   ├── DT
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4230/RT/SRR9697776_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4230/RT/SRR9697776_2.fastq.gz
+
+PatientID--4231
+   ├──README--Ampullary cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4231/DN/SRR9697752_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4231/DN/SRR9697752_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4231/DT/SRR9697751_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4231/DT/SRR9697751_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4231/RT/SRR9697775_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4231/RT/SRR9697775_2.fastq.gz
+
+PatientID--4232
+   ├──README--Colorectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DN/SRR9697748_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DN/SRR9697748_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DT/SRR9697747_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DT/SRR9697747_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DT/SRR9697749_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DT/SRR9697749_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DT/SRR9697750_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DT/SRR9697750_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/RT/SRR9697774_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/RT/SRR9697774_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/RT/SRR9697862_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/RT/SRR9697862_2.fastq.gz
+
+PatientID--4235
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4235/DN/SRR9697743_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4235/DN/SRR9697743_2.fastq.gz
+   └── DT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4235/DT/SRR9697745_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4235/DT/SRR9697745_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4235/DT/SRR9697746_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4235/DT/SRR9697746_2.fastq.gz
+
+PatientID--4236
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DN/SRR9697703_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DN/SRR9697703_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DT/SRR9697704_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DT/SRR9697704_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DT/SRR9697705_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DT/SRR9697705_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DT/SRR9697744_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DT/SRR9697744_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/RT/SRR9697699_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/RT/SRR9697699_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/RT/SRR9697864_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/RT/SRR9697864_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/RT/SRR9697898_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/RT/SRR9697898_2.fastq.gz
+
+PatientID--4239
+   ├──README--Rectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4239/DN/SRR9697707_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4239/DN/SRR9697707_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4239/DT/SRR9697708_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4239/DT/SRR9697708_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4239/RT/SRR9697697_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4239/RT/SRR9697697_2.fastq.gz
+
+PatientID--4241
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4241/DN/SRR9697713_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4241/DN/SRR9697713_2.fastq.gz
+   └── DT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4241/DT/SRR9697706_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4241/DT/SRR9697706_2.fastq.gz
+
+PatientID--4242
+   ├──README--Gastric cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/DN/SRR9697653_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/DN/SRR9697653_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/DT/SRR9697652_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/DT/SRR9697652_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/DT/SRR9697712_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/DT/SRR9697712_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/RT/SRR9697694_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/RT/SRR9697694_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/RT/SRR9697695_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/RT/SRR9697695_2.fastq.gz
+
+PatientID--4245
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DN/SRR9697649_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DN/SRR9697649_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DT/SRR9697648_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DT/SRR9697648_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DT/SRR9697654_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DT/SRR9697654_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DT/SRR9697655_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DT/SRR9697655_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/RT/SRR9697692_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/RT/SRR9697692_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/RT/SRR9697693_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/RT/SRR9697693_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/RT/SRR9697787_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/RT/SRR9697787_2.fastq.gz
+
+PatientID--4246
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4246/DN/SRR9697651_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4246/DN/SRR9697651_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4246/DT/SRR9697650_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4246/DT/SRR9697650_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4246/RT/SRR9697900_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4246/RT/SRR9697900_2.fastq.gz
+
+PatientID--4247
+   ├──README--Pancreatic cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4247/DN/SRR9697661_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4247/DN/SRR9697661_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4247/DT/SRR9697660_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4247/DT/SRR9697660_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4247/RT/SRR9697716_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4247/RT/SRR9697716_2.fastq.gz
+
+PatientID--4251
+   ├──README--Gastric cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4251/DN/SRR9697606_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4251/DN/SRR9697606_2.fastq.gz
+   └── DT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4251/DT/SRR9697603_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4251/DT/SRR9697603_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4251/DT/SRR9697604_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4251/DT/SRR9697604_2.fastq.gz
+
+PatientID--4252
+   ├──README--Colorectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DN/SRR9697610_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DN/SRR9697610_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DT/SRR9697605_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DT/SRR9697605_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DT/SRR9697607_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DT/SRR9697607_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DT/SRR9697608_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DT/SRR9697608_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/RT/SRR9697681_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/RT/SRR9697681_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/RT/SRR9697686_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/RT/SRR9697686_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/RT/SRR9697710_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/RT/SRR9697710_2.fastq.gz
+
+PatientID--4255
+   ├──README--Colorectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4255/DN/SRR9697612_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4255/DN/SRR9697612_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4255/DT/SRR9697609_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4255/DT/SRR9697609_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4255/RT/SRR9697601_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4255/RT/SRR9697601_2.fastq.gz
+
+PatientID--4257
+   ├──README--Rectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/DN/SRR9697907_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/DN/SRR9697907_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/DT/SRR9697611_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/DT/SRR9697611_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/DT/SRR9697906_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/DT/SRR9697906_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/RT/SRR9697690_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/RT/SRR9697690_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/RT/SRR9697742_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/RT/SRR9697742_2.fastq.gz
+
+PatientID--4259
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4259/DN/SRR9697905_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4259/DN/SRR9697905_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4259/DT/SRR9697904_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4259/DT/SRR9697904_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4259/RT/SRR9697741_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4259/RT/SRR9697741_2.fastq.gz
+
+PatientID--4262
+   ├──README--Colorectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/DN/SRR9697909_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/DN/SRR9697909_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/DT/SRR9697893_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/DT/SRR9697893_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/DT/SRR9697908_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/DT/SRR9697908_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/RT/SRR9697620_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/RT/SRR9697620_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/RT/SRR9697621_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/RT/SRR9697621_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/RT/SRR9697622_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/RT/SRR9697622_2.fastq.gz
+
+PatientID--4263
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/DN/SRR9697837_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/DN/SRR9697837_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/DT/SRR9697575_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/DT/SRR9697575_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/DT/SRR9697576_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/DT/SRR9697576_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/RT/SRR9697618_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/RT/SRR9697618_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/RT/SRR9697619_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/RT/SRR9697619_2.fastq.gz
+
+PatientID--4264
+   ├──README--Esophageal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/DN/SRR9697834_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/DN/SRR9697834_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/DT/SRR9697835_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/DT/SRR9697835_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/DT/SRR9697836_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/DT/SRR9697836_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/RT/SRR9697615_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/RT/SRR9697615_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/RT/SRR9697616_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/RT/SRR9697616_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/RT/SRR9697617_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/RT/SRR9697617_2.fastq.gz
+
+PatientID--4265
+   ├──README--Pancreatic cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4265/DN/SRR9697832_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4265/DN/SRR9697832_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4265/DT/SRR9697833_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4265/DT/SRR9697833_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4265/RT/SRR9697614_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4265/RT/SRR9697614_2.fastq.gz
+
+PatientID--4266
+   ├──README--Colon cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DN/SRR9697840_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DN/SRR9697840_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DT/SRR9697830_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DT/SRR9697830_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DT/SRR9697831_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DT/SRR9697831_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DT/SRR9697841_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DT/SRR9697841_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/RT/SRR9697589_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/RT/SRR9697589_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/RT/SRR9697590_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/RT/SRR9697590_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/RT/SRR9697613_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/RT/SRR9697613_2.fastq.gz
+
+PatientID--4268
+   ├──README--Colorectal cancer 
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/DN/SRR9697766_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/DN/SRR9697766_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/DT/SRR9697764_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/DT/SRR9697764_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/DT/SRR9697765_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/DT/SRR9697765_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/RT/SRR9697591_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/RT/SRR9697591_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/RT/SRR9697592_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/RT/SRR9697592_2.fastq.gz
+
+PatientID--4270
+   ├──README--Pancreatic cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DN/SRR9697770_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DN/SRR9697770_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DT/SRR9697767_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DT/SRR9697767_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DT/SRR9697768_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DT/SRR9697768_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DT/SRR9697769_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DT/SRR9697769_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/RT/SRR9697593_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/RT/SRR9697593_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/RT/SRR9697594_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/RT/SRR9697594_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/RT/SRR9697595_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/RT/SRR9697595_2.fastq.gz
+
+PatientID--4271
+   ├──README--Colorectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4271/DN/SRR9697762_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4271/DN/SRR9697762_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4271/DT/SRR9697771_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4271/DT/SRR9697771_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4271/RT/SRR9697596_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4271/RT/SRR9697596_2.fastq.gz
+
+PatientID--4272
+   ├──README--Cholangiocarcinoma cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DN/SRR9697872_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DN/SRR9697872_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DT/SRR9697763_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DT/SRR9697763_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DT/SRR9697869_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DT/SRR9697869_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DT/SRR9697870_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DT/SRR9697870_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/RT/SRR9697597_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/RT/SRR9697597_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/RT/SRR9697711_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/RT/SRR9697711_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/RT/SRR9697883_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/RT/SRR9697883_2.fastq.gz
+
+PatientID--4273
+   ├──README--Rectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/DN/SRR9697865_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/DN/SRR9697865_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/DT/SRR9697866_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/DT/SRR9697866_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/DT/SRR9697871_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/DT/SRR9697871_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/RT/SRR9697773_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/RT/SRR9697773_2.fastq.gz
+
+PatientID--4274
+   ├──README--Rectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/DN/SRR9697878_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/DN/SRR9697878_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/DT/SRR9697867_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/DT/SRR9697867_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/DT/SRR9697868_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/DT/SRR9697868_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/RT/SRR9697784_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/RT/SRR9697784_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/RT/SRR9697786_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/RT/SRR9697786_2.fastq.gz
+
+PatientID--4275
+   ├──README--Colorectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/DN/SRR9697794_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/DN/SRR9697794_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/DT/SRR9697793_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/DT/SRR9697793_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/DT/SRR9697877_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/DT/SRR9697877_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/RT/SRR9697715_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/RT/SRR9697715_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/RT/SRR9697819_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/RT/SRR9697819_2.fastq.gz
+
+PatientID--4278
+   ├──README--Colorectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4278/DN/SRR9697792_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4278/DN/SRR9697792_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4278/DT/SRR9697791_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4278/DT/SRR9697791_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4278/RT/SRR9697717_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4278/RT/SRR9697717_2.fastq.gz
+
+PatientID--4283
+   ├──README--Colorectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DN/SRR9697788_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DN/SRR9697788_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DT/SRR9697761_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DT/SRR9697761_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DT/SRR9697789_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DT/SRR9697789_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DT/SRR9697790_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DT/SRR9697790_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/RT/SRR9697665_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/RT/SRR9697665_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/RT/SRR9697734_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/RT/SRR9697734_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/RT/SRR9697875_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/RT/SRR9697875_2.fastq.gz
+
+PatientID--4284
+   ├──README--Colorectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DN/SRR9697725_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DN/SRR9697725_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DT/SRR9697724_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DT/SRR9697724_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DT/SRR9697801_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DT/SRR9697801_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DT/SRR9697802_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DT/SRR9697802_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/RT/SRR9697656_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/RT/SRR9697656_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/RT/SRR9697658_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/RT/SRR9697658_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/RT/SRR9697659_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/RT/SRR9697659_2.fastq.gz
+
+PatientID--4285
+   ├──README--Rectal cancer 
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DN/SRR9697721_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DN/SRR9697721_2.fastq.gz
+   ├── DT
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DT/SRR9697720_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DT/SRR9697720_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DT/SRR9697722_1.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DT/SRR9697722_2.fastq.gz
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DT/SRR9697723_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DT/SRR9697723_2.fastq.gz
+   └── RT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/RT/SRR9697657_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/RT/SRR9697657_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/RT/SRR9697662_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/RT/SRR9697662_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/RT/SRR9697663_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/RT/SRR9697663_2.fastq.gz
+
+PatientID--4289
+   ├──README--Rectal cancer
+   ├── DN
+   │   ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DN/SRR9697879_1.fastq.gz
+   │   └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DN/SRR9697879_2.fastq.gz
+   └── DT
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697718_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697718_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697719_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697719_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697732_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697732_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697733_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697733_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697863_1.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697863_2.fastq.gz
+       ├── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697891_1.fastq.gz
+       └── /t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697891_2.fastq.gz

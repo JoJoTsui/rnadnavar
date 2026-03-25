@@ -1,0 +1,22 @@
+PRJNA298310
+    Study Title--Whole exome and RNA-seq of melanoma tumors
+    Paper--https://pmc.ncbi.nlm.nih.gov/articles/PMC7446107/pdf/nihms-1613069.pdf
+    Sequencing platform--Illumina
+
+
+PatientID--3812
+    |->README:Sample--SAMN04160675,SRA--SRS1112061
+    |->WES
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/WES_Tumor/SRR2634743_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/WES_Tumor/SRR2634743_2.fastq.gz
+        |->Normal
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/WES_Normal/SRR2634745_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/WES_Normal/SRR2634745_2.fastq.gz
+    |->RNA
+        |->Tumor
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/RNA_Tumor/SRR2635081_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/RNA_Tumor/SRR2635081_2.fastq.gz
+        |->Normal
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/RNA_Normal/SRR2634744_1.fastq.gz
+                /t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/RNA_Normal/SRR2634744_2.fastq.gz

@@ -1,0 +1,17 @@
+# Disease annotation for PRJNA298330
+# Source: NCBI BioSample records retrieved 2026-03-25
+# Paper: Immunogenicity of somatic mutations in human gastrointestinal cancers
+#        https://pmc.ncbi.nlm.nih.gov/articles/PMC6819109/
+#
+# patient_id 4096 in manifest links to SAMN04158405 (SRS1112760),
+# whose NCBI sample name is 4069 -- possible manifest typo; disease from biosample.
+#
+patient_id	biosample	sra	disease
+3812	SAMN04158397	SRS1112127	Bile Duct cancer
+3942	SAMN04158398	SRS1112128	Rectal cancer
+3948	SAMN04158399	SRS1112179	Esophageal cancer
+3978	SAMN04158401	SRS1112180	Bile Duct cancer
+3995	SAMN04158402	SRS1112231	Colon cancer
+4007	SAMN04158403	SRS1112234	Colon cancer
+4032	SAMN04158404	SRS1112293	Colon cancer
+4096	SAMN04158405	SRS1112760	Pancreatic cancer

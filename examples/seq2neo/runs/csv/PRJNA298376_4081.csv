@@ -1,0 +1,4 @@
+patient,status,sample,lane,fastq_1,fastq_2
+PRJNA298376_4081,0,PRJNA298376_4081DN,LX,/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/DN/SRR9697896_1.fastq.gz,/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/DN/SRR9697896_2.fastq.gz
+PRJNA298376_4081,1,PRJNA298376_4081DT,LX,/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/DT/SRR9697897_1.fastq.gz,/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/DT/SRR9697897_2.fastq.gz
+PRJNA298376_4081,2,PRJNA298376_4081RT,LX,/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/RT/SRR9697629_1.fastq.gz,/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/RT/SRR9697629_2.fastq.gz
