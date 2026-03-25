@@ -45,7 +45,7 @@ except ImportError:
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.common import (
-    normalize_disease, is_eligible, sample_key,
+    is_eligible, sample_key,
     MOD_STATUS_CODE, REQUIRED_MODALITIES,
 )
 
@@ -155,8 +155,11 @@ def write_sample_csv(sample: dict, csv_path: Path, lane: str):
 
 def build_command(cfg: dict, csv_path: Path, outdir: Path) -> list:
     cmd  = ["micromamba", "run", "-n", cfg["micromamba_env"]]
-    cmd += ["nextflow", "run", cfg["main_nf"]]
-    cmd += ["-c", cfg["rdv_conf"]]
+    cmd += ["nextflow", "run"]
+    if cfg.get("main_nf"):
+        cmd.append(cfg["main_nf"])
+    if cfg.get("rdv_conf"):
+        cmd += ["-c", cfg["rdv_conf"]]
     cmd += ["--input", str(csv_path)]
     cmd += ["--outdir", str(outdir)]
     if cfg.get("offline"):
@@ -177,6 +180,36 @@ def build_env(cfg: dict) -> dict:
     if cfg.get("nxf_conda_usemamba"):
         env["NXF_CONDA_USEMAMBA"] = str(cfg["nxf_conda_usemamba"])
     return env
+
+
+def format_shell_command(cfg: dict, cmd: list) -> str:
+    """Format the full shell-equivalent command including env var prefixes."""
+    env_prefix = []
+    if cfg.get("https_proxy"):
+        env_prefix.append(f'HTTPS_PROXY="{cfg["https_proxy"]}"')
+    if cfg.get("nxf_conda_cachedir"):
+        env_prefix.append(f'NXF_CONDA_CACHEDIR="{cfg["nxf_conda_cachedir"]}"')
+    if cfg.get("nxf_conda_usemamba"):
+        env_prefix.append(f'NXF_CONDA_USEMAMBA={cfg["nxf_conda_usemamba"]}')
+    # join env vars on one line, then the command as a single line
+    env_str  = " ".join(env_prefix)
+    cmd_str  = " ".join(cmd)
+    return f"{env_str} \\\n  {cmd_str}" if env_str else cmd_str
+
+
+def validate_config(cfg: dict):
+    """Abort with a clear message if required pipeline paths are not set."""
+    missing = []
+    if not cfg.get("main_nf"):
+        missing.append("main_nf")
+    if not cfg.get("rdv_conf"):
+        missing.append("rdv_conf")
+    if missing:
+        sys.exit(
+            f"ERROR: required config values not set: {missing}\n"
+            f"Edit config/runner.yaml and set:\n"
+            + "\n".join(f"  {k}: /path/to/..." for k in missing)
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -291,10 +324,13 @@ def main():
         print(f"[{'DRY' if dry_run else 'RUN'}]  {key}  {tag}")
         print(f"       csv : {csv_path}")
         print(f"       out : {outdir}")
-        print(f"       cmd : {' '.join(cmd)}")
+        print(f"       cmd : {format_shell_command(cfg, cmd)}")
 
         if dry_run:
             continue
+
+        # ── validate config before first real execution ───────────────────
+        validate_config(cfg)
 
         # ── execute ───────────────────────────────────────────────────────
         state[key] = {"status": "running", "started": datetime.now().isoformat(),

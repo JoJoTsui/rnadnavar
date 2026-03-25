@@ -10,8 +10,8 @@
 
 # ── Nextflow pipeline ─────────────────────────────────────────────────────
 # Set these to wherever the rnadnavar repo lives on this machine.
-main_nf:  ""   # e.g. /your/path/rnadnavar/main.nf
-rdv_conf: ""   # e.g. /your/path/rnadnavar/examples/seq2neo/seq2neo.shared.config
+main_nf:  /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/main.nf
+rdv_conf: /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/seq2neo.shared.config
 
 # ── Conda / Nextflow env ───────────────────────────────────────────────────
 nxf_conda_cachedir: /t9k/mnt/joey/nf_conda_envs
