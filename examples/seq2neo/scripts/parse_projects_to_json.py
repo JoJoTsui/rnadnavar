@@ -254,13 +254,27 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    ap.add_argument("--seq2neo", default=str(SEQ2NEO_DEFAULT),
-                    help="seq2neo root directory (default: parent of scripts/)")
+    ap.add_argument("--seq2neo", default=None,
+                    help="seq2neo data root (overrides config-yaml and built-in default)")
+    ap.add_argument("--config-yaml", default=None, dest="config_yaml",
+                    help="runner.yaml path — reads seq2neo_root from it when --seq2neo is not set")
     ap.add_argument("--out", default=None,
                     help="Output JSON path (default: <seq2neo>/data/processed/merged.json)")
     args = ap.parse_args()
 
-    root     = Path(args.seq2neo)
+    # resolve seq2neo root: CLI > runner.yaml > sibling default
+    if args.seq2neo:
+        root = Path(args.seq2neo)
+    elif args.config_yaml and Path(args.config_yaml).exists():
+        try:
+            import yaml
+            cfg = yaml.safe_load(Path(args.config_yaml).read_text()) or {}
+            root = Path(cfg.get("seq2neo_root", str(SEQ2NEO_DEFAULT)))
+        except ImportError:
+            sys.exit("PyYAML required to read --config-yaml:  pip install pyyaml")
+    else:
+        root = SEQ2NEO_DEFAULT
+
     out_path = Path(args.out) if args.out else root / "data" / "processed" / "merged.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
