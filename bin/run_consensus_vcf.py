@@ -76,6 +76,12 @@ def argparser():
         dest="include_non_canonical",
         help="Include non-canonical chromosomes (by default, only chr1-22, X, Y, M are included)",
     )
+    parser.add_argument(
+        "--neoantigen",
+        action="store_true",
+        default=False,
+        help="When set, compute AD_BY_CALLER and AF_BY_CALLER INFO fields from harmonized FORMAT fields",
+    )
     return parser.parse_args()
 
 
@@ -203,6 +209,7 @@ def main():
         snv_threshold=args.snv_thr,
         indel_threshold=args.indel_thr,
         include_non_canonical=args.include_non_canonical,
+        neoantigen=args.neoantigen,
     )
 
     print(f"\n{'=' * 60}")

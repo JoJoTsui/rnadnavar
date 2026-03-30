@@ -1226,6 +1226,44 @@
                     "hidden": true
                 }
             }
+        },
+        "neoantigen_workflow_options": {
+            "title": "Neoantigen workflow options",
+            "type": "object",
+            "fa_icon": "fas fa-dna",
+            "description": "Parameters for the opt-in neoantigen preparation workflow branch.",
+            "properties": {
+                "enable_neoantigen_workflow": {
+                    "type": "boolean",
+                    "default": false,
+                    "fa_icon": "fas fa-toggle-off",
+                    "description": "Enable the opt-in neoantigen preparation workflow branch."
+                },
+                "neoantigen_input_source": {
+                    "type": "string",
+                    "default": "consensus",
+                    "fa_icon": "fas fa-file-medical-alt",
+                    "description": "VCF source for neoantigen output: 'consensus' (multi-caller consensus VCF) or 'mutect2' (Mutect2-filtered VCF).",
+                    "enum": ["consensus", "mutect2"]
+                },
+                "salmon_index": {
+                    "type": "string",
+                    "fa_icon": "fas fa-folder",
+                    "description": "Path to a pre-built Salmon v1.11.x SSHash-based index directory. Required when enable_neoantigen_workflow is true. Must be built with Salmon v1.11.x; indices from v1.10.x are incompatible."
+                },
+                "salmon_libtype": {
+                    "type": "string",
+                    "default": "A",
+                    "fa_icon": "fas fa-sliders-h",
+                    "description": "Library type passed to salmon quant --libType. Default 'A' enables automatic detection."
+                },
+                "salmon_gc_bias": {
+                    "type": "boolean",
+                    "default": false,
+                    "fa_icon": "fas fa-chart-bar",
+                    "description": "Pass --gcBias to salmon quant to enable fragment-level GC bias correction."
+                }
+            }
         }
     },
     "allOf": [
@@ -1261,6 +1299,9 @@
         },
         {
             "$ref": "#/$defs/generic_options"
+        },
+        {
+            "$ref": "#/$defs/neoantigen_workflow_options"
         },
         {
             "if": {

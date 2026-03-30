@@ -1,0 +1,49 @@
+# runner.yaml — neoantigen workflow batch execution config
+#
+# The only values you need to set before first use:
+#   main_nf      — absolute path to rnadnavar/main.nf on this machine
+#   rdv_conf     — absolute path to neoantigen.shared.config on this machine
+#   seq2neo_root — where data/output/state will be written
+#
+# Everything else has sensible defaults.
+# All values can be overridden at runtime via CLI flags.
+
+# ── Nextflow pipeline ─────────────────────────────────────────────────────
+# Set these to wherever the rnadnavar repo lives on this machine.
+main_nf:  /path/to/rnadnavar/main.nf
+rdv_conf: /path/to/rnadnavar/examples/neoantigen/neoantigen.shared.config
+
+# ── Conda / Nextflow env ───────────────────────────────────────────────────
+nxf_conda_cachedir: /path/to/nf_conda_envs
+nxf_conda_usemamba: "true"
+micromamba_env: nextflow          # micromamba run -n <this>
+
+# ── Network proxy (leave empty to disable) ────────────────────────────────
+https_proxy: ""
+
+# ── Data root (all relative paths below are anchored here) ────────────────
+# Code (scripts/) is in the repo; everything else goes under seq2neo_root.
+seq2neo_root: /path/to/neoantigen_data
+
+merged_json: data/processed/merged.json   # input: parsed sample database
+csv_dir:     runs/csv                     # generated per-sample nextflow CSVs
+outdir_base: output                       # per-sample nextflow output dirs
+state_file:  runs/run_state.json          # resume state tracker
+
+# ── Execution ─────────────────────────────────────────────────────────────
+lane: LX
+dry_run: false
+resume:  true    # pass -resume to nextflow
+offline: true    # pass -offline to nextflow
+max_parallel: 1  # samples to run concurrently (1 = sequential)
+
+# ── Retry policy ──────────────────────────────────────────────────────────
+max_retries: 1
+
+# ── Completion check ──────────────────────────────────────────────────────
+# All globs must match ≥1 file under outdir/<project>_<patient>/ for a
+# sample to be considered successfully finished.
+completion_artifacts:
+  - "**/*.neoantigen.vcf.gz"
+  - "**/salmon/quant.sf"
+  - "**/pipeline_info/execution_trace*.txt"

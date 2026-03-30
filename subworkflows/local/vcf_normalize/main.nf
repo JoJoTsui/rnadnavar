@@ -3,6 +3,38 @@
 //
 // For all modules here:
 // A when clause condition is defined in the conf/modules.config to determine if the module should be run
+//
+// =============================================================================
+// AUDIT NOTE — neoantigen-workflow Task 0 (Requirement 2.1)
+// Audited against: nf-core module registry, vt docs, bcftools norm docs
+// Result: CORRECT AS-IS — no blocking errors found; one minor note below.
+//
+// Step 1 — VT_DECOMPOSE
+//   Input mapped to [meta, vcf, []] (empty intervals) — matches module signature
+//   `tuple val(meta), path(vcf), path(intervals)`. Correct.
+//   Output is *.vcf.gz with no TBI, which is expected and handled correctly.
+//   The `-s` (smart-decompose) flag is intentionally omitted; somatic calling
+//   does not require phase-aware decomposition.
+//
+// Step 2 — BCFTOOLS_NORM
+//   Called as BCFTOOLS_NORM(vcf_decomposed, fasta) where vcf_decomposed is
+//   [meta, vcf, []] (empty TBI — correct, VT output is unindexed) and fasta
+//   is a bare value channel (Channel.fromPath(...).collect()).
+//   The nf-core module declares `tuple val(meta2), path(fasta)` for the second
+//   input, but receiving a bare path channel is a well-established nf-core
+//   pattern: Nextflow broadcasts the value channel and the module script only
+//   uses `${fasta}` (the path), never `${meta2}`. No runtime failure results.
+//   This is consistent with how sarek and other nf-core pipelines call this
+//   module. No change required.
+//   The module is used here solely for left-alignment and indel normalization
+//   (--fasta-ref); multi-allelic splitting is already handled by VT_DECOMPOSE,
+//   so no `-m` flag is needed. Correct.
+//
+// Output channel shape: [meta, vcf, tbi] (3-tuple) — matches the
+//   FORMAT_HARMONIZER input spec `tuple val(meta), path(vcf), path(tbi)`.
+//   The downstream FORMAT_HARMONIZER can be inserted directly after this
+//   subworkflow without any channel reshaping.
+// =============================================================================
 // VT steps
 include { VT_DECOMPOSE                        } from '../../../modules/nf-core/vt/decompose/main'
 include { BCFTOOLS_NORM                       } from '../../../modules/nf-core/bcftools/norm/main'

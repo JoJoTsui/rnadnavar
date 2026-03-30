@@ -198,6 +198,7 @@ def create_output_header(
     sample_name,
     include_rescue_fields=False,
     include_non_canonical=False,
+    neoantigen=False,
 ):
     """
     Create output VCF header with all INFO fields.
@@ -490,6 +491,23 @@ def create_output_header(
         "VAF values from each caller with modality prefix (format: MODALITY_caller:VAF|...)",
     )
 
+    # Add neoantigen-specific INFO fields if requested
+    if neoantigen:
+        add_info_safe(
+            new_header,
+            "AD_BY_CALLER",
+            ".",
+            "String",
+            "Allele depths from each caller (format: caller:ref,alt|caller:ref,alt|...)",
+        )
+        add_info_safe(
+            new_header,
+            "AF_BY_CALLER",
+            ".",
+            "String",
+            "Allele frequencies from each caller (format: caller:value|caller:value|...)",
+        )
+
     # Rescue indicator
     add_info_safe(
         new_header,
@@ -622,6 +640,7 @@ def write_union_vcf(
     snv_threshold=2,
     indel_threshold=2,
     include_non_canonical=False,
+    neoantigen=False,
 ):
     """
     Write union VCF with all variants and aggregated information using pysam.
@@ -731,6 +750,7 @@ def write_union_vcf(
         sample_name,
         include_rescue_fields,
         include_non_canonical=include_non_canonical,
+        neoantigen=neoantigen,
     )
 
     # Determine write mode
@@ -1138,6 +1158,25 @@ def write_union_vcf(
                         prefixed_vaf_by_caller.append(f"{prefixed_caller}:{vaf_val}")
             if prefixed_vaf_by_caller:
                 record.info["VAF_BY_CALLER"] = "|".join(prefixed_vaf_by_caller)
+
+        # Add neoantigen-specific INFO fields (AD_BY_CALLER, AF_BY_CALLER)
+        if neoantigen:
+            ad_by_caller_parts = []
+            af_by_caller_parts = []
+            for caller in data["callers"]:
+                if not is_consensus_caller(caller):
+                    gt_info = data["genotypes"].get(caller, {})
+                    ad_val = gt_info.get("AD") if gt_info else None
+                    vaf_val = gt_info.get("VAF") if gt_info else None
+                    caller_label = prefix_caller(caller, modality_map)
+                    if ad_val is not None:
+                        ad_by_caller_parts.append(f"{caller_label}:{ad_val}")
+                    if vaf_val is not None:
+                        af_by_caller_parts.append(f"{caller_label}:{vaf_val:.4f}")
+            if ad_by_caller_parts:
+                record.info["AD_BY_CALLER"] = "|".join(ad_by_caller_parts)
+            if af_by_caller_parts:
+                record.info["AF_BY_CALLER"] = "|".join(af_by_caller_parts)
 
         # Write record
         vcf_out.write(record)

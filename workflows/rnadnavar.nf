@@ -44,6 +44,10 @@ include { SECOND_RESCUE_WORKFLOW                                    } from '../s
 // Filter RNA
 include { MAF_FILTERING_RNA                                         } from '../subworkflows/local/maf_rna_filtering'
 
+// Neoantigen workflow
+include { NEOANTIGEN_WORKFLOW                                        } from '../subworkflows/local/neoantigen_workflow/main'
+include { FORMAT_HARMONIZER                                          } from '../modules/local/format_harmonizer/main'
+
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -89,6 +93,19 @@ workflow RNADNAVAR {
         error "ERROR: VEP cache path is required. Please provide --vep_cache parameter."
     }
     vep_cache = Channel.fromPath(params.vep_cache).collect()
+
+    // Neoantigen workflow pre-flight validation
+    if (params.enable_neoantigen_workflow) {
+        if (!params.salmon_index) {
+            error "ERROR: --salmon_index is required when enable_neoantigen_workflow is true."
+        }
+        if (!file(params.salmon_index).isDirectory()) {
+            error "ERROR: --salmon_index path '${params.salmon_index}' does not exist or is not a directory."
+        }
+        if (!['consensus', 'mutect2'].contains(params.neoantigen_input_source)) {
+            error "ERROR: --neoantigen_input_source must be 'consensus' or 'mutect2', got '${params.neoantigen_input_source}'."
+        }
+    }
 
     // STEP 0: Build reference and indices if needed
     PREPARE_REFERENCE_AND_INTERVALS()
@@ -204,6 +221,29 @@ workflow RNADNAVAR {
     filtered_maf = BAM_PROCESSING.out.maf
     reports = reports.mix(BAM_PROCESSING.out.reports)
     versions = versions.mix(BAM_PROCESSING.out.versions)
+
+    // Neoantigen workflow (opt-in, runs after BAM_PROCESSING)
+    if (params.enable_neoantigen_workflow) {
+        ch_salmon_index = Channel.fromPath(params.salmon_index, type: 'dir').collect()
+
+        // Get Mutect2 VCFs from normalized per-caller VCFs
+        ch_mutect2_vcf = BAM_PROCESSING.out.vcf_normalized.filter { meta, vcf, tbi ->
+            meta.variantcaller == 'mutect2'
+        }
+
+        // TODO: FORMAT_HARMONIZER integration — insert between VCF_NORMALIZE and VCF_CONSENSUS
+        // inside BAM_VARIANT_CALLING_PRE_POST_PROCESSING subworkflow when that subworkflow
+        // exposes an intermediate normalized-VCF channel for interception.
+
+        NEOANTIGEN_WORKFLOW(
+            input_sample,
+            ch_salmon_index,
+            BAM_PROCESSING.out.vcf,
+            ch_mutect2_vcf,
+        )
+
+        versions = versions.mix(NEOANTIGEN_WORKFLOW.out.versions)
+    }
 
     // === Store first-round outputs for second rescue ===
     // DNA consensus VCF (executed once only, status <= 1 for DNA normal+tumor)
