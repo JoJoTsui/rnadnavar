@@ -69,7 +69,7 @@ All new parameters are declared in `nextflow.config` under the `// Neoantigen wo
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `enable_neoantigen_workflow` | boolean | `false` | Activates the neoantigen preparation branch. When `false`, the pipeline runs identically to the pre-feature state. |
-| `neoantigen_input_source` | string | `'consensus'` | VCF source for the neoantigen output. Enum: `['consensus', 'mutect2']`. |
+| `neoantigen_input_source` | string | `'mutect2'` | VCF source for neoantigen output: `consensus` or `mutect2`. See [VCF source selection](#vcf-source-selection-mutect2-vs-consensus) below. |
 | `salmon_index` | string | `null` | Absolute path to a pre-built Salmon v1.11.x SSHash index directory. Required when `enable_neoantigen_workflow = true`. |
 | `salmon_libtype` | string | `'A'` | Library type passed to `salmon quant --libType`. `'A'` enables automatic detection. |
 | `salmon_gc_bias` | boolean | `false` | When `true`, passes `--gcBias` to `salmon quant` for fragment-level GC bias correction. |
@@ -291,6 +291,40 @@ process {
     }
 }
 ```
+
+---
+
+## VCF source selection: `mutect2` vs `consensus`
+
+### Why `mutect2` is the recommended default
+
+For neoantigen prediction tools (pVACseq, seq2neo), the Mutect2-filtered VCF is the correct input:
+
+| Property | Mutect2 VCF | Consensus VCF |
+|----------|-------------|---------------|
+| Per-sample FORMAT | ✓ GT/AD/AF/DP/GQ/F1R2/F2R1/SB | ✗ FORMAT column is `.` (empty) |
+| Variant count | ~91 (filtered somatic) | ~26,000+ (unfiltered union of all callers) |
+| pVACseq/seq2neo compatible | ✓ | ✗ (no FORMAT data) |
+| Filter status | Post-filtered (PASS + soft-filtered) | All variants from all callers |
+
+The consensus VCF is a multi-caller aggregation designed for data labeling. All variant evidence lives in INFO fields (`VAF_BY_CALLER`, `DP_BY_CALLER`, etc.) rather than per-sample FORMAT — intentional for the pipeline's primary purpose, but incompatible with neoantigen tools that expect per-sample genotype data.
+
+### Caller FORMAT field differences
+
+| Field | Mutect2 | DeepSomatic | Strelka2 |
+|-------|---------|-------------|----------|
+| `GT` | ✓ | ✓ | ✗ |
+| `AD` (ref,alt) | ✓ `Number=R` | ✓ `Number=R` | ✗ (uses `AU`/`CU`/`GU`/`TU` or `TAR`/`TIR`) |
+| `AF` | ✓ (named `AF`) | ✗ (named `VAF`) | ✗ (must compute from base counts) |
+| `DP` | ✓ | ✓ | ✓ |
+| `GQ` | ✓ | ✓ | ✗ |
+| `F1R2`/`F2R1`/`SB` | ✓ | ✗ | ✗ |
+
+This is why `FORMAT_HARMONIZER` normalizes Strelka2 and DeepSomatic FORMAT fields to Mutect2 conventions before the consensus step. However, the consensus VCF itself still has no per-sample FORMAT data by design — it cannot be aligned to Mutect2 FORMAT because it represents a union across callers, not a single caller's genotype call.
+
+### When to use `consensus`
+
+Use `neoantigen_input_source = 'consensus'` only if your downstream tool can consume the INFO-field-based format and you specifically want the multi-caller union. The consensus VCF with `--neoantigen` adds `AD_BY_CALLER` and `AF_BY_CALLER` INFO fields encoding per-caller allele depths and frequencies.
 
 ---
 

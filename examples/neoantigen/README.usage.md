@@ -51,7 +51,37 @@ The only value you need to change before first use is `salmon_index`.
 
 ---
 
-## Parameters
+## VCF source selection: `mutect2` vs `consensus`
+
+### Why `mutect2` is the recommended default
+
+For neoantigen prediction tools (pVACseq, seq2neo), the Mutect2-filtered VCF is the correct input:
+
+| Property | Mutect2 VCF | Consensus VCF |
+|----------|-------------|---------------|
+| Per-sample FORMAT | ✓ GT/AD/AF/DP/GQ/F1R2/F2R1/SB | ✗ FORMAT column is `.` (empty) |
+| Variant count | ~91 (filtered somatic) | ~26,000+ (unfiltered union of all callers) |
+| pVACseq compatible | ✓ | ✗ (no FORMAT data) |
+| Filter status | Post-filtered (PASS + soft-filtered) | All variants from all callers |
+
+The consensus VCF is a multi-caller aggregation designed for data labeling — all variant evidence lives in INFO fields (`VAF_BY_CALLER`, `DP_BY_CALLER`, etc.) rather than per-sample FORMAT. This is intentional and correct for the pipeline's primary purpose, but incompatible with neoantigen tools that expect per-sample genotype data.
+
+### Caller FORMAT field differences
+
+| Field | Mutect2 | DeepSomatic | Strelka2 |
+|-------|---------|-------------|----------|
+| `GT` | ✓ | ✓ | ✗ |
+| `AD` (ref,alt) | ✓ Number=R | ✓ Number=R | ✗ (uses AU/CU/GU/TU or TAR/TIR) |
+| `AF` | ✓ (named `AF`) | ✗ (named `VAF`) | ✗ (must compute from base counts) |
+| `DP` | ✓ | ✓ | ✓ |
+| `GQ` | ✓ | ✓ | ✗ |
+| `F1R2/F2R1/SB` | ✓ | ✗ | ✗ |
+
+This is why `FORMAT_HARMONIZER` exists — it normalizes Strelka2 and DeepSomatic FORMAT fields to Mutect2 conventions before the consensus step. However, the consensus VCF itself still has no per-sample FORMAT data by design.
+
+### When to use `consensus`
+
+Use `neoantigen_input_source = 'consensus'` only if your downstream tool can consume the INFO-field-based format and you specifically want the multi-caller union. The consensus VCF with `--neoantigen` adds `AD_BY_CALLER` and `AF_BY_CALLER` INFO fields that encode per-caller allele depths and frequencies.
 
 ### Neoantigen-specific options
 
