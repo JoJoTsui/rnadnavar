@@ -22,19 +22,18 @@ process QUANT_TSV_NORMALIZE {
     python3 <<-EOF
     import sys
 
-    with open('${quant_sf}') as f:
-        lines = f.readlines()
+    n_lines = 0
+    with open('${quant_sf}') as f_in, open('quant.tsv', 'w') as f_out:
+        for line in f_in:
+            n_lines += 1
+            parts = line.rstrip('\\n').split('\\t')
+            if parts[0] != 'Name':
+                parts[0] = parts[0].split('|')[0]
+            f_out.write('\\t'.join(parts) + '\\n')
 
-    if len(lines) < 2:
+    if n_lines < 2:
         print("ERROR: quant.sf is empty or has fewer than 2 lines", file=sys.stderr)
         sys.exit(1)
-
-    with open('quant.tsv', 'w') as out:
-        for line in lines:
-            parts = line.rstrip('\\n').split('\\t')
-            if parts[0] != 'Name':  # skip header
-                parts[0] = parts[0].split('|')[0]
-            out.write('\\t'.join(parts) + '\\n')
     EOF
 
     cat <<-END_VERSIONS > versions.yml

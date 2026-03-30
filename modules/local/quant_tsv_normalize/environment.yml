@@ -1,0 +1,6 @@
+name: quant_tsv_normalize
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - conda-forge::python=3.11
