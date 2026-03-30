@@ -2,7 +2,7 @@ process SALMON_QUANT {
     tag "$meta.id"
     label 'process_medium'
 
-    conda "bioconda::salmon=1.11.4 conda-forge::libstdcxx-ng>=14"
+    conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/salmon:1.11.4--h43eeafb_0' :
         'quay.io/biocontainers/salmon:1.11.4--h43eeafb_0' }"
@@ -43,7 +43,6 @@ process SALMON_QUANT {
         ${args} \\
         ${read_args} \\
         -p ${task.cpus} \\
-        --validateMappings \\
         -o ${prefix}
 
     cat <<-END_VERSIONS > versions.yml
