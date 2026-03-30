@@ -14,47 +14,64 @@ All new code paths are gated behind `enable_neoantigen_workflow = true`. Existin
 
 ## Quick start
 
-Before first use, set three values in `config/runner.yaml`:
+```bash
+# 1. Set your salmon_index path in neoantigen.shared.config
+#    (see "Building the Salmon index" below)
 
-| Key | What to set |
-|-----|-------------|
-| `main_nf` | absolute path to `rnadnavar/main.nf` on this machine |
-| `rdv_conf` | absolute path to `examples/neoantigen/neoantigen.shared.config` on this machine |
-| `seq2neo_root` | where data/output/state will be written |
+# 2. Preview the command (dry run)
+bash examples/neoantigen/run.sh --dry-run
 
-Then set `salmon_index` in `neoantigen.shared.config` to the path of your pre-built Salmon v1.11.x index (see [Building the Salmon index](#building-the-salmon-index) below).
+# 3. Run with the test dataset
+bash examples/neoantigen/run.sh
+
+# 4. Run with your own sample
+bash examples/neoantigen/run.sh \
+    --input /path/to/my_sample.csv \
+    --outdir /path/to/output
+```
+
+The `run.sh` script defaults to the small test dataset at
+`/t9k/mnt/hdd/work/Vax/sequencing/aim_exp/rdv_test/C008801/input/test.rdv.shared.csv`,
+which is the same dataset used for pipeline debugging and CI.
+
+---
+
+## Files in this directory
+
+```
+examples/neoantigen/
+├── neoantigen.shared.config   # full pipeline config (references + tools + neoantigen params)
+├── run.sh                     # single-sample launcher (debug / tutorial)
+└── README.usage.md            # this file
+```
+
+`neoantigen.shared.config` contains all standard pipeline params (genome, tools, reference
+files) inherited from `seq2neo.shared.config`, plus the neoantigen-specific params on top.
+The only value you need to change before first use is `salmon_index`.
 
 ---
 
 ## Parameters
 
-### Neoantigen workflow options
+### Neoantigen-specific options
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `enable_neoantigen_workflow` | boolean | `false` | Activates the neoantigen preparation branch. When `false`, the pipeline runs identically to the standard data labeling workflow. |
-| `neoantigen_input_source` | string | `'consensus'` | VCF source for the neoantigen output. Accepted values: `consensus` (multi-caller consensus VCF) or `mutect2` (Mutect2-filtered VCF). |
-| `salmon_index` | string | `null` | **Required when `enable_neoantigen_workflow = true`.** Absolute path to a pre-built Salmon v1.11.x SSHash index directory. |
-| `salmon_libtype` | string | `'A'` | Library type passed to `salmon quant --libType`. `'A'` enables automatic detection. |
-| `salmon_gc_bias` | boolean | `false` | When `true`, passes `--gcBias` to `salmon quant` to enable fragment-level GC bias correction. Safe to enable; adds a few minutes per sample. |
+| `enable_neoantigen_workflow` | boolean | `false` | Activates the neoantigen preparation branch. |
+| `neoantigen_input_source` | string | `'consensus'` | VCF source for neoantigen output: `consensus` or `mutect2`. |
+| `salmon_index` | string | `null` | **Required.** Absolute path to a pre-built Salmon v1.11.x SSHash index directory. |
+| `salmon_libtype` | string | `'A'` | Library type passed to `salmon quant --libType`. `'A'` = automatic detection. |
+| `salmon_gc_bias` | boolean | `false` | Pass `--gcBias` to `salmon quant` for GC bias correction. |
+
+All other params (genome, tools, reference files, etc.) are the same as `seq2neo.shared.config`.
 
 ### Pre-flight validation
 
-The pipeline validates parameters before launching any workflow steps:
+The pipeline validates before launching any workflow steps:
 
-- If `enable_neoantigen_workflow = true` and `salmon_index` is not set → error and exit.
-- If `salmon_index` path does not exist or is not a directory → error and exit.
-- If `neoantigen_input_source` is not `consensus` or `mutect2` → error and exit.
-
----
-
-## Required reference files
-
-### Salmon v1.11.x index
-
-A pre-built Salmon v1.11.x SSHash-based index directory is required. This index **cannot** be shared with Salmon v1.10.x or earlier — the index format changed in v1.11.x (SSHash-based k-mer index, replacing the prior pufferfish/ccDBG index). Indices built with v1.10.x must be rebuilt.
-
-See [Building the Salmon index](#building-the-salmon-index) below.
+- `enable_neoantigen_workflow = true` and `salmon_index` not set → error and exit.
+- `salmon_index` path does not exist or is not a directory → error and exit.
+- `neoantigen_input_source` not `consensus` or `mutect2` → error and exit.
 
 ---
 
@@ -63,77 +80,71 @@ See [Building the Salmon index](#building-the-salmon-index) below.
 Use the provided script to download Gencode v49 references and build a decoy-aware Salmon v1.11.x index:
 
 ```bash
-bash /path/to/rnadnavar/scripts/build_salmon_index.sh
+bash /path/to/rnadnavar/scripts/build_salmon_index.sh --outdir /path/to/salmon_indices
 ```
 
-The script:
-- Downloads `gencode.v49.transcripts.fa.gz` and `GRCh38.primary_assembly.genome.fa.gz` from the GENCODE v49 EBI FTP via `aria2c`
-- Extracts decoy sequence IDs from the genome FASTA
-- Concatenates transcriptome + genome into a gentrome file
-- Runs `salmon index` with the `--gencode` flag
+Then set `salmon_index` in `neoantigen.shared.config`:
 
-### Notes on the `--gencode` flag
+```groovy
+salmon_index = '/path/to/salmon_indices/salmon_index_gencode_v49_salmon_v1.11'
+```
 
-The `--gencode` flag is **required** when indexing Gencode transcriptomes. Gencode FASTA headers use a pipe-delimited format (e.g., `ENST00000456328.2|ENSG00000223972.5|...`). Without `--gencode`, Salmon cannot correctly parse these headers during index construction. This pipe-delimited format also means the pipeline's transcript name normalization step (which produces `quant.tsv` from `quant.sf`) is necessary for downstream tools.
+### Notes
 
-### Gencode v49 details
-
-| Field | Value |
-|-------|-------|
-| Release | v49 |
-| Genome assembly | GRCh38.p14 |
-| Ensembl release | 115 |
-| Freeze date | February 2025 |
-| Release date | September 2025 |
-
-### Index version incompatibility
-
-Salmon v1.11.x adopts a new SSHash-based k-mer index format. Indices built with v1.10.3 or earlier are **not compatible** with v1.11.x and must be rebuilt using `salmon index` from v1.11.x before use.
+- The `--gencode` flag is **required** when indexing Gencode transcriptomes. Gencode FASTA headers use pipe-delimited format (e.g., `ENST00000456328.2|ENSG00000223972.5|...`). The pipeline's `QUANT_TSV_NORMALIZE` step strips these suffixes to produce `quant.tsv` for downstream tools.
+- **Salmon v1.11.x index incompatibility**: v1.11.x uses a new SSHash-based k-mer index. Indices built with v1.10.x or earlier are **not compatible** and must be rebuilt.
+- Gencode v49: GRCh38.p14, Ensembl 115, released September 2025.
 
 ---
 
 ## Expected outputs
 
-For each sample, the pipeline publishes to `${outdir}/<sample_id>/`:
-
-### Neoantigen VCF (DNA tumor samples, status=1)
-
 ```
-<outdir>/<sample_id>/neoantigen/
-├── <sample_id>.neoantigen.vcf.gz      # bgzip-compressed neoantigen-ready VCF
-└── <sample_id>.neoantigen.vcf.gz.tbi  # tabix index
-```
-
-### Salmon quantification (RNA tumor samples, status=2)
-
-```
-<outdir>/<sample_id>/salmon/
-├── quant.sf                  # transcript-level quantification (Gencode pipe-delimited names)
-├── quant.tsv                 # quant.sf with Name column normalized to plain transcript IDs
-├── lib_format_counts.json    # inferred library format counts
-├── cmd_info.json             # exact salmon quant command used (reproducibility)
-└── aux_info/                 # auxiliary output directory
-    ├── meta_info.json        # run metadata and mapping statistics
-    ├── ambig_info.tsv        # ambiguous mapping information
-    └── fld.gz                # fragment length distribution
+${outdir}/<sample_id>/
+├── neoantigen/                              # DNA tumor samples (status=1)
+│   ├── <sample_id>.neoantigen.vcf.gz
+│   └── <sample_id>.neoantigen.vcf.gz.tbi
+│
+└── salmon/                                  # RNA tumor samples (status=2)
+    ├── quant.sf                             # raw Salmon output (Gencode pipe-delimited names)
+    ├── quant.tsv                            # normalized transcript IDs (plain ENST IDs)
+    ├── lib_format_counts.json
+    ├── cmd_info.json
+    └── aux_info/
+        ├── meta_info.json
+        ├── ambig_info.tsv
+        └── fld.gz
 ```
 
-`quant.tsv` is the post-processed version of `quant.sf` with the `Name` column normalized: everything after the first `|` is stripped (e.g., `ENST00000456328.2|ENSG00000223972.5|...` → `ENST00000456328.2`). This is the file consumed by downstream neoantigen tools.
+`quant.tsv` is the file consumed by downstream neoantigen tools (pVACseq, seq2neo).
 
 ---
 
-## Manual nextflow invocation (single sample)
+## run.sh options
+
+```
+--input  CSV     Input samplesheet CSV (default: test dataset)
+--outdir DIR     Output directory (default: output/COO8801.neoantigen)
+--main-nf PATH   Path to main.nf (default: auto-detected from repo root)
+--conf   PATH    Path to config file (default: neoantigen.shared.config)
+--dry-run        Print the nextflow command without executing
+-h, --help       Show help
+```
+
+---
+
+## Manual nextflow invocation
 
 ```bash
 REPO=/path/to/rnadnavar
-DATA=/path/to/neoantigen_data
 
-NXF_CONDA_CACHEDIR="/path/to/nf_conda_envs" \
+HTTPS_PROXY="http://10.233.17.241:3128" \
+NXF_CONDA_CACHEDIR="/t9k/mnt/joey/nf_conda_envs" \
 NXF_CONDA_USEMAMBA=true \
 micromamba run -n nextflow nextflow run \
     $REPO/main.nf \
     -c $REPO/examples/neoantigen/neoantigen.shared.config \
-    --input  $DATA/runs/csv/<sample>.csv \
-    --outdir $DATA/output/<sample> \
+    --input  /path/to/sample.csv \
+    --outdir /path/to/output \
     -offline -with-conda -resume
 ```
