@@ -8,6 +8,25 @@
 include { SALMON_QUANT        } from '../../../modules/local/salmon_quant/main'
 include { QUANT_TSV_NORMALIZE } from '../../../modules/local/quant_tsv_normalize/main'
 
+// Thin process to publish the neoantigen VCF + index to the output directory.
+// publishDir cannot be set on a subworkflow directly, so a dedicated process is used.
+process PUBLISH_NEOANTIGEN_VCF {
+    tag "$meta.id"
+    label 'process_single'
+
+    publishDir "${params.outdir}/neoantigen/${meta.id}", mode: params.publish_dir_mode
+
+    input:
+    tuple val(meta), path(vcf), path(tbi)
+
+    output:
+    tuple val(meta), path("${vcf}"), path("${tbi}")
+
+    script:
+    """
+    """
+}
+
 workflow NEOANTIGEN_WORKFLOW {
     take:
     ch_fastq        // channel: [ [meta], [reads] ] — all samples
@@ -36,6 +55,9 @@ workflow NEOANTIGEN_WORKFLOW {
     // Warn when no status=1 samples are present
     ch_neoantigen_vcf
         .ifEmpty { log.warn "NEOANTIGEN_WORKFLOW: No status=1 (DNA tumor) samples found. No neoantigen VCF will be published." }
+
+    // Publish neoantigen VCF to ${outdir}/neoantigen/<sample_id>/
+    PUBLISH_NEOANTIGEN_VCF(ch_neoantigen_vcf)
 
     // Collect software versions
     versions = versions.mix(SALMON_QUANT.out.versions)
