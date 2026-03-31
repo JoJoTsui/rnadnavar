@@ -16,30 +16,29 @@
 #   Conda envs    : /t9k/mnt/joey/nf_conda_envs/
 #
 # Expected outputs (installation validation):
-#   ${OUTDIR}/variant_calling/mutect2/   — Mutect2 VCFs
-#   ${OUTDIR}/variant_calling/strelka/   — Strelka2 VCFs
+#   ${OUTDIR}/variant_calling/mutect2/     — Mutect2 VCFs
+#   ${OUTDIR}/variant_calling/strelka/     — Strelka2 VCFs
 #   ${OUTDIR}/variant_calling/deepsomatic/ — DeepSomatic VCFs
-#   ${OUTDIR}/consensus/                 — consensus VCF + MAF
+#   ${OUTDIR}/consensus/                   — consensus VCF + MAF
+#   ${OUTDIR}/vcf_realignment/             — realigned RNA VCFs
+#   ${OUTDIR}/rescue/                      — cross-modality rescued VCFs
 #   ${OUTDIR}/pipeline_info/execution_trace_*.txt
 # ==============================================================================
 set -euo pipefail
 
-# ── Self-locate: MAIN_NF and RDV_CONF resolve from the repo, not the caller ──
+# ── Self-locate: MAIN_NF resolves from the repo, not the caller ──────────────
 # Works correctly from any working directory as long as the repo is at the shared path.
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "${HERE}/../.." && pwd)"
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 MAIN_NF="${REPO}/main.nf"
-# -- shared rnadnavar test path
-RDV_TEST_DIR="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/rnadnavar_test"
-RDV_TEST_INPUT_DIR="${RDV_TEST_DIR}/C008801/input"
-RDV_TEST_INPUT="${RDV_TEST_INPUT_DIR}/test.rdv.shared.csv"
 
-# Test dataset — small COO8801 subset, used for debugging and CI
-PATIENT_ID="COO8801"
-INPUT="${RDV_TEST_INPUT}"
-OUTDIR="output/${PATIENT_ID}.shared"
+# Shared test dataset — small COO8801 subset, used for debugging and CI
+RDV_TEST_DIR="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/rnadnavar_test"
+RDV_CONF="${RDV_TEST_DIR}/C008801/input/test.rdv.shared.config"
+INPUT="${RDV_TEST_DIR}/C008801/input/test.rdv.shared.csv"
+OUTDIR="${RDV_TEST_DIR}/output/COO8801.shared"
 
 NXF_CONDA_CACHEDIR="/t9k/mnt/joey/nf_conda_envs"
 MICROMAMBA_ENV="nextflow"
