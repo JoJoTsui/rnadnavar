@@ -5,29 +5,44 @@
 # Usage:
 #   bash examples/neoantigen/run.sh [--input CSV] [--outdir DIR] [--dry-run]
 #
-# Defaults (edit the variables below or override via CLI flags):
-#   INPUT   — shared test dataset CSV (accessible to all teammates)
-#   OUTDIR  — output/COO8801.neoantigen
+# Shared infrastructure (accessible to all teammates on this cluster):
+#   Pipeline repo : /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/
+#   Reference DBs : /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/
+#   Test dataset  : /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/rnadnavar_test/
+#   Conda envs    : /t9k/mnt/joey/nf_conda_envs/
+#
+# Defaults (no edits needed for the test dataset):
+#   MAIN_NF — resolved from this script's location inside the shared repo
+#   RDV_CONF — neoantigen.shared.config in the same directory as this script
+#   INPUT   — shared test dataset CSV (COO8801, small subset for debugging)
+#   OUTDIR  — output/COO8801.neoantigen (relative to where you run the script)
+#
+# Params you may need to change:
+#   salmon_index — set in neoantigen.shared.config; must point to a pre-built
+#                  Salmon v1.11.x index (see "Building the Salmon index" in README)
+#   OUTDIR       — override with --outdir for production runs
+#   INPUT        — override with --input for your own sample CSV
 #
 # Examples:
-#   # Run with defaults (test dataset)
+#   # Run with defaults (test dataset, dry run first)
+#   bash examples/neoantigen/run.sh --dry-run
 #   bash examples/neoantigen/run.sh
 #
 #   # Run with a custom sample
 #   bash examples/neoantigen/run.sh \
 #       --input /path/to/my_sample.csv \
 #       --outdir /path/to/output
-#
-#   # Preview the nextflow command without executing
-#   bash examples/neoantigen/run.sh --dry-run
 # ==============================================================================
 set -euo pipefail
 
-# ── Self-locate (script works from any working directory) ─────────────────────
+# ── Self-locate: MAIN_NF and RDV_CONF resolve from the repo, not the caller ──
+# This means the script works correctly regardless of which directory you run
+# it from, as long as the repo is checked out at the shared path below.
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "${HERE}/../.." && pwd)"
 
-# ── Defaults ──────────────────────────────────────────────────────────────────
+# ── Shared paths (same across all teammates on this cluster) ──────────────────
+# Pipeline
 MAIN_NF="${REPO}/main.nf"
 RDV_CONF="${HERE}/neoantigen.shared.config"
 # -- shared rnadnavar test path
@@ -35,12 +50,12 @@ RDV_TEST_DIR="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/rnadnavar_test"
 RDV_TEST_INPUT_DIR="${RDV_TEST_DIR}/C008801/input"
 RDV_TEST_INPUT="${RDV_TEST_INPUT_DIR}/test.rdv.shared.csv"
 
-# Test dataset (small, for debugging and tutorial)
+# Test dataset — small COO8801 subset, used for debugging and CI
 PATIENT_ID="COO8801"
 INPUT="${RDV_TEST_INPUT}"
 OUTDIR="output/${PATIENT_ID}.neoantigen"
 
-# CONDA environment settings
+# Conda / Nextflow environment
 NXF_CONDA_CACHEDIR="/t9k/mnt/joey/nf_conda_envs"
 MICROMAMBA_ENV="nextflow"
 HTTPS_PROXY="http://10.233.17.241:3128"

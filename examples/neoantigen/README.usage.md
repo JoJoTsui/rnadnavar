@@ -12,27 +12,38 @@ All new code paths are gated behind `enable_neoantigen_workflow = true`. Existin
 
 ---
 
+## Shared infrastructure
+
+All paths in `neoantigen.shared.config` and `run.sh` point to shared locations on this cluster, accessible to all teammates:
+
+| Resource | Shared path |
+|----------|-------------|
+| Pipeline repo | `/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/` |
+| Reference databases | `/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/` |
+| Test dataset (COO8801) | `/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/rnadnavar_test/C008801/` |
+| Conda environments | `/t9k/mnt/joey/nf_conda_envs/` |
+| Salmon index (Gencode v49) | `/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/salmon/salmon_index_gencode_v49_salmon_v1.11` |
+
+No path edits are needed to run the test dataset — everything resolves from the shared locations above.
+
+---
+
 ## Quick start
 
 ```bash
-# 1. Set your salmon_index path in neoantigen.shared.config
-#    (see "Building the Salmon index" below)
-
-# 2. Preview the command (dry run)
+# 1. Dry run — preview the nextflow command without executing
 bash examples/neoantigen/run.sh --dry-run
 
-# 3. Run with the test dataset
+# 2. Run with the shared test dataset (COO8801, small subset)
 bash examples/neoantigen/run.sh
 
-# 4. Run with your own sample
+# 3. Run with your own sample
 bash examples/neoantigen/run.sh \
     --input /path/to/my_sample.csv \
     --outdir /path/to/output
 ```
 
-The `run.sh` script defaults to the small test dataset at
-`/t9k/mnt/hdd/work/Vax/sequencing/aim_exp/rdv_test/C008801/input/test.rdv.shared.csv`,
-which is the same dataset used for pipeline debugging and CI.
+`run.sh` resolves `MAIN_NF` and `RDV_CONF` from its own location in the repo (via `$BASH_SOURCE`), so it works correctly from any working directory as long as the repo is at the shared path.
 
 ---
 
@@ -45,9 +56,22 @@ examples/neoantigen/
 └── README.usage.md            # this file
 ```
 
-`neoantigen.shared.config` contains all standard pipeline params (genome, tools, reference
-files) inherited from `seq2neo.shared.config`, plus the neoantigen-specific params on top.
-The only value you need to change before first use is `salmon_index`.
+`neoantigen.shared.config` contains all standard pipeline params (genome, tools, reference files) plus the neoantigen-specific params. All reference paths point to the shared `bio_db`. The only param you may need to change is `salmon_index` if you want to use a different index than the shared one.
+
+---
+
+## Params to change per run
+
+Most params are pre-configured for the shared cluster. The ones you may need to adjust:
+
+| Param | Where | When to change |
+|-------|-------|----------------|
+| `salmon_index` | `neoantigen.shared.config` | Only if you need a different Gencode version or custom transcriptome. The shared index at `bio_db/salmon/` is ready to use. |
+| `neoantigen_input_source` | `neoantigen.shared.config` | Change to `'consensus'` only if your downstream tool requires the multi-caller union VCF (see [VCF source selection](#vcf-source-selection-mutect2-vs-consensus) below). |
+| `tools` | `neoantigen.shared.config` | Remove tools you don't need (e.g., remove `realignment` for a faster debug run). |
+| `resourceLimits` | `neoantigen.shared.config` | Adjust `cpus`/`memory`/`time` for your compute node. |
+| `--input` | `run.sh` CLI flag | Your own sample CSV. Default is the shared COO8801 test dataset. |
+| `--outdir` | `run.sh` CLI flag | Output directory. Default is `output/COO8801.neoantigen` (relative). |
 
 ---
 
@@ -61,39 +85,41 @@ For neoantigen prediction tools (pVACseq, seq2neo), the Mutect2-filtered VCF is 
 |----------|-------------|---------------|
 | Per-sample FORMAT | ✓ GT/AD/AF/DP/GQ/F1R2/F2R1/SB | ✗ FORMAT column is `.` (empty) |
 | Variant count | ~91 (filtered somatic) | ~26,000+ (unfiltered union of all callers) |
-| pVACseq compatible | ✓ | ✗ (no FORMAT data) |
+| pVACseq/seq2neo compatible | ✓ | ✗ (no FORMAT data) |
 | Filter status | Post-filtered (PASS + soft-filtered) | All variants from all callers |
 
-The consensus VCF is a multi-caller aggregation designed for data labeling — all variant evidence lives in INFO fields (`VAF_BY_CALLER`, `DP_BY_CALLER`, etc.) rather than per-sample FORMAT. This is intentional and correct for the pipeline's primary purpose, but incompatible with neoantigen tools that expect per-sample genotype data.
+The consensus VCF is a multi-caller aggregation designed for data labeling — all variant evidence lives in INFO fields (`VAF_BY_CALLER`, `DP_BY_CALLER`, etc.) rather than per-sample FORMAT. This is intentional for the pipeline's primary purpose, but incompatible with neoantigen tools that expect per-sample genotype data.
 
 ### Caller FORMAT field differences
 
 | Field | Mutect2 | DeepSomatic | Strelka2 |
 |-------|---------|-------------|----------|
 | `GT` | ✓ | ✓ | ✗ |
-| `AD` (ref,alt) | ✓ Number=R | ✓ Number=R | ✗ (uses AU/CU/GU/TU or TAR/TIR) |
+| `AD` (ref,alt) | ✓ `Number=R` | ✓ `Number=R` | ✗ (uses `AU`/`CU`/`GU`/`TU` or `TAR`/`TIR`) |
 | `AF` | ✓ (named `AF`) | ✗ (named `VAF`) | ✗ (must compute from base counts) |
 | `DP` | ✓ | ✓ | ✓ |
 | `GQ` | ✓ | ✓ | ✗ |
-| `F1R2/F2R1/SB` | ✓ | ✗ | ✗ |
+| `F1R2`/`F2R1`/`SB` | ✓ | ✗ | ✗ |
 
-This is why `FORMAT_HARMONIZER` exists — it normalizes Strelka2 and DeepSomatic FORMAT fields to Mutect2 conventions before the consensus step. However, the consensus VCF itself still has no per-sample FORMAT data by design.
+`FORMAT_HARMONIZER` normalizes Strelka2 and DeepSomatic FORMAT fields to Mutect2 conventions before the consensus step. However, the consensus VCF itself still has no per-sample FORMAT data by design — it cannot be aligned to Mutect2 FORMAT because it represents a union across callers, not a single caller's genotype call.
 
 ### When to use `consensus`
 
-Use `neoantigen_input_source = 'consensus'` only if your downstream tool can consume the INFO-field-based format and you specifically want the multi-caller union. The consensus VCF with `--neoantigen` adds `AD_BY_CALLER` and `AF_BY_CALLER` INFO fields that encode per-caller allele depths and frequencies.
+Use `neoantigen_input_source = 'consensus'` only if your downstream tool can consume the INFO-field-based format and you specifically want the multi-caller union. The consensus VCF with `--neoantigen` adds `AD_BY_CALLER` and `AF_BY_CALLER` INFO fields encoding per-caller allele depths and frequencies.
+
+---
+
+## Parameters
 
 ### Neoantigen-specific options
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `enable_neoantigen_workflow` | boolean | `false` | Activates the neoantigen preparation branch. |
-| `neoantigen_input_source` | string | `'consensus'` | VCF source for neoantigen output: `consensus` or `mutect2`. |
-| `salmon_index` | string | `null` | **Required.** Absolute path to a pre-built Salmon v1.11.x SSHash index directory. |
+| `neoantigen_input_source` | string | `'mutect2'` | VCF source: `mutect2` (recommended) or `consensus`. |
+| `salmon_index` | string | shared index | Absolute path to a pre-built Salmon v1.11.x SSHash index directory. |
 | `salmon_libtype` | string | `'A'` | Library type passed to `salmon quant --libType`. `'A'` = automatic detection. |
-| `salmon_gc_bias` | boolean | `false` | Pass `--gcBias` to `salmon quant` for GC bias correction. |
-
-All other params (genome, tools, reference files, etc.) are the same as `seq2neo.shared.config`.
+| `salmon_gc_bias` | boolean | `false` | Pass `--gcBias` to `salmon quant` for GC bias correction (~2 min extra/sample). |
 
 ### Pre-flight validation
 
@@ -105,24 +131,27 @@ The pipeline validates before launching any workflow steps:
 
 ---
 
-## Building the Salmon index
+## Salmon index
 
-Use the provided script to download Gencode v49 references and build a decoy-aware Salmon v1.11.x index:
+A pre-built Gencode v49 index is available at the shared path:
 
-```bash
-bash /path/to/rnadnavar/scripts/build_salmon_index.sh --outdir /path/to/salmon_indices
+```
+/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/salmon/salmon_index_gencode_v49_salmon_v1.11
 ```
 
-Then set `salmon_index` in `neoantigen.shared.config`:
+This is already set as the default in `neoantigen.shared.config`. No action needed unless you want a different transcriptome.
 
-```groovy
-salmon_index = '/path/to/salmon_indices/salmon_index_gencode_v49_salmon_v1.11'
+To build your own index:
+
+```bash
+bash /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/scripts/build_salmon_index.sh \
+    --outdir /path/to/output_dir
 ```
 
 ### Notes
 
-- The `--gencode` flag is **required** when indexing Gencode transcriptomes. Gencode FASTA headers use pipe-delimited format (e.g., `ENST00000456328.2|ENSG00000223972.5|...`). The pipeline's `QUANT_TSV_NORMALIZE` step strips these suffixes to produce `quant.tsv` for downstream tools.
 - **Salmon v1.11.x index incompatibility**: v1.11.x uses a new SSHash-based k-mer index. Indices built with v1.10.x or earlier are **not compatible** and must be rebuilt.
+- The `--gencode` flag is required when indexing Gencode transcriptomes (pipe-delimited FASTA headers). The pipeline's `QUANT_TSV_NORMALIZE` step strips these suffixes to produce `quant.tsv` for downstream tools.
 - Gencode v49: GRCh38.p14, Ensembl 115, released September 2025.
 
 ---
@@ -130,12 +159,12 @@ salmon_index = '/path/to/salmon_indices/salmon_index_gencode_v49_salmon_v1.11'
 ## Expected outputs
 
 ```
-${outdir}/<sample_id>/
-├── neoantigen/                              # DNA tumor samples (status=1)
-│   ├── <sample_id>.neoantigen.vcf.gz
-│   └── <sample_id>.neoantigen.vcf.gz.tbi
+${outdir}/neoantigen/
+├── <DNA_tumor_id>/                          # status=1 sample (e.g. COO8801DT_vs_COO8801DN)
+│   ├── *.filtered.vcf.gz                   # neoantigen-ready VCF (Mutect2-filtered by default)
+│   └── *.filtered.vcf.gz.tbi
 │
-└── salmon/                                  # RNA tumor samples (status=2)
+└── <RNA_tumor_id>/                          # status=2 sample (e.g. COO8801RT-LX)
     ├── quant.sf                             # raw Salmon output (Gencode pipe-delimited names)
     ├── quant.tsv                            # normalized transcript IDs (plain ENST IDs)
     ├── lib_format_counts.json
@@ -153,10 +182,10 @@ ${outdir}/<sample_id>/
 ## run.sh options
 
 ```
---input  CSV     Input samplesheet CSV (default: test dataset)
+--input  CSV     Input samplesheet CSV (default: shared COO8801 test dataset)
 --outdir DIR     Output directory (default: output/COO8801.neoantigen)
---main-nf PATH   Path to main.nf (default: auto-detected from repo root)
---conf   PATH    Path to config file (default: neoantigen.shared.config)
+--main-nf PATH   Path to main.nf (default: resolved from repo via $BASH_SOURCE)
+--conf   PATH    Path to config file (default: neoantigen.shared.config in same dir)
 --dry-run        Print the nextflow command without executing
 -h, --help       Show help
 ```
@@ -166,15 +195,13 @@ ${outdir}/<sample_id>/
 ## Manual nextflow invocation
 
 ```bash
-REPO=/path/to/rnadnavar
-
 HTTPS_PROXY="http://10.233.17.241:3128" \
 NXF_CONDA_CACHEDIR="/t9k/mnt/joey/nf_conda_envs" \
 NXF_CONDA_USEMAMBA=true \
 micromamba run -n nextflow nextflow run \
-    $REPO/main.nf \
-    -c $REPO/examples/neoantigen/neoantigen.shared.config \
-    --input  /path/to/sample.csv \
-    --outdir /path/to/output \
+    /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/main.nf \
+    -c /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/neoantigen/neoantigen.shared.config \
+    --input  /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/rnadnavar_test/C008801/input/test.rdv.shared.csv \
+    --outdir output/COO8801.neoantigen \
     -offline -with-conda -resume
 ```
