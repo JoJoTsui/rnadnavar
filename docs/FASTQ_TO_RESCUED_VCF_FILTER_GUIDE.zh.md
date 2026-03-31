@@ -42,6 +42,39 @@ RNA FASTQs ──► STAR 比对 ──► GATK 预处理 ──► 变异检测
                                           [最终重比对 rescued VCF]
 ```
 
+```mermaid
+flowchart TD
+    DNA_FQ([DNA FASTQs]) --> BWA[BWA 比对]
+    RNA_FQ([RNA FASTQs]) --> STAR[STAR 比对]
+
+    BWA --> GATK_DNA[GATK 预处理]
+    STAR --> GATK_RNA[GATK 预处理\nSplitNCigarReads]
+
+    GATK_DNA --> VC_DNA[变异检测\nDeepSomatic · Mutect2 · Strelka]
+    GATK_RNA --> VC_RNA[变异检测\nDeepSomatic · Mutect2 · Strelka]
+
+    VC_DNA --> NORM_DNA[标准化]
+    VC_RNA --> NORM_RNA[标准化]
+
+    NORM_DNA --> CON_DNA[DNA Consensus]
+    NORM_RNA --> CON_RNA[RNA Consensus]
+
+    CON_DNA --> RESCUE[跨模态 Rescue]
+    CON_RNA --> RESCUE
+
+    RESCUE --> ANNOT[注释与过滤\nVEP · RNAedit · COSMIC · gnomAD]
+    ANNOT --> FINAL([最终 Rescued VCF])
+
+    ANNOT --> REALIGN{是否启用\n重比对？}
+    REALIGN -- 否 --> FINAL
+    REALIGN -- 是 --> RNA_REALIGN[RNA 重比对]
+    RNA_REALIGN --> CON_RNA2[RNA 重比对 Consensus]
+    CON_DNA --> RESCUE2[二次 Rescue]
+    CON_RNA2 --> RESCUE2
+    RESCUE2 --> ANNOT2[注释与过滤]
+    ANNOT2 --> FINAL2([最终重比对 Rescued VCF])
+```
+
 ---
 
 ## 2. 输入标签与样本标识

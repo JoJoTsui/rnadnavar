@@ -42,6 +42,39 @@ RNA FASTQs ──► STAR alignment ──► GATK preprocessing ──► Varia
                                                                  [Final realigned rescued VCF]
 ```
 
+```mermaid
+flowchart TD
+    DNA_FQ([DNA FASTQs]) --> BWA[BWA Alignment]
+    RNA_FQ([RNA FASTQs]) --> STAR[STAR Alignment]
+
+    BWA --> GATK_DNA[GATK Preprocessing]
+    STAR --> GATK_RNA[GATK Preprocessing\nSplitNCigarReads]
+
+    GATK_DNA --> VC_DNA[Variant Calling\nDeepSomatic · Mutect2 · Strelka]
+    GATK_RNA --> VC_RNA[Variant Calling\nDeepSomatic · Mutect2 · Strelka]
+
+    VC_DNA --> NORM_DNA[Normalization]
+    VC_RNA --> NORM_RNA[Normalization]
+
+    NORM_DNA --> CON_DNA[DNA Consensus]
+    NORM_RNA --> CON_RNA[RNA Consensus]
+
+    CON_DNA --> RESCUE[Cross-modality Rescue]
+    CON_RNA --> RESCUE
+
+    RESCUE --> ANNOT[Annotation & Filtering\nVEP · RNAedit · COSMIC · gnomAD]
+    ANNOT --> FINAL([Final Rescued VCF])
+
+    ANNOT --> REALIGN{Realignment\nenabled?}
+    REALIGN -- No --> FINAL
+    REALIGN -- Yes --> RNA_REALIGN[RNA Realignment]
+    RNA_REALIGN --> CON_RNA2[RNA Realigned Consensus]
+    CON_DNA --> RESCUE2[Second Rescue]
+    CON_RNA2 --> RESCUE2
+    RESCUE2 --> ANNOT2[Annotation & Filtering]
+    ANNOT2 --> FINAL2([Final Realigned Rescued VCF])
+```
+
 ---
 
 ## 2. Input Labeling and Sample Identity
