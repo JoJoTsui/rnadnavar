@@ -28,6 +28,28 @@ No path edits are needed to run the test dataset — everything resolves from th
 
 ---
 
+## Output directory caveat
+
+The default `OUTDIR` in `run.sh` is `output/COO8801.neoantigen` — a **relative path**, resolved from wherever you run the script. If you run it from inside the repo directory, output will land inside the codebase, which is not recommended.
+
+**Recommended practice:** always pass `--outdir` with an absolute path outside the repo:
+
+```bash
+bash examples/neoantigen/run.sh \
+    --outdir /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/neoantigen_output/COO8801
+```
+
+Or set a dedicated output root in your shell before running:
+
+```bash
+OUTROOT="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/neoantigen_output"
+bash examples/neoantigen/run.sh --outdir "${OUTROOT}/COO8801"
+```
+
+The relative default is intentional for quick local testing — it keeps the test output next to where you ran the command. For any run you want to keep, use an absolute path.
+
+---
+
 ## Quick start
 
 ```bash
@@ -35,7 +57,9 @@ No path edits are needed to run the test dataset — everything resolves from th
 bash examples/neoantigen/run.sh --dry-run
 
 # 2. Run with the shared test dataset (COO8801, small subset)
-bash examples/neoantigen/run.sh
+#    Use --outdir to write output outside the repo (recommended)
+bash examples/neoantigen/run.sh \
+    --outdir /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/neoantigen_output/COO8801
 
 # 3. Run with your own sample
 bash examples/neoantigen/run.sh \
@@ -71,7 +95,7 @@ Most params are pre-configured for the shared cluster. The ones you may need to 
 | `tools` | `neoantigen.shared.config` | Remove tools you don't need (e.g., remove `realignment` for a faster debug run). |
 | `resourceLimits` | `neoantigen.shared.config` | Adjust `cpus`/`memory`/`time` for your compute node. |
 | `--input` | `run.sh` CLI flag | Your own sample CSV. Default is the shared COO8801 test dataset. |
-| `--outdir` | `run.sh` CLI flag | Output directory. Default is `output/COO8801.neoantigen` (relative). |
+| `--outdir` | `run.sh` CLI flag | **Always set this to an absolute path outside the repo** for any run you want to keep. Default `output/COO8801.neoantigen` is relative and will land inside the codebase if run from the repo root. |
 
 ---
 
@@ -193,6 +217,11 @@ ${outdir}/neoantigen/
 ---
 
 ## Manual nextflow invocation
+
+> **Note on micromamba:** The `micromamba run -n nextflow` wrapper is only needed if nextflow is installed inside a micromamba/conda environment. If nextflow is already on your `PATH`, run it directly:
+> ```bash
+> nextflow run /path/to/main.nf -c /path/to/config ...
+> ```
 
 ```bash
 HTTPS_PROXY="http://10.233.17.241:3128" \
