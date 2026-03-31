@@ -1,5 +1,20 @@
 # seq2neo — 使用指南
 
+## 共享基础设施
+
+`seq2neo.shared.config` 和 `config/runner.yaml` 中的所有路径均指向集群上的共享位置，团队所有成员均可访问：
+
+| 资源 | 共享路径 |
+|------|---------|
+| 流水线代码库 | `/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/` |
+| 参考数据库 | `/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/` |
+| Conda 环境 | `/t9k/mnt/joey/nf_conda_envs/` |
+| Nextflow 自定义配置 | `/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/configs/` |
+
+`seq2neo_root`（数据/输出/状态目录）**不是**共享的——每位用户在 `config/runner.yaml` 中设置自己的路径。
+
+---
+
 ## 分离根目录布局
 
 脚本通过 `$BASH_SOURCE` 自动定位自身路径，代码中没有任何硬编码的仓库路径。
@@ -7,9 +22,9 @@
 
 | 键 | 说明 |
 |----|------|
-| `main_nf` | 本机上 `rnadnavar/main.nf` 的绝对路径 |
-| `rdv_conf` | 本机上 `examples/seq2neo/seq2neo.shared.config` 的绝对路径 |
-| `seq2neo_root` | 数据/输出/状态文件的写入根目录 |
+| `main_nf` | `rnadnavar/main.nf` 的绝对路径 — 共享路径：`/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/main.nf` |
+| `rdv_conf` | `seq2neo.shared.config` 的绝对路径 — 共享路径：`/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/seq2neo.shared.config` |
+| `seq2neo_root` | 个人数据/输出/状态根目录（非共享，每位用户自行设置） |
 
 仓库可以放在任意路径，脚本始终能自动定位：
 ```bash
@@ -271,9 +286,9 @@ bash parse.sh
 编辑 `config/runner.yaml` — 首次使用前只需设置三个字段：
 
 ```yaml
-main_nf:      /your/path/rnadnavar/main.nf
-rdv_conf:     /your/path/rnadnavar/examples/seq2neo/seq2neo.shared.config
-seq2neo_root: /your/data/output/root
+main_nf:      /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/main.nf
+rdv_conf:     /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/seq2neo.shared.config
+seq2neo_root: /your/data/output/root   # 个人路径，每位用户自行设置
 ```
 
 其他所有选项均有合理的默认值。完整配置参考见上文。
@@ -283,7 +298,7 @@ seq2neo_root: /your/data/output/root
 ## 步骤3 — 预运行（预览，不执行）
 
 ```bash
-SEQ2NEO_SCRIPTS=/your/path/rnadnavar/examples/seq2neo
+SEQ2NEO_SCRIPTS=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo
 
 # 所有可用样本
 bash $SEQ2NEO_SCRIPTS/dry_run.sh
@@ -309,7 +324,7 @@ bash $SEQ2NEO_SCRIPTS/dry_run.sh --disease "Pancreatic"
 ## 步骤4 — 运行
 
 ```bash
-SEQ2NEO_SCRIPTS=/your/path/rnadnavar/examples/seq2neo
+SEQ2NEO_SCRIPTS=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo
 
 # 按集合运行
 bash $SEQ2NEO_SCRIPTS/run_set1.sh   # 结直肠癌
@@ -449,12 +464,17 @@ bash $SEQ2NEO_SCRIPTS/run_set2.sh
 每个样本的 CSV 写入 `$seq2neo_root/runs/csv/<project>_<patient>.csv`。
 手动运行方式：
 
+> **关于 micromamba 的说明：** `micromamba run -n nextflow` 包装器仅在 nextflow 安装于 micromamba/conda 环境中时才需要。如果 nextflow 已在 `PATH` 中，可直接运行：
+> ```bash
+> nextflow run /path/to/main.nf -c /path/to/config ...
+> ```
+
 ```bash
-REPO=/your/path/rnadnavar
+REPO=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar
 DATA=/your/seq2neo_root
 
 HTTPS_PROXY="http://10.233.17.241:3128" \
-NXF_CONDA_CACHEDIR="/path/to/nf_conda_envs" \
+NXF_CONDA_CACHEDIR="/t9k/mnt/joey/nf_conda_envs" \
 NXF_CONDA_USEMAMBA=true \
 micromamba run -n nextflow nextflow run \
     $REPO/main.nf \

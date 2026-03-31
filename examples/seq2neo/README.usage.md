@@ -1,5 +1,20 @@
 # seq2neo — Usage Guide
 
+## Shared infrastructure
+
+All paths in `seq2neo.shared.config` and `config/runner.yaml` point to shared locations on this cluster, accessible to all teammates:
+
+| Resource | Shared path |
+|----------|-------------|
+| Pipeline repo | `/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/` |
+| Reference databases | `/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/` |
+| Conda environments | `/t9k/mnt/joey/nf_conda_envs/` |
+| Nextflow custom configs | `/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/configs/` |
+
+The `seq2neo_root` (data/output/state directory) is **not** shared — each user sets their own in `config/runner.yaml`.
+
+---
+
 ## Split-root layout
 
 Scripts self-locate using `$BASH_SOURCE` — no hardcoded repo path anywhere.
@@ -7,9 +22,9 @@ Before first use, set three values in `config/runner.yaml`:
 
 | Key | What to set |
 |-----|-------------|
-| `main_nf` | absolute path to `rnadnavar/main.nf` on this machine |
-| `rdv_conf` | absolute path to `examples/seq2neo/seq2neo.shared.config` on this machine |
-| `seq2neo_root` | where data/output/state will be written |
+| `main_nf` | absolute path to `rnadnavar/main.nf` — shared: `/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/main.nf` |
+| `rdv_conf` | absolute path to `seq2neo.shared.config` — shared: `/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/seq2neo.shared.config` |
+| `seq2neo_root` | your personal data/output/state root (not shared — each user sets their own) |
 
 The repo can live at any path. Scripts always resolve themselves:
 ```bash
@@ -450,12 +465,17 @@ bash $SEQ2NEO_SCRIPTS/run_set2.sh
 Each sample's CSV is written to `$seq2neo_root/runs/csv/<project>_<patient>.csv`.
 To run manually:
 
+> **Note on micromamba:** The `micromamba run -n nextflow` wrapper is only needed if nextflow is installed inside a micromamba/conda environment. If nextflow is already on your `PATH`, run it directly:
+> ```bash
+> nextflow run /path/to/main.nf -c /path/to/config ...
+> ```
+
 ```bash
-REPO=/your/path/rnadnavar
+REPO=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar
 DATA=/your/seq2neo_root
 
 HTTPS_PROXY="http://10.233.17.241:3128" \
-NXF_CONDA_CACHEDIR="/path/to/nf_conda_envs" \
+NXF_CONDA_CACHEDIR="/t9k/mnt/joey/nf_conda_envs" \
 NXF_CONDA_USEMAMBA=true \
 micromamba run -n nextflow nextflow run \
     $REPO/main.nf \
