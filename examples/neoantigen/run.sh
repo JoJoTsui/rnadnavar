@@ -6,7 +6,7 @@
 #   bash examples/neoantigen/run.sh [--input CSV] [--outdir DIR] [--dry-run]
 #
 # Defaults (edit the variables below or override via CLI flags):
-#   INPUT   — test dataset CSV from rdv_test
+#   INPUT   — shared test dataset CSV (accessible to all teammates)
 #   OUTDIR  — output/COO8801.neoantigen
 #
 # Examples:
@@ -30,11 +30,17 @@ REPO="$(cd "${HERE}/../.." && pwd)"
 # ── Defaults ──────────────────────────────────────────────────────────────────
 MAIN_NF="${REPO}/main.nf"
 RDV_CONF="${HERE}/neoantigen.shared.config"
+# -- shared rnadnavar test path
+RDV_TEST_DIR="/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/rnadnavar_test"
+RDV_TEST_INPUT_DIR="${RDV_TEST_DIR}/C008801/input"
+RDV_TEST_INPUT="${RDV_TEST_INPUT_DIR}/test.rdv.shared.csv"
 
 # Test dataset (small, for debugging and tutorial)
-INPUT="/t9k/mnt/hdd/work/Vax/sequencing/aim_exp/rdv_test/C008801/input/test.rdv.shared.csv"
-OUTDIR="output/COO8801.neoantigen"
+PATIENT_ID="COO8801"
+INPUT="${RDV_TEST_INPUT}"
+OUTDIR="output/${PATIENT_ID}.neoantigen"
 
+# CONDA environment settings
 NXF_CONDA_CACHEDIR="/t9k/mnt/joey/nf_conda_envs"
 MICROMAMBA_ENV="nextflow"
 HTTPS_PROXY="http://10.233.17.241:3128"
