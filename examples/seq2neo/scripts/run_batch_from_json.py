@@ -31,8 +31,10 @@ Usage examples:
 """
 
 import argparse
+import csv
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime
@@ -45,8 +47,10 @@ except ImportError:
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.common import (
-    is_eligible, sample_key,
-    MOD_STATUS_CODE, REQUIRED_MODALITIES,
+    MOD_STATUS_CODE,
+    REQUIRED_MODALITIES,
+    is_eligible,
+    sample_key,
 )
 
 # ---------------------------------------------------------------------------
@@ -54,28 +58,42 @@ from lib.common import (
 # ---------------------------------------------------------------------------
 
 DEFAULTS = {
-    "main_nf":             "",
-    "rdv_conf":            "",
-    "nxf_conda_cachedir":  "",
-    "nxf_conda_usemamba":  "true",
-    "micromamba_env":      "nextflow",
-    "https_proxy":         "",
-    "seq2neo_root":        str(Path(__file__).resolve().parent.parent),
-    "merged_json":         "data/processed/merged.json",
-    "csv_dir":             "runs/csv",
-    "outdir_base":         "output",
-    "state_file":          "runs/run_state.json",
-    "lane":                "LX",
-    "dry_run":             False,
-    "resume":              True,
-    "offline":             True,
-    "max_parallel":        1,
-    "max_retries":         1,
-    # All artifact globs must match ≥1 file for a run to be considered complete.
+    "main_nf": "",
+    "rdv_conf": "",
+    "nxf_conda_cachedir": "",
+    "nxf_conda_usemamba": "true",
+    "micromamba_env": "nextflow",
+    "https_proxy": "",
+    "seq2neo_root": str(Path(__file__).resolve().parent.parent),
+    "merged_json": "data/processed/merged.json",
+    "csv_dir": "runs/csv",
+    "outdir_base": "output",
+    "state_file": "runs/run_state.json",
+    "lane": "LX",
+    "dry_run": False,
+    "resume": True,
+    "offline": True,
+    "max_parallel": 1,
+    "max_retries": 1,
+    # Generic completion artifacts: all must exist.
     "completion_artifacts": [
-        "**/*.vcf.gz",
         "**/pipeline_info/execution_trace*.txt",
     ],
+    # Rescue artifacts: at least one must exist for successful completion.
+    "rescue_success_patterns": [
+        "rescue/**/*.filtered.vcf.gz",
+        "vcf_realignment/rescue/**/*.filtered.vcf.gz",
+        "rescue/**/*.rescued.vcf.gz",
+        "vcf_realignment/rescue/**/*.rescued.vcf.gz",
+    ],
+    # Treat failed RNA-branch tasks in trace as failed sample, even if nextflow exits 0.
+    "fail_on_failed_trace": True,
+    "trace_file_pattern": "**/pipeline_info/execution_trace*.txt",
+    "failed_trace_statuses": ["FAILED"],
+    "failed_trace_process_regex": (
+        "STAR_ALIGN|FASTQ_ALIGN_STAR|RNA_REALIGNMENT_WORKFLOW|SECOND_RESCUE_WORKFLOW"
+        "|VCF_RESCUE|RNA_FILTERING|FILTER_RNA_MUTATIONS"
+    ),
 }
 
 
@@ -99,6 +117,7 @@ def resolve(cfg: dict, key: str) -> Path:
 # State management
 # ---------------------------------------------------------------------------
 
+
 def load_state(path: Path) -> dict:
     return json.loads(path.read_text()) if path.exists() else {}
 
@@ -112,6 +131,7 @@ def save_state(path: Path, state: dict):
 # Completion check (strict)
 # ---------------------------------------------------------------------------
 
+
 def is_complete(outdir: Path, artifacts: list) -> bool:
     """outdir must exist AND every artifact glob must match ≥1 file."""
     if not outdir.exists():
@@ -119,9 +139,94 @@ def is_complete(outdir: Path, artifacts: list) -> bool:
     return all(list(outdir.glob(p)) for p in artifacts)
 
 
+def has_any_match(outdir: Path, patterns: list) -> bool:
+    """outdir must exist AND at least one glob pattern must match ≥1 file."""
+    if not outdir.exists():
+        return False
+    return any(list(outdir.glob(p)) for p in patterns)
+
+
+def latest_trace_file(outdir: Path, trace_pattern: str) -> Path | None:
+    """Return the newest trace file under outdir matching the configured pattern."""
+    traces = list(outdir.glob(trace_pattern))
+    if not traces:
+        return None
+    traces.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    return traces[0]
+
+
+def trace_has_failed_rna_process(outdir: Path, cfg: dict) -> tuple[bool, str]:
+    """
+    Parse the newest execution trace and flag FAILED rows in RNA-critical processes.
+    Returns: (has_failure, reason)
+    """
+    trace_file = latest_trace_file(outdir, cfg["trace_file_pattern"])
+    if not trace_file:
+        return False, ""
+
+    failed_status = {s.upper() for s in cfg.get("failed_trace_statuses", ["FAILED"])}
+    proc_re = re.compile(
+        cfg.get("failed_trace_process_regex", "STAR_ALIGN"), re.IGNORECASE
+    )
+    failures = []
+
+    with trace_file.open(newline="") as fh:
+        reader = csv.DictReader(fh, delimiter="\t")
+        fields = set(reader.fieldnames or [])
+        # Standard Nextflow trace has "status" and either "process" or "name"
+        status_key = "status" if "status" in fields else None
+        process_key = "process" if "process" in fields else None
+        name_key = "name" if "name" in fields else None
+        exit_key = "exit" if "exit" in fields else None
+
+        if not status_key or (not process_key and not name_key):
+            return False, ""
+
+        for row in reader:
+            status = (row.get(status_key) or "").upper()
+            if status not in failed_status:
+                continue
+            proc_text = " ".join(
+                [
+                    row.get(process_key, "") if process_key else "",
+                    row.get(name_key, "") if name_key else "",
+                ]
+            )
+            if proc_re.search(proc_text):
+                exit_code = row.get(exit_key, "") if exit_key else ""
+                if exit_code:
+                    failures.append(f"{proc_text} (exit {exit_code})")
+                else:
+                    failures.append(proc_text)
+
+    if failures:
+        preview = "; ".join(failures[:2])
+        if len(failures) > 2:
+            preview += f"; +{len(failures) - 2} more"
+        return True, f"RNA branch failed in trace: {preview}"
+    return False, ""
+
+
+def evaluate_completion(outdir: Path, has_rna: bool, cfg: dict) -> tuple[bool, str]:
+    """Evaluate sample completion using strict rescue and trace-aware criteria."""
+    if not is_complete(outdir, cfg["completion_artifacts"]):
+        return False, "completion artifacts missing"
+
+    if not has_any_match(outdir, cfg["rescue_success_patterns"]):
+        return False, "rescue artifacts missing"
+
+    if has_rna and cfg.get("fail_on_failed_trace", True):
+        failed_rna, reason = trace_has_failed_rna_process(outdir, cfg)
+        if failed_rna:
+            return False, reason
+
+    return True, ""
+
+
 # ---------------------------------------------------------------------------
 # CSV generation
 # ---------------------------------------------------------------------------
+
 
 def write_sample_csv(sample: dict, csv_path: Path, lane: str):
     """
@@ -139,7 +244,7 @@ def write_sample_csv(sample: dict, csv_path: Path, lane: str):
         mod_data = sample["modalities"].get(mod)
         if not mod_data or not mod_data["pairs"]:
             continue
-        pair = mod_data["pairs"][0]   # always first pair
+        pair = mod_data["pairs"][0]  # always first pair
         rows.append(
             f"{nf_patient},{MOD_STATUS_CODE[mod]},{nf_patient}{mod},"
             f"{lane},{pair['r1']},{pair['r2']}"
@@ -153,8 +258,9 @@ def write_sample_csv(sample: dict, csv_path: Path, lane: str):
 # Nextflow command builder
 # ---------------------------------------------------------------------------
 
+
 def build_command(cfg: dict, csv_path: Path, outdir: Path) -> list:
-    cmd  = ["micromamba", "run", "-n", cfg["micromamba_env"]]
+    cmd = ["micromamba", "run", "-n", cfg["micromamba_env"]]
     cmd += ["nextflow", "run"]
     if cfg.get("main_nf"):
         cmd.append(cfg["main_nf"])
@@ -190,10 +296,10 @@ def format_shell_command(cfg: dict, cmd: list) -> str:
     if cfg.get("nxf_conda_cachedir"):
         env_prefix.append(f'NXF_CONDA_CACHEDIR="{cfg["nxf_conda_cachedir"]}"')
     if cfg.get("nxf_conda_usemamba"):
-        env_prefix.append(f'NXF_CONDA_USEMAMBA={cfg["nxf_conda_usemamba"]}')
+        env_prefix.append(f"NXF_CONDA_USEMAMBA={cfg['nxf_conda_usemamba']}")
     # join env vars on one line, then the command as a single line
-    env_str  = " ".join(env_prefix)
-    cmd_str  = " ".join(cmd)
+    env_str = " ".join(env_prefix)
+    cmd_str = " ".join(cmd)
     return f"{env_str} \\\n  {cmd_str}" if env_str else cmd_str
 
 
@@ -215,6 +321,7 @@ def validate_config(cfg: dict):
 # ---------------------------------------------------------------------------
 # Sample filtering
 # ---------------------------------------------------------------------------
+
 
 def filter_samples(all_samples: list, args) -> list:
     """Apply project/disease/patient/set/status filters. Only eligible samples pass."""
@@ -240,26 +347,31 @@ def filter_samples(all_samples: list, args) -> list:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     ap = argparse.ArgumentParser(
         description="Batch nextflow runner from merged JSON",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    ap.add_argument("--config",      default=None,  help="Path to runner.yaml")
+    ap.add_argument("--config", default=None, help="Path to runner.yaml")
     # filters
-    ap.add_argument("--project",     default=None,  help="Filter by project ID")
-    ap.add_argument("--disease",     default=None,  help="Filter by disease (substring)")
-    ap.add_argument("--patient",     default=None,  help="Filter by patient ID")
-    ap.add_argument("--set",         default=None,  type=int, help="Filter by partition set (1-4)")
-    ap.add_argument("--status",      default="all", help="standard | extra | all  (default: all)")
+    ap.add_argument("--project", default=None, help="Filter by project ID")
+    ap.add_argument("--disease", default=None, help="Filter by disease (substring)")
+    ap.add_argument("--patient", default=None, help="Filter by patient ID")
+    ap.add_argument(
+        "--set", default=None, type=int, help="Filter by partition set (1-4)"
+    )
+    ap.add_argument(
+        "--status", default="all", help="standard | extra | all  (default: all)"
+    )
     # config overrides
-    ap.add_argument("--main-nf",     default=None,  dest="main_nf")
-    ap.add_argument("--rdv-conf",    default=None,  dest="rdv_conf")
-    ap.add_argument("--outdir-base", default=None,  dest="outdir_base")
-    ap.add_argument("--seq2neo",     default=None,  dest="seq2neo_root")
-    ap.add_argument("--dry-run",     action="store_true", default=None, dest="dry_run")
-    ap.add_argument("--no-resume",   action="store_false", default=None, dest="resume")
+    ap.add_argument("--main-nf", default=None, dest="main_nf")
+    ap.add_argument("--rdv-conf", default=None, dest="rdv_conf")
+    ap.add_argument("--outdir-base", default=None, dest="outdir_base")
+    ap.add_argument("--seq2neo", default=None, dest="seq2neo_root")
+    ap.add_argument("--dry-run", action="store_true", default=None, dest="dry_run")
+    ap.add_argument("--no-resume", action="store_false", default=None, dest="resume")
     args = ap.parse_args()
 
     # build config: file → CLI overrides
@@ -270,8 +382,10 @@ def main():
     # load merged JSON
     merged_path = resolve(cfg, "merged_json")
     if not merged_path.exists():
-        sys.exit(f"merged.json not found: {merged_path}\n"
-                 f"Run parse_projects_to_json.py first.")
+        sys.exit(
+            f"merged.json not found: {merged_path}\n"
+            f"Run parse_projects_to_json.py first."
+        )
 
     data = json.loads(merged_path.read_text())
     all_samples = [s for proj in data["projects"] for s in proj["samples"]]
@@ -281,33 +395,36 @@ def main():
         print("No samples match the given filters.")
         return
 
-    state_path   = resolve(cfg, "state_file")
-    state        = load_state(state_path)
-    csv_dir      = resolve(cfg, "csv_dir")
-    outdir_base  = resolve(cfg, "outdir_base")
-    artifacts    = cfg["completion_artifacts"]
-    dry_run      = bool(cfg.get("dry_run"))
+    state_path = resolve(cfg, "state_file")
+    state = load_state(state_path)
+    csv_dir = resolve(cfg, "csv_dir")
+    outdir_base = resolve(cfg, "outdir_base")
+    dry_run = bool(cfg.get("dry_run"))
 
     print(f"\n{'[DRY RUN] ' if dry_run else ''}Selected {len(selected)} sample(s)\n")
 
     counts = {"succeeded": 0, "skipped": 0, "failed": 0}
 
     for s in selected:
-        proj       = s["_project_id"]
-        pid        = s["patient_id"]
-        key        = sample_key(proj, pid)
+        proj = s["_project_id"]
+        pid = s["patient_id"]
+        key = sample_key(proj, pid)
         nf_patient = f"{proj}_{pid}"
-        outdir     = outdir_base / nf_patient
-        csv_path   = csv_dir / f"{nf_patient}.csv"
+        outdir = outdir_base / nf_patient
+        csv_path = csv_dir / f"{nf_patient}.csv"
+        has_rna = bool((s.get("modalities", {}).get("RT") or {}).get("pairs"))
 
         # ── completion check ──────────────────────────────────────────────
-        if is_complete(outdir, artifacts):
+        complete_ok, complete_reason = evaluate_completion(outdir, has_rna, cfg)
+        if complete_ok:
             print(f"[SKIP]  {key}  already complete")
             state[key] = {"status": "succeeded", "reason": "artifacts present"}
             counts["skipped"] += 1
             continue
+        if outdir.exists() and complete_reason:
+            print(f"[NOTE]  {key}  not complete: {complete_reason}")
 
-        prev    = state.get(key, {})
+        prev = state.get(key, {})
         retries = prev.get("retries", 0)
         if prev.get("status") == "failed" and retries >= cfg["max_retries"]:
             print(f"[SKIP]  {key}  max retries ({cfg['max_retries']}) reached")
@@ -333,33 +450,44 @@ def main():
         validate_config(cfg)
 
         # ── execute ───────────────────────────────────────────────────────
-        state[key] = {"status": "running", "started": datetime.now().isoformat(),
-                      "retries": retries}
+        state[key] = {
+            "status": "running",
+            "started": datetime.now().isoformat(),
+            "retries": retries,
+        }
         save_state(state_path, state)
 
         try:
             subprocess.run(cmd, env=env, check=True)
-            if is_complete(outdir, artifacts):
-                state[key] = {"status": "succeeded",
-                               "finished": datetime.now().isoformat()}
+            complete_ok, complete_reason = evaluate_completion(outdir, has_rna, cfg)
+            if complete_ok:
+                state[key] = {
+                    "status": "succeeded",
+                    "finished": datetime.now().isoformat(),
+                }
                 print(f"[OK]    {key}")
                 counts["succeeded"] += 1
             else:
-                state[key] = {"status": "failed",
-                               "reason": "artifacts missing after run",
-                               "retries": retries + 1}
-                print(f"[FAIL]  {key}  artifacts missing after run")
+                state[key] = {
+                    "status": "failed",
+                    "reason": complete_reason or "artifacts missing after run",
+                    "retries": retries + 1,
+                }
+                print(
+                    f"[FAIL]  {key}  {complete_reason or 'artifacts missing after run'}"
+                )
                 counts["failed"] += 1
         except subprocess.CalledProcessError as e:
-            state[key] = {"status": "failed", "reason": str(e),
-                          "retries": retries + 1}
+            state[key] = {"status": "failed", "reason": str(e), "retries": retries + 1}
             print(f"[FAIL]  {key}  {e}")
             counts["failed"] += 1
 
         save_state(state_path, state)
 
-    print(f"\n=== Done  succeeded={counts['succeeded']}  "
-          f"skipped={counts['skipped']}  failed={counts['failed']} ===")
+    print(
+        f"\n=== Done  succeeded={counts['succeeded']}  "
+        f"skipped={counts['skipped']}  failed={counts['failed']} ==="
+    )
 
 
 if __name__ == "__main__":

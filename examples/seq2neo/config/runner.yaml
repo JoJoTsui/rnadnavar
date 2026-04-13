@@ -38,11 +38,22 @@ offline: true    # pass -offline to nextflow
 max_parallel: 1  # samples to run concurrently (1 = sequential)
 
 # ── Retry policy ──────────────────────────────────────────────────────────
-max_retries: 1
+max_retries: 2
 
 # ── Completion check ──────────────────────────────────────────────────────
-# All globs must match ≥1 file under outdir/<project>_<patient>/ for a
-# sample to be considered successfully finished.
+# All completion_artifacts globs must match ≥1 file.
+# At least one rescue_success_patterns glob must match.
 completion_artifacts:
-  - "**/*.filtered.vcf.gz"
   - "**/pipeline_info/execution_trace*.txt"
+
+rescue_success_patterns:
+  - "rescue/**/*.filtered.vcf.gz"
+  - "vcf_realignment/rescue/**/*.filtered.vcf.gz"
+  - "rescue/**/*.rescued.vcf.gz"
+  - "vcf_realignment/rescue/**/*.rescued.vcf.gz"
+
+fail_on_failed_trace: true
+trace_file_pattern: "**/pipeline_info/execution_trace*.txt"
+failed_trace_statuses:
+  - "FAILED"
+failed_trace_process_regex: "STAR_ALIGN|FASTQ_ALIGN_STAR|RNA_REALIGNMENT_WORKFLOW|SECOND_RESCUE_WORKFLOW|VCF_RESCUE|RNA_FILTERING|FILTER_RNA_MUTATIONS"

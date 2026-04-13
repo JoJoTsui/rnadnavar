@@ -157,11 +157,22 @@ max_retries: 1
 
 # ── Completion check ──────────────────────────────────────────────────────
 completion_artifacts:
-  - "**/*.filtered.vcf.gz"
   - "**/pipeline_info/execution_trace*.txt"
-#   All globs must match ≥1 file under outdir/<project>_<patient>/ for a
-#   sample to be considered successfully finished. Adjust if your pipeline
-#   produces different output files.
+rescue_success_patterns:
+  - "rescue/**/*.filtered.vcf.gz"
+  - "vcf_realignment/rescue/**/*.filtered.vcf.gz"
+  - "rescue/**/*.rescued.vcf.gz"
+  - "vcf_realignment/rescue/**/*.rescued.vcf.gz"
+fail_on_failed_trace: true
+trace_file_pattern: "**/pipeline_info/execution_trace*.txt"
+failed_trace_statuses:
+  - "FAILED"
+failed_trace_process_regex: "STAR_ALIGN|FASTQ_ALIGN_STAR|RNA_REALIGNMENT_WORKFLOW|SECOND_RESCUE_WORKFLOW|VCF_RESCUE|RNA_FILTERING|FILTER_RNA_MUTATIONS"
+#   Strict completion semantics:
+#   1) All completion_artifacts globs must match ≥1 file.
+#   2) At least one rescue_success_patterns glob must match ≥1 file.
+#   3) If fail_on_failed_trace=true, FAILED rows in RNA-critical processes
+#      from execution_trace mark the sample as failed even when nextflow exits 0.
 ```
 
 ### seq2neo.shared.config — pipeline parameters

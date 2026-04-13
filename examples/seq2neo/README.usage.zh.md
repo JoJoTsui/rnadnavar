@@ -156,10 +156,22 @@ max_retries: 1
 
 # ── 完成检查 ──────────────────────────────────────────────────────────────
 completion_artifacts:
-  - "**/*.filtered.vcf.gz"
   - "**/pipeline_info/execution_trace*.txt"
-#   所有 glob 必须在 outdir/<project>_<patient>/ 下匹配到至少1个文件，
-#   样本才被认为成功完成。如果流程输出文件不同，请相应调整。
+rescue_success_patterns:
+  - "rescue/**/*.filtered.vcf.gz"
+  - "vcf_realignment/rescue/**/*.filtered.vcf.gz"
+  - "rescue/**/*.rescued.vcf.gz"
+  - "vcf_realignment/rescue/**/*.rescued.vcf.gz"
+fail_on_failed_trace: true
+trace_file_pattern: "**/pipeline_info/execution_trace*.txt"
+failed_trace_statuses:
+  - "FAILED"
+failed_trace_process_regex: "STAR_ALIGN|FASTQ_ALIGN_STAR|RNA_REALIGNMENT_WORKFLOW|SECOND_RESCUE_WORKFLOW|VCF_RESCUE|RNA_FILTERING|FILTER_RNA_MUTATIONS"
+#   严格完成判定规则：
+#   1) completion_artifacts 的所有 glob 都必须命中至少1个文件。
+#   2) rescue_success_patterns 中至少一个 glob 必须命中至少1个文件。
+#   3) 若 fail_on_failed_trace=true，execution_trace 中 RNA 关键流程出现
+#      FAILED 时，即使 nextflow 返回 0，也判定样本失败。
 ```
 
 ### seq2neo.shared.config — 流程参数
