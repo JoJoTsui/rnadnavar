@@ -36,59 +36,10 @@ process ENSEMBLVEP_VEP {
     def dir_cache = cache ? "\${PWD}/${cache}" : "/.vep"
     def reference = fasta ? "--fasta $fasta" : ""
     def create_index = file_extension == "vcf" ? "tabix ${args2} ${prefix}.${file_extension}.gz" : ""
+    def plugin_code = 'package SubstrSafe;use strict;use warnings;use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);my $patched=0;sub _wrap_safe{my($pkg,$func_name)=@_;my $full_name="${pkg}::${func_name}";my $orig=do{no strict "refs";\\&{$full_name}};no strict "refs";no warnings "redefine";*{$full_name}=sub{my $result=eval{$orig->(@_)};if($@){my $var_info="unknown";eval{my($bvfoa,$feat,$bvfo,$bvf)=@_;$bvfo||=$bvfoa->base_variation_feature_overlap;my $vf=$bvfo->variation_feature;my $chr=$vf->seq_region_name||"?";my $start=$vf->start||0;my $alleles=$vf->allele_string||"?";my $tr=$bvfo->transcript;my $tr_id=$tr?$tr->stable_id:"?";$var_info="${chr}:${start} ${alleles} transcript=${tr_id}"};warn "SubstrSafe: CAUGHT error in ${func_name} at ${var_info}: $@";return 0}return $result}}sub new{my $class=shift;my $self=$class->SUPER::new(@_);unless($patched){require Bio::EnsEMBL::Variation::Utils::VariationEffect;my $pkg="Bio::EnsEMBL::Variation::Utils::VariationEffect";for my $func(qw(ref_eq_alt_sequence stop_retained stop_lost frameshift inframe_insertion inframe_deletion)){eval{_wrap_safe($pkg,$func)}}$patched=1}return $self}sub feature_types{return["Transcript"]}sub get_header_info{return{}}sub run{return{}}1;'
     """
     mkdir -p vep_plugins
-    cat > vep_plugins/SubstrSafe.pm << 'PLUGIN_EOF'
-package SubstrSafe;
-use strict;
-use warnings;
-use base qw(Bio::EnsEMBL::Variation::Utils::BaseVepPlugin);
-my \$patched = 0;
-sub _wrap_safe {
-    my (\$pkg, \$func_name) = @_;
-    my \$full_name = "\${pkg}::\${func_name}";
-    my \$orig = do { no strict 'refs'; \\&{\$full_name} };
-    no strict 'refs';
-    no warnings 'redefine';
-    *{\$full_name} = sub {
-        my \$result = eval { \$orig->(@_) };
-        if (\$@) {
-            my \$var_info = 'unknown';
-            eval {
-                my (\$bvfoa, \$feat, \$bvfo, \$bvf) = @_;
-                \$bvfo ||= \$bvfoa->base_variation_feature_overlap;
-                my \$vf = \$bvfo->variation_feature;
-                my \$chr = \$vf->seq_region_name || '?';
-                my \$start = \$vf->start || 0;
-                my \$alleles = \$vf->allele_string || '?';
-                my \$tr = \$bvfo->transcript;
-                my \$tr_id = \$tr ? \$tr->stable_id : '?';
-                \$var_info = "\${chr}:\${start} \${alleles} transcript=\${tr_id}";
-            };
-            warn "SubstrSafe: CAUGHT error in \${func_name} at \${var_info}: \$@";
-            return 0;
-        }
-        return \$result;
-    };
-}
-sub new {
-    my \$class = shift;
-    my \$self = \$class->SUPER::new(@_);
-    unless (\$patched) {
-        require Bio::EnsEMBL::Variation::Utils::VariationEffect;
-        my \$pkg = 'Bio::EnsEMBL::Variation::Utils::VariationEffect';
-        for my \$func (qw(ref_eq_alt_sequence stop_retained stop_lost frameshift inframe_insertion inframe_deletion)) {
-            eval { _wrap_safe(\$pkg, \$func) };
-        }
-        \$patched = 1;
-    }
-    return \$self;
-}
-sub feature_types { return ['Transcript'] }
-sub get_header_info { return {} }
-sub run { return {} }
-1;
-PLUGIN_EOF
+    echo '${plugin_code}' > vep_plugins/SubstrSafe.pm
 
     vep \\
         -i $vcf \\
