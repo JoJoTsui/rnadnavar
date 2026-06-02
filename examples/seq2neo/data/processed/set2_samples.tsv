@@ -1,0 +1,21 @@
+project_id	patient_id	disease	status
+PRJNA298376	3942	Colon cancer	standard
+PRJNA298376	3971	Colon cancer	standard
+PRJNA298376	3995	Colon cancer	standard
+PRJNA298376	4007	Colon cancer	standard
+PRJNA298376	4071	Colon cancer	standard
+PRJNA298376	4090	Colon cancer	extra
+PRJNA298376	4115	Colon cancer	extra
+PRJNA298376	4151	Colon cancer	extra
+PRJNA298376	4160	Colon cancer	standard
+PRJNA298376	4196	Colon cancer	extra
+PRJNA298376	4228	Colon cancer	extra
+PRJNA298376	4236	Colon cancer	extra
+PRJNA298376	4245	Colon cancer	extra
+PRJNA298376	4246	Colon cancer	standard
+PRJNA298376	4259	Colon cancer	standard
+PRJNA298376	4263	Colon cancer	extra
+PRJNA298376	4266	Colon cancer	extra
+PRJNA298330	3995	Colon cancer	standard
+PRJNA298330	4007	Colon cancer	standard
+PRJNA298330	4032	Colon cancer	standard

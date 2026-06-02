@@ -1,0 +1,17 @@
+project_id	patient_id	disease	status
+PRJNA298376	3812	Cholangiocarcinoma cancer	standard
+PRJNA298376	3948	Esophageal cancer	standard
+PRJNA298376	3978	Cholangiocarcinoma cancer	standard
+PRJNA298376	4077	Cholangiocarcinoma cancer	standard
+PRJNA298376	4110	Cholangiocarcinoma cancer	extra
+PRJNA298376	4112	Cholangiocarcinoma cancer	extra
+PRJNA298376	4200	Cholangiocarcinoma cancer	extra
+PRJNA298376	4203	Cholangiocarcinoma cancer	extra
+PRJNA298376	4220	Cholangiocarcinoma cancer	extra
+PRJNA298376	4231	Ampullary cancer	standard
+PRJNA298376	4264	Esophageal cancer	extra
+PRJNA298376	4272	Cholangiocarcinoma cancer	extra
+PRJNA298330	3812	Bile Duct cancer	standard
+PRJNA298330	3948	Esophageal cancer	standard
+PRJNA298330	3978	Bile Duct cancer	standard
+PRJNA298310	3812	Melanoma	standard

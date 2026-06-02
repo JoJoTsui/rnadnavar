@@ -1,0 +1,16 @@
+project_id	patient_id	disease	status
+PRJNA298376	4060	Colorectal cancer	standard
+PRJNA298376	4072	Colorectal cancer	standard
+PRJNA298376	4081	Colorectal cancer	standard
+PRJNA298376	4095	Colorectal cancer	extra
+PRJNA298376	4207	Colorectal cancer	extra
+PRJNA298376	4232	Colorectal cancer	extra
+PRJNA298376	4252	Colorectal cancer	extra
+PRJNA298376	4255	Colorectal cancer	standard
+PRJNA298376	4262	Colorectal cancer	extra
+PRJNA298376	4268	Colorectal cancer	extra
+PRJNA298376	4271	Colorectal cancer	standard
+PRJNA298376	4275	Colorectal cancer	extra
+PRJNA298376	4278	Colorectal cancer	standard
+PRJNA298376	4283	Colorectal cancer	extra
+PRJNA298376	4284	Colorectal cancer	extra

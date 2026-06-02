@@ -1,0 +1,16 @@
+project_id	patient_id	disease	status
+PRJNA298376	4069	Pancreatic cancer	standard
+PRJNA298376	4145	Pancreatic cancer	standard
+PRJNA298376	4166	Tumor DNA sample from lung of a human female participant	standard
+PRJNA298376	4214	Lung cancer	extra
+PRJNA298376	4239	Rectal cancer	standard
+PRJNA298376	4242	Gastric cancer	extra
+PRJNA298376	4247	Pancreatic cancer	standard
+PRJNA298376	4257	Rectal cancer	extra
+PRJNA298376	4265	Pancreatic cancer	standard
+PRJNA298376	4270	Pancreatic cancer	extra
+PRJNA298376	4273	Rectal cancer	extra
+PRJNA298376	4274	Rectal cancer	extra
+PRJNA298376	4285	Rectal cancer	extra
+PRJNA298330	3942	Rectal cancer	standard
+PRJNA298330	4096	Pancreatic cancer	standard

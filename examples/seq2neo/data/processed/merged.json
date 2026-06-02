@@ -1,0 +1,3271 @@
+{
+  "projects": [
+    {
+      "project_id": "PRJNA298376",
+      "title": "Prospective Procurement of Solid Tumor Tissue to Identify Novel Therapeutic Targets",
+      "paper": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7445892/pdf/nihms-999157.pdf",
+      "platform": "Illumina",
+      "samples": [
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "3812",
+          "disease": "Cholangiocarcinoma cancer",
+          "disease_normalized": "cholangiocarcinoma cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3812/DN/SRR9697858_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3812/DN/SRR9697858_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3812/DT/SRR9697698_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3812/DT/SRR9697698_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3812/RT/SRR9697882_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3812/RT/SRR9697882_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "3942",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3942/DN/SRR9697895_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3942/DN/SRR9697895_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3942/DT/SRR9697814_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3942/DT/SRR9697814_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3942/RT/SRR9697860_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3942/RT/SRR9697860_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "3948",
+          "disease": "Esophageal cancer",
+          "disease_normalized": "esophageal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3948/DN/SRR9697804_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3948/DN/SRR9697804_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3948/DT/SRR9697807_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3948/DT/SRR9697807_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3948/RT/SRR9697861_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3948/RT/SRR9697861_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "3971",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3971/DN/SRR9697785_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3971/DN/SRR9697785_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3971/DT/SRR9697756_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3971/DT/SRR9697756_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3971/RT/SRR9697856_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3971/RT/SRR9697856_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "3978",
+          "disease": "Cholangiocarcinoma cancer",
+          "disease_normalized": "cholangiocarcinoma cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3978/DN/SRR9697641_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3978/DN/SRR9697641_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3978/DT/SRR9697642_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3978/DT/SRR9697642_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3978/RT/SRR9697800_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3978/RT/SRR9697800_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "3995",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3995/DN/SRR9697639_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3995/DN/SRR9697639_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3995/DT/SRR9697640_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3995/DT/SRR9697640_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3995/RT/SRR9697799_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/3995/RT/SRR9697799_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4007",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4007/DN/SRR9697637_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4007/DN/SRR9697637_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4007/DT/SRR9697638_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4007/DT/SRR9697638_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4007/RT/SRR9697631_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4007/RT/SRR9697631_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4060",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4060/DN/SRR9697645_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4060/DN/SRR9697645_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4060/DT/SRR9697644_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4060/DT/SRR9697644_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4060/RT/SRR9697632_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4060/RT/SRR9697632_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4069",
+          "disease": "Pancreatic cancer",
+          "disease_normalized": "pancreatic cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4069/DN/SRR9697829_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4069/DN/SRR9697829_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4069/DT/SRR9697828_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4069/DT/SRR9697828_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4069/RT/SRR9697633_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4069/RT/SRR9697633_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 4
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4071",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4071/DN/SRR9697827_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4071/DN/SRR9697827_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4071/DT/SRR9697826_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4071/DT/SRR9697826_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4071/RT/SRR9697634_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4071/RT/SRR9697634_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4072",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4072/DN/SRR9697825_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4072/DN/SRR9697825_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4072/DT/SRR9697824_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4072/DT/SRR9697824_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4072/RT/SRR9697627_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4072/RT/SRR9697627_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4077",
+          "disease": "Cholangiocarcinoma cancer",
+          "disease_normalized": "cholangiocarcinoma cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4077/DN/SRR9697823_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4077/DN/SRR9697823_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4077/DT/SRR9697822_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4077/DT/SRR9697822_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4077/RT/SRR9697628_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4077/RT/SRR9697628_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4078",
+          "disease": "Metastatic Cancer/adrenal",
+          "disease_normalized": "metastatic cancer/adrenal",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4078/DN/SRR8496544_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4078/DN/SRR8496544_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4078/DT/SRR8496545_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4078/DT/SRR8496545_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "incomplete",
+          "status_reason": "missing or empty modalities: ['RT']",
+          "partition_set": null
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4081",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/DN/SRR9697896_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/DN/SRR9697896_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/DT/SRR9697897_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/DT/SRR9697897_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/RT/SRR9697629_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4081/RT/SRR9697629_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4090",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/DN/SRR9697899_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/DN/SRR9697899_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/DT/SRR9697623_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/DT/SRR9697623_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/RT/SRR9697625_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/RT/SRR9697625_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/RT/SRR9697630_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4090/RT/SRR9697630_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['RT']",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4095",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DN/SRR9697903_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DN/SRR9697903_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DT/SRR9697838_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DT/SRR9697838_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DT/SRR9697901_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DT/SRR9697901_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DT/SRR9697902_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/DT/SRR9697902_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/RT/SRR9697626_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/RT/SRR9697626_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/RT/SRR9697671_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/RT/SRR9697671_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/RT/SRR9697672_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4095/RT/SRR9697672_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4107",
+          "disease": "Cholangiocarcinoma cancer",
+          "disease_normalized": "cholangiocarcinoma cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4107/DN/SRR9697894_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4107/DN/SRR9697894_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4107/DT/SRR9697892_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4107/DT/SRR9697892_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "incomplete",
+          "status_reason": "missing or empty modalities: ['RT']",
+          "partition_set": null
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4110",
+          "disease": "Cholangiocarcinoma cancer",
+          "disease_normalized": "cholangiocarcinoma cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/DN/SRR8496546_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/DN/SRR8496546_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/DT/SRR9697736_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/DT/SRR9697736_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/DT/SRR9697890_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/DT/SRR9697890_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/RT/SRR9697666_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/RT/SRR9697666_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/RT/SRR9697847_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4110/RT/SRR9697847_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4112",
+          "disease": "Cholangiocarcinoma cancer",
+          "disease_normalized": "cholangiocarcinoma cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/DN/SRR9697739_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/DN/SRR9697739_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/DT/SRR9697805_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/DT/SRR9697805_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/DT/SRR9697859_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/DT/SRR9697859_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/RT/SRR9697848_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4112/RT/SRR9697848_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT']",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4115",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DN/SRR9697738_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DN/SRR9697738_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DT/SRR9697599_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DT/SRR9697599_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DT/SRR9697757_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DT/SRR9697757_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DT/SRR9697880_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/DT/SRR9697880_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/RT/SRR9697846_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/RT/SRR9697846_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/RT/SRR9697885_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/RT/SRR9697885_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/RT/SRR9697886_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4115/RT/SRR9697886_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4141",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4141/DT/SRR9697754_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4141/DT/SRR9697754_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4141/RT/SRR9697849_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4141/RT/SRR9697849_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "incomplete",
+          "status_reason": "missing or empty modalities: ['DN']",
+          "partition_set": null
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4145",
+          "disease": "Pancreatic cancer",
+          "disease_normalized": "pancreatic cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4145/DN/SRR9697600_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4145/DN/SRR9697600_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4145/DT/SRR9697680_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4145/DT/SRR9697680_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4145/RT/SRR9697850_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4145/RT/SRR9697850_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 4
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4151",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/DN/SRR9697677_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/DN/SRR9697677_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/DT/SRR9697678_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/DT/SRR9697678_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/DT/SRR9697679_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/DT/SRR9697679_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/RT/SRR9697843_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/RT/SRR9697843_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/RT/SRR9697844_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4151/RT/SRR9697844_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4160",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4160/DN/SRR9697684_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4160/DN/SRR9697684_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4160/DT/SRR9697683_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4160/DT/SRR9697683_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4160/RT/SRR9697582_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4160/RT/SRR9697582_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4166",
+          "disease": "Tumor DNA sample from lung of a human female participant",
+          "disease_normalized": "tumor dna sample from lung of a human female participant",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4166/DN/SRR8496550_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4166/DN/SRR8496550_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4166/DT/SRR8496551_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4166/DT/SRR8496551_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4166/RT/SRR9697581_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4166/RT/SRR9697581_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 4
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4182",
+          "disease": "Appendiceal Adenocarcinoma cancer",
+          "disease_normalized": "appendiceal adenocarcinoma cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4182/DN/SRR9697815_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4182/DN/SRR9697815_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4182/DT/SRR9697730_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4182/DT/SRR9697730_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4182/DT/SRR9697731_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4182/DT/SRR9697731_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "incomplete",
+          "status_reason": "missing or empty modalities: ['RT']",
+          "partition_set": null
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4196",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/DN/SRR9697727_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/DN/SRR9697727_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/DT/SRR9697842_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/DT/SRR9697842_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/DT/SRR9697888_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/DT/SRR9697888_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/RT/SRR9697583_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/RT/SRR9697583_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/RT/SRR9697586_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4196/RT/SRR9697586_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4200",
+          "disease": "Cholangiocarcinoma cancer",
+          "disease_normalized": "cholangiocarcinoma cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/DN/SRR9697881_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/DN/SRR9697881_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/DT/SRR9697728_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/DT/SRR9697728_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/DT/SRR9697729_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/DT/SRR9697729_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/RT/SRR9697585_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/RT/SRR9697585_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/RT/SRR9697588_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4200/RT/SRR9697588_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4203",
+          "disease": "Cholangiocarcinoma cancer",
+          "disease_normalized": "cholangiocarcinoma cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DN/SRR9697809_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DN/SRR9697809_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DT/SRR9697753_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DT/SRR9697753_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DT/SRR9697803_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DT/SRR9697803_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DT/SRR9697887_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/DT/SRR9697887_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/RT/SRR9697577_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/RT/SRR9697577_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/RT/SRR9697578_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/RT/SRR9697578_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/RT/SRR9697587_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4203/RT/SRR9697587_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4207",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DN/SRR9697643_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DN/SRR9697643_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DT/SRR9697755_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DT/SRR9697755_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DT/SRR9697758_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DT/SRR9697758_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DT/SRR9697806_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/DT/SRR9697806_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/RT/SRR9697691_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/RT/SRR9697691_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/RT/SRR9697696_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/RT/SRR9697696_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/RT/SRR9697808_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4207/RT/SRR9697808_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4214",
+          "disease": "Lung cancer",
+          "disease_normalized": "lung cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/DN/SRR9697664_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/DN/SRR9697664_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/DT/SRR9697857_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/DT/SRR9697857_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/RT/SRR9697598_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/RT/SRR9697598_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/RT/SRR9697726_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4214/RT/SRR9697726_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['RT']",
+          "partition_set": 4
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4220",
+          "disease": "Cholangiocarcinoma cancer",
+          "disease_normalized": "cholangiocarcinoma cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DN/SRR9697855_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DN/SRR9697855_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DT/SRR9697647_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DT/SRR9697647_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DT/SRR9697852_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DT/SRR9697852_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DT/SRR9697853_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/DT/SRR9697853_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/RT/SRR9697780_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/RT/SRR9697780_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/RT/SRR9697781_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/RT/SRR9697781_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/RT/SRR9697782_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4220/RT/SRR9697782_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4223",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4223/DN/SRR9697817_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4223/DN/SRR9697817_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4223/DT/SRR9697854_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4223/DT/SRR9697854_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "incomplete",
+          "status_reason": "missing or empty modalities: ['RT']",
+          "partition_set": null
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4228",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/DN/SRR9697818_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/DN/SRR9697818_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/DT/SRR9697816_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/DT/SRR9697816_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/DT/SRR9697851_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/DT/SRR9697851_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/RT/SRR9697777_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/RT/SRR9697777_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/RT/SRR9697778_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/RT/SRR9697778_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/RT/SRR9697779_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4228/RT/SRR9697779_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4230",
+          "disease": "Cholangiocarcinoma cancer",
+          "disease_normalized": "cholangiocarcinoma cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4230/DN/SRR9697812_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4230/DN/SRR9697812_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4230/RT/SRR9697776_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4230/RT/SRR9697776_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "incomplete",
+          "status_reason": "missing or empty modalities: ['DT']",
+          "partition_set": null
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4231",
+          "disease": "Ampullary cancer",
+          "disease_normalized": "ampullary cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4231/DN/SRR9697752_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4231/DN/SRR9697752_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4231/DT/SRR9697751_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4231/DT/SRR9697751_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4231/RT/SRR9697775_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4231/RT/SRR9697775_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4232",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DN/SRR9697748_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DN/SRR9697748_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DT/SRR9697747_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DT/SRR9697747_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DT/SRR9697749_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DT/SRR9697749_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DT/SRR9697750_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/DT/SRR9697750_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/RT/SRR9697774_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/RT/SRR9697774_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/RT/SRR9697862_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4232/RT/SRR9697862_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4235",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4235/DN/SRR9697743_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4235/DN/SRR9697743_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4235/DT/SRR9697745_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4235/DT/SRR9697745_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4235/DT/SRR9697746_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4235/DT/SRR9697746_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "incomplete",
+          "status_reason": "missing or empty modalities: ['RT']",
+          "partition_set": null
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4236",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DN/SRR9697703_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DN/SRR9697703_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DT/SRR9697704_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DT/SRR9697704_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DT/SRR9697705_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DT/SRR9697705_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DT/SRR9697744_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/DT/SRR9697744_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/RT/SRR9697699_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/RT/SRR9697699_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/RT/SRR9697864_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/RT/SRR9697864_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/RT/SRR9697898_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4236/RT/SRR9697898_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4239",
+          "disease": "Rectal cancer",
+          "disease_normalized": "rectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4239/DN/SRR9697707_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4239/DN/SRR9697707_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4239/DT/SRR9697708_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4239/DT/SRR9697708_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4239/RT/SRR9697697_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4239/RT/SRR9697697_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 4
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4241",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4241/DN/SRR9697713_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4241/DN/SRR9697713_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4241/DT/SRR9697706_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4241/DT/SRR9697706_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "incomplete",
+          "status_reason": "missing or empty modalities: ['RT']",
+          "partition_set": null
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4242",
+          "disease": "Gastric cancer",
+          "disease_normalized": "gastric cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/DN/SRR9697653_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/DN/SRR9697653_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/DT/SRR9697652_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/DT/SRR9697652_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/DT/SRR9697712_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/DT/SRR9697712_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/RT/SRR9697694_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/RT/SRR9697694_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/RT/SRR9697695_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4242/RT/SRR9697695_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 4
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4245",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DN/SRR9697649_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DN/SRR9697649_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DT/SRR9697648_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DT/SRR9697648_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DT/SRR9697654_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DT/SRR9697654_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DT/SRR9697655_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/DT/SRR9697655_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/RT/SRR9697692_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/RT/SRR9697692_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/RT/SRR9697693_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/RT/SRR9697693_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/RT/SRR9697787_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4245/RT/SRR9697787_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4246",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4246/DN/SRR9697651_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4246/DN/SRR9697651_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4246/DT/SRR9697650_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4246/DT/SRR9697650_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4246/RT/SRR9697900_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4246/RT/SRR9697900_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4247",
+          "disease": "Pancreatic cancer",
+          "disease_normalized": "pancreatic cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4247/DN/SRR9697661_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4247/DN/SRR9697661_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4247/DT/SRR9697660_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4247/DT/SRR9697660_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4247/RT/SRR9697716_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4247/RT/SRR9697716_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 4
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4251",
+          "disease": "Gastric cancer",
+          "disease_normalized": "gastric cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4251/DN/SRR9697606_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4251/DN/SRR9697606_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4251/DT/SRR9697603_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4251/DT/SRR9697603_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4251/DT/SRR9697604_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4251/DT/SRR9697604_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "incomplete",
+          "status_reason": "missing or empty modalities: ['RT']",
+          "partition_set": null
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4252",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DN/SRR9697610_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DN/SRR9697610_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DT/SRR9697605_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DT/SRR9697605_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DT/SRR9697607_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DT/SRR9697607_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DT/SRR9697608_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/DT/SRR9697608_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/RT/SRR9697681_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/RT/SRR9697681_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/RT/SRR9697686_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/RT/SRR9697686_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/RT/SRR9697710_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4252/RT/SRR9697710_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4255",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4255/DN/SRR9697612_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4255/DN/SRR9697612_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4255/DT/SRR9697609_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4255/DT/SRR9697609_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4255/RT/SRR9697601_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4255/RT/SRR9697601_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4257",
+          "disease": "Rectal cancer",
+          "disease_normalized": "rectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/DN/SRR9697907_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/DN/SRR9697907_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/DT/SRR9697611_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/DT/SRR9697611_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/DT/SRR9697906_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/DT/SRR9697906_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/RT/SRR9697690_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/RT/SRR9697690_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/RT/SRR9697742_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4257/RT/SRR9697742_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 4
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4259",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4259/DN/SRR9697905_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4259/DN/SRR9697905_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4259/DT/SRR9697904_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4259/DT/SRR9697904_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4259/RT/SRR9697741_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4259/RT/SRR9697741_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4262",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/DN/SRR9697909_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/DN/SRR9697909_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/DT/SRR9697893_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/DT/SRR9697893_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/DT/SRR9697908_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/DT/SRR9697908_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/RT/SRR9697620_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/RT/SRR9697620_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/RT/SRR9697621_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/RT/SRR9697621_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/RT/SRR9697622_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4262/RT/SRR9697622_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4263",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/DN/SRR9697837_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/DN/SRR9697837_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/DT/SRR9697575_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/DT/SRR9697575_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/DT/SRR9697576_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/DT/SRR9697576_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/RT/SRR9697618_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/RT/SRR9697618_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/RT/SRR9697619_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4263/RT/SRR9697619_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4264",
+          "disease": "Esophageal cancer",
+          "disease_normalized": "esophageal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/DN/SRR9697834_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/DN/SRR9697834_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/DT/SRR9697835_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/DT/SRR9697835_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/DT/SRR9697836_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/DT/SRR9697836_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/RT/SRR9697615_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/RT/SRR9697615_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/RT/SRR9697616_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/RT/SRR9697616_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/RT/SRR9697617_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4264/RT/SRR9697617_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4265",
+          "disease": "Pancreatic cancer",
+          "disease_normalized": "pancreatic cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4265/DN/SRR9697832_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4265/DN/SRR9697832_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4265/DT/SRR9697833_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4265/DT/SRR9697833_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4265/RT/SRR9697614_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4265/RT/SRR9697614_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 4
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4266",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DN/SRR9697840_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DN/SRR9697840_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DT/SRR9697830_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DT/SRR9697830_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DT/SRR9697831_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DT/SRR9697831_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DT/SRR9697841_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/DT/SRR9697841_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/RT/SRR9697589_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/RT/SRR9697589_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/RT/SRR9697590_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/RT/SRR9697590_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/RT/SRR9697613_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4266/RT/SRR9697613_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4268",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/DN/SRR9697766_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/DN/SRR9697766_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/DT/SRR9697764_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/DT/SRR9697764_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/DT/SRR9697765_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/DT/SRR9697765_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/RT/SRR9697591_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/RT/SRR9697591_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/RT/SRR9697592_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4268/RT/SRR9697592_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4270",
+          "disease": "Pancreatic cancer",
+          "disease_normalized": "pancreatic cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DN/SRR9697770_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DN/SRR9697770_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DT/SRR9697767_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DT/SRR9697767_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DT/SRR9697768_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DT/SRR9697768_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DT/SRR9697769_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/DT/SRR9697769_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/RT/SRR9697593_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/RT/SRR9697593_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/RT/SRR9697594_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/RT/SRR9697594_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/RT/SRR9697595_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4270/RT/SRR9697595_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 4
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4271",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4271/DN/SRR9697762_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4271/DN/SRR9697762_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4271/DT/SRR9697771_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4271/DT/SRR9697771_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4271/RT/SRR9697596_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4271/RT/SRR9697596_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4272",
+          "disease": "Cholangiocarcinoma cancer",
+          "disease_normalized": "cholangiocarcinoma cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DN/SRR9697872_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DN/SRR9697872_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DT/SRR9697763_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DT/SRR9697763_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DT/SRR9697869_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DT/SRR9697869_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DT/SRR9697870_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/DT/SRR9697870_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/RT/SRR9697597_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/RT/SRR9697597_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/RT/SRR9697711_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/RT/SRR9697711_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/RT/SRR9697883_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4272/RT/SRR9697883_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4273",
+          "disease": "Rectal cancer",
+          "disease_normalized": "rectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/DN/SRR9697865_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/DN/SRR9697865_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/DT/SRR9697866_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/DT/SRR9697866_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/DT/SRR9697871_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/DT/SRR9697871_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/RT/SRR9697773_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4273/RT/SRR9697773_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT']",
+          "partition_set": 4
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4274",
+          "disease": "Rectal cancer",
+          "disease_normalized": "rectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/DN/SRR9697878_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/DN/SRR9697878_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/DT/SRR9697867_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/DT/SRR9697867_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/DT/SRR9697868_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/DT/SRR9697868_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/RT/SRR9697784_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/RT/SRR9697784_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/RT/SRR9697786_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4274/RT/SRR9697786_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 4
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4275",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/DN/SRR9697794_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/DN/SRR9697794_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/DT/SRR9697793_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/DT/SRR9697793_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/DT/SRR9697877_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/DT/SRR9697877_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/RT/SRR9697715_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/RT/SRR9697715_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/RT/SRR9697819_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4275/RT/SRR9697819_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 2
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4278",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4278/DN/SRR9697792_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4278/DN/SRR9697792_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4278/DT/SRR9697791_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4278/DT/SRR9697791_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4278/RT/SRR9697717_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4278/RT/SRR9697717_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4283",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DN/SRR9697788_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DN/SRR9697788_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DT/SRR9697761_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DT/SRR9697761_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DT/SRR9697789_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DT/SRR9697789_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DT/SRR9697790_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/DT/SRR9697790_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/RT/SRR9697665_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/RT/SRR9697665_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/RT/SRR9697734_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/RT/SRR9697734_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/RT/SRR9697875_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4283/RT/SRR9697875_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4284",
+          "disease": "Colorectal cancer",
+          "disease_normalized": "colorectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DN/SRR9697725_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DN/SRR9697725_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DT/SRR9697724_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DT/SRR9697724_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DT/SRR9697801_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DT/SRR9697801_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DT/SRR9697802_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/DT/SRR9697802_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/RT/SRR9697656_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/RT/SRR9697656_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/RT/SRR9697658_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/RT/SRR9697658_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/RT/SRR9697659_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4284/RT/SRR9697659_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 1
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4285",
+          "disease": "Rectal cancer",
+          "disease_normalized": "rectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DN/SRR9697721_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DN/SRR9697721_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DT/SRR9697720_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DT/SRR9697720_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DT/SRR9697722_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DT/SRR9697722_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DT/SRR9697723_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/DT/SRR9697723_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/RT/SRR9697657_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/RT/SRR9697657_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/RT/SRR9697662_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/RT/SRR9697662_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/RT/SRR9697663_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4285/RT/SRR9697663_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 3
+            }
+          },
+          "status": "extra",
+          "status_reason": "modalities with >1 pair: ['DT', 'RT']",
+          "partition_set": 4
+        },
+        {
+          "_project_id": "PRJNA298376",
+          "patient_id": "4289",
+          "disease": "Rectal cancer",
+          "disease_normalized": "rectal cancer",
+          "modalities": {
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DN/SRR9697879_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DN/SRR9697879_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697718_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697718_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697719_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697719_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697732_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697732_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697733_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697733_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697863_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697863_2.fastq.gz"
+                },
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697891_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298376/4289/DT/SRR9697891_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 6
+            }
+          },
+          "status": "incomplete",
+          "status_reason": "missing or empty modalities: ['RT']",
+          "partition_set": null
+        }
+      ]
+    },
+    {
+      "project_id": "PRJNA298330",
+      "title": "Immunogenicity ofsomatic mutations in gastrointestinal cancers",
+      "paper": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6819109/pdf/jci-129-127967.pdf",
+      "platform": "Illumina",
+      "samples": [
+        {
+          "_project_id": "PRJNA298330",
+          "patient_id": "3812",
+          "disease": "Bile Duct cancer",
+          "disease_normalized": "bile duct cancer",
+          "modalities": {
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3812/DT/SRR2635082_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3812/DT/SRR2635082_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3812/DN/SRR2635083_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3812/DN/SRR2635083_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3812/RT/SRR5438853_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3812/RT/SRR5438853_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298330",
+          "patient_id": "3942",
+          "disease": "Rectal cancer",
+          "disease_normalized": "rectal cancer",
+          "modalities": {
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3942/DT/SRR2636946_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3942/DT/SRR2636946_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3942/DN/SRR2636947_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3942/DN/SRR2636947_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3942/RT/SRR4176783_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3942/RT/SRR4176783_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 4
+        },
+        {
+          "_project_id": "PRJNA298330",
+          "patient_id": "3948",
+          "disease": "Esophageal cancer",
+          "disease_normalized": "esophageal cancer",
+          "modalities": {
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3948/DT/SRR2636949_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3948/DT/SRR2636949_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3948/DN/SRR2636950_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3948/DN/SRR2636950_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3948/RT/SRR4203093_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3948/RT/SRR4203093_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298330",
+          "patient_id": "3978",
+          "disease": "Bile Duct cancer",
+          "disease_normalized": "bile duct cancer",
+          "modalities": {
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3978/DT/SRR2637130_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3978/DT/SRR2637130_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3978/DN/SRR2637203_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3978/DN/SRR2637203_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3978/RT/SRR4204471_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3978/RT/SRR4204471_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 3
+        },
+        {
+          "_project_id": "PRJNA298330",
+          "patient_id": "3995",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3995/DT/SRR2637256_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3995/DT/SRR2637256_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3995/DN/1/SRR2637257_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3995/DN/1/SRR2637257_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3995/RT/SRR4204474_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/3995/RT/SRR4204474_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298330",
+          "patient_id": "4007",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4007/DT/SRR2637310_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4007/DT/SRR2637310_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4007/DN/SRR2637311_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4007/DN/SRR2637311_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4007/RT/SRR4204475_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4007/RT/SRR4204475_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298330",
+          "patient_id": "4032",
+          "disease": "Colon cancer",
+          "disease_normalized": "colon cancer",
+          "modalities": {
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4032/DT/SRR2637312_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4032/DT/SRR2637312_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4032/DN/SRR2637313_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4032/DN/SRR2637313_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4032/RT/SRR4204476_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4032/RT/SRR4204476_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 2
+        },
+        {
+          "_project_id": "PRJNA298330",
+          "patient_id": "4096",
+          "disease": "Pancreatic cancer",
+          "disease_normalized": "pancreatic cancer",
+          "modalities": {
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4096/DT/SRR2637385_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4096/DT/SRR2637385_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4096/DN/SRR2637386_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4096/DN/SRR2637386_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4096/RT/SRR4204477_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298330/4096/RT/SRR4204477_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 4
+        }
+      ]
+    },
+    {
+      "project_id": "PRJNA298310",
+      "title": "Whole exome and RNA-seq of melanoma tumors",
+      "paper": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7446107/pdf/nihms-1613069.pdf",
+      "platform": "Illumina",
+      "samples": [
+        {
+          "_project_id": "PRJNA298310",
+          "patient_id": "3812",
+          "disease": "Melanoma",
+          "disease_normalized": "melanoma",
+          "modalities": {
+            "DT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/WES_Tumor/SRR2634743_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/WES_Tumor/SRR2634743_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "DN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/WES_Normal/SRR2634745_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/WES_Normal/SRR2634745_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RT": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/RNA_Tumor/SRR2635081_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/RNA_Tumor/SRR2635081_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            },
+            "RN": {
+              "pairs": [
+                {
+                  "r1": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/RNA_Normal/SRR2634744_1.fastq.gz",
+                  "r2": "/t9k/mnt/WorkSpace/data/raw_data/PRJNA298310_Melanoma/RNA_Normal/SRR2634744_2.fastq.gz"
+                }
+              ],
+              "n_pairs": 1
+            }
+          },
+          "status": "standard",
+          "status_reason": "all required modalities have exactly 1 pair",
+          "partition_set": 3
+        }
+      ]
+    }
+  ],
+  "partition": {
+    "exceptions": [],
+    "bin_diseases": {
+      "2": [
+        "colon cancer"
+      ],
+      "3": [
+        "ampullary cancer",
+        "bile duct cancer",
+        "cholangiocarcinoma cancer",
+        "esophageal cancer",
+        "melanoma"
+      ],
+      "4": [
+        "gastric cancer",
+        "lung cancer",
+        "pancreatic cancer",
+        "rectal cancer",
+        "tumor dna sample from lung of a human female participant"
+      ]
+    }
+  },
+  "summary": {
+    "total": 76,
+    "by_status": {
+      "standard": 34,
+      "incomplete": 10,
+      "extra": 32
+    },
+    "by_set": {
+      "set1": 15,
+      "set2": 20,
+      "set3": 16,
+      "set4": 15
+    }
+  }
+}
