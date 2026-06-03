@@ -24,11 +24,17 @@ REQUIRED_MODALITIES = ["DN", "DT", "RT"]
 FASTQ_COLS = [
     "set", "patient_id", "disease", "status",
     "modality", "pair_type", "pair_idx", "r_label",
-    "file", "format", "type", "num_seqs", "sum_len",
+    "file",
+    "format", "type", "num_seqs", "sum_len",
     "min_len", "avg_len", "max_len", "Q1", "Q2", "Q3",
     "sum_gap", "N50", "N50_num", "Q20(%)", "Q30(%)",
     "AvgQual", "GC(%)", "sum_n",
 ]
+# seqkit output columns (in order): file, format, type, num_seqs, sum_len,
+#   min_len, avg_len, max_len, Q1, Q2, Q3, sum_gap, N50, N50_num,
+#   Q20(%), Q30(%), AvgQual, GC(%), sum_n
+# FASTQ_COLS[9:] aligns with seqkit columns starting from "format"
+# (skipping seqkit's "file" since we write our own via row.append)
 
 SAMPLE_STAT_KEYS = ["reads", "bases", "GC", "Q20", "Q30", "AvgQual"]
 
@@ -280,7 +286,7 @@ def main():
             row = [str(e[k]) for k in ("set", "patient", "disease", "status",
                                          "modality", "pair_type", "pair_idx", "r_label")]
             row.append(e["file"])
-            row.extend(stats.get(c, "") for c in FASTQ_COLS[8:])
+            row.extend(stats.get(c, "") for c in FASTQ_COLS[9:])
             fh.write("\t".join(row) + "\n")
 
     print(f"FASTQ-level stats written to {args.fastq_out} "

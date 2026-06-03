@@ -2,7 +2,7 @@
 """
 Visualize seq2neo FASTQ statistics using seaborn/matplotlib.
 
-Reads sample_stats.tsv and generates 6 figures in the same directory.
+Reads sample_stats.tsv and fastq_stats.tsv, generates figures in stats/.
 """
 
 from pathlib import Path
@@ -15,6 +15,7 @@ import seaborn as sns
 HERE = Path(__file__).resolve().parent
 STATS_DIR = HERE / "stats"
 SAMPLE_TSV = STATS_DIR / "sample_stats.tsv"
+FASTQ_TSV = STATS_DIR / "fastq_stats.tsv"
 
 MODALITIES = ["DN", "DT", "RT"]
 MOD_COLORS = {"DN": "#4C72B0", "DT": "#DD8452", "RT": "#55A868"}
@@ -31,10 +32,19 @@ plt.rcParams["figure.dpi"] = 150
 
 
 def load_and_prepare():
-    """Load sample stats, compute primary metrics, build long-form DataFrames."""
+    """Load stats, compute primary metrics, build long-form DataFrames."""
     df = pd.read_csv(SAMPLE_TSV, sep="\t")
+    fq = pd.read_csv(FASTQ_TSV, sep="\t")
 
-    # Long-form for primary data (one row per sample per modality)
+    # Per-sample per-modality avg_len from fastq_stats (primary only, mean of r1+r2)
+    len_df = fq[fq["pair_type"] == "primary"].groupby(
+        ["patient_id", "modality"])["avg_len"].mean().reset_index()
+    len_pivot = len_df.pivot(index="patient_id", columns="modality", values="avg_len")
+    for mod in MODALITIES:
+        df[f"{mod}_avg_len"] = df["patient_id"].map(
+            len_pivot[mod]) if mod in len_pivot.columns else np.nan
+
+    # Long-form for primary data
     records = []
     for _, row in df.iterrows():
         for mod in MODALITIES:
@@ -58,10 +68,11 @@ def load_and_prepare():
                 "Q20": q20,
                 "Q30": q30,
                 "AvgQual": avgqual,
+                "avg_len": row.get(f"{mod}_avg_len", np.nan),
             })
     primary = pd.DataFrame(records)
 
-    # Long-form for extra data (DT_extra, RT_extra only)
+    # Long-form for extra data
     extra_records = []
     for _, row in df.iterrows():
         if row["n_extra_pairs"] == 0:
@@ -70,6 +81,11 @@ def load_and_prepare():
             reads = row.get(f"{mod}_extra_reads")
             if pd.isna(reads) or reads == 0:
                 continue
+            # extra avg_len from fastq
+            ext_len = fq[(fq["patient_id"] == row["patient_id"]) &
+                         (fq["modality"] == mod) &
+                         (fq["pair_type"] == "extra")]["avg_len"]
+            ext_avg = ext_len.mean() if len(ext_len) > 0 else np.nan
             extra_records.append({
                 "set": str(int(row["set"])),
                 "patient_id": row["patient_id"],
@@ -81,10 +97,11 @@ def load_and_prepare():
                 "Q20": row[f"{mod}_extra_Q20"],
                 "Q30": row[f"{mod}_extra_Q30"],
                 "AvgQual": row[f"{mod}_extra_AvgQual"],
+                "avg_len": ext_avg,
             })
     extra = pd.DataFrame(extra_records)
 
-    # Per-sample totals for sorting across all grouped-bar figures
+    # Per-sample totals for sorting
     df["DN_total"] = df["DN_r1_reads"] + df["DN_r2_reads"]
     df["DT_total"] = df["DT_r1_reads"] + df["DT_r2_reads"]
     df["RT_total"] = df["RT_r1_reads"] + df["RT_r2_reads"]
@@ -133,7 +150,6 @@ def _grouped_bar_by_set(df, value_col, title, filename, xlabel):
         ax.legend(loc="lower right", fontsize=8)
         max_val = max(max_val, subset[[f"{m}_{value_col}" for m in MODALITIES]].max().max())
 
-    # Unified x-axis across all panels
     for ax in axes.flat:
         if ax.get_visible():
             ax.set_xlim(0, max_val * 1.08)
@@ -146,20 +162,20 @@ def _grouped_bar_by_set(df, value_col, title, filename, xlabel):
 
 
 # ---------------------------------------------------------------------------
-# FIG 1: Primary stats distribution (violin)
+# FIG 1: Primary stats overview (violin, 2×4)
 # ---------------------------------------------------------------------------
 
 def fig1_primary_overview(primary):
-    """2x3 grid of violin plots: DN/DT/RT distributions across all samples."""
-    metrics = ["reads", "bases", "GC", "Q20", "Q30", "AvgQual"]
-    titles = ["Reads", "Bases", "GC (%)", "Q20 (%)", "Q30 (%)", "AvgQual"]
+    metrics = ["reads", "bases", "GC", "Q20", "Q30", "AvgQual", "avg_len"]
+    titles = ["Reads", "Bases", "GC (%)", "Q20 (%)", "Q30 (%)",
+              "AvgQual", "Read Length (bp)"]
     log_scale = {"reads", "bases"}
 
-    fig, axes = plt.subplots(2, 3, figsize=(18, 11))
+    fig, axes = plt.subplots(2, 4, figsize=(22, 11))
     for ax, metric, title in zip(axes.flat, metrics, titles):
         data = primary[["modality", metric]].dropna()
         sns.violinplot(data=data, x="modality", y=metric, hue="modality",
-                       palette=MOD_COLORS, ax=ax, linewidth=1,
+                       palette=MOD_COLORS, ax=ax, linewidth=1, cut=0,
                        inner="quartile", density_norm="width", legend=False)
         if metric in log_scale:
             ax.set_yscale("log")
@@ -169,6 +185,9 @@ def fig1_primary_overview(primary):
         ax.set_xticklabels([MOD_LABELS[m] for m in MODALITIES],
                            rotation=15, fontsize=9)
         ax.tick_params(axis="y", labelsize=9)
+    # Hide empty 8th panel
+    if len(metrics) < len(axes.flat):
+        axes.flat[-1].set_visible(False)
 
     fig.suptitle("Primary FASTQ Stats Distribution Across 66 Samples",
                  fontweight="bold", fontsize=16, y=1.01)
@@ -180,7 +199,7 @@ def fig1_primary_overview(primary):
 
 
 # ---------------------------------------------------------------------------
-# FIG 2–5: Per-sample grouped-bar plots (reads, Q30, Q20, bases)
+# FIG 2–5: Per-sample grouped-bar plots
 # ---------------------------------------------------------------------------
 
 def fig2_per_sample_reads(df):
@@ -212,26 +231,26 @@ def fig5_per_sample_bases(df):
 
 
 # ---------------------------------------------------------------------------
-# FIG 6: Extra data overview (violin)
+# FIG 6: Extra data overview (violin, 2×4)
 # ---------------------------------------------------------------------------
 
 def fig6_extra_overview(extra):
-    """Violin plots for extra data (DT and RT) across samples with extra pairs."""
     if extra.empty:
         print("  fig6_extra_overview.png (skipped: no extra data)")
         return
 
-    metrics = ["reads", "bases", "GC", "Q20", "Q30", "AvgQual"]
+    metrics = ["reads", "bases", "GC", "Q20", "Q30", "AvgQual", "avg_len"]
     titles = ["Extra Reads", "Extra Bases", "Extra GC (%)",
-              "Extra Q20 (%)", "Extra Q30 (%)", "Extra AvgQual"]
+              "Extra Q20 (%)", "Extra Q30 (%)", "Extra AvgQual",
+              "Extra Read Length (bp)"]
     log_scale = {"reads", "bases"}
     n_samples = len(extra["patient_id"].unique())
 
-    fig, axes = plt.subplots(2, 3, figsize=(14, 9))
+    fig, axes = plt.subplots(2, 4, figsize=(18, 9))
     for ax, metric, title in zip(axes.flat, metrics, titles):
         data = extra[["modality", metric]].dropna()
         sns.violinplot(data=data, x="modality", y=metric, hue="modality",
-                       palette=MOD_COLORS, ax=ax, linewidth=1,
+                       palette=MOD_COLORS, ax=ax, linewidth=1, cut=0,
                        inner="quartile", density_norm="width", legend=False)
         if metric in log_scale:
             ax.set_yscale("log")
@@ -241,6 +260,8 @@ def fig6_extra_overview(extra):
         ax.set_xticklabels([f"{MOD_LABELS[m]} (extra)" for m in ["DT", "RT"]],
                            fontsize=9)
         ax.tick_params(axis="y", labelsize=9)
+    if len(metrics) < len(axes.flat):
+        axes.flat[-1].set_visible(False)
 
     fig.suptitle(f"Extra FASTQ Stats Distribution ({n_samples} samples)",
                  fontweight="bold", fontsize=16, y=1.01)
@@ -249,6 +270,17 @@ def fig6_extra_overview(extra):
                 bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print("  fig6_extra_overview.png")
+
+
+# ---------------------------------------------------------------------------
+# FIG 8: Per-sample read length (grouped bars)
+# ---------------------------------------------------------------------------
+
+def fig8_per_sample_readlen(df):
+    _grouped_bar_by_set(df, value_col="avg_len",
+        title="Per-Sample Read Length by Modality and Set",
+        filename="fig8_per_sample_readlen.png",
+        xlabel="Read Length (bp)")
 
 
 # ---------------------------------------------------------------------------
@@ -268,6 +300,7 @@ def main():
     fig4_per_sample_q20(df)
     fig5_per_sample_bases(df)
     fig6_extra_overview(extra)
+    fig8_per_sample_readlen(df)
 
     print(f"\nAll figures saved to {STATS_DIR}/")
 
