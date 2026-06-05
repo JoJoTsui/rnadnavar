@@ -8,8 +8,13 @@ from __future__ import annotations
 from typing import Literal
 
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
+
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+except ImportError:
+    px = None
+    go = None
 
 INSERTIONS_COLOR = "#00CC96"
 DELETIONS_COLOR = "#EF553B"

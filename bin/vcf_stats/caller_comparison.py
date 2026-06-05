@@ -12,12 +12,18 @@ Author: VCF Statistics Pipeline
 Date: 2026-01-07
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import pandas as pd
-import plotly.graph_objects as go
 from cyvcf2 import VCF
+
+try:
+    import plotly.graph_objects as go
+except ImportError:
+    go = None
 
 # Import shared modules
 from vcf_config import VARIANT_TYPE_ORDER, get_variant_type
