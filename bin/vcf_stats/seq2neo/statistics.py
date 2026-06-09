@@ -71,6 +71,15 @@ def compute_mean_columns(df: pl.DataFrame) -> pl.DataFrame:
         df = df.with_columns(
             pl.mean_horizontal(existing_dna_vaf).alias("DNA_VAF_mean")
         )
+    # REF_DP / ALT_DP means (same source as REF/ALT mean, explicit DP naming)
+    if existing_dna_ref:
+        df = df.with_columns(
+            pl.mean_horizontal(existing_dna_ref).alias("DNA_REF_DP_mean")
+        )
+    if existing_dna_alt:
+        df = df.with_columns(
+            pl.mean_horizontal(existing_dna_alt).alias("DNA_ALT_DP_mean")
+        )
 
     # RNA means
     rna_dp_cols = [f"{c}_DP" for c in RNA_CALLERS]
@@ -98,6 +107,15 @@ def compute_mean_columns(df: pl.DataFrame) -> pl.DataFrame:
     if existing_rna_vaf:
         df = df.with_columns(
             pl.mean_horizontal(existing_rna_vaf).alias("RNA_VAF_mean")
+        )
+    # RNA REF_DP / ALT_DP means
+    if existing_rna_ref:
+        df = df.with_columns(
+            pl.mean_horizontal(existing_rna_ref).alias("RNA_REF_DP_mean")
+        )
+    if existing_rna_alt:
+        df = df.with_columns(
+            pl.mean_horizontal(existing_rna_alt).alias("RNA_ALT_DP_mean")
         )
 
     return df
@@ -155,6 +173,14 @@ def sample_summary(df: pl.DataFrame, sample_id: str) -> dict[str, Any]:
         if dp_col in df.columns:
             result[f"mean_{dp_col.lower()}"] = df[dp_col].mean()
 
+    # Mean REF_DP and ALT_DP (DNA and RNA)
+    for ref_col in ["DNA_REF_DP_mean", "RNA_REF_DP_mean"]:
+        if ref_col in df.columns:
+            result[f"mean_{ref_col.lower()}"] = df[ref_col].mean()
+    for alt_col in ["DNA_ALT_DP_mean", "RNA_ALT_DP_mean"]:
+        if alt_col in df.columns:
+            result[f"mean_{alt_col.lower()}"] = df[alt_col].mean()
+
     # Caller support distribution
     if "N_SUPPORT_CALLERS" in df.columns:
         for c in range(1, 7):
@@ -176,10 +202,6 @@ def sample_summary(df: pl.DataFrame, sample_id: str) -> dict[str, Any]:
     if "REDI_EVIDENCE" in df.columns:
         for level in ["HIGH", "MEDIUM", "LOW", "NONE"]:
             result[f"n_redi_{level.lower()}"] = df.filter(pl.col("REDI_EVIDENCE") == level).height
-
-    # RaVeX filters
-    if "RaVeX_FILTER" in df.columns:
-        result["n_ravex_filtered"] = df.filter(pl.col("RaVeX_FILTER").is_not_null()).height
 
     return result
 
@@ -260,19 +282,6 @@ def caller_overlap_distribution(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
-def ravex_filter_breakdown(df: pl.DataFrame) -> dict[str, int]:
-    """Break down RaVeX filter reasons (semicolon-separated)."""
-    if "RaVeX_FILTER" not in df.columns:
-        return {}
-    reasons: dict[str, int] = {}
-    for val in df["RaVeX_FILTER"].drop_nulls().to_list():
-        for reason in str(val).split(";"):
-            reason = reason.strip()
-            if reason:
-                reasons[reason] = reasons.get(reason, 0) + 1
-    return dict(sorted(reasons.items(), key=lambda x: -x[1]))
-
-
 def flag_filter_breakdown(df: pl.DataFrame) -> dict[str, int]:
     """Count how many variants have each flag filter set."""
     flags = [
@@ -283,4 +292,75 @@ def flag_filter_breakdown(df: pl.DataFrame) -> dict[str, int]:
     for flag in flags:
         if flag in df.columns:
             result[flag] = df.filter(pl.col(flag) == True).height
+    return result
+
+
+def dataset_summary(df: pl.DataFrame) -> dict[str, Any]:
+    """Compute whole-dataset aggregate statistics across all samples.
+
+    Returns a dict with one row of overall metrics: total variants, variant type
+    distribution, Ti/Tv ratio, VC classification counts, caller support histogram,
+    and tier distribution.
+    """
+    n = len(df)
+    if n == 0:
+        return {"total_variants": 0}
+
+    result: dict[str, Any] = {
+        "total_variants": n,
+        "n_samples": df["sample_id"].n_unique() if "sample_id" in df.columns else 0,
+    }
+
+    # Pass/filter
+    if "FILTER" in df.columns:
+        result["pass_variants"] = df.filter(pl.col("FILTER") == "PASS").height
+        result["pass_pct"] = result["pass_variants"] / n * 100
+
+    # VC classification
+    if "VC" in df.columns:
+        for vc in ["Somatic", "Germline", "Reference", "Artifact"]:
+            result[f"n_{vc.lower()}"] = df.filter(pl.col("VC") == vc).height
+
+    # Variant types
+    if "variant_type" in df.columns:
+        for vt in ["SNV", "INS", "DEL", "MNV"]:
+            result[f"n_{vt}"] = df.filter(pl.col("variant_type") == vt).height
+
+    # Ti/Tv
+    if "ti_tv" in df.columns:
+        ti = df.filter(pl.col("ti_tv") == True).height
+        tv = df.filter(pl.col("ti_tv") == False).height
+        result["ti_count"] = ti
+        result["tv_count"] = tv
+        result["ti_tv_ratio"] = ti / tv if tv > 0 else None
+
+    # Mean VAF/DP
+    for col in ["DNA_VAF_mean", "RNA_VAF_mean", "DNA_DP_mean", "RNA_DP_mean",
+                "DNA_REF_DP_mean", "RNA_REF_DP_mean", "DNA_ALT_DP_mean", "RNA_ALT_DP_mean"]:
+        if col in df.columns:
+            result[f"mean_{col.lower()}"] = df[col].mean()
+
+    # Caller support
+    if "N_SUPPORT_CALLERS" in df.columns:
+        for c in range(1, 7):
+            result[f"n_callers_{c}"] = df.filter(pl.col("N_SUPPORT_CALLERS") == c).height
+
+    # Cross-modality
+    if "CROSS_MODALITY" in df.columns:
+        result["n_cross_modality"] = df.filter(pl.col("CROSS_MODALITY") == "YES").height
+    if "RESCUED" in df.columns:
+        result["n_rescued"] = df.filter(pl.col("RESCUED") == "YES").height
+
+    # Database annotations
+    if "COSMIC_ID" in df.columns:
+        result["n_cosmic"] = df.filter(pl.col("COSMIC_ID").is_not_null()).height
+    if "GNOMAD_AF" in df.columns:
+        result["n_gnomad"] = df.filter(pl.col("GNOMAD_AF").is_not_null()).height
+
+    # Tier distribution
+    if "final_tier" in df.columns:
+        tier_counts = df.group_by("final_tier").agg(pl.len().alias("count"))
+        for row in tier_counts.to_dicts():
+            result[f"tier_{row['final_tier']}"] = row["count"]
+
     return result

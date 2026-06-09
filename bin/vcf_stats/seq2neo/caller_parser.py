@@ -71,6 +71,7 @@ def parse_single_caller(
     is_strelka = caller_name in CALLERS_STRELKA
     has_gt = caller_name in CALLERS_WITH_GT
     has_ad = caller_name in CALLERS_WITH_AD
+    has_mutect2_fields = has_gt and "mutect2" in caller_name.lower()
     precomp_vaf_key = CALLERS_WITH_PRECOMPUTED_VAF.get(caller_name)
 
     # Initialize result keys based on caller type
@@ -86,6 +87,13 @@ def parse_single_caller(
         result["TAR"] = []
         result["TIR"] = []
         result["TOR"] = []
+        result["AU"] = []  # A-allele count tier1
+        result["CU"] = []  # C-allele count tier1
+        result["GU"] = []  # G-allele count tier1
+        result["TU"] = []  # T-allele count tier1
+    if has_mutect2_fields:
+        result["SB"] = []  # Strand bias (4 values)
+        result["FAD"] = []  # Fragment allele depth
 
     if not os.path.isfile(vcf_path):
         return result
@@ -154,7 +162,7 @@ def parse_single_caller(
                     vaf = None
                 result["VAF_CALLER"].append(vaf)
 
-            # Strelka-specific: TAR, TIR, TOR
+            # Strelka-specific: TAR, TIR, TOR, AU/CU/GU/TU
             if is_strelka:
                 for tar_field in ["TAR", "TIR", "TOR"]:
                     value = None
@@ -165,6 +173,33 @@ def parse_single_caller(
                         except Exception:
                             pass
                     result[tar_field].append(value)
+                # Per-allele counts (tier1 only)
+                for allele_field in ["AU", "CU", "GU", "TU"]:
+                    value = None
+                    if allele_field in record.FORMAT:
+                        try:
+                            f_val = record.format(allele_field)[sample_idx]
+                            value = int(f_val[0]) if f_val is not None and len(f_val) > 0 else None
+                        except Exception:
+                            pass
+                    result[allele_field].append(value)
+
+            # Mutect2-specific: SB (strand bias), FAD (fragment allele depth)
+            if has_mutect2_fields:
+                for field_name in ["SB", "FAD"]:
+                    value = None
+                    if field_name in record.FORMAT:
+                        try:
+                            f_val = record.format(field_name)[sample_idx]
+                            if f_val is not None and len(f_val) > 0:
+                                if field_name == "SB":
+                                    # SB has 4 values: F1R2, F2R1 for ref and alt
+                                    value = ",".join(str(v) for v in f_val) if len(f_val) > 1 else str(f_val[0])
+                                else:
+                                    value = str(f_val[0])
+                        except Exception:
+                            pass
+                    result[field_name].append(value)
 
             remaining.discard(key)
             if not remaining:
@@ -336,5 +371,28 @@ def join_caller_columns(
             df = df.with_columns(
                 pl.Series(f"{caller_name}_VAF_CALLER", vaf_caller_vals, dtype=pl.Float64)
             )
+
+        # Per-variant BAM-level FORMAT fields
+        if is_strelka:
+            for allele_field in ["AU", "CU", "GU", "TU"]:
+                vals = []
+                for i in range(n):
+                    key = (chroms[i], poss[i])
+                    vals.append(lookup.get(key, {}).get(allele_field))
+                df = df.with_columns(
+                    pl.Series(f"{caller_name}_{allele_field}", vals, dtype=pl.Int64)
+                )
+
+        has_mutect2_fields = has_gt and "mutect2" in caller_name.lower()
+        if has_mutect2_fields:
+            for field_name in ["SB", "FAD"]:
+                vals = []
+                for i in range(n):
+                    key = (chroms[i], poss[i])
+                    vals.append(lookup.get(key, {}).get(field_name))
+                dtype = pl.Utf8 if field_name == "SB" else pl.Utf8
+                df = df.with_columns(
+                    pl.Series(f"{caller_name}_{field_name}", vals, dtype=dtype)
+                )
 
     return df

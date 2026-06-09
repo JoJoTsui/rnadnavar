@@ -37,7 +37,6 @@ from vcf_stats.seq2neo.statistics import (
     RNA_CALLERS,
     compute_vaf_columns,
     flag_filter_breakdown,
-    ravex_filter_breakdown,
     sample_summary,
     set_summary,
     variant_type_distribution,
@@ -57,7 +56,6 @@ from vcf_stats.seq2neo.visualizer import (
     plot_dna_vs_rna_vaf,
     plot_gt_concordance,
     plot_per_sample_violin,
-    plot_ravex_breakdown,
     plot_ti_tv_ratio,
     plot_vaf_distribution,
     plot_validation_heatmap,
@@ -250,7 +248,6 @@ class TestStatistics:
             "COSMIC_ID": ["COSM123", None, None, None, "COSM456"],
             "GNOMAD_AF": [0.01, None, 0.05, None, None],
             "REDI_EVIDENCE": ["NONE", "NONE", "LOW", "NONE", "HIGH"],
-            "RaVeX_FILTER": [None, "min_alt_reads", None, "gnomad;blacklist", None],
             "min_alt_reads": [False, True, False, False, False],
             "gnomad": [False, False, False, True, False],
             "blacklist": [False, False, False, True, False],
@@ -313,7 +310,6 @@ class TestStatistics:
         assert stats["n_cosmic"] == 2
         assert stats["n_gnomad"] == 2
         assert stats["n_redi_high"] == 1
-        assert stats["n_ravex_filtered"] == 2
 
     def test_set_summary(self):
         stats_df = pl.DataFrame({
@@ -327,15 +323,6 @@ class TestStatistics:
     def test_variant_type_distribution(self, sample_df):
         dist = variant_type_distribution(sample_df, "set_number")
         assert not dist.is_empty()
-
-    def test_ravex_filter_breakdown(self, sample_df):
-        counts = ravex_filter_breakdown(sample_df)
-        assert "min_alt_reads" in counts
-        assert "gnomad" in counts
-        assert "blacklist" in counts
-        assert counts["min_alt_reads"] == 1
-        assert counts["gnomad"] == 1
-        assert counts["blacklist"] == 1
 
     def test_flag_filter_breakdown(self, sample_df):
         counts = flag_filter_breakdown(sample_df)
@@ -850,8 +837,6 @@ class TestIntegrationEndToEnd:
         ]
         if e2e_data["all_stats"]:
             charts.append(plot_per_sample_violin(pl.DataFrame(e2e_data["all_stats"]), d))
-        ravex = ravex_filter_breakdown(df)
-        charts.append(plot_ravex_breakdown(ravex, d))
         if not e2e_data["report"].is_empty():
             charts.append(plot_validation_heatmap(e2e_data["report"], d))
 
@@ -876,8 +861,6 @@ class TestIntegrationEndToEnd:
         # Generate all charts (side effect: writes to plots/)
         plot_vc_distribution(df, d)
         plot_vaf_distribution(df, d)
-        ravex = ravex_filter_breakdown(df)
-        plot_ravex_breakdown(ravex, d)
         # Count PNGs
         plots_dir = Path(d) / "plots"
         pngs = list(plots_dir.glob("*.png"))
@@ -917,3 +900,303 @@ class TestIntegrationEndToEnd:
         d = e2e_data["output_dir"]
         for dd in data_dirs:
             assert not str(d).startswith(dd), f"Output would go to data dir: {dd}"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestTieringStats (task 2.5)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestTieringStats:
+    """Tests for tiering_stats bridge module."""
+
+    def test_parse_filters_normalized(self):
+        from vcf_stats.seq2neo.tiering_stats import _parse_filters_normalized
+        fields = _parse_filters_normalized(
+            "DNA_strelka:Somatic|DNA_mutect2:Somatic|DNA_deepsomatic:Somatic|"
+            "RNA_strelka:Artifact|RNA_mutect2:Artifact|RNA_deepsomatic:Germline"
+        )
+        assert "FILTER_NORMALIZED_Strelka_DNA_TUMOR" in fields
+        assert fields["FILTER_NORMALIZED_Strelka_DNA_TUMOR"] == "Somatic"
+        assert fields["FILTER_NORMALIZED_Mutect2_RNA_TUMOR"] == "Artifact"
+        assert fields["FILTER_NORMALIZED_DeepSomatic_RNA_TUMOR"] == "Germline"
+
+    def test_parse_filters_normalized_empty(self):
+        from vcf_stats.seq2neo.tiering_stats import _parse_filters_normalized
+        assert _parse_filters_normalized(None) == {}
+        assert _parse_filters_normalized("") == {}
+
+    def test_compute_tiers_for_dataframe(self):
+        from vcf_stats.seq2neo.tiering_stats import compute_tiers_for_dataframe
+        df = pl.DataFrame({
+            "CHROM": ["chr1", "chr2"],
+            "POS": [100, 200],
+            "FILTER": ["Somatic", "Germline"],
+            "FILTERS_NORMALIZED": [
+                "DNA_strelka:Somatic|DNA_mutect2:Somatic|DNA_deepsomatic:Somatic|RNA_strelka:Somatic|RNA_mutect2:Somatic",
+                "DNA_strelka:Germline",
+            ],
+            "GNOMAD_AF": [0.01, None],
+            "COSMIC_CNT": [5, 0],
+            "REDI_EVIDENCE": ["NONE", "NONE"],
+        })
+        result = compute_tiers_for_dataframe(df)
+        assert "final_tier" in result.columns
+        assert "caller_tier" in result.columns
+        assert "database_tier" in result.columns
+        # C1D1: ≥2 DNA + ≥2 RNA + DB support
+        assert result["final_tier"][0] == "C1D1"
+        # C5D0: 1 DNA + 0 RNA + no DB
+        assert result["final_tier"][1] == "C5D0"
+
+    def test_tier_summary(self):
+        from vcf_stats.seq2neo.tiering_stats import tier_summary
+        df = pl.DataFrame({
+            "final_tier": ["C1D1", "C2D0", "C1D1"],
+            "DNA_VAF_mean": [0.2, 0.3, 0.1],
+            "RNA_VAF_mean": [0.18, 0.28, 0.08],
+            "DNA_DP_mean": [50.0, 30.0, 40.0],
+            "RNA_DP_mean": [45.0, 28.0, 38.0],
+            "variant_type": ["SNV", "SNV", "INS"],
+            "ti_tv": [True, False, None],
+            "N_SUPPORT_CALLERS": [6, 2, 4],
+        })
+        summary = tier_summary(df)
+        assert not summary.is_empty()
+        assert "n_variants" in summary.columns
+        # C1D1 should have 2 variants
+        c1d1 = summary.filter(pl.col("final_tier") == "C1D1")
+        assert c1d1["n_variants"][0] == 2
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestRefAltDpStats (task 3.5)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestRefAltDpStats:
+    """Tests for REF_DP and ALT_DP statistics."""
+
+    def test_ref_alt_dp_mean_columns(self):
+        from vcf_stats.seq2neo.statistics import compute_mean_columns
+        df = pl.DataFrame({
+            "DNA_mutect2_AD_REF": [10, 20],
+            "DNA_deepsomatic_AD_REF": [12, 22],
+            "DNA_mutect2_AD_ALT": [5, 8],
+            "DNA_deepsomatic_AD_ALT": [6, 10],
+            "RNA_mutect2_AD_REF": [9, 18],
+            "RNA_mutect2_AD_ALT": [4, 7],
+        })
+        result = compute_mean_columns(df)
+        assert "DNA_REF_DP_mean" in result.columns
+        assert "DNA_ALT_DP_mean" in result.columns
+        assert "RNA_REF_DP_mean" in result.columns
+        assert "RNA_ALT_DP_mean" in result.columns
+        # Row 0: DNA REF mean = (10+12)/2 = 11
+        assert abs(result["DNA_REF_DP_mean"][0] - 11.0) < 0.01
+
+    def test_sample_summary_ref_alt_dp(self):
+        from vcf_stats.seq2neo.statistics import sample_summary, compute_mean_columns
+        from vcf_stats.seq2neo.statistics import compute_vaf_columns
+        df = pl.DataFrame({
+            "sample_id": ["test"] * 2,
+            "FILTER": ["PASS", "PASS"],
+            "VC": ["Somatic", "Germline"],
+            "variant_type": ["SNV", "SNV"],
+            "ti_tv": [True, False],
+            "DNA_mutect2_DP": [50, 30],
+            "DNA_mutect2_AD_REF": [40, 25],
+            "DNA_mutect2_AD_ALT": [10, 5],
+            "RNA_mutect2_DP": [45, 28],
+            "RNA_mutect2_AD_REF": [36, 24],
+            "RNA_mutect2_AD_ALT": [9, 4],
+        })
+        df = compute_vaf_columns(df)
+        df = compute_mean_columns(df)
+        stats = sample_summary(df, "test")
+        assert "mean_dna_ref_dp_mean" in stats
+        assert "mean_dna_alt_dp_mean" in stats
+        assert "mean_rna_ref_dp_mean" in stats
+        assert "mean_rna_alt_dp_mean" in stats
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestMultiLevelAggregation (task 4.4)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestMultiLevelAggregation:
+    """Tests for dataset_summary and tier_summary."""
+
+    def test_dataset_summary(self):
+        from vcf_stats.seq2neo.statistics import dataset_summary
+        df = pl.DataFrame({
+            "sample_id": ["s1", "s1", "s2", "s2"],
+            "FILTER": ["PASS", "PASS", "PASS", "NoConsensus"],
+            "VC": ["Somatic", "Somatic", "Germline", "Reference"],
+            "variant_type": ["SNV", "SNV", "INS", "SNV"],
+            "ti_tv": [True, False, None, True],
+            "N_SUPPORT_CALLERS": [6, 3, 2, 1],
+            "CROSS_MODALITY": ["YES", "NO", "YES", "NO"],
+            "RESCUED": ["NO", "NO", "YES", "NO"],
+            "COSMIC_ID": ["C1", None, None, None],
+            "GNOMAD_AF": [0.01, None, 0.05, None],
+            "final_tier": ["C1D1", "C2D0", "C3D1", "C7D0"],
+        })
+        ds = dataset_summary(df)
+        assert ds["total_variants"] == 4
+        assert ds["n_samples"] == 2
+        assert ds["pass_variants"] == 3
+        assert ds["n_somatic"] == 2
+        assert ds["n_SNV"] == 3
+        assert ds["n_INS"] == 1
+        assert ds["n_callers_6"] == 1
+        assert ds["n_cross_modality"] == 2
+        assert ds["n_cosmic"] == 1
+        assert "tier_C1D1" in ds
+        assert ds["tier_C1D1"] == 1
+
+    def test_dataset_summary_empty(self):
+        from vcf_stats.seq2neo.statistics import dataset_summary
+        result = dataset_summary(pl.DataFrame())
+        assert result["total_variants"] == 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestNewVisualizerFunctions (tasks 5.7 + 6.4)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestNewVisualizerFunctions:
+    """Tests for new chart functions added in fix-vcf-statistics."""
+
+    @pytest.fixture
+    def tmp_output_dir(self):
+        with tempfile.TemporaryDirectory() as d:
+            yield d
+
+    @pytest.fixture
+    def tiered_df(self):
+        return pl.DataFrame({
+            "sample_id": ["s1"] * 8,
+            "set_number": [1, 1, 1, 1, 2, 2, 2, 2],
+            "caller_tier": ["C1", "C1", "C2", "C2", "C3", "C4", "C5", "C6"],
+            "final_tier": ["C1D1", "C1D1", "C2D0", "C2D0", "C3D1", "C4D0", "C5D1", "C6D0"],
+            "N_SUPPORT_CALLERS": [6, 5, 4, 3, 2, 2, 1, 1],
+            "variant_type": ["SNV", "SNV", "SNV", "INS", "SNV", "DEL", "SNV", "MNV"],
+            "DNA_mutect2_VAF": [0.2, 0.3, 0.1, 0.4, 0.15, 0.25, 0.05, 0.08],
+            "RNA_mutect2_VAF": [0.18, 0.28, 0.08, 0.35, 0.12, 0.22, 0.04, 0.07],
+            "DNA_deepsomatic_VAF": [0.21, 0.31, 0.11, 0.41, 0.16, 0.26, 0.06, 0.09],
+            "RNA_deepsomatic_VAF": [0.19, 0.29, 0.09, 0.36, 0.13, 0.23, 0.05, 0.08],
+            "DNA_strelka_VAF": [0.19, 0.29, 0.09, 0.38, 0.14, 0.24, 0.04, 0.07],
+            "RNA_strelka_VAF": [0.17, 0.27, 0.07, 0.34, 0.11, 0.21, 0.03, 0.06],
+            "DNA_mutect2_DP": [50, 30, 40, 10, 60, 35, 20, 15],
+            "RNA_mutect2_DP": [45, 28, 38, 8, 55, 32, 18, 12],
+            "DNA_deepsomatic_DP": [52, 32, 42, 11, 62, 37, 22, 16],
+            "RNA_deepsomatic_DP": [47, 30, 40, 9, 57, 34, 20, 13],
+            "DNA_strelka_DP": [48, 29, 39, 10, 58, 33, 19, 14],
+            "RNA_strelka_DP": [44, 27, 37, 7, 54, 31, 17, 11],
+            "DNA_mutect2_GT": ["0/1", "0/1", "0/0", "0/1", "0/1", "0/0", "0/1", None],
+            "RNA_mutect2_GT": ["0/1", "0/1", "0/0", "0/1", "0/1", None, "0/1", None],
+            "DNA_deepsomatic_GT": ["0/1", "0/1", "0/0", "0/1", "0/1", "0/0", None, None],
+            "RNA_deepsomatic_GT": ["0/1", "0/1", "0/0", "0/1", None, None, None, None],
+            "DNA_REF_DP_mean": [40.0, 25.0, 35.0, 10.0, 48.0, 30.0, 18.0, 13.0],
+            "RNA_REF_DP_mean": [36.0, 24.0, 32.0, 8.0, 44.0, 28.0, 16.0, 11.0],
+            "DNA_ALT_DP_mean": [8.0, 5.0, 5.0, 0.5, 10.0, 8.0, 2.0, 3.0],
+            "RNA_ALT_DP_mean": [7.0, 4.0, 4.0, 0.3, 9.0, 7.0, 1.5, 2.5],
+        })
+
+    def test_plot_vaf_violin_per_tier(self, tiered_df, tmp_output_dir):
+        from vcf_stats.seq2neo.visualizer import plot_vaf_violin_per_tier
+        fig = plot_vaf_violin_per_tier(tiered_df, tmp_output_dir)
+        assert fig is not None
+        assert hasattr(fig, "save")
+
+    def test_plot_dp_violin_per_tier(self, tiered_df, tmp_output_dir):
+        from vcf_stats.seq2neo.visualizer import plot_dp_violin_per_tier
+        fig = plot_dp_violin_per_tier(tiered_df, tmp_output_dir)
+        assert fig is not None
+        assert hasattr(fig, "save")
+
+    def test_plot_gt_concordance_per_tier(self, tiered_df, tmp_output_dir):
+        from vcf_stats.seq2neo.visualizer import plot_gt_concordance_per_tier
+        fig = plot_gt_concordance_per_tier(tiered_df, tmp_output_dir)
+        assert fig is not None
+        assert hasattr(fig, "save")
+
+    def test_plot_tiered_caller_overlap(self, tiered_df, tmp_output_dir):
+        from vcf_stats.seq2neo.visualizer import plot_tiered_caller_overlap
+        fig = plot_tiered_caller_overlap(tiered_df, tmp_output_dir)
+        assert fig is not None
+        assert hasattr(fig, "save")
+
+    def test_plot_tiered_variant_types(self, tiered_df, tmp_output_dir):
+        from vcf_stats.seq2neo.visualizer import plot_tiered_variant_types
+        fig = plot_tiered_variant_types(tiered_df, tmp_output_dir)
+        assert fig is not None
+        assert hasattr(fig, "save")
+
+    def test_plot_ref_alt_dp_scatter(self, tiered_df, tmp_output_dir):
+        from vcf_stats.seq2neo.visualizer import plot_ref_alt_dp_scatter
+        fig = plot_ref_alt_dp_scatter(tiered_df, tmp_output_dir)
+        assert fig is not None
+        assert hasattr(fig, "save")
+
+    def test_plot_per_sample_distribution(self, tmp_output_dir):
+        from vcf_stats.seq2neo.visualizer import plot_per_sample_distribution
+        df = pl.DataFrame({
+            "sample_id": ["PRJNA_001", "PRJNA_002", "PRJNA_003"],
+            "total_variants": [5000, 3000, 7000],
+        })
+        fig = plot_per_sample_distribution(df, tmp_output_dir)
+        assert fig is not None
+        assert hasattr(fig, "save")
+
+    def test_empty_data_returns_none(self, tmp_output_dir):
+        """New chart functions return None for empty/missing data."""
+        from vcf_stats.seq2neo.visualizer import (
+            plot_vaf_violin_per_tier, plot_dp_violin_per_tier,
+            plot_gt_concordance_per_tier, plot_tiered_caller_overlap,
+            plot_tiered_variant_types, plot_ref_alt_dp_scatter,
+        )
+        empty = pl.DataFrame()
+        assert plot_vaf_violin_per_tier(empty, tmp_output_dir) is None
+        assert plot_dp_violin_per_tier(empty, tmp_output_dir) is None
+        assert plot_gt_concordance_per_tier(empty, tmp_output_dir) is None
+        assert plot_tiered_caller_overlap(empty, tmp_output_dir) is None
+        assert plot_tiered_variant_types(empty, tmp_output_dir) is None
+        assert plot_ref_alt_dp_scatter(empty, tmp_output_dir) is None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestBamStats (task 7.5)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestBamStats:
+    """Tests for BAM statistics module."""
+
+    def test_module_imports(self):
+        from vcf_stats.seq2neo import bam_stats
+        assert hasattr(bam_stats, "compute_bam_stats")
+        assert hasattr(bam_stats, "compute_sample_bam_stats")
+
+    def test_compute_bam_stats_nonexistent_file(self):
+        from vcf_stats.seq2neo.bam_stats import compute_bam_stats
+        result = compute_bam_stats("/nonexistent/path.bam")
+        assert result is None
+
+    def test_compute_bam_stats_none_path(self):
+        from vcf_stats.seq2neo.bam_stats import compute_bam_stats
+        result = compute_bam_stats(None)
+        assert result is None
+
+    def test_compute_sample_bam_stats_missing_bams(self):
+        from vcf_stats.seq2neo.bam_stats import compute_sample_bam_stats
+        results = compute_sample_bam_stats(
+            base_output_dir="/nonexistent",
+            dir_name="no_such_dir",
+            sample_id="TEST_SAMPLE",
+            set_number=9,
+        )
+        assert len(results) == 2  # DNA + RNA
+        assert results[0]["modality"] == "DNA"
+        assert results[1]["modality"] == "RNA"
+        assert not results[0]["has_bam"]
+        assert not results[1]["has_bam"]
+        assert results[0]["total_reads"] is None

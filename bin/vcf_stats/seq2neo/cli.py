@@ -16,15 +16,17 @@ from pathlib import Path
 
 import polars as pl
 
+from .bam_stats import compute_all_bam_stats
 from .caller_parser import join_caller_columns, parse_all_callers
 from .manifest_loader import filter_complete, load_manifest
 from .rescue_parser import parse_rescue_vcf
 from .rescue_validator import validate_all_samples, validation_summary
+from .tiering_stats import compute_tiers_for_dataframe, tier_summary as compute_tier_summary
 from .statistics import (
     compute_all_per_variant,
+    dataset_summary,
     disease_summary,
     flag_filter_breakdown,
-    ravex_filter_breakdown,
     sample_summary,
     set_summary,
 )
@@ -35,11 +37,16 @@ from .visualizer import (
     plot_cross_modality,
     plot_dna_vs_rna_dp,
     plot_dna_vs_rna_vaf,
+    plot_dp_violin_per_tier,
     plot_gt_concordance,
-    plot_per_sample_violin,
-    plot_ravex_breakdown,
+    plot_gt_concordance_per_tier,
+    plot_per_sample_distribution,
+    plot_ref_alt_dp_scatter,
+    plot_tiered_caller_overlap,
+    plot_tiered_variant_types,
     plot_ti_tv_ratio,
     plot_vaf_distribution,
+    plot_vaf_violin_per_tier,
     plot_validation_heatmap,
     plot_variant_type_distribution,
     plot_vc_distribution,
@@ -84,6 +91,9 @@ def process_single_sample(row: dict, max_workers: int = 1) -> dict:
 
     # Compute per-variant statistics (VAF, means)
     df = compute_all_per_variant(df)
+
+    # Compute CxDy tiers via tiering engine
+    df = compute_tiers_for_dataframe(df)
 
     # Compute sample-level summary
     stats = sample_summary(df, sample_id)
@@ -156,6 +166,13 @@ def main():
     combined_df.write_parquet(str(variant_details_path))
     print(f"Variant details: {variant_details_path} ({len(combined_df)} variants)")
 
+    # BAM statistics (per-sample per-modality)
+    print("Computing per-sample BAM statistics...")
+    bam_stats_df = compute_all_bam_stats(rows)
+    if not bam_stats_df.is_empty():
+        bam_stats_df.write_csv(str(output_dir / "bam_stats.csv"))
+        print(f"BAM stats: {output_dir / 'bam_stats.csv'}")
+
     # Sample summary
     if all_stats:
         sample_stats_df = pl.DataFrame(all_stats)
@@ -171,6 +188,18 @@ def main():
         disease_summary_df = disease_summary(combined_df)
         if not disease_summary_df.is_empty():
             disease_summary_df.write_csv(str(output_dir / "disease_summary.csv"))
+
+        # Tier summary
+        tier_summary_df = compute_tier_summary(combined_df)
+        if not tier_summary_df.is_empty():
+            tier_summary_df.write_csv(str(output_dir / "tier_summary.csv"))
+            print(f"Tier summary: {output_dir / 'tier_summary.csv'}")
+
+        # Dataset summary (whole-dataset aggregates)
+        ds_summary = dataset_summary(combined_df)
+        if ds_summary:
+            pl.DataFrame([ds_summary]).write_csv(str(output_dir / "dataset_summary.csv"))
+            print(f"Dataset summary: {output_dir / 'dataset_summary.csv'}")
 
     # Caller overlap
     from .statistics import caller_overlap_distribution
@@ -242,18 +271,21 @@ def main():
     figs.append(plot_vc_distribution(combined_df, str(output_dir)))
     figs.append(plot_caller_overlap(combined_df, str(output_dir)))
     figs.append(plot_vaf_distribution(combined_df, str(output_dir)))
+    figs.append(plot_vaf_violin_per_tier(combined_df, str(output_dir)))
+    figs.append(plot_dp_violin_per_tier(combined_df, str(output_dir)))
     figs.append(plot_dna_vs_rna_vaf(combined_df, str(output_dir)))
     figs.append(plot_dna_vs_rna_dp(combined_df, str(output_dir)))
+    figs.append(plot_ref_alt_dp_scatter(combined_df, str(output_dir)))
     figs.append(plot_variant_type_distribution(combined_df, str(output_dir)))
     figs.append(plot_ti_tv_ratio(combined_df, str(output_dir)))
     figs.append(plot_cross_modality(combined_df, str(output_dir)))
-
-    ravex = ravex_filter_breakdown(combined_df)
-    figs.append(plot_ravex_breakdown(ravex, str(output_dir)))
+    figs.append(plot_gt_concordance_per_tier(combined_df, str(output_dir)))
+    figs.append(plot_tiered_caller_overlap(combined_df, str(output_dir)))
+    figs.append(plot_tiered_variant_types(combined_df, str(output_dir)))
 
     if all_stats:
         sample_stats_df = pl.DataFrame(all_stats)
-        figs.append(plot_per_sample_violin(sample_stats_df, str(output_dir)))
+        figs.append(plot_per_sample_distribution(sample_stats_df, str(output_dir)))
 
     if not args.no_validate and report is not None:
         figs.append(plot_validation_heatmap(report, str(output_dir)))
