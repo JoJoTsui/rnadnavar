@@ -19,7 +19,7 @@ import polars as pl
 from .bam_stats import compute_all_bam_stats
 from .caller_parser import join_caller_columns, parse_all_callers
 from .manifest_loader import filter_complete, load_manifest
-from .rescue_parser import parse_rescue_vcf
+from .rust_vcf import parse_rescue_vcf
 from .rescue_validator import validate_all_samples, validation_summary
 from .rust_bam import pileup_variants
 from .tiering_stats import compute_tiers_for_dataframe, tier_summary as compute_tier_summary
