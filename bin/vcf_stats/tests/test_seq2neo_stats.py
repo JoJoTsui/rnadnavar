@@ -1194,9 +1194,10 @@ class TestBamStats:
             sample_id="TEST_SAMPLE",
             set_number=9,
         )
-        assert len(results) == 2  # DNA + RNA
-        assert results[0]["modality"] == "DNA"
-        assert results[1]["modality"] == "RNA"
+        assert len(results) == 3  # DN + DT + RT
+        assert results[0]["bam_type"] == "DN"
+        assert results[1]["bam_type"] == "DT"
+        assert results[2]["bam_type"] == "RT"
         assert not results[0]["has_bam"]
         assert not results[1]["has_bam"]
         assert results[0]["total_reads"] is None

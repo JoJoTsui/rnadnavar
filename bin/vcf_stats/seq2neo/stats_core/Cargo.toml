@@ -1,0 +1,17 @@
+[package]
+name = "stats_core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "stats_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.28", features = ["extension-module"] }
+# noodles 0.111 meta-crate pulls in correct sub-crate versions
+noodles = "0.111"
+noodles-vcf = "0.88"
+noodles-bam = "0.90"
+noodles-bgzf = "0.36"
+pyo3-arrow = "0.17"

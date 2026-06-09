@@ -364,3 +364,50 @@ def dataset_summary(df: pl.DataFrame) -> dict[str, Any]:
             result[f"tier_{row['final_tier']}"] = row["count"]
 
     return result
+
+
+def sample_tier_summary(df: pl.DataFrame) -> pl.DataFrame:
+    """Level 4: Per-sample × per-tier aggregate statistics.
+
+    For each (sample_id, final_tier) pair, compute: variant count, mean VAF/DP/
+    REF_DP/ALT_DP, variant type distribution, Ti/Tv, and N_SUPPORT_CALLERS dist.
+    """
+    if "sample_id" not in df.columns or "final_tier" not in df.columns:
+        return pl.DataFrame()
+
+    agg_exprs = [pl.len().alias("n_variants")]
+
+    for vaf_col in ["DNA_VAF_mean", "RNA_VAF_mean"]:
+        if vaf_col in df.columns:
+            agg_exprs.append(pl.col(vaf_col).mean().alias(f"mean_{vaf_col.lower()}"))
+
+    for dp_col in ["DNA_DP_mean", "RNA_DP_mean"]:
+        if dp_col in df.columns:
+            agg_exprs.append(pl.col(dp_col).mean().alias(f"mean_{dp_col.lower()}"))
+
+    for ref_col in ["DNA_REF_DP_mean", "RNA_REF_DP_mean"]:
+        if ref_col in df.columns:
+            agg_exprs.append(pl.col(ref_col).mean().alias(f"mean_{ref_col.lower()}"))
+    for alt_col in ["DNA_ALT_DP_mean", "RNA_ALT_DP_mean"]:
+        if alt_col in df.columns:
+            agg_exprs.append(pl.col(alt_col).mean().alias(f"mean_{alt_col.lower()}"))
+
+    if "variant_type" in df.columns:
+        for vt in ["SNV", "INS", "DEL", "MNV"]:
+            agg_exprs.append((pl.col("variant_type") == vt).sum().alias(f"n_{vt}"))
+
+    if "ti_tv" in df.columns:
+        agg_exprs.append(pl.col("ti_tv").sum().alias("n_ti"))
+        agg_exprs.append((~pl.col("ti_tv")).sum().alias("n_tv"))
+
+    if "N_SUPPORT_CALLERS" in df.columns:
+        for c in range(1, 7):
+            agg_exprs.append(
+                (pl.col("N_SUPPORT_CALLERS") == c).sum().alias(f"n_callers_{c}")
+            )
+
+    return (
+        df.group_by(["sample_id", "final_tier"])
+        .agg(agg_exprs)
+        .sort(["sample_id", "final_tier"])
+    )

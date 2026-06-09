@@ -21,6 +21,7 @@ from .caller_parser import join_caller_columns, parse_all_callers
 from .manifest_loader import filter_complete, load_manifest
 from .rescue_parser import parse_rescue_vcf
 from .rescue_validator import validate_all_samples, validation_summary
+from .rust_bam import pileup_variants
 from .tiering_stats import compute_tiers_for_dataframe, tier_summary as compute_tier_summary
 from .statistics import (
     compute_all_per_variant,
@@ -28,10 +29,13 @@ from .statistics import (
     disease_summary,
     flag_filter_breakdown,
     sample_summary,
+    sample_tier_summary,
     set_summary,
 )
 from .visualizer import (
     generate_dashboard,
+    plot_bam_metrics_bars,
+    plot_bam_coverage_violin,
     plot_caller_overlap,
     plot_cosmic_gnomad_annotation,
     plot_cross_modality,
@@ -41,6 +45,8 @@ from .visualizer import (
     plot_gt_concordance,
     plot_gt_concordance_per_tier,
     plot_per_sample_distribution,
+    plot_per_sample_tier_distribution,
+    plot_per_tier_cross_sample_vaf,
     plot_ref_alt_dp_scatter,
     plot_tiered_caller_overlap,
     plot_tiered_variant_types,
@@ -116,6 +122,10 @@ def main():
     parser.add_argument("--sample-ids", nargs="*", default=None, help="Process specific sample IDs")
     parser.add_argument("--no-validate", action="store_true", help="Skip rescue VCF validation")
     parser.add_argument("--tolerance", type=float, default=0.01, help="Validation tolerance")
+    parser.add_argument("--pileup-mode", choices=["all", "filtered"], default="all",
+                        help="Variant-wise BAM pileup mode: all variants (default) or exclude NoConsensus")
+    parser.add_argument("--no-bam", action="store_true", help="Skip all BAM processing")
+    parser.add_argument("--no-pileup", action="store_true", help="Skip variant-wise BAM pileup (whole-genome only)")
     args = parser.parse_args()
 
     # Load and filter manifest
@@ -167,11 +177,14 @@ def main():
     print(f"Variant details: {variant_details_path} ({len(combined_df)} variants)")
 
     # BAM statistics (per-sample per-modality)
-    print("Computing per-sample BAM statistics...")
-    bam_stats_df = compute_all_bam_stats(rows)
-    if not bam_stats_df.is_empty():
-        bam_stats_df.write_csv(str(output_dir / "bam_stats.csv"))
-        print(f"BAM stats: {output_dir / 'bam_stats.csv'}")
+    if not args.no_bam:
+        print("Computing per-sample BAM statistics...")
+        bam_stats_df = compute_all_bam_stats(rows)
+        if not bam_stats_df.is_empty():
+            bam_stats_df.write_csv(str(output_dir / "bam_stats.csv"))
+            print(f"BAM stats: {output_dir / 'bam_stats.csv'}")
+    else:
+        print("Skipping BAM statistics (--no-bam)")
 
     # Sample summary
     if all_stats:
@@ -200,6 +213,12 @@ def main():
         if ds_summary:
             pl.DataFrame([ds_summary]).write_csv(str(output_dir / "dataset_summary.csv"))
             print(f"Dataset summary: {output_dir / 'dataset_summary.csv'}")
+
+        # Sample-tier summary (Level 4)
+        sample_tier_df = sample_tier_summary(combined_df)
+        if not sample_tier_df.is_empty():
+            sample_tier_df.write_csv(str(output_dir / "sample_tier_summary.csv"))
+            print(f"Sample-tier summary: {output_dir / 'sample_tier_summary.csv'}")
 
     # Caller overlap
     from .statistics import caller_overlap_distribution
@@ -282,10 +301,22 @@ def main():
     figs.append(plot_gt_concordance_per_tier(combined_df, str(output_dir)))
     figs.append(plot_tiered_caller_overlap(combined_df, str(output_dir)))
     figs.append(plot_tiered_variant_types(combined_df, str(output_dir)))
+    figs.append(plot_ref_alt_dp_scatter(combined_df, str(output_dir)))
+
+    # BAM charts
+    if not args.no_bam and 'bam_stats_df' in dir() and not bam_stats_df.is_empty():
+        figs.append(plot_bam_metrics_bars(bam_stats_df, str(output_dir)))
+        figs.append(plot_bam_coverage_violin(combined_df, str(output_dir)))
 
     if all_stats:
         sample_stats_df = pl.DataFrame(all_stats)
         figs.append(plot_per_sample_distribution(sample_stats_df, str(output_dir)))
+
+        # Per-sample per-tier charts
+        sample_tier_df = sample_tier_summary(combined_df)
+        if not sample_tier_df.is_empty():
+            figs.append(plot_per_sample_tier_distribution(sample_tier_df, str(output_dir)))
+            figs.append(plot_per_tier_cross_sample_vaf(sample_tier_df, str(output_dir)))
 
     if not args.no_validate and report is not None:
         figs.append(plot_validation_heatmap(report, str(output_dir)))

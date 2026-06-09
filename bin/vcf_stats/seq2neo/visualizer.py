@@ -553,6 +553,85 @@ def plot_ref_alt_dp_scatter(df, output_dir: str):
     return chart
 
 
+# ── BAM statistics charts ────────────────────────────────────────────────────
+
+
+def plot_bam_metrics_bars(bam_stats_df, output_dir: str):
+    """BAM metrics: grouped bar chart of per-sample reads for DN/DT/RT."""
+    if bam_stats_df is None or (hasattr(bam_stats_df, 'is_empty') and bam_stats_df.is_empty()):
+        return
+    needed = ["sample_id", "bam_type", "total_reads"]
+    if not all(c in bam_stats_df.columns for c in needed):
+        return
+    pdf = bam_stats_df.select(["sample_id", "bam_type", "total_reads", "mapped_reads"]).to_pandas()
+    chart = alt.Chart(pdf).mark_bar().encode(
+        x=alt.X("sample_id:N", title="Sample", axis=alt.Axis(labelAngle=-45)),
+        y=alt.Y("total_reads:Q", title="Total Reads"),
+        color=alt.Color("bam_type:N", title="BAM Type"),
+        xOffset="bam_type:N",
+    ).properties(title="Per-Sample BAM Read Counts (DN/DT/RT)")
+    _save_chart(chart, "20_bam_metrics", output_dir)
+    return chart
+
+
+def plot_bam_coverage_violin(df, output_dir: str):
+    """BAM coverage distribution per BAM type, boxplot by tier."""
+    bam_cols = [c for c in df.columns if c.startswith("BAM_DP_")]
+    if not bam_cols or "caller_tier" not in df.columns:
+        return
+    melted = df.select(bam_cols + ["caller_tier"]).unpivot(
+        index=["caller_tier"], variable_name="bam_type", value_name="DP"
+    ).drop_nulls()
+    if melted.height > 50000:
+        melted = melted.sample(50000)
+    pdf = melted.to_pandas()
+    chart = alt.Chart(pdf).mark_boxplot(extent="min-max").encode(
+        x=alt.X("bam_type:N", title="BAM Type"),
+        y=alt.Y("DP:Q", title="Depth at Variant Position"),
+        color=alt.Color("bam_type:N"),
+        column=alt.Column("caller_tier:N", title="Caller Tier"),
+    ).properties(title="BAM Coverage at Variant Positions per Tier")
+    _save_chart(chart, "21_bam_coverage", output_dir)
+    return chart
+
+
+def plot_per_sample_tier_distribution(sample_tier_df, output_dir: str):
+    """Stacked bar chart: per-sample per-tier variant counts."""
+    if sample_tier_df is None or (hasattr(sample_tier_df, 'is_empty') and sample_tier_df.is_empty()):
+        return
+    if "sample_id" not in sample_tier_df.columns or "final_tier" not in sample_tier_df.columns:
+        return
+    pdf = sample_tier_df.select(["sample_id", "final_tier", "n_variants"]).to_pandas()
+    chart = alt.Chart(pdf).mark_bar().encode(
+        y=alt.Y("sample_id:N", title="Sample ID", sort=None),
+        x=alt.X("n_variants:Q", title="Variants"),
+        color=alt.Color("final_tier:N", title="Tier"),
+    ).properties(title="Per-Sample Per-Tier Variant Distribution")
+    _save_chart(chart, "22_sample_tier_dist", output_dir)
+    return chart
+
+
+def plot_per_tier_cross_sample_vaf(sample_tier_df, output_dir: str):
+    """Boxplot: per-tier VAF distribution across samples."""
+    if sample_tier_df is None or (hasattr(sample_tier_df, 'is_empty') and sample_tier_df.is_empty()):
+        return
+    vaf_col = None
+    for c in ["mean_dna_vaf_mean", "mean_rna_vaf_mean"]:
+        if c in sample_tier_df.columns:
+            vaf_col = c
+            break
+    if not vaf_col or "final_tier" not in sample_tier_df.columns:
+        return
+    pdf = sample_tier_df.select(["final_tier", vaf_col]).to_pandas()
+    chart = alt.Chart(pdf).mark_boxplot().encode(
+        x=alt.X("final_tier:N", title="Tier"),
+        y=alt.Y(f"{vaf_col}:Q", title=f"Mean {vaf_col}"),
+        color=alt.Color("final_tier:N"),
+    ).properties(title="Per-Tier VAF Distribution Across Samples")
+    _save_chart(chart, "23_per_tier_vaf", output_dir)
+    return chart
+
+
 def _extract_body_content(html: str) -> str:
     """Extract inner content between <body> and </body> from a full HTML document.
 
@@ -571,11 +650,10 @@ def _extract_body_content(html: str) -> str:
 
 
 def generate_dashboard(figs: list, output_dir: str):
-    """Combine all figures into a single dashboard HTML using vega-embed.
+    """Combine all figures into a single dashboard HTML with 4 sections.
 
-    Extracts body content from each chart's to_html() (which returns full
-    HTML documents) and assembles into a single valid page. Only the first
-    chart's <style> block is preserved to avoid CSS conflicts.
+    Sections: Overview, Tier Analysis, BAM & Validation, Per-Sample.
+    Each chart gets a unique div ID to avoid vega-embed conflicts.
     """
     dashboard_path = Path(output_dir) / "dashboard.html"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -586,19 +664,44 @@ def generate_dashboard(figs: list, output_dir: str):
         "<script src='https://cdn.jsdelivr.net/npm/vega@5'></script>",
         "<script src='https://cdn.jsdelivr.net/npm/vega-lite@5'></script>",
         "<script src='https://cdn.jsdelivr.net/npm/vega-embed@6'></script>",
-        "<style>body{font-family:Arial,sans-serif;margin:20px;background:#f5f5f5}",
+        "<style>",
+        "body{font-family:Arial,sans-serif;margin:20px;background:#f5f5f5}",
         ".chart{margin-bottom:40px;background:white;padding:20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1)}",
-        "h1{color:#333}</style>",
+        "h1{color:#333}h2{color:#555;margin-top:30px;border-bottom:2px solid #ddd;padding-bottom:8px}",
+        ".toc{background:white;padding:15px;border-radius:8px;margin-bottom:30px}",
+        ".toc a{color:#1f77b4;text-decoration:none;margin-right:15px}",
+        "</style>",
         "</head><body>",
         "<h1>Seq2neo Variant Statistics Dashboard</h1>",
+        # Table of contents
+        '<div class="toc">',
+        '<a href="#overview">Overview</a>',
+        '<a href="#tier">Tier Analysis</a>',
+        '<a href="#bam">BAM & Validation</a>',
+        '<a href="#persample">Per-Sample</a>',
+        '</div>',
+    ]
+
+    # Assign each chart to a section based on its index range
+    sections = [
+        ("overview", "Overview", 0, 5),        # charts 0-4: VC, caller, VAF basic, cosmic, GT
+        ("tier", "Tier Analysis", 5, 13),       # charts 5-12: VAF tier, DP tier, GT tier, overlaps, types, ref_alt
+        ("bam", "BAM & Validation", 13, 18),    # charts 13-17: BAM metrics, coverage, validation
+        ("persample", "Per-Sample", 18, 99),    # charts 18+: per-sample dist, tier dist, cross-tier VAF
     ]
 
     for i, fig in enumerate(figs):
-        if fig is not None:
-            html_parts.append(f'<div class="chart" id="chart-{i}">')
-            body_content = _extract_body_content(fig.to_html())
-            html_parts.append(body_content)
-            html_parts.append('</div>')
+        if fig is None:
+            continue
+        # Check if we need a section header
+        for sec_id, sec_title, start, end in sections:
+            if i == start:
+                html_parts.append(f'<h2 id="{sec_id}">{sec_title}</h2>')
+
+        html_parts.append(f'<div class="chart" id="chart-{i}">')
+        body_content = _extract_body_content(fig.to_html(output_div=f"vis-{i}"))
+        html_parts.append(body_content)
+        html_parts.append('</div>')
 
     html_parts.append("</body></html>")
 

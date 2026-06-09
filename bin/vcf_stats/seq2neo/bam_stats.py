@@ -18,29 +18,38 @@ except ImportError:
     HAS_PYSAM = False
 
 
-def _locate_bam_file(base_dir: str, dir_name: str, modality: str) -> str | None:
-    """Locate the BAM file for a given modality.
+# Three BAM types per sample
+BAM_TYPES = {
+    "DN": {"suffix": "DN", "label": "DNA Normal"},
+    "DT": {"suffix": "DT", "label": "DNA Tumor"},
+    "RT": {"suffix": "RT", "label": "RNA Tumor"},
+}
 
-    DNA BAMs: <base_dir>/<dir_name>/bam_processing/<prefix>DT.bam or similar
-    RNA BAMs: <base_dir>/<dir_name>/vcf_realignment/bam_processing/<prefix>RT.bam
+
+def _locate_bam_file(base_dir: str, dir_name: str, bam_type: str) -> str | None:
+    """Locate the BAM file for a given BAM type (DN, DT, or RT).
+
+    DN BAMs: preprocessing/mapped/{prefix}DN/{prefix}DN.sorted.bam
+    DT BAMs: preprocessing/mapped/{prefix}DT/{prefix}DT.sorted.bam
+    RT BAMs: preprocessing/mapped/{prefix}RT/{prefix}RT.bam
+             OR vcf_realignment/preprocessing/mapped/{prefix}RT/*.bam
     """
     import glob
 
-    search_paths = []
+    suffix = BAM_TYPES[bam_type]["suffix"]
 
-    if modality == "DNA":
-        # DNA BAM: variant_calling or preprocessing pipeline
+    if bam_type in ("DN", "DT"):
+        # DNA normal and tumor: preprocessing/mapped/{prefix}DN/{prefix}DN.sorted.bam
         search_paths = [
-            os.path.join(base_dir, dir_name, "bam_processing", "*.bam"),
-            os.path.join(base_dir, dir_name, "preprocessing", "*.bam"),
-            os.path.join(base_dir, dir_name, "variant_calling", "**", "*.bam"),
+            os.path.join(base_dir, dir_name, "preprocessing", "mapped", f"*{suffix}", "*.sorted.bam"),
+            os.path.join(base_dir, dir_name, "preprocessing", "mapped", f"*{suffix}", "*.bam"),
         ]
-    elif modality == "RNA":
-        # RNA BAM: realignment pipeline
+    else:  # RT
+        # RNA tumor: preprocessing/mapped/{prefix}RT/{prefix}RT.bam
+        # or vcf_realignment/preprocessing/mapped/{prefix}RT/*.bam
         search_paths = [
-            os.path.join(base_dir, dir_name, "vcf_realignment", "bam_processing", "*.bam"),
-            os.path.join(base_dir, dir_name, "vcf_realignment", "preprocessing", "*.bam"),
-            os.path.join(base_dir, dir_name, "vcf_realignment", "variant_calling", "**", "*.bam"),
+            os.path.join(base_dir, dir_name, "preprocessing", "mapped", f"*{suffix}", "*.bam"),
+            os.path.join(base_dir, dir_name, "vcf_realignment", "preprocessing", "mapped", f"*{suffix}", "*.bam"),
         ]
 
     for pattern in search_paths:
@@ -127,14 +136,15 @@ def compute_sample_bam_stats(
     """
     results = []
 
-    for modality in ["DNA", "RNA"]:
-        bam_path = _locate_bam_file(base_output_dir, dir_name, modality)
+    for bam_type in ["DN", "DT", "RT"]:
+        bam_path = _locate_bam_file(base_output_dir, dir_name, bam_type)
         stats = compute_bam_stats(bam_path) if bam_path else None
 
         row = {
             "sample_id": sample_id,
             "set_number": set_number,
-            "modality": modality,
+            "bam_type": bam_type,
+            "bam_label": BAM_TYPES[bam_type]["label"],
             "bam_path": bam_path or "",
             "has_bam": bam_path is not None,
         }
@@ -174,7 +184,10 @@ def compute_all_bam_stats(manifest_rows: list[dict]) -> pl.DataFrame:
             set_number=row["set_number"],
         )
         all_rows.extend(sample_results)
-        print(f"  [{row['sample_id']}] BAM stats: DNA={'OK' if sample_results[0]['has_bam'] else 'missing'}, RNA={'OK' if sample_results[1]['has_bam'] else 'missing'}")
+        ok_flags = []
+        for r in sample_results:
+            ok_flags.append(f"{r['bam_type']}={'OK' if r['has_bam'] else 'missing'}")
+        print(f"  [{row['sample_id']}] BAM stats: {', '.join(ok_flags)}")
 
     if not all_rows:
         return pl.DataFrame()
