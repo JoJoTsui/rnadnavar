@@ -1,3 +1,4 @@
+mod bam;
 mod vcf;
 
 use std::path::PathBuf;
@@ -30,9 +31,27 @@ fn parse_rescue(py: Python<'_>, path: String) -> PyResult<Bound<'_, PyList>> {
     Ok(list)
 }
 
+/// Compute whole-genome BAM statistics.
+#[pyfunction]
+fn bam_stats(py: Python<'_>, path: String, max_reads: u64) -> PyResult<Bound<'_, PyDict>> {
+    let stats = bam::whole_genome_stats(&PathBuf::from(&path), max_reads)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+            format!("BAM stats error: {e}")
+        ))?;
+
+    let d = PyDict::new(py);
+    d.set_item("total_reads", stats.total_reads)?;
+    d.set_item("mapped_reads", stats.mapped_reads)?;
+    d.set_item("mapping_rate", stats.mapping_rate)?;
+    d.set_item("mean_insert_size", stats.mean_insert_size)?;
+    d.set_item("mean_mapq", stats.mean_mapq)?;
+    Ok(d)
+}
+
 /// stats_core — Rust-accelerated VCF/BAM parsing for seq2neo variant statistics.
 #[pymodule]
 fn stats_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(parse_rescue, m)?)?;
+    m.add_function(wrap_pyfunction!(bam_stats, m)?)?;
     Ok(())
 }
