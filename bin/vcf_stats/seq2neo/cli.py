@@ -12,6 +12,7 @@ Usage:
 import argparse
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import polars as pl
@@ -19,7 +20,8 @@ import polars as pl
 from .bam_stats import compute_all_bam_stats
 from .caller_parser import join_caller_columns, parse_all_callers
 from .manifest_loader import filter_complete, load_manifest
-from .rust_vcf import parse_rescue_vcf
+from .rescue_parser import parse_rescue_vcf as _py_parse_rescue
+from .rust_vcf import parse_rescue_vcf as _rust_parse_rescue
 from .rescue_validator import validate_all_samples, validation_summary
 from .rust_bam import pileup_variants
 from .tiering_stats import compute_tiers_for_dataframe, tier_summary as compute_tier_summary
@@ -59,7 +61,7 @@ from .visualizer import (
 )
 
 
-def process_single_sample(row: dict, max_workers: int = 1) -> dict:
+def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True) -> dict:
     """Process one sample: parse rescue VCF + all caller VCFs + compute stats.
 
     Returns a dict with 'sample_id', 'df', and 'stats'.
@@ -70,8 +72,9 @@ def process_single_sample(row: dict, max_workers: int = 1) -> dict:
     dir_name = row["dir_name"]
     vcf_prefix = row["vcf_prefix"]
 
-    print(f"  [{sample_id}] Parsing rescue VCF...")
-    rescue_df = parse_rescue_vcf(rescue_path)
+    parse_fn = _rust_parse_rescue if use_rust else _py_parse_rescue
+    print(f"  [{sample_id}] Parsing rescue VCF ({'rust' if use_rust else 'python'})...")
+    rescue_df = parse_fn(rescue_path)
     if rescue_df.is_empty():
         print(f"  [{sample_id}] WARNING: No variants in rescue VCF")
         return {"sample_id": sample_id, "df": None, "stats": None}
@@ -114,9 +117,11 @@ def main():
     parser = argparse.ArgumentParser(description="Seq2neo variant statistics")
     parser.add_argument("--manifest", required=True, help="Path to sample manifest CSV/Parquet")
     parser.add_argument("--output-dir", required=True, help="Output directory for statistics")
-    parser.add_argument("--threads", type=int, default=1,
-                        help="Threads for within-sample caller parsing (1-6, default: 1). "
-                             "Samples are always processed sequentially to avoid htslib/fork issues.")
+    parser.add_argument("--threads", type=int, default=6,
+                        help="Threads for within-sample caller parsing (1-6, default: 6).")
+    parser.add_argument("--sample-workers", type=int, default=1,
+                        help="Parallel sample processing threads (default: 1). "
+                             "Uses ThreadPoolExecutor (safe with htslib). Set to 4-8 for 32-core machines.")
     parser.add_argument("--max-samples", type=int, default=None, help="Limit number of samples")
     parser.add_argument("--set", type=int, default=None, help="Process only this set (1-4)")
     parser.add_argument("--sample-ids", nargs="*", default=None, help="Process specific sample IDs")
@@ -126,6 +131,8 @@ def main():
                         help="Variant-wise BAM pileup mode: all variants (default) or exclude NoConsensus")
     parser.add_argument("--no-bam", action="store_true", help="Skip all BAM processing")
     parser.add_argument("--no-pileup", action="store_true", help="Skip variant-wise BAM pileup (whole-genome only)")
+    parser.add_argument("--parser", choices=["rust", "python"], default="rust",
+                        help="VCF parser: rust (default) or python (cyvcf2 fallback)")
     args = parser.parse_args()
 
     # Load and filter manifest
@@ -143,28 +150,52 @@ def main():
         print("No samples to process.")
         sys.exit(0)
 
-    print(f"Processing {len(manifest)} samples sequentially (caller_threads={args.threads})")
+    use_rust = args.parser == "rust"
+    print(f"Processing {len(manifest)} samples (parser={args.parser}, caller_threads={args.threads}, sample_workers={args.sample_workers})")
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Process samples sequentially — avoids ProcessPoolExecutor + htslib fork deadlock
     rows = manifest.to_dicts()
     samples_data = {}
     all_stats = []
 
-    for i, row in enumerate(rows):
-        sid = row["sample_id"]
-        print(f"\n[{i+1}/{len(manifest)}] {sid}")
-        try:
-            result = process_single_sample(row, max_workers=args.threads)
-            if result["df"] is not None:
-                samples_data[result["sample_id"]] = result["df"]
-            if result["stats"] is not None:
-                all_stats.append(result["stats"])
-        except Exception as e:
-            import traceback
-            print(f"  [{sid}] ERROR: {e}")
-            traceback.print_exc()
+    if args.sample_workers > 1:
+        # Parallel sample processing via ThreadPoolExecutor (threads, safe with htslib)
+        with ThreadPoolExecutor(max_workers=args.sample_workers) as executor:
+            futures = {}
+            for i, row in enumerate(rows):
+                future = executor.submit(process_single_sample, row, args.threads, use_rust)
+                futures[future] = (i, row["sample_id"])
+
+            for future in as_completed(futures):
+                i, sid = futures[future]
+                print(f"[{i+1}/{len(manifest)}] {sid} - processing...")
+                try:
+                    result = future.result()
+                    if result["df"] is not None:
+                        samples_data[result["sample_id"]] = result["df"]
+                    if result["stats"] is not None:
+                        all_stats.append(result["stats"])
+                    print(f"[{i+1}/{len(manifest)}] {sid} - Done")
+                except Exception as e:
+                    import traceback
+                    print(f"[{i+1}/{len(manifest)}] {sid} - ERROR: {e}")
+                    traceback.print_exc()
+    else:
+        # Sequential processing
+        for i, row in enumerate(rows):
+            sid = row["sample_id"]
+            print(f"\n[{i+1}/{len(manifest)}] {sid}")
+            try:
+                result = process_single_sample(row, max_workers=args.threads, use_rust=use_rust)
+                if result["df"] is not None:
+                    samples_data[result["sample_id"]] = result["df"]
+                if result["stats"] is not None:
+                    all_stats.append(result["stats"])
+            except Exception as e:
+                import traceback
+                print(f"  [{sid}] ERROR: {e}")
+                traceback.print_exc()
 
     if not samples_data:
         print("No data processed.")

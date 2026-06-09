@@ -275,6 +275,7 @@ def caller_overlap_distribution(df: pl.DataFrame) -> pl.DataFrame:
     """Distribution of N_SUPPORT_CALLERS (how many callers support each variant)."""
     if "N_SUPPORT_CALLERS" not in df.columns:
         return pl.DataFrame()
+    df = df.with_columns(pl.col("N_SUPPORT_CALLERS").cast(pl.Int64, strict=False))
     return (
         df.group_by("N_SUPPORT_CALLERS")
         .agg(pl.len().alias("count"))

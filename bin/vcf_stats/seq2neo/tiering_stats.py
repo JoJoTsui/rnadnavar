@@ -119,10 +119,12 @@ def compute_tiers_for_dataframe(df: pl.DataFrame) -> pl.DataFrame:
         info_dict: dict[str, Any] = {}
         gnomad_af = row.get("GNOMAD_AF")
         if gnomad_af is not None:
-            info_dict["gnomAD_AF"] = float(gnomad_af)
+            try: info_dict["gnomAD_AF"] = float(gnomad_af)
+            except (ValueError, TypeError): pass
         cosmic_cnt = row.get("COSMIC_CNT")
         if cosmic_cnt is not None:
-            info_dict["COSMIC_CNT"] = int(cosmic_cnt)
+            try: info_dict["COSMIC_CNT"] = int(cosmic_cnt)
+            except (ValueError, TypeError): pass
 
         # REDIportal: consider REDI_EVIDENCE != "NONE" as database support
         redi_evidence = row.get("REDI_EVIDENCE")
@@ -137,11 +139,15 @@ def compute_tiers_for_dataframe(df: pl.DataFrame) -> pl.DataFrame:
             )
         except (ValueError, RuntimeError):
             # Fallback: compute tier from simple caller counts
-            dna_count = row.get("N_DNA_CALLERS_SUPPORT") or 0
-            rna_count = row.get("N_RNA_CALLERS_SUPPORT") or 0
+            dna_count = row.get("N_DNA_CALLERS_SUPPORT")
+            rna_count = row.get("N_RNA_CALLERS_SUPPORT")
+            try: dna_count = int(dna_count) if dna_count is not None else 0
+            except (ValueError, TypeError): dna_count = 0
+            try: rna_count = int(rna_count) if rna_count is not None else 0
+            except (ValueError, TypeError): rna_count = 0
             has_db = bool(info_dict)
             tier_str = engine.compute_tier_simple(
-                dna_caller_count=int(dna_count),
+                dna_caller_count=dna_count,
                 rna_caller_count=int(rna_count),
                 has_database_support=has_db,
             )

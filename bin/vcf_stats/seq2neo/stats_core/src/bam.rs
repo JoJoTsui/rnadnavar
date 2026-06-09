@@ -8,7 +8,6 @@
 use std::path::Path;
 
 use noodles_bam as bam;
-use noodles_sam::alignment::Record as _;
 
 /// Whole-genome BAM statistics.
 #[derive(Debug, Clone, Default)]
@@ -16,7 +15,6 @@ pub struct BamStats {
     pub total_reads: u64,
     pub mapped_reads: u64,
     pub mapping_rate: f64,
-    pub mean_coverage: f64,
     pub mean_insert_size: f64,
     pub mean_mapq: f64,
 }
@@ -52,7 +50,6 @@ pub fn whole_genome_stats(bam_path: &Path, max_reads: u64) -> Result<BamStats, B
         total_reads: total,
         mapped_reads: mapped,
         mapping_rate: if total > 0 { mapped as f64 / total as f64 * 100.0 } else { 0.0 },
-        mean_coverage: 0.0,
         mean_insert_size: if insert_count > 0 { insert_sum / insert_count as f64 } else { 0.0 },
         mean_mapq: if mapped > 0 { mq_sum / mapped as f64 } else { 0.0 },
     })
