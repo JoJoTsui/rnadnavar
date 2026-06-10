@@ -18,6 +18,7 @@ from pathlib import Path
 import polars as pl
 
 from .bam_stats import compute_all_bam_stats
+from .bam_validation import validate_bam_all_samples as validate_bam
 from .caller_parser import join_caller_columns, parse_all_callers
 from .manifest_loader import filter_complete, load_manifest
 from .rescue_parser import parse_rescue_vcf as _py_parse_rescue
@@ -30,6 +31,7 @@ from .statistics import (
     dataset_summary,
     disease_summary,
     flag_filter_breakdown,
+    gt_concordance,
     sample_summary,
     sample_tier_summary,
     set_summary,
@@ -43,7 +45,7 @@ from .visualizer import (
     plot_cross_modality,
     plot_dna_vs_rna_dp,
     plot_dna_vs_rna_vaf,
-    plot_dp_violin_per_tier,
+    plot_dp_boxplot_per_tier,
     plot_gt_concordance,
     plot_gt_concordance_per_tier,
     plot_per_sample_distribution,
@@ -51,10 +53,17 @@ from .visualizer import (
     plot_per_tier_cross_sample_vaf,
     plot_ref_alt_dp_scatter,
     plot_tiered_caller_overlap,
+    plot_caller_agreement_matrix,
+    plot_chromosome_density,
+    plot_dna_vs_rna_per_caller,
+    plot_filter_distribution,
+    plot_per_tier_vaf_boxplot,
+    plot_tier_quality_distribution,
     plot_tiered_variant_types,
     plot_ti_tv_ratio,
+    plot_redi_evidence,
     plot_vaf_distribution,
-    plot_vaf_violin_per_tier,
+    plot_vaf_boxplot_per_tier,
     plot_validation_heatmap,
     plot_variant_type_distribution,
     plot_vc_distribution,
@@ -269,26 +278,9 @@ def main():
         vt_df.write_csv(str(output_dir / "variant_type_distribution.csv"))
 
     # GT concordance
-    gt_cols = [
-        "DNA_mutect2_GT", "RNA_mutect2_GT",
-        "DNA_deepsomatic_GT", "RNA_deepsomatic_GT",
-    ]
-    existing_gt = [c for c in gt_cols if c in combined_df.columns]
-    if len(existing_gt) >= 2:
-        from collections import Counter
-        gt_rows = []
-        for row in combined_df.select(existing_gt).to_dicts():
-            gts = [g for g in (row.get(c) for c in existing_gt) if g is not None and g not in ("./.", "./.", ".")]
-            if len(gts) >= 2:
-                best = Counter(gts).most_common(1)[0][1]
-                gt_rows.append(best if best >= 2 else 0)
-            else:
-                gt_rows.append(0)
-        concordance_counts = {}
-        for a in [2, 3, 4]:
-            concordance_counts[str(a)] = sum(1 for ag in gt_rows if ag == a)
-        concordance_counts["no_agreement"] = sum(1 for ag in gt_rows if ag == 0)
-        pl.DataFrame({"agreement_level": list(concordance_counts.keys()), "count": list(concordance_counts.values())}).write_csv(
+    concordance_data = gt_concordance(combined_df)
+    if concordance_data:
+        pl.DataFrame({"agreement_level": list(concordance_data.keys()), "count": list(concordance_data.values())}).write_csv(
             str(output_dir / "gt_concordance.csv")
         )
 
@@ -302,6 +294,13 @@ def main():
             if not summary.is_empty():
                 summary.write_csv(str(output_dir / "rescue_validation_summary.csv"))
                 print(f"  Validation report: {output_dir / 'rescue_validation_report.csv'}")
+
+        # BAM validation
+        print("Running BAM validation...")
+        bam_report = validate_bam(samples_data)
+        if not bam_report.is_empty():
+            bam_report.write_csv(str(output_dir / "bam_validation.csv"))
+            print(f"  BAM validation: {output_dir / 'bam_validation.csv'}")
     else:
         report = None
 
@@ -321,8 +320,8 @@ def main():
     figs.append(plot_vc_distribution(combined_df, str(output_dir)))
     figs.append(plot_caller_overlap(combined_df, str(output_dir)))
     figs.append(plot_vaf_distribution(combined_df, str(output_dir)))
-    figs.append(plot_vaf_violin_per_tier(combined_df, str(output_dir)))
-    figs.append(plot_dp_violin_per_tier(combined_df, str(output_dir)))
+    figs.append(plot_vaf_boxplot_per_tier(combined_df, str(output_dir)))
+    figs.append(plot_dp_boxplot_per_tier(combined_df, str(output_dir)))
     figs.append(plot_dna_vs_rna_vaf(combined_df, str(output_dir)))
     figs.append(plot_dna_vs_rna_dp(combined_df, str(output_dir)))
     figs.append(plot_ref_alt_dp_scatter(combined_df, str(output_dir)))
@@ -332,7 +331,13 @@ def main():
     figs.append(plot_gt_concordance_per_tier(combined_df, str(output_dir)))
     figs.append(plot_tiered_caller_overlap(combined_df, str(output_dir)))
     figs.append(plot_tiered_variant_types(combined_df, str(output_dir)))
-    figs.append(plot_ref_alt_dp_scatter(combined_df, str(output_dir)))
+    figs.append(plot_filter_distribution(combined_df, str(output_dir)))
+    figs.append(plot_per_tier_vaf_boxplot(combined_df, str(output_dir)))
+    figs.append(plot_caller_agreement_matrix(combined_df, str(output_dir)))
+    figs.append(plot_chromosome_density(combined_df, str(output_dir)))
+    figs.append(plot_dna_vs_rna_per_caller(combined_df, str(output_dir)))
+    figs.append(plot_tier_quality_distribution(combined_df, str(output_dir)))
+    figs.append(plot_redi_evidence(combined_df, str(output_dir)))
 
     # BAM charts
     if not args.no_bam and 'bam_stats_df' in dir() and not bam_stats_df.is_empty():

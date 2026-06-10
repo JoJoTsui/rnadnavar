@@ -91,13 +91,11 @@ def compute_bam_stats(bam_path: str) -> dict[str, Any] | None:
                 mapped_reads += 1
                 total_mapq += read.mapping_quality
                 total_length += read.query_length or 0
-                if read.template_length and read.template_length > 0:
+                # Insert size: only count properly paired reads (TLEN can be
+                # arbitrarily large for supplementary/improper pairs)
+                if read.is_proper_pair and read.template_length and read.template_length > 0:
                     total_insert += read.template_length
                     insert_count += 1
-
-            # Sample: stop after 1M reads for performance
-            if total_reads >= 1_000_000:
-                break
 
         bam.close()
 

@@ -37,12 +37,6 @@ def _save_chart(chart: alt.Chart, name: str, output_dir: str):
     chart.save(str(svg_path), format="svg")
 
 
-def _to_pandas(df: pl.DataFrame, cols: list[str]) -> "pd.DataFrame":
-    """Convert polars subset to pandas for altair."""
-    existing = [c for c in cols if c in df.columns]
-    return df.select(existing).to_pandas()
-
-
 # ── Chart functions ───────────────────────────────────────────────────────
 
 
@@ -75,21 +69,21 @@ def plot_vc_distribution(df, output_dir: str, group_col: str = "set_number"):
 
 
 def plot_caller_overlap(df, output_dir: str):
-    """Chart 2: Caller support histogram (% by N_SUPPORT_CALLERS)."""
-    if "N_SUPPORT_CALLERS" not in df.columns or "set_number" not in df.columns:
+    """Chart 2: Variant tier distribution (% by CxDy final tier)."""
+    if "final_tier" not in df.columns or "set_number" not in df.columns:
         return
-    counts = df.group_by(["set_number", "N_SUPPORT_CALLERS"]).agg(pl.len().alias("count"))
+    counts = df.group_by(["set_number", "final_tier"]).agg(pl.len().alias("count"))
     total_per_set = df.group_by("set_number").agg(pl.len().alias("total"))
     counts = counts.join(total_per_set, on="set_number").with_columns(
         (pl.col("count") / pl.col("total") * 100).alias("pct")
     ).to_pandas()
     counts["set_number"] = counts["set_number"].astype(str)
     chart = alt.Chart(counts).mark_bar().encode(
-        x=alt.X("N_SUPPORT_CALLERS:O", title="Number of Supporting Callers"),
+        x=alt.X("final_tier:N", title="Variant Tier (CxDy)"),
         y=alt.Y("pct:Q", title="% of Variants"),
         color=alt.Color("set_number:N", title="Set"),
         column=alt.Column("set_number:N", title="Set"),
-    ).properties(title="Caller Support Distribution")
+    ).properties(title="Variant Tier Distribution by Set")
     _save_chart(chart, "02_caller_overlap", output_dir)
     return chart
 
@@ -124,14 +118,18 @@ def plot_dna_vs_rna_vaf(df, output_dir: str):
     """Chart 4: DNA vs RNA mean VAF scatter."""
     if "DNA_VAF_mean" not in df.columns or "RNA_VAF_mean" not in df.columns:
         return
-    pdf = df.select(["DNA_VAF_mean", "RNA_VAF_mean", "VC"]).drop_nulls()
+    cols = ["DNA_VAF_mean", "RNA_VAF_mean"]
+    if "VC" in df.columns:
+        cols.append("VC")
+    pdf = df.select(cols).drop_nulls(subset=["DNA_VAF_mean", "RNA_VAF_mean"])
     if pdf.height > 5000:
         pdf = pdf.sample(5000)
     pdf = pdf.to_pandas()
+    color_enc = alt.Color("VC:N", scale=alt.Scale(domain=VC_DOMAIN, range=VC_COLORS)) if "VC" in pdf.columns else alt.value("#1f77b4")
     chart = alt.Chart(pdf).mark_circle(opacity=0.4, size=20).encode(
         x=alt.X("DNA_VAF_mean:Q", title="DNA Mean VAF"),
         y=alt.Y("RNA_VAF_mean:Q", title="RNA Mean VAF"),
-        color=alt.Color("VC:N", scale=alt.Scale(domain=VC_DOMAIN, range=VC_COLORS)),
+        color=color_enc,
     ).properties(title="DNA vs RNA Mean VAF")
     _save_chart(chart, "04_dna_vs_rna_vaf", output_dir)
     return chart
@@ -326,11 +324,8 @@ def plot_cross_modality(df, output_dir: str):
     return chart
 
 
-def plot_per_sample_distribution(sample_stats_df, output_dir: str):
-    """Chart 8: Per-sample variant count, horizontal bar chart with sample IDs.
-
-    Sorted by variant count descending. Each bar is one sample, labeled by sample_id.
-    """
+def plot_per_sample_distribution(sample_stats_df, output_dir: str, top_n: int = 30):
+    """Chart 8: Per-sample variant count, horizontal bar chart. Top-N by count."""
     if sample_stats_df is None or (hasattr(sample_stats_df, 'is_empty') and sample_stats_df.is_empty()):
         return
     if "total_variants" not in sample_stats_df.columns:
@@ -340,12 +335,12 @@ def plot_per_sample_distribution(sample_stats_df, output_dir: str):
 
     pdf = sample_stats_df.select(["sample_id", "total_variants"]).sort(
         "total_variants", descending=True
-    ).to_pandas()
+    ).head(top_n).to_pandas()
     chart = alt.Chart(pdf).mark_bar().encode(
         y=alt.Y("sample_id:N", title="Sample ID", sort=None),
         x=alt.X("total_variants:Q", title="Total Variants per Sample"),
         tooltip=["sample_id", "total_variants"],
-    ).properties(title="Per-Sample Variant Counts")
+    ).properties(title=f"Per-Sample Variant Counts (Top {top_n})")
     _save_chart(chart, "08_per_sample_distribution", output_dir)
     return chart
 
@@ -374,12 +369,8 @@ def plot_validation_heatmap(report, output_dir: str):
 # ── Tier-aware charts ────────────────────────────────────────────────────────
 
 
-def plot_vaf_violin_per_tier(df, output_dir: str):
-    """Violin-style VAF distribution per caller, faceted by caller tier.
-
-    Uses altair transform_density to create mirrored density (violin) plots.
-    Samples data to 50K rows for performance.
-    """
+def plot_vaf_boxplot_per_tier(df, output_dir: str):
+    """VAF distribution per caller, boxplot faceted by caller tier."""
     caller_vaf_cols = [
         f"{c}_VAF" for c in [
             "DNA_mutect2", "RNA_mutect2", "DNA_deepsomatic",
@@ -409,7 +400,7 @@ def plot_vaf_violin_per_tier(df, output_dir: str):
     return chart
 
 
-def plot_dp_violin_per_tier(df, output_dir: str):
+def plot_dp_boxplot_per_tier(df, output_dir: str):
     """DP distribution per caller, boxplot faceted by caller tier."""
     caller_dp_cols = [
         f"{c}_DP" for c in [
@@ -556,20 +547,26 @@ def plot_ref_alt_dp_scatter(df, output_dir: str):
 # ── BAM statistics charts ────────────────────────────────────────────────────
 
 
-def plot_bam_metrics_bars(bam_stats_df, output_dir: str):
-    """BAM metrics: grouped bar chart of per-sample reads for DN/DT/RT."""
+def plot_bam_metrics_bars(bam_stats_df, output_dir: str, top_n: int = 20):
+    """BAM metrics: grouped bar chart of per-sample reads for DN/DT/RT (top-N samples)."""
     if bam_stats_df is None or (hasattr(bam_stats_df, 'is_empty') and bam_stats_df.is_empty()):
         return
     needed = ["sample_id", "bam_type", "total_reads"]
     if not all(c in bam_stats_df.columns for c in needed):
         return
-    pdf = bam_stats_df.select(["sample_id", "bam_type", "total_reads", "mapped_reads"]).to_pandas()
+    # Get top-N samples by total reads
+    top_ids = bam_stats_df.group_by("sample_id").agg(
+        pl.col("total_reads").max().alias("max_reads")
+    ).sort("max_reads", descending=True).head(top_n)["sample_id"].to_list()
+    pdf = bam_stats_df.filter(pl.col("sample_id").is_in(top_ids)).select(
+        ["sample_id", "bam_type", "total_reads", "mapped_reads"]
+    ).to_pandas()
     chart = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("sample_id:N", title="Sample", axis=alt.Axis(labelAngle=-45)),
         y=alt.Y("total_reads:Q", title="Total Reads"),
         color=alt.Color("bam_type:N", title="BAM Type"),
         xOffset="bam_type:N",
-    ).properties(title="Per-Sample BAM Read Counts (DN/DT/RT)")
+    ).properties(title=f"Per-Sample BAM Read Counts — DN/DT/RT (Top {top_n})")
     _save_chart(chart, "20_bam_metrics", output_dir)
     return chart
 
@@ -632,6 +629,170 @@ def plot_per_tier_cross_sample_vaf(sample_tier_df, output_dir: str):
     return chart
 
 
+def plot_filter_distribution(df, output_dir: str):
+    """FILTER value distribution per set (pie or bar)."""
+    if "FILTER" not in df.columns:
+        return
+    counts = df.group_by("FILTER").agg(pl.len().alias("count")).sort("count", descending=True).to_pandas()
+    chart = alt.Chart(counts).mark_bar().encode(
+        x=alt.X("count:Q", title="Number of Variants"),
+        y=alt.Y("FILTER:N", title="FILTER", sort="-x"),
+        color=alt.Color("FILTER:N"),
+    ).properties(title="FILTER Distribution")
+    _save_chart(chart, "24_filter_distribution", output_dir)
+    return chart
+
+
+def plot_dna_vs_rna_per_caller(df, output_dir: str):
+    """DNA vs RNA per-caller VAF scatter at shared positions (cross-modality)."""
+    pairs = [("DNA_mutect2", "RNA_mutect2"), ("DNA_deepsomatic", "RNA_deepsomatic"),
+             ("DNA_strelka", "RNA_strelka")]
+    subcharts = []
+    for dna_caller, rna_caller in pairs:
+        dna_vaf = f"{dna_caller}_VAF"
+        rna_vaf = f"{rna_caller}_VAF"
+        if dna_vaf not in df.columns or rna_vaf not in df.columns:
+            continue
+        cols = [dna_vaf, rna_vaf]
+        if "VC" in df.columns:
+            cols.append("VC")
+        pdf = df.select(cols).drop_nulls(subset=[dna_vaf, rna_vaf])
+        if pdf.height > 5000:
+            pdf = pdf.sample(5000)
+        pdf_pd = pdf.to_pandas()
+        caller_label = dna_caller.replace("DNA_", "")
+        color_enc = alt.Color("VC:N", scale=alt.Scale(domain=VC_DOMAIN, range=VC_COLORS)) if "VC" in pdf_pd.columns else alt.value("#1f77b4")
+        c = alt.Chart(pdf_pd).mark_circle(opacity=0.4, size=20).encode(
+            x=alt.X(f"{dna_vaf}:Q", title=f"{caller_label} DNA VAF"),
+            y=alt.Y(f"{rna_vaf}:Q", title=f"{caller_label} RNA VAF"),
+            color=color_enc,
+        ).properties(title=f"{caller_label}: DNA vs RNA VAF")
+        subcharts.append(c)
+    if not subcharts:
+        return
+    chart = alt.hconcat(*subcharts).properties(title="DNA vs RNA Per-Caller VAF")
+    _save_chart(chart, "26_dna_vs_rna_per_caller", output_dir)
+    return chart
+
+
+def plot_chromosome_density(df, output_dir: str):
+    """Variant count per chromosome (Manhattan-style bar chart)."""
+    if "CHROM" not in df.columns:
+        return
+    counts = df.group_by("CHROM").agg(pl.len().alias("count")).sort("count", descending=True).to_pandas()
+    chart = alt.Chart(counts).mark_bar().encode(
+        x=alt.X("CHROM:N", title="Chromosome", sort="-y"),
+        y=alt.Y("count:Q", title="Number of Variants"),
+        tooltip=["CHROM", "count"],
+    ).properties(title="Variant Density per Chromosome")
+    _save_chart(chart, "30_chromosome_density", output_dir)
+    return chart
+
+
+def plot_redi_evidence(df, output_dir: str):
+    """REDIportal RNA editing evidence distribution."""
+    if "REDI_EVIDENCE" not in df.columns:
+        return
+    counts = df.group_by("REDI_EVIDENCE").agg(pl.len().alias("count")).sort("count", descending=True).to_pandas()
+    chart = alt.Chart(counts).mark_bar().encode(
+        x=alt.X("REDI_EVIDENCE:N", title="REDIportal Evidence Level"),
+        y=alt.Y("count:Q", title="Number of Variants"),
+        color=alt.Color("REDI_EVIDENCE:N"),
+    ).properties(title="REDIportal RNA Editing Evidence")
+    _save_chart(chart, "29_redi_evidence", output_dir)
+    return chart
+
+
+def plot_tier_quality_distribution(df, output_dir: str):
+    """Tier quality score histogram."""
+    if "tier_quality" not in df.columns:
+        return
+    pdf = df.select(["tier_quality"]).to_pandas()
+    chart = alt.Chart(pdf).mark_bar().encode(
+        x=alt.X("tier_quality:Q", bin=alt.Bin(maxbins=20), title="Tier Quality Score"),
+        y=alt.Y("count()", title="Number of Variants"),
+    ).properties(title="Tier Quality Score Distribution")
+    _save_chart(chart, "27_tier_quality", output_dir)
+    return chart
+
+
+def plot_per_tier_vaf_boxplot(df, output_dir: str):
+    """Per-tier DNA VAF boxplot across all variants."""
+    if "DNA_VAF_mean" not in df.columns or "final_tier" not in df.columns:
+        return
+    pdf = df.select(["final_tier", "DNA_VAF_mean", "RNA_VAF_mean"]).drop_nulls(subset=["DNA_VAF_mean"])
+    if pdf.height > 50000:
+        pdf = pdf.sample(50000)
+    pdf = pdf.to_pandas()
+    chart = alt.Chart(pdf).mark_boxplot().encode(
+        x=alt.X("final_tier:N", title="Tier"),
+        y=alt.Y("DNA_VAF_mean:Q", title="DNA Mean VAF"),
+        color=alt.Color("final_tier:N"),
+    ).properties(title="DNA VAF Distribution per Tier")
+    _save_chart(chart, "25_per_tier_vaf", output_dir)
+    return chart
+
+
+def plot_caller_agreement_matrix(df, output_dir: str):
+    """6×6 pairwise caller agreement matrix heatmap."""
+    callers = ["DNA_mutect2", "DNA_deepsomatic", "DNA_strelka",
+               "RNA_mutect2", "RNA_deepsomatic", "RNA_strelka"]
+    gt_cols = [f"{c}_GT" for c in callers]
+    existing = [c for c in gt_cols if c in df.columns]
+    if len(existing) < 2:
+        return
+    # Compute pairwise agreement: for each pair, fraction where both have non-null GT
+    n = df.height
+    rows = []
+    for c1 in callers:
+        col1 = f"{c1}_GT"
+        if col1 not in df.columns:
+            continue
+        for c2 in callers:
+            col2 = f"{c2}_GT"
+            if col2 not in df.columns:
+                continue
+            # Both have valid (non-null, non-./.) GT
+            both_valid = df.filter(
+                pl.col(col1).is_not_null() & pl.col(col2).is_not_null()
+                & ~pl.col(col1).is_in(["./.", "./.", "."])
+                & ~pl.col(col2).is_in(["./.", "./.", "."])
+            ).height
+            pct = both_valid / n * 100 if n > 0 else 0
+            rows.append({"caller_1": c1.replace("DNA_", "D_").replace("RNA_", "R_"),
+                         "caller_2": c2.replace("DNA_", "D_").replace("RNA_", "R_"),
+                         "pct": pct})
+    pdf = pl.DataFrame(rows).to_pandas()
+    chart = alt.Chart(pdf).mark_rect().encode(
+        x=alt.X("caller_1:N", title=None),
+        y=alt.Y("caller_2:N", title=None),
+        color=alt.Color("pct:Q", title="% Both Valid GT", scale=alt.Scale(scheme="blues")),
+        tooltip=["caller_1", "caller_2", "pct"],
+    ).properties(title="Caller GT Availability Matrix (%)")
+    _save_chart(chart, "28_caller_agreement", output_dir)
+    return chart
+
+
+def _chart_section(fig, index: int) -> str:
+    """Determine dashboard section for a chart based on its title."""
+    title = ""
+    try:
+        title = fig.title if hasattr(fig, 'title') else ""
+        title = str(title).lower()
+    except Exception:
+        pass
+    # Heuristic: match chart title keywords to sections
+    if any(kw in title for kw in ["vc", "classification", "variant type", "ti/tv", "cosmic", "filter dist"]):
+        return "overview"
+    if any(kw in title for kw in ["tier", "caller support", "c1", "gt concordance per"]):
+        return "tier"
+    if any(kw in title for kw in ["bam", "coverage", "validation", "ref_alt", "vaf v", "dp v", "dp per"]):
+        return "bam"
+    if any(kw in title for kw in ["per-sample", "sample", "cross"]):
+        return "persample"
+    return "overview"
+
+
 def _extract_body_content(html: str) -> str:
     """Extract inner content between <body> and </body> from a full HTML document.
 
@@ -661,9 +822,6 @@ def generate_dashboard(figs: list, output_dir: str):
     html_parts = [
         "<!DOCTYPE html><html><head><meta charset='utf-8'>",
         "<title>Seq2neo Variant Statistics Dashboard</title>",
-        "<script src='https://cdn.jsdelivr.net/npm/vega@5'></script>",
-        "<script src='https://cdn.jsdelivr.net/npm/vega-lite@5'></script>",
-        "<script src='https://cdn.jsdelivr.net/npm/vega-embed@6'></script>",
         "<style>",
         "body{font-family:Arial,sans-serif;margin:20px;background:#f5f5f5}",
         ".chart{margin-bottom:40px;background:white;padding:20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1)}",
@@ -682,24 +840,29 @@ def generate_dashboard(figs: list, output_dir: str):
         '</div>',
     ]
 
-    # Assign each chart to a section based on its index range
-    sections = [
-        ("overview", "Overview", 0, 5),        # charts 0-4: VC, caller, VAF basic, cosmic, GT
-        ("tier", "Tier Analysis", 5, 13),       # charts 5-12: VAF tier, DP tier, GT tier, overlaps, types, ref_alt
-        ("bam", "BAM & Validation", 13, 18),    # charts 13-17: BAM metrics, coverage, validation
-        ("persample", "Per-Sample", 18, 99),    # charts 18+: per-sample dist, tier dist, cross-tier VAF
+    # Section tracking: insert headers when section changes
+    # Chart categories: overview, tier, bam, persample, validation
+    section_order = [
+        ("overview", "Overview"),
+        ("tier", "Tier Analysis"),
+        ("bam", "BAM & Validation"),
+        ("persample", "Per-Sample"),
+        ("validation", "Validation"),
     ]
+    current_section = None
 
     for i, fig in enumerate(figs):
         if fig is None:
             continue
-        # Check if we need a section header
-        for sec_id, sec_title, start, end in sections:
-            if i == start:
-                html_parts.append(f'<h2 id="{sec_id}">{sec_title}</h2>')
+        # Determine section from chart filename
+        section = _chart_section(fig, i)
+        if section != current_section:
+            current_section = section
+            section_title = dict(section_order).get(section, section.title())
+            html_parts.append(f'<h2 id="{section}">{section_title}</h2>')
 
         html_parts.append(f'<div class="chart" id="chart-{i}">')
-        body_content = _extract_body_content(fig.to_html(output_div=f"vis-{i}"))
+        body_content = _extract_body_content(fig.to_html(output_div=f"vis-{i}", inline=True))
         html_parts.append(body_content)
         html_parts.append('</div>')
 

@@ -59,19 +59,11 @@ def compute_mean_columns(df: pl.DataFrame) -> pl.DataFrame:
         df = df.with_columns(
             pl.mean_horizontal(existing_dna_dp).alias("DNA_DP_mean")
         )
-    if existing_dna_ref:
-        df = df.with_columns(
-            pl.mean_horizontal(existing_dna_ref).alias("DNA_REF_mean")
-        )
-    if existing_dna_alt:
-        df = df.with_columns(
-            pl.mean_horizontal(existing_dna_alt).alias("DNA_ALT_mean")
-        )
     if existing_dna_vaf:
         df = df.with_columns(
             pl.mean_horizontal(existing_dna_vaf).alias("DNA_VAF_mean")
         )
-    # REF_DP / ALT_DP means (same source as REF/ALT mean, explicit DP naming)
+    # REF_DP / ALT_DP means
     if existing_dna_ref:
         df = df.with_columns(
             pl.mean_horizontal(existing_dna_ref).alias("DNA_REF_DP_mean")
@@ -95,14 +87,6 @@ def compute_mean_columns(df: pl.DataFrame) -> pl.DataFrame:
     if existing_rna_dp:
         df = df.with_columns(
             pl.mean_horizontal(existing_rna_dp).alias("RNA_DP_mean")
-        )
-    if existing_rna_ref:
-        df = df.with_columns(
-            pl.mean_horizontal(existing_rna_ref).alias("RNA_REF_mean")
-        )
-    if existing_rna_alt:
-        df = df.with_columns(
-            pl.mean_horizontal(existing_rna_alt).alias("RNA_ALT_mean")
         )
     if existing_rna_vaf:
         df = df.with_columns(
@@ -155,13 +139,15 @@ def sample_summary(df: pl.DataFrame, sample_id: str) -> dict[str, Any]:
         for vt in ["SNV", "INS", "DEL", "MNV"]:
             result[f"n_{vt}"] = df.filter(pl.col("variant_type") == vt).height
 
-    # Ti/Tv ratio
+    # Ti/Tv ratio (SNV only; MNV/INDEL have ti_tv=None)
     if "ti_tv" in df.columns:
         ti_count = df.filter(pl.col("ti_tv") == True).height
         tv_count = df.filter(pl.col("ti_tv") == False).height
+        excluded = df.filter(pl.col("ti_tv").is_null()).height
         result["ti_count"] = ti_count
         result["tv_count"] = tv_count
         result["ti_tv_ratio"] = ti_count / tv_count if tv_count > 0 else None
+        result["ti_tv_excluded"] = excluded  # MNV/INS/DEL not included in ratio
 
     # Mean VAF (DNA and RNA)
     for vaf_col in ["DNA_VAF_mean", "RNA_VAF_mean"]:
@@ -185,6 +171,12 @@ def sample_summary(df: pl.DataFrame, sample_id: str) -> dict[str, Any]:
     if "N_SUPPORT_CALLERS" in df.columns:
         for c in range(1, 7):
             result[f"n_callers_{c}"] = df.filter(pl.col("N_SUPPORT_CALLERS") == c).height
+
+    # Per-tier variant counts
+    if "final_tier" in df.columns:
+        tier_counts = df.group_by("final_tier").agg(pl.len().alias("n"))
+        for row in tier_counts.to_dicts():
+            result[f"tier_{row['final_tier']}"] = row["n"]
 
     # Cross-modality
     if "CROSS_MODALITY" in df.columns:
@@ -215,27 +207,42 @@ def set_summary(sample_stats: pl.DataFrame) -> pl.DataFrame:
         pl.col("total_variants").sum().alias("total_variants"),
         pl.col("total_variants").mean().alias("mean_variants_per_sample"),
         pl.col("pass_variants").sum().alias("pass_variants"),
+        pl.col("somatic_variants").sum().alias("somatic_variants") if "somatic_variants" in sample_stats.columns else pl.lit(0).alias("somatic_variants"),
+        pl.col("germline_variants").sum().alias("germline_variants") if "germline_variants" in sample_stats.columns else pl.lit(0).alias("germline_variants"),
     ]
 
-    # Add mean VAF columns if present
-    for vaf_col in ["mean_dna_vaf_mean", "mean_rna_vaf_mean"]:
-        if vaf_col in sample_stats.columns:
-            agg_exprs.append(pl.col(vaf_col).mean().alias(f"avg_{vaf_col}"))
+    # Add mean VAF/DP columns if present
+    for col in ["mean_dna_vaf_mean", "mean_rna_vaf_mean", "mean_dna_dp_mean", "mean_rna_dp_mean"]:
+        if col in sample_stats.columns:
+            agg_exprs.append(pl.col(col).mean().alias(f"avg_{col}"))
+
+    # Ti/Tv if present
+    for col in ["ti_tv_ratio"]:
+        if col in sample_stats.columns:
+            agg_exprs.append(pl.col(col).mean().alias(f"avg_{col}"))
 
     return sample_stats.group_by("set_number").agg(agg_exprs).sort("set_number")
 
 
 def disease_summary(df: pl.DataFrame) -> pl.DataFrame:
-    """Aggregate statistics per disease."""
+    """Aggregate statistics per disease with VAF/DP/tier metrics."""
     if "disease_normalized" not in df.columns:
         return pl.DataFrame()
 
+    agg_exprs = [
+        pl.len().alias("n_variants"),
+        pl.col("sample_id").n_unique().alias("n_samples"),
+    ]
+    for vaf_col in ["DNA_VAF_mean", "RNA_VAF_mean"]:
+        if vaf_col in df.columns:
+            agg_exprs.append(pl.col(vaf_col).mean().alias(f"mean_{vaf_col.lower()}"))
+    for dp_col in ["DNA_DP_mean", "RNA_DP_mean"]:
+        if dp_col in df.columns:
+            agg_exprs.append(pl.col(dp_col).mean().alias(f"mean_{dp_col.lower()}"))
+
     return (
         df.group_by("disease_normalized")
-        .agg([
-            pl.len().alias("n_variants"),
-            pl.col("sample_id").n_unique().alias("n_samples"),
-        ])
+        .agg(agg_exprs)
         .sort("n_variants", descending=True)
     )
 
@@ -272,7 +279,18 @@ def vc_distribution(df: pl.DataFrame, group_col: str = "set_number") -> pl.DataF
 
 
 def caller_overlap_distribution(df: pl.DataFrame) -> pl.DataFrame:
-    """Distribution of N_SUPPORT_CALLERS (how many callers support each variant)."""
+    """Distribution of final_tier (C1D1..C7D0) — variant tiering support."""
+    if "final_tier" not in df.columns:
+        return pl.DataFrame()
+    return (
+        df.group_by("final_tier")
+        .agg(pl.len().alias("count"))
+        .sort("final_tier")
+    )
+
+
+def caller_support_distribution(df: pl.DataFrame) -> pl.DataFrame:
+    """Distribution of N_SUPPORT_CALLERS (raw caller count, 1-6)."""
     if "N_SUPPORT_CALLERS" not in df.columns:
         return pl.DataFrame()
     df = df.with_columns(pl.col("N_SUPPORT_CALLERS").cast(pl.Int64, strict=False))
@@ -281,6 +299,34 @@ def caller_overlap_distribution(df: pl.DataFrame) -> pl.DataFrame:
         .agg(pl.len().alias("count"))
         .sort("N_SUPPORT_CALLERS")
     )
+
+
+def gt_concordance(df: pl.DataFrame) -> dict[str, int]:
+    """Compute GT concordance among 4 callers with GT fields (polars-native).
+
+    Returns counts of variants where 2, 3, or 4 callers have valid GT values,
+    plus a count of variants with <2 valid GTs.
+    """
+    gt_cols = [
+        "DNA_mutect2_GT", "RNA_mutect2_GT",
+        "DNA_deepsomatic_GT", "RNA_deepsomatic_GT",
+    ]
+    existing = [c for c in gt_cols if c in df.columns]
+    if len(existing) < 2:
+        return {}
+
+    invalid = ["./.", "./.", "."]
+    valid_df = df.select(existing).with_columns(
+        pl.sum_horizontal([
+            pl.col(c).is_not_null() & ~pl.col(c).is_in(invalid)
+            for c in existing
+        ]).alias("_n_valid")
+    )
+    result = {}
+    for a in [2, 3, 4]:
+        result[str(a)] = valid_df.filter(pl.col("_n_valid") >= a).height
+    result["no_agreement"] = valid_df.filter(pl.col("_n_valid") < 2).height
+    return result
 
 
 def flag_filter_breakdown(df: pl.DataFrame) -> dict[str, int]:

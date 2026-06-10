@@ -335,6 +335,32 @@ class TestStatistics:
             assert f"{caller}_DP" in sample_df.columns
 
 
+    def test_gt_concordance(self):
+        from vcf_stats.seq2neo.statistics import gt_concordance
+        df = pl.DataFrame({
+            "DNA_mutect2_GT": ["0/1", "0/0", "0/1", None, "0/1", "./."],
+            "RNA_mutect2_GT": ["0/1", "0/0", "0/1", "0/1", None, "0/1"],
+            "DNA_deepsomatic_GT": ["0/1", "0/0", "0/1", "0/1", "0/0", "0/1"],
+            "RNA_deepsomatic_GT": ["0/1", None, None, "0/1", "0/0", "0/1"],
+        })
+        result = gt_concordance(df)
+        assert "2" in result and "3" in result and "4" in result
+        assert "no_agreement" in result
+        assert all(isinstance(v, int) for v in result.values())
+        # 6 total variants, valid GT counts per row:
+        # row0: 4, row1: 3, row2: 3, row3: 3, row4: 3, row5: 3 (./. excluded)
+        # >=2: 6, >=3: 6, >=4: 1, <2: 0
+        assert result["2"] == 6
+        assert result["3"] == 6
+        assert result["4"] == 1
+        assert result["no_agreement"] == 0
+
+    def test_gt_concordance_empty(self):
+        from vcf_stats.seq2neo.statistics import gt_concordance
+        assert gt_concordance(pl.DataFrame()) == {}
+        assert gt_concordance(pl.DataFrame({"A": [1, 2]})) == {}
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # TestRescueValidator
 # ═══════════════════════════════════════════════════════════════════════════
@@ -601,6 +627,8 @@ class TestVisualizer:
             "ti_tv": [True, False, None, None, True, False],
             "COSMIC_ID": ["C1", None, None, "C2", None, None],
             "GNOMAD_AF": [0.01, None, None, 0.05, None, 0.03],
+            "final_tier": ["C1D1", "C2D0", "C3D1", "C4D0", "C5D1", "C6D0"],
+            "caller_tier": ["C1", "C2", "C3", "C4", "C5", "C6"],
             "DNA_VAF_mean": [0.2, 0.3, 0.1, 0.4, 0.15, 0.25],
             "RNA_VAF_mean": [0.18, 0.28, 0.08, 0.35, 0.12, 0.22],
             "DNA_DP_mean": [50.0, 30.0, 40.0, 60.0, 35.0, 45.0],
@@ -1102,15 +1130,15 @@ class TestNewVisualizerFunctions:
             "RNA_ALT_DP_mean": [7.0, 4.0, 4.0, 0.3, 9.0, 7.0, 1.5, 2.5],
         })
 
-    def test_plot_vaf_violin_per_tier(self, tiered_df, tmp_output_dir):
-        from vcf_stats.seq2neo.visualizer import plot_vaf_violin_per_tier
-        fig = plot_vaf_violin_per_tier(tiered_df, tmp_output_dir)
+    def test_plot_vaf_boxplot_per_tier(self, tiered_df, tmp_output_dir):
+        from vcf_stats.seq2neo.visualizer import plot_vaf_boxplot_per_tier
+        fig = plot_vaf_boxplot_per_tier(tiered_df, tmp_output_dir)
         assert fig is not None
         assert hasattr(fig, "save")
 
-    def test_plot_dp_violin_per_tier(self, tiered_df, tmp_output_dir):
-        from vcf_stats.seq2neo.visualizer import plot_dp_violin_per_tier
-        fig = plot_dp_violin_per_tier(tiered_df, tmp_output_dir)
+    def test_plot_dp_boxplot_per_tier(self, tiered_df, tmp_output_dir):
+        from vcf_stats.seq2neo.visualizer import plot_dp_boxplot_per_tier
+        fig = plot_dp_boxplot_per_tier(tiered_df, tmp_output_dir)
         assert fig is not None
         assert hasattr(fig, "save")
 
@@ -1151,13 +1179,13 @@ class TestNewVisualizerFunctions:
     def test_empty_data_returns_none(self, tmp_output_dir):
         """New chart functions return None for empty/missing data."""
         from vcf_stats.seq2neo.visualizer import (
-            plot_vaf_violin_per_tier, plot_dp_violin_per_tier,
+            plot_vaf_boxplot_per_tier, plot_dp_boxplot_per_tier,
             plot_gt_concordance_per_tier, plot_tiered_caller_overlap,
             plot_tiered_variant_types, plot_ref_alt_dp_scatter,
         )
         empty = pl.DataFrame()
-        assert plot_vaf_violin_per_tier(empty, tmp_output_dir) is None
-        assert plot_dp_violin_per_tier(empty, tmp_output_dir) is None
+        assert plot_vaf_boxplot_per_tier(empty, tmp_output_dir) is None
+        assert plot_dp_boxplot_per_tier(empty, tmp_output_dir) is None
         assert plot_gt_concordance_per_tier(empty, tmp_output_dir) is None
         assert plot_tiered_caller_overlap(empty, tmp_output_dir) is None
         assert plot_tiered_variant_types(empty, tmp_output_dir) is None

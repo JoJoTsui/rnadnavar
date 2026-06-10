@@ -110,7 +110,7 @@ def bam_type_has_strand(df: pl.DataFrame, alt_col: str) -> bool:
     return f1r2_col in df.columns
 
 
-def validate_all_samples(
+def validate_bam_all_samples(
     samples_data: dict[str, pl.DataFrame],
 ) -> pl.DataFrame:
     """Run BAM validation across all samples.

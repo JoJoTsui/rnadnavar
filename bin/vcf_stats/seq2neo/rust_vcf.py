@@ -11,6 +11,8 @@ from .rescue_parser import (
     RESCUE_FLAG_FIELDS,
     RESCUE_FLOAT_FIELDS,
     RESCUE_INT_FIELDS,
+    _derive_variant_type,
+    _is_transition,
 )
 
 try:
@@ -70,6 +72,13 @@ def parse_rescue_vcf(vcf_path: str) -> pl.DataFrame:
             if records:
                 df = pl.DataFrame(records)
                 df = _cast_columns(df)
+                # Derived columns (same as rescue_parser.py)
+                refs = df["REF"].to_list()
+                alts = df["ALT"].to_list()
+                df = df.with_columns([
+                    pl.Series("variant_type", [_derive_variant_type(r, a) for r, a in zip(refs, alts)]),
+                    pl.Series("ti_tv", [_is_transition(r, a) for r, a in zip(refs, alts)]),
+                ])
                 return df
         except Exception as e:
             print(f"  [WARNING] Rust VCF parser failed: {e}, falling back to cyvcf2")
