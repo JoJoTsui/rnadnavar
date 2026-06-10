@@ -273,7 +273,7 @@ def filter_distribution(df: pl.DataFrame | pl.LazyFrame, group_col: str = "set_n
     return (
         df.group_by([group_col, "FILTER"])
         .agg(pl.len().alias("count"))
-        .sort(pl.col(group_col), pl.col("count").desc())
+        .sort(group_col, "count", descending=[False, True])
     )
 
 

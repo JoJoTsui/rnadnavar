@@ -18,7 +18,7 @@ from pathlib import Path
 import polars as pl
 
 from .bam_stats import compute_all_bam_stats
-from .bam_validation import validate_bam_all_samples as validate_bam
+from .bam_validation import validate_bam_vs_caller as validate_bam_one
 from .caller_parser import join_caller_columns, parse_all_callers
 from .manifest_loader import filter_complete, load_manifest
 from .rescue_parser import parse_rescue_vcf as _py_parse_rescue
@@ -312,7 +312,7 @@ def main():
             sid = os.path.basename(parquet_path).replace("_variants.parquet", "")
             df = pl.read_parquet(parquet_path)
             report_rows.extend(validate_sample(df, sid, args.tolerance))
-            bam_rows.append(validate_bam_vs_caller(df, sid))
+            bam_rows.append(validate_bam_one(df, sid))
             del df
         report = pl.DataFrame(report_rows) if report_rows else pl.DataFrame()
         if not report.is_empty():
@@ -332,40 +332,35 @@ def main():
     print("Generating visualizations...")
     figs = []
 
-    # Pre-compute small aggregation DataFrames from lazy scan.
-    # These are tiny (10-500 rows each) — fit easily in memory.
-    vc_counts = combined_df.group_by(["set_number", "VC"]).agg(pl.len().alias("count")).collect()
-    vt_counts = combined_df.group_by(["set_number", "variant_type"]).agg(pl.len().alias("count")).collect()
-    filter_counts = combined_df.group_by(["set_number", "FILTER"]).agg(pl.len().alias("count")).collect()
-    tier_counts = combined_df.group_by("final_tier").agg(pl.len().alias("count")).collect()
-    # Sample 10K rows for scatter plots (statistically sufficient)
-    sampled_df = combined_df.fetch(10000)
-    # Collect combined lazily for functions needing the full dataset
-    collected_df = combined_df.collect()
+    # Pass lazy frame directly to chart functions.
+    # Each chart function calls _eager(df) internally, which triggers
+    # polars scan + collect. polars' query optimizer ensures that only
+    # the columns needed by each chart are read from the parquet files.
+    # Scatter charts sample internally to 5-10K rows.
 
-    figs.append(plot_cosmic_gnomad_annotation(collected_df, str(output_dir)))
-    figs.append(plot_gt_concordance(collected_df, str(output_dir)))
-    figs.append(plot_vc_distribution(collected_df, str(output_dir)))
-    figs.append(plot_caller_overlap(collected_df, str(output_dir)))
-    figs.append(plot_vaf_distribution(collected_df, str(output_dir)))
-    figs.append(plot_vaf_boxplot_per_tier(collected_df, str(output_dir)))
-    figs.append(plot_dp_boxplot_per_tier(collected_df, str(output_dir)))
-    figs.append(plot_dna_vs_rna_vaf(sampled_df, str(output_dir)))
-    figs.append(plot_dna_vs_rna_dp(sampled_df, str(output_dir)))
-    figs.append(plot_ref_alt_dp_scatter(sampled_df, str(output_dir)))
-    figs.append(plot_variant_type_distribution(collected_df, str(output_dir)))
-    figs.append(plot_ti_tv_ratio(collected_df, str(output_dir)))
-    figs.append(plot_cross_modality(collected_df, str(output_dir)))
-    figs.append(plot_gt_concordance_per_tier(collected_df, str(output_dir)))
-    figs.append(plot_tiered_caller_overlap(collected_df, str(output_dir)))
-    figs.append(plot_tiered_variant_types(collected_df, str(output_dir)))
-    figs.append(plot_filter_distribution(collected_df, str(output_dir)))
-    figs.append(plot_per_tier_vaf_boxplot(collected_df, str(output_dir)))
-    figs.append(plot_caller_agreement_matrix(collected_df, str(output_dir)))
-    figs.append(plot_chromosome_density(collected_df, str(output_dir)))
-    figs.append(plot_dna_vs_rna_per_caller(sampled_df, str(output_dir)))
-    figs.append(plot_tier_quality_distribution(collected_df, str(output_dir)))
-    figs.append(plot_redi_evidence(collected_df, str(output_dir)))
+    figs.append(plot_cosmic_gnomad_annotation(combined_df, str(output_dir)))
+    figs.append(plot_gt_concordance(combined_df, str(output_dir)))
+    figs.append(plot_vc_distribution(combined_df, str(output_dir)))
+    figs.append(plot_caller_overlap(combined_df, str(output_dir)))
+    figs.append(plot_vaf_distribution(combined_df, str(output_dir)))
+    figs.append(plot_vaf_boxplot_per_tier(combined_df, str(output_dir)))
+    figs.append(plot_dp_boxplot_per_tier(combined_df, str(output_dir)))
+    figs.append(plot_dna_vs_rna_vaf(combined_df, str(output_dir)))
+    figs.append(plot_dna_vs_rna_dp(combined_df, str(output_dir)))
+    figs.append(plot_ref_alt_dp_scatter(combined_df, str(output_dir)))
+    figs.append(plot_variant_type_distribution(combined_df, str(output_dir)))
+    figs.append(plot_ti_tv_ratio(combined_df, str(output_dir)))
+    figs.append(plot_cross_modality(combined_df, str(output_dir)))
+    figs.append(plot_gt_concordance_per_tier(combined_df, str(output_dir)))
+    figs.append(plot_tiered_caller_overlap(combined_df, str(output_dir)))
+    figs.append(plot_tiered_variant_types(combined_df, str(output_dir)))
+    figs.append(plot_filter_distribution(combined_df, str(output_dir)))
+    figs.append(plot_per_tier_vaf_boxplot(combined_df, str(output_dir)))
+    figs.append(plot_caller_agreement_matrix(combined_df, str(output_dir)))
+    figs.append(plot_chromosome_density(combined_df, str(output_dir)))
+    figs.append(plot_dna_vs_rna_per_caller(combined_df, str(output_dir)))
+    figs.append(plot_tier_quality_distribution(combined_df, str(output_dir)))
+    figs.append(plot_redi_evidence(combined_df, str(output_dir)))
 
     # BAM charts
     if not args.no_bam and not bam_stats_df.is_empty():

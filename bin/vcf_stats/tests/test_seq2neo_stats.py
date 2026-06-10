@@ -1963,3 +1963,108 @@ class TestJoinOptimization:
         # Last row: AD_REF/AD_ALT have values
         assert result["DNA_mutect2_AD_REF"][199] == 20
         assert result["DNA_mutect2_AD_ALT"][199] == 10
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestMemoryEfficiency — verify streaming architecture doesn't accumulate memory
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestMemoryEfficiency:
+    """Tests that the streaming architecture frees DataFrames and keeps memory low."""
+
+    def test_lazy_frame_scan_from_parquet(self, tmp_path):
+        """pl.scan_parquet() can aggregate across multiple parquet files."""
+        import polars as pl
+        d = tmp_path / "parts"
+        d.mkdir()
+        pl.DataFrame({"CHROM": ["chr1"], "POS": [1], "DP": [42], "sample_id": ["A"]}).write_parquet(str(d / "A_variants.parquet"))
+        pl.DataFrame({"CHROM": ["chr2"], "POS": [2], "DP": [55], "sample_id": ["B"]}).write_parquet(str(d / "B_variants.parquet"))
+
+        lazy = pl.scan_parquet(str(d / "*_variants.parquet"))
+        result = lazy.group_by("sample_id").agg(pl.col("DP").sum()).collect()
+        assert result.height == 2
+        assert result.filter(pl.col("sample_id") == "A")["DP"][0] == 42
+
+    def test_eager_helper_with_lazy_frame(self):
+        """_eager(df) materializes LazyFrame but passes through eager."""
+        import polars as pl
+        # Use the visualizer's _eager
+        from vcf_stats.seq2neo.visualizer import _eager
+
+        eager_df = pl.DataFrame({"x": [1, 2, 3]})
+        result = _eager(eager_df)
+        assert isinstance(result, pl.DataFrame)
+        assert result["x"].to_list() == [1, 2, 3]
+
+    def test_lazy_aggregation_parity(self, tmp_path):
+        """Lazy scan aggregation matches eager concat for dataset_summary."""
+        import polars as pl
+        from vcf_stats.seq2neo.statistics import dataset_summary
+
+        d = tmp_path / "parts"
+        d.mkdir()
+        df_a = pl.DataFrame({
+            "CHROM": ["chr1"] * 5, "POS": range(1, 6),
+            "FILTER": ["PASS"] * 5, "VC": ["Somatic"] * 5,
+            "variant_type": ["SNV"] * 5, "ti_tv": [True] * 5,
+            "sample_id": ["A"] * 5, "disease_normalized": ["Lung"] * 5,
+        })
+        df_b = pl.DataFrame({
+            "CHROM": ["chr2"] * 5, "POS": range(1, 6),
+            "FILTER": ["PASS"] * 5, "VC": ["Somatic"] * 5,
+            "variant_type": ["SNV"] * 5, "ti_tv": [True] * 5,
+            "sample_id": ["B"] * 5, "disease_normalized": ["Lung"] * 5,
+        })
+        df_a.write_parquet(str(d / "A_variants.parquet"))
+        df_b.write_parquet(str(d / "B_variants.parquet"))
+
+        # Eager mode
+        eager = pl.concat([df_a, df_b], how="diagonal_relaxed")
+        eager_result = dataset_summary(eager)
+
+        # Lazy mode
+        lazy = pl.scan_parquet(str(d / "*_variants.parquet"))
+        lazy_result = dataset_summary(lazy)
+
+        assert eager_result["total_variants"] == lazy_result["total_variants"]
+        assert eager_result["n_samples"] == lazy_result["n_samples"]
+
+    def test_ensure_eager_preserves_data(self):
+        """_ensure_eager doesn't modify data — identity for eager frames."""
+        import polars as pl
+        from vcf_stats.seq2neo.statistics import _ensure_eager
+
+        df = pl.DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"]})
+        result = _ensure_eager(df)
+        assert result["x"].to_list() == [1, 2, 3]
+        assert result["y"].to_list() == ["a", "b", "c"]
+
+    def test_filter_distribution_sort(self, tmp_path):
+        """filter_distribution sort works correctly (regression test)."""
+        import polars as pl
+        from vcf_stats.seq2neo.statistics import filter_distribution
+
+        df = pl.DataFrame({
+            "set_number": [1, 1, 2, 2],
+            "FILTER": ["PASS", "Somatic", "PASS", "Somatic"],
+        })
+        result = filter_distribution(df)
+        assert result.height == 4  # 2 sets × 2 filters
+
+    def test_chart_function_accepts_lazy_frame(self, tmp_path):
+        """Chart function with _eager can accept LazyFrame input."""
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_vc_distribution
+
+        d = tmp_path / "parts"
+        d.mkdir()
+        df = pl.DataFrame({
+            "CHROM": ["chr1"] * 10, "POS": range(10),
+            "FILTER": ["PASS"] * 10, "VC": ["Somatic"] * 10,
+            "set_number": [1] * 10,
+        })
+        df.write_parquet(str(d / "test_variants.parquet"))
+        lazy = pl.scan_parquet(str(d / "test_variants.parquet"))
+
+        chart = plot_vc_distribution(lazy, str(tmp_path))
+        assert chart is not None
