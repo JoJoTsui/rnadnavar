@@ -13,6 +13,13 @@ import polars as pl
 # Disable altair's 5000-row default limit
 alt.data_transformers.disable_max_rows()
 
+
+def _eager(df):
+    """Materialize if lazy. Pass-through if eager."""
+    if isinstance(df, pl.LazyFrame):
+        return df.collect()
+    return df
+
 def _eager(df):
     """Materialize a LazyFrame. Pass-through for eager frames."""
     if isinstance(df, pl.LazyFrame):
