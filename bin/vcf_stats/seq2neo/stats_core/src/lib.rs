@@ -1,5 +1,6 @@
 mod bam;
 mod caller;
+mod tier;
 mod vcf;
 
 use std::collections::HashSet;
@@ -141,11 +142,92 @@ fn parse_caller_vcf(
     Ok(d)
 }
 
+/// Compute CxDy tiers for all variants.
+///
+/// Releases the GIL during computation. Returns a dict of column_name → list.
+#[pyfunction]
+fn compute_tiers(
+    py: Python<'_>,
+    filters: Vec<String>,
+    filters_normalized: Vec<String>,
+    gnomad_af: Vec<Option<f64>>,
+    cosmic_cnt: Vec<Option<i64>>,
+    redi_evidence: Vec<Option<String>>,
+    dna_support: Vec<Option<i64>>,
+    rna_support: Vec<Option<i64>>,
+) -> PyResult<Bound<'_, PyDict>> {
+    let results = py.detach(|| {
+        Ok::<_, String>(tier::compute_tiers_batch(
+            &filters,
+            &filters_normalized,
+            &gnomad_af,
+            &cosmic_cnt,
+            &redi_evidence,
+            &dna_support,
+            &rna_support,
+            &vec![Vec::new(); filters.len()],  // info_keys: empty
+            &vec![Vec::new(); filters.len()],  // info_vals: empty
+        ))
+    }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))?;
+
+    let n = results.len();
+    let d = PyDict::new(py);
+
+    let mut final_tiers = Vec::with_capacity(n);
+    let mut caller_tiers = Vec::with_capacity(n);
+    let mut database_tiers = Vec::with_capacity(n);
+    let mut dna_counts = Vec::with_capacity(n);
+    let mut rna_counts = Vec::with_capacity(n);
+    let mut qualities = Vec::with_capacity(n);
+
+    for r in &results {
+        final_tiers.push(r.final_tier.clone());
+        caller_tiers.push(r.caller_tier.clone());
+        database_tiers.push(r.database_tier.clone());
+        dna_counts.push(r.dna_caller_count);
+        rna_counts.push(r.rna_caller_count);
+        qualities.push(r.tier_quality);
+    }
+
+    {
+        let list = PyList::empty(py);
+        for v in &final_tiers { list.append(v.as_str())?; }
+        d.set_item("final_tier", list)?;
+    }
+    {
+        let list = PyList::empty(py);
+        for v in &caller_tiers { list.append(v.as_str())?; }
+        d.set_item("caller_tier", list)?;
+    }
+    {
+        let list = PyList::empty(py);
+        for v in &database_tiers { list.append(v.as_str())?; }
+        d.set_item("database_tier", list)?;
+    }
+    {
+        let list = PyList::empty(py);
+        for v in &dna_counts { list.append(*v)?; }
+        d.set_item("dna_caller_count", list)?;
+    }
+    {
+        let list = PyList::empty(py);
+        for v in &rna_counts { list.append(*v)?; }
+        d.set_item("rna_caller_count", list)?;
+    }
+    {
+        let list = PyList::empty(py);
+        for v in &qualities { list.append(*v)?; }
+        d.set_item("tier_quality", list)?;
+    }
+    Ok(d)
+}
+
 /// stats_core — Rust-accelerated VCF/BAM parsing for seq2neo variant statistics.
 #[pymodule]
 fn stats_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(parse_rescue, m)?)?;
     m.add_function(wrap_pyfunction!(bam_stats, m)?)?;
     m.add_function(wrap_pyfunction!(parse_caller_vcf, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_tiers, m)?)?;
     Ok(())
 }
