@@ -7,6 +7,8 @@ import os
 import random
 import sys
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 import polars as pl
@@ -1229,3 +1231,133 @@ class TestBamStats:
         assert not results[0]["has_bam"]
         assert not results[1]["has_bam"]
         assert results[0]["total_reads"] is None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestGILRelease — verify Rust pyfunctions release the GIL during computation.
+# Without py.detach(), pyo3 #[pyfunction] holds the GIL for the entire call,
+# serializing all threads. These tests catch that regression.
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestGILRelease:
+    """Verify Rust pyfunctions release the GIL so threads run in parallel.
+
+    Each test runs 2 threads simultaneously calling the same function.
+    A GIL-serialized call shows total_wall ≈ sum(individual_times).
+    A GIL-released call shows total_wall ≈ max(individual_times).
+    We use total_wall < sum * 0.7 as the pass threshold (allows some I/O overhead).
+    """
+
+    def test_bam_stats_releases_gil(self):
+        """bam_stats() MUST release the GIL for parallel BAM scanning."""
+        try:
+            import stats_core
+        except ImportError:
+            pytest.skip("stats_core not available")
+
+        bam = os.path.join(
+            REAL_SAMPLE["base_output_dir"],
+            REAL_SAMPLE["dir_name"],
+            "preprocessing", "mapped",
+            f"{REAL_SAMPLE['vcf_prefix']}DN",
+            f"{REAL_SAMPLE['vcf_prefix']}DN.sorted.bam",
+        )
+        if not os.path.isfile(bam):
+            pytest.skip(f"BAM not found: {bam}")
+
+        results = {}
+
+        def worker(label):
+            t0 = time.time()
+            stats_core.bam_stats(bam, 5_000_000)  # 5M reads for fast test
+            results[label] = time.time() - t0
+
+        t0 = time.time()
+        t1 = threading.Thread(target=worker, args=("A",))
+        t2 = threading.Thread(target=worker, args=("B",))
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+        total = time.time() - t0
+
+        assert "A" in results and "B" in results
+        a_time, b_time = results["A"], results["B"]
+        sum_time = a_time + b_time
+        assert total < sum_time * 0.7, (
+            f"GIL NOT released! Total={total:.1f}s, A={a_time:.1f}s, B={b_time:.1f}s, "
+            f"Sum={sum_time:.1f}s. Without GIL release threads serialize: total ≈ sum. "
+            f"Check that py.detach() is used in bam_stats()."
+        )
+
+    def test_parse_rescue_releases_gil(self, rescue_vcf_path):
+        """parse_rescue() MUST release the GIL for parallel VCF parsing."""
+        try:
+            import stats_core
+        except ImportError:
+            pytest.skip("stats_core not available")
+
+        results = {}
+
+        def worker(label):
+            t0 = time.time()
+            stats_core.parse_rescue(rescue_vcf_path)
+            results[label] = time.time() - t0
+
+        t0 = time.time()
+        t1 = threading.Thread(target=worker, args=("A",))
+        t2 = threading.Thread(target=worker, args=("B",))
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+        total = time.time() - t0
+
+        assert "A" in results and "B" in results
+        a_time, b_time = results["A"], results["B"]
+        sum_time = a_time + b_time
+        assert total < sum_time * 0.7, (
+            f"GIL NOT released! Total={total:.1f}s, A={a_time:.1f}s, B={b_time:.1f}s, "
+            f"Sum={sum_time:.1f}s. Without GIL release threads serialize: total ≈ sum. "
+            f"Check that py.detach() is used in parse_rescue()."
+        )
+
+    def test_bam_stats_still_works_after_detach(self):
+        """Sanity: bam_stats returns correct data after GIL release."""
+        try:
+            import stats_core
+        except ImportError:
+            pytest.skip("stats_core not available")
+
+        bam = os.path.join(
+            REAL_SAMPLE["base_output_dir"],
+            REAL_SAMPLE["dir_name"],
+            "preprocessing", "mapped",
+            f"{REAL_SAMPLE['vcf_prefix']}DN",
+            f"{REAL_SAMPLE['vcf_prefix']}DN.sorted.bam",
+        )
+        if not os.path.isfile(bam):
+            pytest.skip(f"BAM not found: {bam}")
+
+        result = stats_core.bam_stats(bam, 1_000_000)
+        assert result["total_reads"] == 1_000_000
+        assert result["mapped_reads"] > 0
+        assert "mean_coverage" in result
+        assert result["mean_insert_size"] > 0
+        assert 0 <= result["mapping_rate"] <= 100
+
+    def test_parse_rescue_still_works_after_detach(self, rescue_vcf_path):
+        """Sanity: parse_rescue returns correct data after GIL release."""
+        try:
+            import stats_core
+        except ImportError:
+            pytest.skip("stats_core not available")
+
+        records = stats_core.parse_rescue(rescue_vcf_path)
+        assert len(records) > 0
+        record = records[0]
+        assert "CHROM" in record
+        assert "POS" in record
+        assert "REF" in record
+        assert "ALT" in record
+        assert "FILTER" in record
