@@ -398,7 +398,18 @@ def join_caller_columns(
                     col_data[fname].append(None)
 
         if col_data["CHROM"]:
-            caller_df = pl.DataFrame(col_data)
+            # Build with explicit dtypes to avoid schema inference overhead
+            int_fields = {"DP", "AD_REF", "AD_ALT", "TAR", "TIR", "TOR", "AU", "CU", "GU", "TU", "POS"}
+            float_fields = {"VAF_CALLER"}
+            series_list = []
+            for cname, cvals in col_data.items():
+                if cname in int_fields:
+                    series_list.append(pl.Series(cname, cvals, dtype=pl.Int64))
+                elif cname in float_fields:
+                    series_list.append(pl.Series(cname, cvals, dtype=pl.Float64))
+                else:
+                    series_list.append(pl.Series(cname, cvals, dtype=pl.Utf8))
+            caller_df = pl.DataFrame(series_list)
         else:
             caller_df = pl.DataFrame(schema={c: pl.Utf8 for c in join_cols})
 
