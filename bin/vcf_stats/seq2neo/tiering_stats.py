@@ -17,6 +17,50 @@ import polars as pl
 # Import TieringEngine from sibling tiering_engine.py
 from ..tiering_engine import TieringEngine
 
+# ── Column conversion helpers (for Rust FFI) ──────────────────────────────
+
+def _col_to_opt_float(df: pl.DataFrame, col: str) -> list:
+    """Convert DataFrame column to list of Optional[float] for Rust."""
+    if col not in df.columns:
+        return [None] * len(df)
+    vals = []
+    for v in df[col].to_list():
+        if v is None or v == ".":
+            vals.append(None)
+        else:
+            try:
+                vals.append(float(v))
+            except (ValueError, TypeError):
+                vals.append(None)
+    return vals
+
+def _col_to_opt_int(df: pl.DataFrame, col: str) -> list:
+    """Convert DataFrame column to list of Optional[int] for Rust."""
+    if col not in df.columns:
+        return [None] * len(df)
+    vals = []
+    for v in df[col].to_list():
+        if v is None or v == ".":
+            vals.append(None)
+        else:
+            try:
+                vals.append(int(v))
+            except (ValueError, TypeError):
+                vals.append(None)
+    return vals
+
+def _col_to_opt_str(df: pl.DataFrame, col: str) -> list:
+    """Convert DataFrame column to list of Optional[str] for Rust."""
+    if col not in df.columns:
+        return [None] * len(df)
+    vals = []
+    for v in df[col].to_list():
+        if v is None or v == ".":
+            vals.append(None)
+        else:
+            vals.append(str(v))
+    return vals
+
 # ── Tier order constants (from tier_config.py) ───────────────────────────────
 CALLER_TIER_ORDER = ["C1", "C2", "C3", "C4", "C5", "C6", "C7"]
 FINAL_TIER_ORDER = [f"{c}{d}" for c in CALLER_TIER_ORDER for d in ["D1", "D0"]]
@@ -85,9 +129,8 @@ def _parse_filters_normalized(filters_str: str | None) -> dict[str, str | None]:
 def compute_tiers_for_dataframe(df: pl.DataFrame) -> pl.DataFrame:
     """Compute CxDy tiers for all variants in a DataFrame.
 
-    Uses the rescue VCF's FILTER, FILTERS_NORMALIZED, and database annotation
-    fields (GNOMAD_AF, COSMIC_CNT, REDI_EVIDENCE) to compute tiers via the
-    TieringEngine. No VCF re-reading required.
+    Uses Rust stats_core.compute_tiers() when available (fast, GIL-released).
+    Falls back to Python TieringEngine when Rust is unavailable.
 
     Args:
         df: polars DataFrame with rescue VCF columns: FILTER, FILTERS_NORMALIZED,
@@ -97,6 +140,25 @@ def compute_tiers_for_dataframe(df: pl.DataFrame) -> pl.DataFrame:
         DataFrame with added columns: caller_tier, database_tier, final_tier,
         tier_quality, dna_caller_count, rna_caller_count.
     """
+    # Try Rust path first
+    try:
+        import stats_core
+        if hasattr(stats_core, 'compute_tiers'):
+            filters = df["FILTER"].to_list()
+            filters_norm = df["FILTERS_NORMALIZED"].to_list() if "FILTERS_NORMALIZED" in df.columns else [""] * len(filters)
+            gnomad_af = _col_to_opt_float(df, "GNOMAD_AF")
+            cosmic_cnt = _col_to_opt_int(df, "COSMIC_CNT")
+            redi_ev = _col_to_opt_str(df, "REDI_EVIDENCE")
+            dna_sup = _col_to_opt_int(df, "N_DNA_CALLERS_SUPPORT")
+            rna_sup = _col_to_opt_int(df, "N_RNA_CALLERS_SUPPORT")
+
+            result = stats_core.compute_tiers(filters, filters_norm, gnomad_af, cosmic_cnt, redi_ev, dna_sup, rna_sup)
+            tier_df = pl.DataFrame(result)
+            return df.hstack(tier_df)
+    except Exception as e:
+        print(f"  [TIERING] Rust tiering failed ({e}), falling back to Python")
+
+    # Python fallback
     engine = _get_engine()
     rows = df.to_dicts()
     tier_results: list[dict[str, Any]] = []
