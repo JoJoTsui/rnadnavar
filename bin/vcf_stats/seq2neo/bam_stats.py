@@ -262,4 +262,8 @@ def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8) -> pl
     if not all_rows:
         return pl.DataFrame()
 
+    # Sort by sample_id then bam_type for deterministic output ordering.
+    # Without this, as_completed() produces non-deterministic row order.
+    all_rows.sort(key=lambda r: (r["sample_id"], str(r["bam_type"])))
+
     return pl.DataFrame(all_rows)
