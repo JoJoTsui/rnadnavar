@@ -1,5 +1,6 @@
 mod bam;
 mod caller;
+mod pileup;
 mod tier;
 mod vcf;
 
@@ -222,6 +223,65 @@ fn compute_tiers(
     Ok(d)
 }
 
+/// Perform BAM pileup at variant positions.
+///
+/// Releases the GIL during pileup.
+#[pyfunction]
+fn pileup_variants(
+    py: Python<'_>,
+    bam_path: String,
+    chroms: Vec<String>,
+    positions: Vec<i64>,
+    ref_bases: Vec<String>,
+    alt_bases: Vec<String>,
+) -> PyResult<Bound<'_, PyDict>> {
+    let path_buf = PathBuf::from(&bam_path);
+    let results = py.detach(|| {
+        pileup::pileup_variants(&path_buf, &chroms, &positions, &ref_bases, &alt_bases)
+            .map_err(|e| e.to_string())
+    }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))?;
+
+    let d = PyDict::new(py);
+    let dp: Vec<Option<i64>> = results.iter().map(|r| r.dp).collect();
+    let ref_dp: Vec<Option<i64>> = results.iter().map(|r| r.ref_dp).collect();
+    let alt_dp: Vec<Option<i64>> = results.iter().map(|r| r.alt_dp).collect();
+    let f1r2_ref: Vec<Option<i64>> = results.iter().map(|r| r.f1r2_ref).collect();
+    let f2r1_ref: Vec<Option<i64>> = results.iter().map(|r| r.f2r1_ref).collect();
+    let f1r2_alt: Vec<Option<i64>> = results.iter().map(|r| r.f1r2_alt).collect();
+    let f2r1_alt: Vec<Option<i64>> = results.iter().map(|r| r.f2r1_alt).collect();
+    let mean_bq: Vec<Option<f64>> = results.iter().map(|r| r.mean_bq).collect();
+    let mean_mq: Vec<Option<f64>> = results.iter().map(|r| r.mean_mq).collect();
+
+    {
+        let lst = PyList::empty(py); for v in &dp { lst.append(*v)?; } d.set_item("DP", lst)?;
+    }
+    {
+        let lst = PyList::empty(py); for v in &ref_dp { lst.append(*v)?; } d.set_item("REF_DP", lst)?;
+    }
+    {
+        let lst = PyList::empty(py); for v in &alt_dp { lst.append(*v)?; } d.set_item("ALT_DP", lst)?;
+    }
+    {
+        let lst = PyList::empty(py); for v in &f1r2_ref { lst.append(*v)?; } d.set_item("F1R2_ref", lst)?;
+    }
+    {
+        let lst = PyList::empty(py); for v in &f2r1_ref { lst.append(*v)?; } d.set_item("F2R1_ref", lst)?;
+    }
+    {
+        let lst = PyList::empty(py); for v in &f1r2_alt { lst.append(*v)?; } d.set_item("F1R2_alt", lst)?;
+    }
+    {
+        let lst = PyList::empty(py); for v in &f2r1_alt { lst.append(*v)?; } d.set_item("F2R1_alt", lst)?;
+    }
+    {
+        let lst = PyList::empty(py); for v in &mean_bq { lst.append(*v)?; } d.set_item("mean_BQ", lst)?;
+    }
+    {
+        let lst = PyList::empty(py); for v in &mean_mq { lst.append(*v)?; } d.set_item("mean_MQ", lst)?;
+    }
+    Ok(d)
+}
+
 /// stats_core — Rust-accelerated VCF/BAM parsing for seq2neo variant statistics.
 #[pymodule]
 fn stats_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -229,5 +289,6 @@ fn stats_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(bam_stats, m)?)?;
     m.add_function(wrap_pyfunction!(parse_caller_vcf, m)?)?;
     m.add_function(wrap_pyfunction!(compute_tiers, m)?)?;
+    m.add_function(wrap_pyfunction!(pileup_variants, m)?)?;
     Ok(())
 }
