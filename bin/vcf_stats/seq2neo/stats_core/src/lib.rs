@@ -32,12 +32,18 @@ fn parse_rescue(py: Python<'_>, path: String) -> PyResult<Bound<'_, PyList>> {
 }
 
 /// Compute whole-genome BAM statistics.
+///
+/// Releases the GIL during the BAM scan so multiple threads can process
+/// different BAM files concurrently.
 #[pyfunction]
 fn bam_stats(py: Python<'_>, path: String, max_reads: u64) -> PyResult<Bound<'_, PyDict>> {
-    let stats = bam::whole_genome_stats(&PathBuf::from(&path), max_reads)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-            format!("BAM stats error: {e}")
-        ))?;
+    let path_buf = PathBuf::from(&path);
+    // detach() releases the GIL while scanning. Must convert errors to String
+    // because Box<dyn Error> is not Ungil (pyo3 auto-trait for GIL-free types).
+    let stats = py.detach(|| {
+        bam::whole_genome_stats(&path_buf, max_reads)
+            .map_err(|e| e.to_string())
+    }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))?;
 
     let d = PyDict::new(py);
     d.set_item("total_reads", stats.total_reads)?;
