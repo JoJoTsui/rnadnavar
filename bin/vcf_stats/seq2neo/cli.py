@@ -140,6 +140,9 @@ def main():
                         help="Variant-wise BAM pileup mode: all variants (default) or exclude NoConsensus")
     parser.add_argument("--no-bam", action="store_true", help="Skip all BAM processing")
     parser.add_argument("--no-pileup", action="store_true", help="Skip variant-wise BAM pileup (whole-genome only)")
+    parser.add_argument("--bam-workers", type=int, default=8,
+                        help="Threads for parallel BAM stats processing (default: 8). "
+                             "Uses ThreadPoolExecutor (safe with htslib).")
     parser.add_argument("--parser", choices=["rust", "python"], default="rust",
                         help="VCF parser: rust (default) or python (cyvcf2 fallback)")
     args = parser.parse_args()
@@ -160,13 +163,14 @@ def main():
         sys.exit(0)
 
     use_rust = args.parser == "rust"
-    print(f"Processing {len(manifest)} samples (parser={args.parser}, caller_threads={args.threads}, sample_workers={args.sample_workers})")
+    print(f"Processing {len(manifest)} samples (parser={args.parser}, caller_threads={args.threads}, sample_workers={args.sample_workers}, bam_workers={args.bam_workers})")
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     rows = manifest.to_dicts()
     samples_data = {}
     all_stats = []
+    bam_stats_df = pl.DataFrame()  # populated below if --no-bam not set
 
     if args.sample_workers > 1:
         # Parallel sample processing via ThreadPoolExecutor (threads, safe with htslib)
@@ -219,7 +223,7 @@ def main():
     # BAM statistics (per-sample per-modality)
     if not args.no_bam:
         print("Computing per-sample BAM statistics...")
-        bam_stats_df = compute_all_bam_stats(rows)
+        bam_stats_df = compute_all_bam_stats(rows, max_workers=args.bam_workers)
         if not bam_stats_df.is_empty():
             bam_stats_df.write_csv(str(output_dir / "bam_stats.csv"))
             print(f"BAM stats: {output_dir / 'bam_stats.csv'}")
@@ -340,7 +344,7 @@ def main():
     figs.append(plot_redi_evidence(combined_df, str(output_dir)))
 
     # BAM charts
-    if not args.no_bam and 'bam_stats_df' in dir() and not bam_stats_df.is_empty():
+    if not args.no_bam and not bam_stats_df.is_empty():
         figs.append(plot_bam_metrics_bars(bam_stats_df, str(output_dir)))
         figs.append(plot_bam_coverage_violin(combined_df, str(output_dir)))
 

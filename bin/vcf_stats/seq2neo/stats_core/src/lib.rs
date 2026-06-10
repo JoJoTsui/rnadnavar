@@ -43,6 +43,7 @@ fn bam_stats(py: Python<'_>, path: String, max_reads: u64) -> PyResult<Bound<'_,
     d.set_item("total_reads", stats.total_reads)?;
     d.set_item("mapped_reads", stats.mapped_reads)?;
     d.set_item("mapping_rate", stats.mapping_rate)?;
+    d.set_item("mean_coverage", stats.mean_coverage)?;
     d.set_item("mean_insert_size", stats.mean_insert_size)?;
     d.set_item("mean_mapq", stats.mean_mapq)?;
     Ok(d)

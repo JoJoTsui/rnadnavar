@@ -1,15 +1,22 @@
 """Per-sample per-modality BAM statistics.
 
 Computes read-level statistics from alignment BAM files for both DNA and RNA
-modalities. Uses pysam for BAM parsing. Falls back gracefully when BAM files
-are missing or pysam is unavailable.
+modalities. Uses Rust stats_core (noodles-bam) when available, falls back to
+pysam. Parallelizes across samples via ThreadPoolExecutor.
 """
 
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
 import polars as pl
+
+try:
+    import stats_core
+    HAS_RUST_BAM = hasattr(stats_core, 'bam_stats')
+except ImportError:
+    HAS_RUST_BAM = False
 
 try:
     import pysam
@@ -60,16 +67,9 @@ def _locate_bam_file(base_dir: str, dir_name: str, bam_type: str) -> str | None:
     return None
 
 
-def compute_bam_stats(bam_path: str) -> dict[str, Any] | None:
-    """Compute basic statistics from a BAM file.
-
-    Returns dict with: total_reads, mapped_reads, unmapped_reads, mapping_rate,
-    mean_coverage, mean_insert_size, mean_mapq. Returns None if BAM is unreadable.
-    """
+def _compute_bam_stats_pysam(bam_path: str) -> dict[str, Any] | None:
+    """Compute BAM statistics using pysam (Python fallback)."""
     if not HAS_PYSAM:
-        return None
-
-    if not bam_path or not os.path.isfile(bam_path):
         return None
 
     try:
@@ -120,6 +120,47 @@ def compute_bam_stats(bam_path: str) -> dict[str, Any] | None:
         return None
 
 
+def _compute_bam_stats_rust(bam_path: str) -> dict[str, Any] | None:
+    """Compute BAM statistics using Rust stats_core (noodles-bam).
+
+    Passes max_reads=0 to read the entire BAM file without sampling.
+    """
+    try:
+        raw = stats_core.bam_stats(bam_path, 0)  # max_reads=0 → no limit
+        return {
+            "total_reads": raw["total_reads"],
+            "mapped_reads": raw["mapped_reads"],
+            "mapping_rate_pct": round(raw["mapping_rate"], 2),
+            "mean_coverage": round(raw["mean_coverage"], 4),
+            "mean_insert_size": round(raw["mean_insert_size"], 1),
+            "mean_mapq": round(raw["mean_mapq"], 1),
+        }
+    except Exception as e:
+        print(f"  [BAM STATS] Rust error on {bam_path}: {e}")
+        return None
+
+
+def compute_bam_stats(bam_path: str) -> dict[str, Any] | None:
+    """Compute basic statistics from a BAM file.
+
+    Uses Rust stats_core when available (faster), falls back to pysam.
+
+    Returns dict with: total_reads, mapped_reads, mapping_rate_pct,
+    mean_coverage, mean_insert_size, mean_mapq. Returns None if BAM is unreadable.
+    """
+    if not bam_path or not os.path.isfile(bam_path):
+        return None
+
+    if HAS_RUST_BAM:
+        result = _compute_bam_stats_rust(bam_path)
+        if result is not None:
+            return result
+        # Fall through to pysam on Rust failure
+        print(f"  [BAM STATS] Rust failed for {bam_path}, falling back to pysam")
+
+    return _compute_bam_stats_pysam(bam_path)
+
+
 def compute_sample_bam_stats(
     base_output_dir: str,
     dir_name: str,
@@ -163,29 +204,60 @@ def compute_sample_bam_stats(
     return results
 
 
-def compute_all_bam_stats(manifest_rows: list[dict]) -> pl.DataFrame:
+def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8) -> pl.DataFrame:
     """Compute BAM statistics for all samples in the manifest.
 
     Args:
         manifest_rows: List of manifest row dicts with sample_id, base_output_dir,
             dir_name, set_number.
+        max_workers: Number of threads for parallel sample processing (default: 8).
+            Uses ThreadPoolExecutor (threads, safe with htslib).
 
     Returns:
         polars DataFrame with one row per sample per modality.
     """
     all_rows = []
-    for row in manifest_rows:
-        sample_results = compute_sample_bam_stats(
-            base_output_dir=row["base_output_dir"],
-            dir_name=row["dir_name"],
-            sample_id=row["sample_id"],
-            set_number=row["set_number"],
-        )
-        all_rows.extend(sample_results)
-        ok_flags = []
-        for r in sample_results:
-            ok_flags.append(f"{r['bam_type']}={'OK' if r['has_bam'] else 'missing'}")
-        print(f"  [{row['sample_id']}] BAM stats: {', '.join(ok_flags)}")
+
+    if max_workers > 1 and len(manifest_rows) > 1:
+        # Parallel BAM processing via ThreadPoolExecutor (threads, safe with htslib
+        # even when using pysam fallback — threads share the htslib state safely)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {}
+            for row in manifest_rows:
+                future = executor.submit(
+                    compute_sample_bam_stats,
+                    base_output_dir=row["base_output_dir"],
+                    dir_name=row["dir_name"],
+                    sample_id=row["sample_id"],
+                    set_number=row["set_number"],
+                )
+                futures[future] = row["sample_id"]
+
+            for future in as_completed(futures):
+                sid = futures[future]
+                try:
+                    sample_results = future.result()
+                    all_rows.extend(sample_results)
+                    ok_flags = []
+                    for r in sample_results:
+                        ok_flags.append(f"{r['bam_type']}={'OK' if r['has_bam'] else 'missing'}")
+                    print(f"  [{sid}] BAM stats: {', '.join(ok_flags)}")
+                except Exception as e:
+                    print(f"  [{sid}] BAM stats ERROR: {e}")
+    else:
+        # Sequential processing
+        for row in manifest_rows:
+            sample_results = compute_sample_bam_stats(
+                base_output_dir=row["base_output_dir"],
+                dir_name=row["dir_name"],
+                sample_id=row["sample_id"],
+                set_number=row["set_number"],
+            )
+            all_rows.extend(sample_results)
+            ok_flags = []
+            for r in sample_results:
+                ok_flags.append(f"{r['bam_type']}={'OK' if r['has_bam'] else 'missing'}")
+            print(f"  [{row['sample_id']}] BAM stats: {', '.join(ok_flags)}")
 
     if not all_rows:
         return pl.DataFrame()
