@@ -36,8 +36,15 @@ def pileup_variants(bam_path: str, positions: list[tuple[str, int, str, str]]) -
 
     if HAS_RUST_BAM:
         try:
-            result = stats_core.pileup_variants(bam_path, positions)
+            chroms = [p[0] for p in positions]
+            poss = [p[1] for p in positions]
+            refs = [p[2] for p in positions]
+            alts = [p[3] for p in positions]
+            result = stats_core.pileup_variants(bam_path, chroms, poss, refs, alts)
             if result:
+                # Add CHROM and POS columns (Rust returns only metric columns)
+                result["CHROM"] = chroms
+                result["POS"] = poss
                 return pl.DataFrame(result)
         except Exception as e:
             print(f"  [WARNING] Rust BAM pileup failed: {e}, falling back to pysam")
