@@ -85,7 +85,7 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
     print(f"  [{sample_id}] Parsing rescue VCF ({'rust' if use_rust else 'python'})...")
     rescue_df = parse_fn(rescue_path)
     if rescue_df.is_empty():
-        print(f"  [{sample_id}] WARNING: No variants in rescue VCF")
+        print(f"  [{sample_id}] WARNING: No variants in rescue VCF — sample SKIPPED (will not appear in cross-sample statistics)")
         return {"sample_id": sample_id, "df": None, "stats": None}
 
     # Build target positions from rescue VCF as (CHROM, POS, REF, ALT) 4-tuples.
@@ -173,57 +173,66 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     rows = manifest.to_dicts()
-    samples_data = {}
     all_stats = []
-    bam_stats_df = pl.DataFrame()  # populated below if --no-bam not set
+    bam_stats_df = pl.DataFrame()
+
+    # ── Per-sample parquet directory (streaming, not memory-accumulated) ──
+    variant_dir = output_dir / "variant_details"
+    variant_dir.mkdir(parents=True, exist_ok=True)
+    import gc
+    total_variants = 0
+
+    def _process_one(row, max_workers, use_rust):
+        """Process one sample and write its variant details to parquet immediately."""
+        nonlocal total_variants
+        result = process_single_sample(row, max_workers=max_workers, use_rust=use_rust)
+        if result["df"] is not None:
+            sid = result["sample_id"]
+            parquet_path = str(variant_dir / f"{sid}_variants.parquet")
+            result["df"].write_parquet(parquet_path)
+            total_variants += len(result["df"])
+            # Free memory immediately
+            result["df"] = None
+            gc.collect()
+        if result["stats"] is not None:
+            all_stats.append(result["stats"])
+        return result
 
     if args.sample_workers > 1:
-        # Parallel sample processing via ThreadPoolExecutor (threads, safe with htslib)
         with ThreadPoolExecutor(max_workers=args.sample_workers) as executor:
             futures = {}
             for i, row in enumerate(rows):
-                future = executor.submit(process_single_sample, row, args.threads, use_rust)
+                future = executor.submit(_process_one, row, args.threads, use_rust)
                 futures[future] = (i, row["sample_id"])
 
             for future in as_completed(futures):
                 i, sid = futures[future]
                 print(f"[{i+1}/{len(manifest)}] {sid} - processing...")
                 try:
-                    result = future.result()
-                    if result["df"] is not None:
-                        samples_data[result["sample_id"]] = result["df"]
-                    if result["stats"] is not None:
-                        all_stats.append(result["stats"])
+                    future.result()
                     print(f"[{i+1}/{len(manifest)}] {sid} - Done")
                 except Exception as e:
                     import traceback
                     print(f"[{i+1}/{len(manifest)}] {sid} - ERROR: {e}")
                     traceback.print_exc()
     else:
-        # Sequential processing
         for i, row in enumerate(rows):
             sid = row["sample_id"]
             print(f"\n[{i+1}/{len(manifest)}] {sid}")
             try:
-                result = process_single_sample(row, max_workers=args.threads, use_rust=use_rust)
-                if result["df"] is not None:
-                    samples_data[result["sample_id"]] = result["df"]
-                if result["stats"] is not None:
-                    all_stats.append(result["stats"])
+                _process_one(row, max_workers=args.threads, use_rust=use_rust)
             except Exception as e:
                 import traceback
                 print(f"  [{sid}] ERROR: {e}")
                 traceback.print_exc()
 
-    if not samples_data:
+    if total_variants == 0:
         print("No data processed.")
         sys.exit(1)
 
-    # Combine all per-variant DataFrames
-    combined_df = pl.concat(list(samples_data.values()), how="diagonal_relaxed")
-    variant_details_path = output_dir / "variant_details.parquet"
-    combined_df.write_parquet(str(variant_details_path))
-    print(f"Variant details: {variant_details_path} ({len(combined_df)} variants)")
+    # ── Lazy scan across all per-sample parquet files ──────────────────────
+    combined_df = pl.scan_parquet(str(variant_dir / "*_variants.parquet"))
+    print(f"Variant details: {variant_dir}/ (lazy scan, {total_variants} variants across {len(rows)} samples)")
 
     # BAM statistics (per-sample per-modality)
     if not args.no_bam:
@@ -293,20 +302,26 @@ def main():
             str(output_dir / "gt_concordance.csv")
         )
 
-    # Validation
+    # Validation — read per-sample parquet files one at a time to keep memory low
     if not args.no_validate:
         print("Running rescue VCF validation...")
-        report = validate_all_samples(samples_data, args.tolerance)
+        import glob as _glob
+        report_rows = []
+        bam_rows = []
+        for parquet_path in sorted(_glob.glob(str(variant_dir / "*_variants.parquet"))):
+            sid = os.path.basename(parquet_path).replace("_variants.parquet", "")
+            df = pl.read_parquet(parquet_path)
+            report_rows.extend(validate_sample(df, sid, args.tolerance))
+            bam_rows.append(validate_bam_vs_caller(df, sid))
+            del df
+        report = pl.DataFrame(report_rows) if report_rows else pl.DataFrame()
         if not report.is_empty():
             report.write_csv(str(output_dir / "rescue_validation_report.csv"))
             summary = validation_summary(report)
             if not summary.is_empty():
                 summary.write_csv(str(output_dir / "rescue_validation_summary.csv"))
                 print(f"  Validation report: {output_dir / 'rescue_validation_report.csv'}")
-
-        # BAM validation
-        print("Running BAM validation...")
-        bam_report = validate_bam(samples_data)
+        bam_report = pl.DataFrame(bam_rows) if bam_rows else pl.DataFrame()
         if not bam_report.is_empty():
             bam_report.write_csv(str(output_dir / "bam_validation.csv"))
             print(f"  BAM validation: {output_dir / 'bam_validation.csv'}")
@@ -317,36 +332,40 @@ def main():
     print("Generating visualizations...")
     figs = []
 
-    # Add set_number to combined_df if available from manifest
-    if "set_number" not in combined_df.columns:
-        set_map = {r["sample_id"]: r["set_number"] for r in rows}
-        combined_df = combined_df.with_columns(
-            pl.col("sample_id").replace_strict(set_map, default=None).alias("set_number")
-        )
+    # Pre-compute small aggregation DataFrames from lazy scan.
+    # These are tiny (10-500 rows each) — fit easily in memory.
+    vc_counts = combined_df.group_by(["set_number", "VC"]).agg(pl.len().alias("count")).collect()
+    vt_counts = combined_df.group_by(["set_number", "variant_type"]).agg(pl.len().alias("count")).collect()
+    filter_counts = combined_df.group_by(["set_number", "FILTER"]).agg(pl.len().alias("count")).collect()
+    tier_counts = combined_df.group_by("final_tier").agg(pl.len().alias("count")).collect()
+    # Sample 10K rows for scatter plots (statistically sufficient)
+    sampled_df = combined_df.fetch(10000)
+    # Collect combined lazily for functions needing the full dataset
+    collected_df = combined_df.collect()
 
-    figs.append(plot_cosmic_gnomad_annotation(combined_df, str(output_dir)))
-    figs.append(plot_gt_concordance(combined_df, str(output_dir)))
-    figs.append(plot_vc_distribution(combined_df, str(output_dir)))
-    figs.append(plot_caller_overlap(combined_df, str(output_dir)))
-    figs.append(plot_vaf_distribution(combined_df, str(output_dir)))
-    figs.append(plot_vaf_boxplot_per_tier(combined_df, str(output_dir)))
-    figs.append(plot_dp_boxplot_per_tier(combined_df, str(output_dir)))
-    figs.append(plot_dna_vs_rna_vaf(combined_df, str(output_dir)))
-    figs.append(plot_dna_vs_rna_dp(combined_df, str(output_dir)))
-    figs.append(plot_ref_alt_dp_scatter(combined_df, str(output_dir)))
-    figs.append(plot_variant_type_distribution(combined_df, str(output_dir)))
-    figs.append(plot_ti_tv_ratio(combined_df, str(output_dir)))
-    figs.append(plot_cross_modality(combined_df, str(output_dir)))
-    figs.append(plot_gt_concordance_per_tier(combined_df, str(output_dir)))
-    figs.append(plot_tiered_caller_overlap(combined_df, str(output_dir)))
-    figs.append(plot_tiered_variant_types(combined_df, str(output_dir)))
-    figs.append(plot_filter_distribution(combined_df, str(output_dir)))
-    figs.append(plot_per_tier_vaf_boxplot(combined_df, str(output_dir)))
-    figs.append(plot_caller_agreement_matrix(combined_df, str(output_dir)))
-    figs.append(plot_chromosome_density(combined_df, str(output_dir)))
-    figs.append(plot_dna_vs_rna_per_caller(combined_df, str(output_dir)))
-    figs.append(plot_tier_quality_distribution(combined_df, str(output_dir)))
-    figs.append(plot_redi_evidence(combined_df, str(output_dir)))
+    figs.append(plot_cosmic_gnomad_annotation(collected_df, str(output_dir)))
+    figs.append(plot_gt_concordance(collected_df, str(output_dir)))
+    figs.append(plot_vc_distribution(collected_df, str(output_dir)))
+    figs.append(plot_caller_overlap(collected_df, str(output_dir)))
+    figs.append(plot_vaf_distribution(collected_df, str(output_dir)))
+    figs.append(plot_vaf_boxplot_per_tier(collected_df, str(output_dir)))
+    figs.append(plot_dp_boxplot_per_tier(collected_df, str(output_dir)))
+    figs.append(plot_dna_vs_rna_vaf(sampled_df, str(output_dir)))
+    figs.append(plot_dna_vs_rna_dp(sampled_df, str(output_dir)))
+    figs.append(plot_ref_alt_dp_scatter(sampled_df, str(output_dir)))
+    figs.append(plot_variant_type_distribution(collected_df, str(output_dir)))
+    figs.append(plot_ti_tv_ratio(collected_df, str(output_dir)))
+    figs.append(plot_cross_modality(collected_df, str(output_dir)))
+    figs.append(plot_gt_concordance_per_tier(collected_df, str(output_dir)))
+    figs.append(plot_tiered_caller_overlap(collected_df, str(output_dir)))
+    figs.append(plot_tiered_variant_types(collected_df, str(output_dir)))
+    figs.append(plot_filter_distribution(collected_df, str(output_dir)))
+    figs.append(plot_per_tier_vaf_boxplot(collected_df, str(output_dir)))
+    figs.append(plot_caller_agreement_matrix(collected_df, str(output_dir)))
+    figs.append(plot_chromosome_density(collected_df, str(output_dir)))
+    figs.append(plot_dna_vs_rna_per_caller(sampled_df, str(output_dir)))
+    figs.append(plot_tier_quality_distribution(collected_df, str(output_dir)))
+    figs.append(plot_redi_evidence(collected_df, str(output_dir)))
 
     # BAM charts
     if not args.no_bam and not bam_stats_df.is_empty():

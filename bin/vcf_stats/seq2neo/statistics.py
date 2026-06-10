@@ -10,6 +10,13 @@ import polars as pl
 
 from .manifest_loader import CALLER_CONFIGS
 
+def _ensure_eager(df):
+    """Materialize a LazyFrame if needed. Accepts both eager and lazy frames."""
+    if isinstance(df, pl.LazyFrame):
+        return df.collect()
+    return df
+
+
 # ── All 6 caller names ────────────────────────────────────────────────────
 DNA_CALLERS = ["DNA_deepsomatic", "DNA_mutect2", "DNA_strelka"]
 RNA_CALLERS = ["RNA_deepsomatic", "RNA_mutect2", "RNA_strelka"]
@@ -224,8 +231,9 @@ def set_summary(sample_stats: pl.DataFrame) -> pl.DataFrame:
     return sample_stats.group_by("set_number").agg(agg_exprs).sort("set_number")
 
 
-def disease_summary(df: pl.DataFrame) -> pl.DataFrame:
+def disease_summary(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
     """Aggregate statistics per disease with VAF/DP/tier metrics."""
+    df = _ensure_eager(df)
     if "disease_normalized" not in df.columns:
         return pl.DataFrame()
 
@@ -247,8 +255,9 @@ def disease_summary(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
-def variant_type_distribution(df: pl.DataFrame, group_col: str = "set_number") -> pl.DataFrame:
+def variant_type_distribution(df: pl.DataFrame | pl.LazyFrame, group_col: str = "set_number") -> pl.DataFrame:
     """Count SNV/INS/DEL/MNV per group."""
+    df = _ensure_eager(df)
     if "variant_type" not in df.columns:
         return pl.DataFrame()
     return (
@@ -258,17 +267,19 @@ def variant_type_distribution(df: pl.DataFrame, group_col: str = "set_number") -
     )
 
 
-def filter_distribution(df: pl.DataFrame, group_col: str = "set_number") -> pl.DataFrame:
+def filter_distribution(df: pl.DataFrame | pl.LazyFrame, group_col: str = "set_number") -> pl.DataFrame:
     """Count variants per FILTER value per group."""
+    df = _ensure_eager(df)
     return (
         df.group_by([group_col, "FILTER"])
         .agg(pl.len().alias("count"))
-        .sort([group_col, "count"], descending=[False, True])
+        .sort(pl.col(group_col), pl.col("count").desc())
     )
 
 
-def vc_distribution(df: pl.DataFrame, group_col: str = "set_number") -> pl.DataFrame:
+def vc_distribution(df: pl.DataFrame | pl.LazyFrame, group_col: str = "set_number") -> pl.DataFrame:
     """Count variants per VC classification per group."""
+    df = _ensure_eager(df)
     if "VC" not in df.columns:
         return pl.DataFrame()
     return (
@@ -278,8 +289,9 @@ def vc_distribution(df: pl.DataFrame, group_col: str = "set_number") -> pl.DataF
     )
 
 
-def caller_overlap_distribution(df: pl.DataFrame) -> pl.DataFrame:
+def caller_overlap_distribution(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
     """Distribution of final_tier (C1D1..C7D0) — variant tiering support."""
+    df = _ensure_eager(df)
     if "final_tier" not in df.columns:
         return pl.DataFrame()
     return (
@@ -289,8 +301,9 @@ def caller_overlap_distribution(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
-def caller_support_distribution(df: pl.DataFrame) -> pl.DataFrame:
+def caller_support_distribution(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
     """Distribution of N_SUPPORT_CALLERS (raw caller count, 1-6)."""
+    df = _ensure_eager(df)
     if "N_SUPPORT_CALLERS" not in df.columns:
         return pl.DataFrame()
     df = df.with_columns(pl.col("N_SUPPORT_CALLERS").cast(pl.Int64, strict=False))
@@ -301,7 +314,8 @@ def caller_support_distribution(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
-def gt_concordance(df: pl.DataFrame) -> dict[str, int]:
+def gt_concordance(df: pl.DataFrame | pl.LazyFrame) -> dict[str, int]:
+    df = _ensure_eager(df)
     """Compute GT concordance among 4 callers with GT fields (polars-native).
 
     Returns counts of variants where 2, 3, or 4 callers have valid GT values,
@@ -329,7 +343,8 @@ def gt_concordance(df: pl.DataFrame) -> dict[str, int]:
     return result
 
 
-def flag_filter_breakdown(df: pl.DataFrame) -> dict[str, int]:
+def flag_filter_breakdown(df: pl.DataFrame | pl.LazyFrame) -> dict[str, int]:
+    df = _ensure_eager(df)
     """Count how many variants have each flag filter set."""
     flags = [
         "min_alt_reads", "gnomad", "blacklist", "noncoding",
@@ -342,13 +357,9 @@ def flag_filter_breakdown(df: pl.DataFrame) -> dict[str, int]:
     return result
 
 
-def dataset_summary(df: pl.DataFrame) -> dict[str, Any]:
-    """Compute whole-dataset aggregate statistics across all samples.
-
-    Returns a dict with one row of overall metrics: total variants, variant type
-    distribution, Ti/Tv ratio, VC classification counts, caller support histogram,
-    and tier distribution.
-    """
+def dataset_summary(df: pl.DataFrame | pl.LazyFrame) -> dict[str, Any]:
+    """Compute whole-dataset aggregate statistics across all samples."""
+    df = _ensure_eager(df)
     n = len(df)
     if n == 0:
         return {"total_variants": 0}
@@ -413,7 +424,8 @@ def dataset_summary(df: pl.DataFrame) -> dict[str, Any]:
     return result
 
 
-def sample_tier_summary(df: pl.DataFrame) -> pl.DataFrame:
+def sample_tier_summary(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
+    df = _ensure_eager(df)
     """Level 4: Per-sample × per-tier aggregate statistics.
 
     For each (sample_id, final_tier) pair, compute: variant count, mean VAF/DP/
