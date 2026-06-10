@@ -1,6 +1,8 @@
 mod bam;
+mod caller;
 mod vcf;
 
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 use pyo3::prelude::*;
@@ -62,10 +64,88 @@ fn bam_stats(py: Python<'_>, path: String, max_reads: u64) -> PyResult<Bound<'_,
     Ok(d)
 }
 
+/// Parse a normalized caller VCF and return FORMAT fields at target positions.
+///
+/// Releases the GIL during parsing. Returns a dict of column_name → list_of_values.
+#[pyfunction]
+fn parse_caller_vcf(
+    py: Python<'_>,
+    path: String,
+    target_chroms: Vec<String>,
+    target_positions: Vec<i64>,
+    target_refs: Vec<String>,
+    target_alts: Vec<String>,
+    sample_suffix: String,
+    caller_name: String,
+) -> PyResult<Bound<'_, PyDict>> {
+    let path_buf = PathBuf::from(&path);
+    let targets: HashSet<(String, i64, String, String)> = target_chroms.into_iter()
+        .zip(target_positions.into_iter())
+        .zip(target_refs.into_iter())
+        .zip(target_alts.into_iter())
+        .map(|(((c, p), r), a)| (c, p, r, a))
+        .collect();
+    let kind = caller::CallerKind::from_name(&caller_name);
+
+    let results = py.detach(|| {
+        caller::parse_caller_vcf(&path_buf, &targets, &sample_suffix, kind)
+            .map_err(|e| e.to_string())
+    }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))?;
+
+    let d = PyDict::new(py);
+
+    fn push_str_list(py: Python<'_>, dict: &Bound<'_, PyDict>, key: &str, vals: &[String]) -> PyResult<()> {
+        let list = PyList::empty(py);
+        for v in vals { list.append(v.as_str())?; }
+        dict.set_item(key, list)
+    }
+    fn push_i64_list(py: Python<'_>, dict: &Bound<'_, PyDict>, key: &str, vals: &[i64]) -> PyResult<()> {
+        let list = PyList::empty(py);
+        for v in vals { list.append(*v)?; }
+        dict.set_item(key, list)
+    }
+    fn push_opt_i64_list(py: Python<'_>, dict: &Bound<'_, PyDict>, key: &str, vals: &[Option<i64>]) -> PyResult<()> {
+        let list = PyList::empty(py);
+        for v in vals { list.append(*v)?; }
+        dict.set_item(key, list)
+    }
+    fn push_opt_f64_list(py: Python<'_>, dict: &Bound<'_, PyDict>, key: &str, vals: &[Option<f64>]) -> PyResult<()> {
+        let list = PyList::empty(py);
+        for v in vals { list.append(*v)?; }
+        dict.set_item(key, list)
+    }
+    fn push_opt_str_list(py: Python<'_>, dict: &Bound<'_, PyDict>, key: &str, vals: &[Option<String>]) -> PyResult<()> {
+        let list = PyList::empty(py);
+        for v in vals { list.append(v.as_deref())?; }
+        dict.set_item(key, list)
+    }
+
+    push_str_list(py, &d, "CHROM", &results.chroms)?;
+    push_i64_list(py, &d, "POS", &results.positions)?;
+    push_str_list(py, &d, "REF", &results.refs)?;
+    push_str_list(py, &d, "ALT", &results.alts)?;
+    push_opt_i64_list(py, &d, "DP", &results.dp)?;
+    push_opt_i64_list(py, &d, "AD_REF", &results.ad_ref)?;
+    push_opt_i64_list(py, &d, "AD_ALT", &results.ad_alt)?;
+    push_opt_str_list(py, &d, "GT", &results.gt)?;
+    push_opt_f64_list(py, &d, "VAF_CALLER", &results.vaf_caller)?;
+    push_opt_i64_list(py, &d, "TAR", &results.tar)?;
+    push_opt_i64_list(py, &d, "TIR", &results.tir)?;
+    push_opt_i64_list(py, &d, "TOR", &results.tor)?;
+    push_opt_i64_list(py, &d, "AU", &results.au)?;
+    push_opt_i64_list(py, &d, "CU", &results.cu)?;
+    push_opt_i64_list(py, &d, "GU", &results.gu)?;
+    push_opt_i64_list(py, &d, "TU", &results.tu)?;
+    push_opt_str_list(py, &d, "SB", &results.sb)?;
+    push_opt_str_list(py, &d, "FAD", &results.fad)?;
+    Ok(d)
+}
+
 /// stats_core — Rust-accelerated VCF/BAM parsing for seq2neo variant statistics.
 #[pymodule]
 fn stats_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(parse_rescue, m)?)?;
     m.add_function(wrap_pyfunction!(bam_stats, m)?)?;
+    m.add_function(wrap_pyfunction!(parse_caller_vcf, m)?)?;
     Ok(())
 }
