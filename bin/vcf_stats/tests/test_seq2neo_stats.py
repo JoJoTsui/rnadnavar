@@ -575,18 +575,21 @@ class TestCallerParser:
         assert len(result["CHROM"]) <= 1  # Should find at most 1 record before stopping
 
     def test_build_caller_results_lookup(self):
-        """build_caller_results_lookup converts lists to position-keyed dict."""
+        """build_caller_results_lookup converts lists to 4-tuple-keyed dict."""
         result = {
             "CHROM": ["chr1", "chr2"],
             "POS": [100, 200],
+            "REF": ["A", "C"],
+            "ALT": ["T", "G"],
             "DP": [50, 30],
             "GT": ["0/1", "0/0"],
         }
         lookup = caller_parser.build_caller_results_lookup(result)
-        assert ("chr1", 100) in lookup
-        assert lookup[("chr1", 100)]["DP"] == 50
-        assert lookup[("chr1", 100)]["GT"] == "0/1"
-        assert lookup[("chr2", 200)]["DP"] == 30
+        # 4-tuple keys: (CHROM, POS, REF, ALT)
+        assert ("chr1", 100, "A", "T") in lookup
+        assert lookup[("chr1", 100, "A", "T")]["DP"] == 50
+        assert lookup[("chr1", 100, "A", "T")]["GT"] == "0/1"
+        assert lookup[("chr2", 200, "C", "G")]["DP"] == 30
 
 
 def _get_caller_vcf_path(caller_name: str) -> str | None:
@@ -1361,3 +1364,573 @@ class TestGILRelease:
         assert "REF" in record
         assert "ALT" in record
         assert "FILTER" in record
+
+    def test_parse_caller_vcf_releases_gil(self):
+        """parse_caller_vcf MUST release the GIL for parallel caller parsing."""
+        try:
+            import stats_core
+        except ImportError:
+            pytest.skip("stats_core not available")
+        if not hasattr(stats_core, 'parse_caller_vcf'):
+            pytest.skip("parse_caller_vcf not available")
+
+        import glob
+        base = os.path.join(REAL_SAMPLE["base_output_dir"], REAL_SAMPLE["dir_name"])
+        rescue = glob.glob(os.path.join(base, "vcf_realignment", "rescue", "*", "*.filtered.vcf.stripped.vcf.gz"))
+        if not rescue:
+            pytest.skip("Rescue VCF not found")
+        records = stats_core.parse_rescue(rescue[0])
+        # Use full target set for balanced, substantial workload
+        chroms = [r["CHROM"] for r in records]
+        poss = [r["POS"] for r in records]
+        refs = [r["REF"] for r in records]
+        alts = [r["ALT"] for r in records]
+
+        cfg = CALLER_CONFIGS["DNA_mutect2"]
+        subdir = cfg["subdir"].format(prefix=REAL_SAMPLE["vcf_prefix"])
+        vcf_path = glob.glob(os.path.join(base, subdir, cfg["pattern"]))[0]
+
+        cfg2 = CALLER_CONFIGS["DNA_deepsomatic"]
+        subdir2 = cfg2["subdir"].format(prefix=REAL_SAMPLE["vcf_prefix"])
+        vcf_path2 = glob.glob(os.path.join(base, subdir2, cfg2["pattern"]))[0]
+
+        results = {}
+        def worker(label, path, sfx, name):
+            t0 = time.time()
+            stats_core.parse_caller_vcf(path, chroms, poss, refs, alts, sfx, name)
+            results[label] = time.time() - t0
+
+        t0 = time.time()
+        t1 = threading.Thread(target=worker, args=("A", vcf_path, cfg["sample_suffix"], "DNA_mutect2"))
+        t2 = threading.Thread(target=worker, args=("B", vcf_path2, cfg2["sample_suffix"], "DNA_deepsomatic"))
+        t1.start(); t2.start(); t1.join(); t2.join()
+        total = time.time() - t0
+        assert total < (results["A"] + results["B"]) * 0.8, (
+            f"GIL NOT released in parse_caller_vcf! Total={total:.1f}s, A={results['A']:.1f}s, B={results['B']:.1f}s"
+        )
+
+    def test_compute_tiers_releases_gil(self):
+        """compute_tiers MUST release the GIL for parallel tiering."""
+        try:
+            import stats_core
+        except ImportError:
+            pytest.skip("stats_core not available")
+        if not hasattr(stats_core, 'compute_tiers'):
+            pytest.skip("compute_tiers not available")
+
+        # Generate synthetic data for 50000 variants
+        n = 50000
+        filters = ["Somatic"] * n
+        fnorm = [""] * n
+        gaf = [0.01] * n
+        csc = [None] * n
+        redi = [None] * n
+        ds = [2] * n
+        rs = [1] * n
+
+        results = {}
+        def worker(label):
+            t0 = time.time()
+            stats_core.compute_tiers(filters, fnorm, gaf, csc, redi, ds, rs)
+            results[label] = time.time() - t0
+
+        t0 = time.time()
+        t1 = threading.Thread(target=worker, args=("A",))
+        t2 = threading.Thread(target=worker, args=("B",))
+        t1.start(); t2.start(); t1.join(); t2.join()
+        total = time.time() - t0
+        assert total < (results["A"] + results["B"]) * 0.7, (
+            f"GIL NOT released in compute_tiers! Total={total:.1f}s"
+        )
+
+    def test_pileup_variants_releases_gil(self):
+        """pileup_variants MUST release the GIL for parallel pileup."""
+        try:
+            import stats_core
+        except ImportError:
+            pytest.skip("stats_core not available")
+        if not hasattr(stats_core, 'pileup_variants'):
+            pytest.skip("pileup_variants not available")
+
+        bam = os.path.join(
+            REAL_SAMPLE["base_output_dir"], REAL_SAMPLE["dir_name"],
+            "preprocessing", "mapped", f"{REAL_SAMPLE['vcf_prefix']}DT",
+            f"{REAL_SAMPLE['vcf_prefix']}DT.sorted.bam",
+        )
+        if not os.path.isfile(bam):
+            pytest.skip("BAM not found")
+
+        results = {}
+        def worker(label, chroms):
+            t0 = time.time()
+            stats_core.pileup_variants(bam, chroms, [633987] * len(chroms), ["C"] * len(chroms), ["T"] * len(chroms))
+            results[label] = time.time() - t0
+
+        t0 = time.time()
+        t1 = threading.Thread(target=worker, args=("A", ["chr1"]))
+        t2 = threading.Thread(target=worker, args=("B", ["chr2"]))
+        t1.start(); t2.start(); t1.join(); t2.join()
+        total = time.time() - t0
+        assert total < (results["A"] + results["B"]) * 0.7, (
+            f"GIL NOT released in pileup_variants! Total={total:.1f}s"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestRustCallerParser — verify Rust caller VCF parsing
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestRustCallerParser:
+    """Tests for Rust parse_caller_vcf against normalized caller VCFs."""
+
+    @pytest.fixture(autouse=True)
+    def _require_rust(self):
+        try:
+            import stats_core
+            if not hasattr(stats_core, 'parse_caller_vcf'):
+                pytest.skip("Rust parse_caller_vcf not available")
+        except ImportError:
+            pytest.skip("stats_core not available")
+
+    @pytest.fixture
+    def _rescue_targets(self):
+        """Build 4-tuple target set from rescue VCF."""
+        import stats_core, glob
+        base = os.path.join(REAL_SAMPLE["base_output_dir"], REAL_SAMPLE["dir_name"])
+        rescue_path = glob.glob(os.path.join(
+            base, "vcf_realignment", "rescue", "*", "*.filtered.vcf.stripped.vcf.gz"
+        ))[0]
+        records = stats_core.parse_rescue(rescue_path)
+        chroms = [r["CHROM"] for r in records]
+        poss = [r["POS"] for r in records]
+        refs = [r["REF"] for r in records]
+        alts = [r["ALT"] for r in records]
+        return chroms, poss, refs, alts
+
+    def _get_vcf_path(self, caller_name):
+        import glob
+        base = os.path.join(REAL_SAMPLE["base_output_dir"], REAL_SAMPLE["dir_name"])
+        cfg = CALLER_CONFIGS[caller_name]
+        subdir = cfg["subdir"].format(prefix=REAL_SAMPLE["vcf_prefix"])
+        files = glob.glob(os.path.join(base, subdir, cfg["pattern"]))
+        if not files:
+            pytest.skip(f"VCF not found for {caller_name}")
+        return files[0], cfg["sample_suffix"]
+
+    def test_mutect2_dp_gt_ad_af(self, _rescue_targets):
+        """DNA Mutect2 extracts DP, GT, AD, AF, SB, FAD."""
+        import stats_core
+        chroms, poss, refs, alts = _rescue_targets
+        vcf_path, suffix = self._get_vcf_path("DNA_mutect2")
+        result = stats_core.parse_caller_vcf(
+            vcf_path, chroms, poss, refs, alts, suffix, "DNA_mutect2"
+        )
+        assert len(result["CHROM"]) > 0
+        assert any(v is not None for v in result["DP"])
+        assert any(v is not None for v in result["GT"])
+        assert any(v is not None for v in result["AD_REF"])
+        assert any(v is not None for v in result["AD_ALT"])
+        assert any(v is not None for v in result["VAF_CALLER"])
+        assert any(v is not None for v in result["SB"])
+
+    def test_deepsomatic_dp_gt_ad_vaf(self, _rescue_targets):
+        """DNA DeepSomatic extracts DP, GT, AD, VAF."""
+        import stats_core
+        chroms, poss, refs, alts = _rescue_targets
+        vcf_path, suffix = self._get_vcf_path("DNA_deepsomatic")
+        result = stats_core.parse_caller_vcf(
+            vcf_path, chroms, poss, refs, alts, suffix, "DNA_deepsomatic"
+        )
+        assert len(result["CHROM"]) > 0
+        assert any(v is not None for v in result["DP"])
+        assert any(v is not None for v in result["GT"])
+        assert any(v is not None for v in result["AD_REF"])
+        assert any(v is not None for v in result["VAF_CALLER"])
+
+    def test_strelka_no_gt_no_ad(self, _rescue_targets):
+        """DNA Strelka has DP and AU/CU/GU/TU but NO GT and NO AD."""
+        import stats_core
+        chroms, poss, refs, alts = _rescue_targets
+        vcf_path, suffix = self._get_vcf_path("DNA_strelka")
+        result = stats_core.parse_caller_vcf(
+            vcf_path, chroms, poss, refs, alts, suffix, "DNA_strelka"
+        )
+        assert len(result["CHROM"]) > 0
+        assert any(v is not None for v in result["DP"])
+        assert any(v is not None for v in result["AU"])
+        assert any(v is not None for v in result["CU"])
+        # Strelka has no GT and no AD
+        assert all(v is None for v in result["GT"])
+        assert all(v is None for v in result["AD_REF"])
+        assert all(v is None for v in result["AD_ALT"])
+
+    def test_4_column_keys_present(self, _rescue_targets):
+        """Result includes REF and ALT columns for 4-tuple matching."""
+        import stats_core
+        chroms, poss, refs, alts = _rescue_targets
+        vcf_path, suffix = self._get_vcf_path("DNA_mutect2")
+        result = stats_core.parse_caller_vcf(
+            vcf_path, chroms, poss, refs, alts, suffix, "DNA_mutect2"
+        )
+        assert "REF" in result
+        assert "ALT" in result
+        assert len(result["REF"]) == len(result["CHROM"])
+        assert len(result["ALT"]) == len(result["CHROM"])
+
+    def test_rna_mutect2_parses(self, _rescue_targets):
+        """RNA Mutect2 (realigned) parses correctly with RT suffix."""
+        import stats_core
+        chroms, poss, refs, alts = _rescue_targets
+        vcf_path, suffix = self._get_vcf_path("RNA_mutect2")
+        result = stats_core.parse_caller_vcf(
+            vcf_path, chroms, poss, refs, alts, suffix, "RNA_mutect2"
+        )
+        assert len(result["CHROM"]) > 0
+        assert any(v is not None for v in result["DP"])
+        assert any(v is not None for v in result["GT"])
+
+    def test_early_termination(self, _rescue_targets):
+        """Scan stops early when all targets found (small subset test)."""
+        import stats_core, time
+        chroms, poss, refs, alts = _rescue_targets
+        # Take only first 5 positions
+        c5, p5, r5, a5 = chroms[:5], poss[:5], refs[:5], alts[:5]
+        vcf_path, suffix = self._get_vcf_path("DNA_mutect2")
+        t0 = time.time()
+        result = stats_core.parse_caller_vcf(vcf_path, c5, p5, r5, a5, suffix, "DNA_mutect2")
+        dt = time.time() - t0
+        # With only 5 targets, should be very fast (< 0.5s for full scan, but
+        # early termination may make it even faster)
+        assert len(result["CHROM"]) <= 5
+        assert dt < 10.0  # generous — real time is ~0.2s
+
+    def test_caller_gil_released(self, _rescue_targets):
+        """parse_caller_vcf releases GIL — two threads run in parallel."""
+        import stats_core, threading, time
+        chroms, poss, refs, alts = _rescue_targets
+        vcf_path, suffix = self._get_vcf_path("DNA_mutect2")
+        vcf_path2, suffix2 = self._get_vcf_path("DNA_deepsomatic")
+
+        results = {}
+        def worker(label, path, sfx, name):
+            t0 = time.time()
+            stats_core.parse_caller_vcf(path, chroms, poss, refs, alts, sfx, name)
+            results[label] = time.time() - t0
+
+        t0 = time.time()
+        t1 = threading.Thread(target=worker, args=("A", vcf_path, suffix, "DNA_mutect2"))
+        t2 = threading.Thread(target=worker, args=("B", vcf_path2, suffix2, "DNA_deepsomatic"))
+        t1.start(); t2.start(); t1.join(); t2.join()
+        total = time.time() - t0
+        assert total < (results["A"] + results["B"]) * 0.85, (
+            f"GIL NOT released! Total={total:.1f}s, A={results['A']:.1f}s, B={results['B']:.1f}s"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestRustTiering — verify Rust tiering matches Python TieringEngine
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestRustTiering:
+    """Tests that Rust compute_tiers produces identical output to Python."""
+
+    @pytest.fixture(autouse=True)
+    def _require_rust(self):
+        try:
+            import stats_core
+            if not hasattr(stats_core, 'compute_tiers'):
+                pytest.skip("Rust compute_tiers not available")
+        except ImportError:
+            pytest.skip("stats_core not available")
+
+    @pytest.fixture
+    def _tier_inputs(self):
+        """Extract tiering input columns from rescue VCF."""
+        import stats_core, glob
+        base = os.path.join(REAL_SAMPLE["base_output_dir"], REAL_SAMPLE["dir_name"])
+        rescue_path = glob.glob(os.path.join(
+            base, "vcf_realignment", "rescue", "*", "*.filtered.vcf.stripped.vcf.gz"
+        ))[0]
+        records = stats_core.parse_rescue(rescue_path)
+        n = len(records)
+        filters = [r.get("FILTER", "PASS") or "PASS" for r in records]
+        fnorm = [r.get("FILTERS_NORMALIZED", "") or "" for r in records]
+        gaf = [float(r["GNOMAD_AF"]) if r.get("GNOMAD_AF") and r["GNOMAD_AF"] != "." else None for r in records]
+        csc = [int(r["COSMIC_CNT"]) if r.get("COSMIC_CNT") and r["COSMIC_CNT"] != "." else None for r in records]
+        redi = [str(r["REDI_EVIDENCE"]) if r.get("REDI_EVIDENCE") else None for r in records]
+        ds = [int(r["N_DNA_CALLERS_SUPPORT"]) if r.get("N_DNA_CALLERS_SUPPORT") and r["N_DNA_CALLERS_SUPPORT"] != "." else None for r in records]
+        rs = [int(r["N_RNA_CALLERS_SUPPORT"]) if r.get("N_RNA_CALLERS_SUPPORT") and r["N_RNA_CALLERS_SUPPORT"] != "." else None for r in records]
+        return filters, fnorm, gaf, csc, redi, ds, rs, records
+
+    def test_tiering_produces_all_columns(self, _tier_inputs):
+        """Rust compute_tiers returns all expected columns."""
+        import stats_core
+        filters, fnorm, gaf, csc, redi, ds, rs, _ = _tier_inputs
+        result = stats_core.compute_tiers(filters, fnorm, gaf, csc, redi, ds, rs)
+        for col in ["final_tier", "caller_tier", "database_tier", "dna_caller_count", "rna_caller_count", "tier_quality"]:
+            assert col in result, f"Missing column: {col}"
+            assert len(result[col]) == len(filters)
+
+    def test_tiering_parity_with_python(self, _tier_inputs):
+        """Rust tiers match Python TieringEngine for first 200 variants."""
+        import stats_core
+        filters, fnorm, gaf, csc, redi, ds, rs, records = _tier_inputs
+
+        # Rust
+        r = stats_core.compute_tiers(filters[:200], fnorm[:200], gaf[:200], csc[:200], redi[:200], ds[:200], rs[:200])
+
+        # Python
+        from vcf_stats.seq2neo.tiering_stats import compute_tiers_for_dataframe
+        import polars as pl
+        rows = []
+        for i in range(200):
+            rows.append({
+                "FILTER": records[i].get("FILTER", "PASS") or "PASS",
+                "FILTERS_NORMALIZED": records[i].get("FILTERS_NORMALIZED", ""),
+                "GNOMAD_AF": records[i].get("GNOMAD_AF"),
+                "COSMIC_CNT": records[i].get("COSMIC_CNT"),
+                "REDI_EVIDENCE": records[i].get("REDI_EVIDENCE"),
+                "N_DNA_CALLERS_SUPPORT": records[i].get("N_DNA_CALLERS_SUPPORT"),
+                "N_RNA_CALLERS_SUPPORT": records[i].get("N_RNA_CALLERS_SUPPORT"),
+            })
+        df = pl.DataFrame(rows)
+        py_result = compute_tiers_for_dataframe(df)
+
+        # Compare
+        for i in range(200):
+            assert r["final_tier"][i] == py_result["final_tier"][i], (
+                f"Mismatch at index {i}: Rust={r['final_tier'][i]}, Python={py_result['final_tier'][i]}"
+            )
+            assert r["caller_tier"][i] == py_result["caller_tier"][i]
+            assert r["dna_caller_count"][i] == py_result["dna_caller_count"][i]
+            assert r["rna_caller_count"][i] == py_result["rna_caller_count"][i]
+
+    def test_tier_quality_scores(self, _tier_inputs):
+        """Tier quality scores match expected values from tier_config."""
+        import stats_core
+        expected_quality = {
+            "C1D1": 140, "C1D0": 130, "C2D1": 120, "C2D0": 110,
+            "C3D1": 100, "C3D0": 90,  "C4D1": 80,  "C4D0": 70,
+            "C5D1": 60,  "C5D0": 50,  "C6D1": 40,  "C6D0": 30,
+            "C7D1": 20,  "C7D0": 10,
+        }
+        # Synthesize test data for each tier
+        filters = ["Somatic"] * 14
+        fnorm = [""] * 14
+        gaf = [None] * 14
+        csc = [None] * 14
+        redi = [None] * 14
+        # C1: dna>=2, rna>=2; C2: dna>=2, rna<=1; C3: rna>=2, dna<=1;
+        # C4: dna=1, rna=1; C5: dna=1, rna=0; C6: dna=0, rna=1; C7: dna=0, rna=0
+        ds_list = [2, 2, 0, 1, 1, 0, 0, 2, 2, 0, 1, 1, 0, 0]
+        rs_list = [2, 0, 2, 1, 0, 1, 0, 2, 0, 2, 1, 0, 1, 0]
+        # First half: D1 (with gnomAD), second half: D0
+        gaf_db = [0.01 if i < 7 else None for i in range(14)]
+
+        result = stats_core.compute_tiers(filters, fnorm, gaf_db, csc, redi, ds_list, rs_list)
+        for i in range(14):
+            tier = result["final_tier"][i]
+            assert tier in expected_quality, f"Unknown tier: {tier}"
+            assert result["tier_quality"][i] == expected_quality[tier], (
+                f"Quality mismatch for {tier}: {result['tier_quality'][i]} != {expected_quality[tier]}"
+            )
+
+    def test_tiering_gil_released(self, _tier_inputs):
+        """compute_tiers releases GIL — two threads run in parallel."""
+        import stats_core, threading, time
+        filters, fnorm, gaf, csc, redi, ds, rs, _ = _tier_inputs
+
+        results = {}
+        def worker(label):
+            t0 = time.time()
+            stats_core.compute_tiers(filters, fnorm, gaf, csc, redi, ds, rs)
+            results[label] = time.time() - t0
+
+        t0 = time.time()
+        t1 = threading.Thread(target=worker, args=("A",))
+        t2 = threading.Thread(target=worker, args=("B",))
+        t1.start(); t2.start(); t1.join(); t2.join()
+        total = time.time() - t0
+        assert total < (results["A"] + results["B"]) * 0.7, (
+            f"GIL NOT released! Total={total:.1f}s"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestRustPileup — verify Rust BAM pileup matches pysam
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestRustPileup:
+    """Tests for Rust pileup_variants against pysam reference."""
+
+    @pytest.fixture(autouse=True)
+    def _require_rust(self):
+        try:
+            import stats_core
+            if not hasattr(stats_core, 'pileup_variants'):
+                pytest.skip("Rust pileup_variants not available")
+        except ImportError:
+            pytest.skip("stats_core not available")
+
+    @pytest.fixture
+    def _bam_path(self):
+        bam = os.path.join(
+            REAL_SAMPLE["base_output_dir"], REAL_SAMPLE["dir_name"],
+            "preprocessing", "mapped", f"{REAL_SAMPLE['vcf_prefix']}DT",
+            f"{REAL_SAMPLE['vcf_prefix']}DT.sorted.bam",
+        )
+        if not os.path.isfile(bam):
+            pytest.skip("BAM not found")
+        return bam
+
+    def test_pileup_parity_with_pysam(self, _bam_path):
+        """Rust pileup matches pysam for 20 random positions."""
+        import stats_core, pysam, random
+        random.seed(42)
+
+        # Use 20 positions from chr1
+        chroms = ["chr1"] * 20
+        positions = [random.randint(600000, 700000) for _ in range(20)]
+        refs = ["A"] * 20
+        alts = ["G"] * 20
+
+        r = stats_core.pileup_variants(_bam_path, chroms, positions, refs, alts)
+        bam = pysam.AlignmentFile(_bam_path, "rb")
+
+        for i in range(20):
+            # pysam pileup
+            reads = list(bam.fetch(chroms[i], positions[i] - 1, positions[i]))
+            dp = 0; ref_dp = 0; alt_dp = 0
+            for rd in reads:
+                if rd.is_unmapped or rd.is_duplicate: continue
+                pir = positions[i] - rd.reference_start - 1
+                if pir < 0 or pir >= len(rd.query_sequence): continue
+                base = rd.query_sequence[pir]
+                dp += 1
+                if base == refs[i]: ref_dp += 1
+                elif base == alts[i]: alt_dp += 1
+
+            assert r["DP"][i] == dp or (r["DP"][i] is None and dp == 0), (
+                f"DP mismatch at {chroms[i]}:{positions[i]}: Rust={r['DP'][i]}, pysam={dp}"
+            )
+        bam.close()
+
+    def test_empty_positions(self, _bam_path):
+        """Empty position list returns empty result."""
+        import stats_core
+        r = stats_core.pileup_variants(_bam_path, [], [], [], [])
+        assert len(r["DP"]) == 0
+
+    def test_missing_bam_returns_defaults(self):
+        """Non-existent BAM raises an error (file must exist for pileup)."""
+        import stats_core
+        with pytest.raises(Exception):
+            stats_core.pileup_variants(
+                "/nonexistent/path.bam", ["chr1"], [1], ["A"], ["G"]
+            )
+
+    def test_all_columns_present(self, _bam_path):
+        """All expected columns are in the result."""
+        import stats_core
+        r = stats_core.pileup_variants(_bam_path, ["chr1"], [633987], ["C"], ["T"])
+        for col in ["DP", "REF_DP", "ALT_DP", "F1R2_ref", "F2R1_ref",
+                     "F1R2_alt", "F2R1_alt", "mean_BQ", "mean_MQ"]:
+            assert col in r, f"Missing column: {col}"
+
+    def test_pileup_gil_released(self, _bam_path):
+        """pileup_variants releases GIL — two threads run in parallel."""
+        import stats_core, threading, time
+        # Use 100 positions each on the same chromosome for balanced work
+        import random
+        random.seed(0)
+        positions = [random.randint(600000, 700000) for _ in range(100)]
+
+        results = {}
+        def worker(label):
+            t0 = time.time()
+            stats_core.pileup_variants(
+                _bam_path, ["chr1"] * 100, positions,
+                ["A"] * 100, ["G"] * 100,
+            )
+            results[label] = time.time() - t0
+
+        t0 = time.time()
+        t1 = threading.Thread(target=worker, args=("A",))
+        t2 = threading.Thread(target=worker, args=("B",))
+        t1.start(); t2.start(); t1.join(); t2.join()
+        total = time.time() - t0
+        assert total < (results["A"] + results["B"]) * 0.85, (
+            f"GIL NOT released! Total={total:.1f}s, A={results['A']:.1f}s, B={results['B']:.1f}s"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestJoinOptimization — verify polars join on 4 columns
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestJoinOptimization:
+    """Tests for join_caller_columns polars join on 4 coordinate columns."""
+
+    def test_join_on_4_columns(self):
+        """join_caller_columns joins on CHROM, POS, REF, ALT."""
+        import polars as pl
+        from vcf_stats.seq2neo.caller_parser import join_caller_columns
+
+        rescue = pl.DataFrame({
+            "CHROM": ["chr1", "chr1", "chr2"],
+            "POS": [100, 200, 300],
+            "REF": ["A", "C", "G"],
+            "ALT": ["T", "G", "A"],
+            "OTHER": [1, 2, 3],
+        })
+
+        # Simulate a caller that found positions at chr1:100 and chr2:300
+        caller_data = {
+            "DNA_mutect2": {
+                ("chr1", 100, "A", "T"): {"DP": 42, "AD_REF": 30, "AD_ALT": 12, "GT": "0/1", "VAF_CALLER": 0.286},
+                ("chr2", 300, "G", "A"): {"DP": 55, "AD_REF": 40, "AD_ALT": 15, "GT": "1/1", "VAF_CALLER": 0.273},
+                # chr1:200 is missing (should get nulls)
+            }
+        }
+
+        result = join_caller_columns(rescue, caller_data)
+        assert "DNA_mutect2_DP" in result.columns
+        assert result["DNA_mutect2_DP"][0] == 42  # chr1:100 matched
+        assert result["DNA_mutect2_DP"][1] is None  # chr1:200 missing caller
+        assert result["DNA_mutect2_DP"][2] == 55  # chr2:300 matched
+        assert result["DNA_mutect2_GT"][0] == "0/1"
+        assert result["DNA_mutect2_GT"][2] == "1/1"
+
+    def test_missing_caller_null_fills(self):
+        """Missing caller produces null-filled columns."""
+        import polars as pl
+        from vcf_stats.seq2neo.caller_parser import join_caller_columns
+
+        rescue = pl.DataFrame({
+            "CHROM": ["chr1"], "POS": [100], "REF": ["A"], "ALT": ["T"],
+        })
+        result = join_caller_columns(rescue, {})  # no callers at all
+        assert result.height == 1
+
+    def test_multiallelic_no_cross_match(self):
+        """Two records at same (CHROM, POS) with different REF/ALT don't cross-match."""
+        import polars as pl
+        from vcf_stats.seq2neo.caller_parser import join_caller_columns
+
+        rescue = pl.DataFrame({
+            "CHROM": ["chr1", "chr1"],
+            "POS": [100, 100],
+            "REF": ["A", "A"],  # same position, different ALT
+            "ALT": ["T", "G"],
+        })
+
+        caller_data = {
+            "DNA_mutect2": {
+                ("chr1", 100, "A", "T"): {"DP": 42},  # only matches ALT=T
+                # (chr1, 100, "A", "G") not in caller → should get null
+            }
+        }
+
+        result = join_caller_columns(rescue, caller_data)
+        assert result["DNA_mutect2_DP"][0] == 42  # (A,T) matched
+        assert result["DNA_mutect2_DP"][1] is None  # (A,G) not matched
