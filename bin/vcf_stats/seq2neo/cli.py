@@ -88,10 +88,15 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         print(f"  [{sample_id}] WARNING: No variants in rescue VCF")
         return {"sample_id": sample_id, "df": None, "stats": None}
 
-    # Build target positions from rescue VCF
+    # Build target positions from rescue VCF as (CHROM, POS, REF, ALT) 4-tuples.
+    # Using all 4 columns ensures correct matching at multiallelic sites
+    # when joining caller FORMAT data. Normalized caller VCFs guarantee
+    # consistent REF/ALT representation.
     chroms = rescue_df["CHROM"].to_list()
     poss = rescue_df["POS"].to_list()
-    target_positions = set(zip(chroms, poss))
+    refs = rescue_df["REF"].to_list()
+    alts = rescue_df["ALT"].to_list()
+    target_positions = set(zip(chroms, poss, refs, alts))
 
     print(f"  [{sample_id}] Found {len(target_positions)} positions, parsing 6 caller VCFs (max_workers={max_workers})...")
     caller_data = parse_all_callers(base_dir, dir_name, vcf_prefix, target_positions, max_workers=max_workers)

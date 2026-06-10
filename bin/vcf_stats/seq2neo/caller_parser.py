@@ -24,6 +24,12 @@ from cyvcf2 import VCF
 
 from .manifest_loader import CALLER_CONFIGS, _find_vcf_file
 
+try:
+    import stats_core
+    HAS_RUST_CALLER = hasattr(stats_core, 'parse_caller_vcf')
+except ImportError:
+    HAS_RUST_CALLER = False
+
 # ── Callers that have GT/AD ───────────────────────────────────────────────
 CALLERS_WITH_GT = {"DNA_mutect2", "RNA_mutect2", "DNA_deepsomatic", "RNA_deepsomatic"}
 CALLERS_WITH_AD = {"DNA_mutect2", "RNA_mutect2", "DNA_deepsomatic", "RNA_deepsomatic"}
@@ -216,15 +222,25 @@ def parse_single_caller(
 
 def build_caller_results_lookup(
     caller_result: dict[str, list],
-) -> dict[tuple[str, int], dict[str, Any]]:
-    """Convert caller result lists to a position-keyed lookup dict."""
+) -> dict[tuple[str, int, str, str], dict[str, Any]]:
+    """Convert caller result lists to a position-keyed lookup dict.
+
+    Uses (CHROM, POS, REF, ALT) 4-tuple keys for correct matching at
+    multiallelic sites. Falls back to (CHROM, POS) if REF/ALT not present.
+    """
     lookup = {}
     chroms = caller_result.get("CHROM", [])
     poss = caller_result.get("POS", [])
-    keys = [k for k in caller_result.keys() if k not in ("CHROM", "POS")]
+    refs = caller_result.get("REF", [])
+    alts = caller_result.get("ALT", [])
+    keys = [k for k in caller_result.keys() if k not in ("CHROM", "POS", "REF", "ALT")]
 
     for i in range(len(chroms)):
-        key = (chroms[i], poss[i])
+        if refs and alts:
+            key = (chroms[i], poss[i], refs[i], alts[i])
+        else:
+            # Fallback for cyvcf2 results (2-tuple)
+            key = (chroms[i], poss[i], "", "")
         lookup[key] = {k: caller_result[k][i] for k in keys}
     return lookup
 
@@ -234,9 +250,13 @@ def _parse_one_caller(
     cfg: dict,
     base: str,
     vcf_prefix: str,
-    target_positions: set[tuple[str, int]],
+    target_positions: set[tuple],
 ) -> tuple[str, dict]:
-    """Parse a single caller VCF. Returns (caller_name, lookup_dict)."""
+    """Parse a single caller VCF. Returns (caller_name, lookup_dict).
+
+    Uses Rust stats_core.parse_caller_vcf when available (faster, GIL-released).
+    Falls back to cyvcf2 when Rust is unavailable.
+    """
     subdir = cfg["subdir"].format(prefix=vcf_prefix)
     vcf_path = _find_vcf_file(base, subdir, cfg["pattern"])
 
@@ -245,8 +265,30 @@ def _parse_one_caller(
         return (caller_name, {})
 
     print(f"    [{caller_name}] scanning {vcf_path}...")
+
+    if HAS_RUST_CALLER and target_positions:
+        # Use Rust parser with 4-tuple target positions
+        try:
+            sample = next(iter(target_positions))
+            if len(sample) >= 4:
+                chroms = [t[0] for t in target_positions]
+                poss = [t[1] for t in target_positions]
+                refs = [t[2] for t in target_positions]
+                alts = [t[3] for t in target_positions]
+                result = stats_core.parse_caller_vcf(
+                    vcf_path, chroms, poss, refs, alts,
+                    cfg["sample_suffix"], caller_name,
+                )
+                lookup = build_caller_results_lookup(result)
+                print(f"    [{caller_name}] found {len(lookup)} variants (Rust)")
+                return (caller_name, lookup)
+        except Exception as e:
+            print(f"    [{caller_name}] Rust parser failed ({e}), falling back to cyvcf2")
+
+    # Python fallback: use 2-tuple positions for cyvcf2
+    pos2 = {(t[0], t[1]) for t in target_positions}
     result = parse_single_caller(
-        vcf_path, target_positions, cfg["sample_suffix"], caller_name
+        vcf_path, pos2, cfg["sample_suffix"], caller_name
     )
     lookup = build_caller_results_lookup(result)
     print(f"    [{caller_name}] found {len(lookup)} variants")
@@ -257,7 +299,7 @@ def parse_all_callers(
     base_output_dir: str,
     dir_name: str,
     vcf_prefix: str,
-    target_positions: set[tuple[str, int]],
+    target_positions: set[tuple],
     max_workers: int = 1,
 ) -> dict[str, dict[str, Any]]:
     """Parse all 6 caller VCFs and return position-keyed results.
@@ -266,7 +308,7 @@ def parse_all_callers(
         base_output_dir: Sample's base output directory.
         dir_name: Sample's directory name.
         vcf_prefix: VCF prefix for this sample.
-        target_positions: Set of (CHROM, POS) to extract.
+        target_positions: Set of (CHROM, POS, REF, ALT) 4-tuples to extract.
         max_workers: Number of threads for parallel caller parsing.
 
     Returns:
