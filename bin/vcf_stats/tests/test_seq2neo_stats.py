@@ -1934,3 +1934,32 @@ class TestJoinOptimization:
         result = join_caller_columns(rescue, caller_data)
         assert result["DNA_mutect2_DP"][0] == 42  # (A,T) matched
         assert result["DNA_mutect2_DP"][1] is None  # (A,G) not matched
+
+    def test_schema_inference_with_late_values(self):
+        """Columns with None in first 100+ rows but values later work correctly."""
+        import polars as pl
+        from vcf_stats.seq2neo.caller_parser import join_caller_columns
+
+        # 200 variants: first 150 have None AD_REF, last 50 have actual values
+        positions = [(f"chr1", i * 1000, "A", "T") for i in range(1, 201)]
+        lookup = {}
+        for i, key in enumerate(positions):
+            if i < 150:
+                lookup[key] = {"DP": i + 1, "AD_REF": None, "AD_ALT": None}
+            else:
+                lookup[key] = {"DP": i + 1, "AD_REF": 20, "AD_ALT": 10}
+
+        rescue = pl.DataFrame({
+            "CHROM": [k[0] for k in positions],
+            "POS": [k[1] for k in positions],
+            "REF": [k[2] for k in positions],
+            "ALT": [k[3] for k in positions],
+        })
+
+        result = join_caller_columns(rescue, {"DNA_mutect2": lookup})
+        # First 150 rows: DP present, AD_REF/AD_ALT None
+        assert result["DNA_mutect2_DP"][0] == 1
+        assert result["DNA_mutect2_AD_REF"][0] is None
+        # Last row: AD_REF/AD_ALT have values
+        assert result["DNA_mutect2_AD_REF"][199] == 20
+        assert result["DNA_mutect2_AD_ALT"][199] == 10

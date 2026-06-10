@@ -377,17 +377,30 @@ def join_caller_columns(
                 df = df.with_columns(pl.lit(None).alias(f"{caller_name}_{field}"))
             continue
 
-        # Build caller DataFrame from lookup dict
-        rows = []
+        # Build caller DataFrame from lookup dict with explicit column types.
+        # polars schema inference (default: first 100 rows) can mis-infer
+        # columns that have None in early rows but values later.
+        # Build columns incrementally, backfilling None for newly-seen fields.
+        col_data: dict[str, list] = {c: [] for c in join_cols}
         for key, fields in lookup.items():
-            row = {"CHROM": key[0], "POS": key[1]}
-            if len(key) >= 4:
-                row["REF"] = key[2]
-                row["ALT"] = key[3]
-            row.update(fields)
-            rows.append(row)
+            col_data["CHROM"].append(key[0])
+            col_data["POS"].append(key[1])
+            col_data["REF"].append(key[2] if len(key) >= 4 else "")
+            col_data["ALT"].append(key[3] if len(key) >= 4 else "")
+            # Track fields seen and backfill missing ones
+            for fname in list(fields.keys()):
+                if fname not in col_data:
+                    col_data[fname] = [None] * (len(col_data["CHROM"]) - 1)
+                col_data[fname].append(fields[fname])
+            # Backfill None for fields not in this row
+            for fname in col_data:
+                if fname not in join_cols and len(col_data[fname]) < len(col_data["CHROM"]):
+                    col_data[fname].append(None)
 
-        caller_df = pl.DataFrame(rows) if rows else pl.DataFrame(schema={c: pl.Utf8 for c in join_cols})
+        if col_data["CHROM"]:
+            caller_df = pl.DataFrame(col_data)
+        else:
+            caller_df = pl.DataFrame(schema={c: pl.Utf8 for c in join_cols})
 
         # Select columns to join (all except join columns)
         data_cols = [c for c in caller_df.columns if c not in join_cols]
