@@ -7,13 +7,20 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
 /// Parse a rescue VCF and return a list of dicts (CHROM, POS, REF, ALT, FILTER, INFO...).
+///
+/// Rust parsing is done with the GIL released so multiple samples' VCFs can
+/// be parsed concurrently. Python object construction re-acquires the GIL.
 #[pyfunction]
 fn parse_rescue(py: Python<'_>, path: String) -> PyResult<Bound<'_, PyList>> {
-    let records = vcf::parse_rescue_vcf(&PathBuf::from(&path))
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-            format!("VCF parse error: {e}")
-        ))?;
+    let path_buf = PathBuf::from(&path);
+    // detach() releases the GIL during Rust VCF parsing (the CPU-intensive part).
+    // Must convert errors to String because Box<dyn Error> is not Ungil.
+    let records = py.detach(|| {
+        vcf::parse_rescue_vcf(&path_buf)
+            .map_err(|e| e.to_string())
+    }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))?;
 
+    // Re-acquire GIL for Python object construction
     let list = PyList::empty(py);
     for rec in &records {
         let d = PyDict::new(py);
