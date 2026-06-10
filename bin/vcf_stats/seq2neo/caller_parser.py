@@ -342,99 +342,86 @@ def join_caller_columns(
     rescue_df: pl.DataFrame,
     caller_data: dict[str, dict[str, Any]],
 ) -> pl.DataFrame:
-    """Join caller FORMAT columns onto the rescue DataFrame by (CHROM, POS).
+    """Join caller FORMAT columns onto the rescue DataFrame using polars join.
+
+    Uses (CHROM, POS, REF, ALT) 4-column matching for correct behavior at
+    multiallelic sites. Each caller's lookup dict is converted to a temporary
+    DataFrame and left-joined. Missing callers get null-filled columns.
 
     For each caller, adds columns: {caller}_DP, {caller}_AD_REF, {caller}_AD_ALT,
-    {caller}_GT (where available), {caller}_VAF (computed), etc.
-
-    Strelka: AD_REF = TOR[0], AD_ALT = TAR[0]
+    {caller}_GT (where available), {caller}_VAF_CALLER (where available), etc.
     """
     df = rescue_df.clone()
-    chroms = df["CHROM"].to_list()
-    poss = df["POS"].to_list()
-    n = len(chroms)
+    join_cols = ["CHROM", "POS", "REF", "ALT"]
+
+    # Ensure the rescue DF has the join columns
+    for col in join_cols:
+        if col not in df.columns:
+            raise KeyError(f"Rescue DataFrame missing join column: {col}")
 
     for caller_name in CALLER_CONFIGS:
         lookup = caller_data.get(caller_name, {})
         is_strelka = caller_name in CALLERS_STRELKA
         has_gt = caller_name in CALLERS_WITH_GT
 
-        # DP
-        dp_vals = []
-        for i in range(n):
-            key = (chroms[i], poss[i])
-            entry = lookup.get(key, {})
-            dp_vals.append(entry.get("DP"))
-        df = df.with_columns(pl.Series(f"{caller_name}_DP", dp_vals, dtype=pl.Int64))
+        if not lookup:
+            # Missing caller — null-fill all expected columns
+            null_fields = ["DP", "AD_REF", "AD_ALT"]
+            if has_gt:
+                null_fields.extend(["GT", "VAF_CALLER"])
+            if is_strelka:
+                null_fields.extend(["TAR", "TIR", "TOR", "AU", "CU", "GU", "TU"])
+            if has_gt and "mutect2" in caller_name.lower():
+                null_fields.extend(["SB", "FAD"])
+            for field in null_fields:
+                df = df.with_columns(pl.lit(None).alias(f"{caller_name}_{field}"))
+            continue
 
-        # AD (or Strelka proxy)
+        # Build caller DataFrame from lookup dict
+        rows = []
+        for key, fields in lookup.items():
+            row = {"CHROM": key[0], "POS": key[1]}
+            if len(key) >= 4:
+                row["REF"] = key[2]
+                row["ALT"] = key[3]
+            row.update(fields)
+            rows.append(row)
+
+        caller_df = pl.DataFrame(rows) if rows else pl.DataFrame(schema={c: pl.Utf8 for c in join_cols})
+
+        # Select columns to join (all except join columns)
+        data_cols = [c for c in caller_df.columns if c not in join_cols]
+
+        if not data_cols:
+            continue
+
+        # Rename data columns with caller prefix for join
+        rename_map = {c: f"{caller_name}_{c}" for c in data_cols}
+        caller_df = caller_df.select(list(join_cols) + data_cols).rename(rename_map)
+
+        # Left join on all 4 coordinate columns
+        df = df.join(caller_df, on=join_cols, how="left")
+
+        # Ensure Strelka has AD_REF/AD_ALT columns (may come as TAR/TOR)
         if is_strelka:
-            ad_ref_vals = []
-            ad_alt_vals = []
-            for i in range(n):
-                key = (chroms[i], poss[i])
-                entry = lookup.get(key, {})
-                ad_ref_vals.append(entry.get("TOR"))  # TOR[0] = other reads tier1
-                ad_alt_vals.append(entry.get("TAR"))  # TAR[0] = alt reads tier1
-            df = df.with_columns([
-                pl.Series(f"{caller_name}_AD_REF", ad_ref_vals, dtype=pl.Int64).alias(f"{caller_name}_AD_REF"),
-                pl.Series(f"{caller_name}_AD_ALT", ad_alt_vals, dtype=pl.Int64).alias(f"{caller_name}_AD_ALT"),
-            ])
-        else:
-            ad_ref_vals = []
-            ad_alt_vals = []
-            for i in range(n):
-                key = (chroms[i], poss[i])
-                entry = lookup.get(key, {})
-                ad_ref_vals.append(entry.get("AD_REF"))
-                ad_alt_vals.append(entry.get("AD_ALT"))
-            df = df.with_columns([
-                pl.Series(f"{caller_name}_AD_REF", ad_ref_vals, dtype=pl.Int64).alias(f"{caller_name}_AD_REF"),
-                pl.Series(f"{caller_name}_AD_ALT", ad_alt_vals, dtype=pl.Int64).alias(f"{caller_name}_AD_ALT"),
-            ])
+            tor_col = f"{caller_name}_TOR"
+            tar_col = f"{caller_name}_TAR"
+            ad_ref_col = f"{caller_name}_AD_REF"
+            ad_alt_col = f"{caller_name}_AD_ALT"
+            if tor_col in df.columns:
+                df = df.with_columns(pl.col(tor_col).alias(ad_ref_col))
+            else:
+                df = df.with_columns(pl.lit(None).alias(ad_ref_col))
+            if tar_col in df.columns:
+                df = df.with_columns(pl.col(tar_col).alias(ad_alt_col))
+            else:
+                df = df.with_columns(pl.lit(None).alias(ad_alt_col))
 
-        # GT
-        if has_gt:
-            gt_vals = []
-            for i in range(n):
-                key = (chroms[i], poss[i])
-                entry = lookup.get(key, {})
-                gt_vals.append(entry.get("GT"))
-            df = df.with_columns(pl.Series(f"{caller_name}_GT", gt_vals, dtype=pl.Utf8))
-
-        # Pre-computed VAF/AF from caller
-        precomp_key = CALLERS_WITH_PRECOMPUTED_VAF.get(caller_name)
-        if precomp_key:
-            vaf_caller_vals = []
-            for i in range(n):
-                key = (chroms[i], poss[i])
-                entry = lookup.get(key, {})
-                vaf_caller_vals.append(entry.get("VAF_CALLER"))
-            df = df.with_columns(
-                pl.Series(f"{caller_name}_VAF_CALLER", vaf_caller_vals, dtype=pl.Float64)
-            )
-
-        # Per-variant BAM-level FORMAT fields
-        if is_strelka:
-            for allele_field in ["AU", "CU", "GU", "TU"]:
-                vals = []
-                for i in range(n):
-                    key = (chroms[i], poss[i])
-                    vals.append(lookup.get(key, {}).get(allele_field))
-                df = df.with_columns(
-                    pl.Series(f"{caller_name}_{allele_field}", vals, dtype=pl.Int64)
-                )
-
-        has_mutect2_fields = has_gt and "mutect2" in caller_name.lower()
-        if has_mutect2_fields:
-            for field_name in ["SB", "FAD"]:
-                vals = []
-                for i in range(n):
-                    key = (chroms[i], poss[i])
-                    vals.append(lookup.get(key, {}).get(field_name))
-                dtype = pl.Utf8 if field_name == "SB" else pl.Utf8
-                df = df.with_columns(
-                    pl.Series(f"{caller_name}_{field_name}", vals, dtype=dtype)
-                )
+        # Ensure Mutect2/DeepSomatic have AD_REF/AD_ALT
+        if not is_strelka and has_gt:
+            for suf in ["AD_REF", "AD_ALT"]:
+                col = f"{caller_name}_{suf}"
+                if col not in df.columns:
+                    df = df.with_columns(pl.lit(None).alias(col))
 
     return df
