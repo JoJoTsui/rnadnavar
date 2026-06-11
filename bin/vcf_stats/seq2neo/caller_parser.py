@@ -339,7 +339,12 @@ def parse_all_callers(
     base = os.path.join(base_output_dir, dir_name)
     caller_data: dict[str, dict[str, list]] = {}
 
-    if max_workers <= 1:
+    # With Rust parser, caller VCFs are fast (~0.3-1.2s each, 4s total).
+    # ThreadPoolExecutor adds overhead and creates 6+ threads — avoid when
+    # already inside an outer ThreadPoolExecutor (sample_workers > 1).
+    use_parallel = max_workers > 1 and not HAS_RUST_CALLER
+
+    if not use_parallel:
         for caller_name, cfg in CALLER_CONFIGS.items():
             name, cols = _parse_one_caller(caller_name, cfg, base, vcf_prefix, target_positions)
             caller_data[name] = cols

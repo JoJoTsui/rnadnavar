@@ -14,6 +14,13 @@ import polars as pl
 alt.data_transformers.disable_max_rows()
 
 
+def _maybe_collect(df):
+    """Collect if lazy, pass-through if eager."""
+    if isinstance(df, pl.LazyFrame):
+        return df.collect()
+    return df
+
+
 def _eager(df):
     """Materialize if lazy. Pass-through if eager."""
     if isinstance(df, pl.LazyFrame):
@@ -60,7 +67,7 @@ def plot_vc_distribution(df, output_dir: str, group_col: str = "set_number"):
         return
     counts = (
         df.group_by([group_col, "VC"]).agg(pl.len().alias("count"))
-        .sort([group_col, "VC"]).to_pandas()
+        .sort([group_col, "VC"]).pipe(_maybe_collect).to_pandas()
     )
     counts[group_col] = counts[group_col].astype(str)
     chart = alt.Chart(counts).mark_bar().encode(
@@ -91,7 +98,7 @@ def plot_caller_overlap(df, output_dir: str):
     total_per_set = df.group_by("set_number").agg(pl.len().alias("total"))
     counts = counts.join(total_per_set, on="set_number").with_columns(
         (pl.col("count") / pl.col("total") * 100).alias("pct")
-    ).to_pandas()
+    ).pipe(_maybe_collect).to_pandas()
     counts["set_number"] = counts["set_number"].astype(str)
     chart = alt.Chart(counts).mark_bar().encode(
         x=alt.X("final_tier:N", title="Variant Tier (CxDy)"),
@@ -121,7 +128,7 @@ def plot_vaf_distribution(df, output_dir: str):
     # Sample to avoid vl-convert buffer overflow on large datasets
     if melted.height > 50000:
         melted = melted.sample(50000)
-    melted = melted.to_pandas()
+    melted = melted.pipe(_maybe_collect).to_pandas()
     chart = alt.Chart(melted).mark_boxplot().encode(
         x=alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
         y=alt.Y("VAF:Q", title="Variant Allele Frequency"),
@@ -141,7 +148,7 @@ def plot_dna_vs_rna_vaf(df, output_dir: str):
     pdf = df.select(cols).drop_nulls(subset=["DNA_VAF_mean", "RNA_VAF_mean"])
     if pdf.height > 5000:
         pdf = pdf.sample(5000)
-    pdf = pdf.to_pandas()
+    pdf = pdf.pipe(_maybe_collect).to_pandas()
     color_enc = alt.Color("VC:N", scale=alt.Scale(domain=VC_DOMAIN, range=VC_COLORS)) if "VC" in pdf.columns else alt.value("#1f77b4")
     chart = alt.Chart(pdf).mark_circle(opacity=0.4, size=20).encode(
         x=alt.X("DNA_VAF_mean:Q", title="DNA Mean VAF"),
@@ -160,7 +167,7 @@ def plot_dna_vs_rna_dp(df, output_dir: str):
     pdf = df.select(["DNA_DP_mean", "RNA_DP_mean", "set_number"]).drop_nulls()
     if pdf.height > 5000:
         pdf = pdf.sample(5000)
-    pdf = pdf.to_pandas()
+    pdf = pdf.pipe(_maybe_collect).to_pandas()
     pdf["set_number"] = pdf["set_number"].astype(str)
     chart = alt.Chart(pdf).mark_circle(opacity=0.4, size=20).encode(
         x=alt.X("DNA_DP_mean:Q", title="DNA Mean Depth"),
@@ -205,7 +212,7 @@ def plot_gt_concordance(df, output_dir: str):
             sum(1 for ag in agreements if ag == 3),
             sum(1 for ag in agreements if ag == 4),
         ],
-    }).to_pandas()
+    }).pipe(_maybe_collect).to_pandas()
 
     chart = alt.Chart(counts).mark_bar().encode(
         x=alt.X("agreement_level:N", title="Number of Callers Agreeing on GT"),
@@ -231,7 +238,7 @@ def plot_cosmic_gnomad_annotation(df, output_dir: str):
         cd = pl.DataFrame({
             "category": ["In COSMIC", "Not in COSMIC"],
             "count": [has_cosmic, n - has_cosmic],
-        }).to_pandas()
+        }).pipe(_maybe_collect).to_pandas()
         cosmic_chart = alt.Chart(cd).mark_arc(innerRadius=40).encode(
             theta=alt.Theta("count:Q"),
             color=alt.Color("category:N", scale=alt.Scale(
@@ -244,7 +251,7 @@ def plot_cosmic_gnomad_annotation(df, output_dir: str):
         gd = pl.DataFrame({
             "category": ["Has gnomAD AF", "No gnomAD AF"],
             "count": [has_gnomad, n - has_gnomad],
-        }).to_pandas()
+        }).pipe(_maybe_collect).to_pandas()
         gnomad_chart = alt.Chart(gd).mark_arc(innerRadius=40).encode(
             theta=alt.Theta("count:Q"),
             color=alt.Color("category:N", scale=alt.Scale(
@@ -270,7 +277,7 @@ def plot_variant_type_distribution(df, output_dir: str):
         return
     pdf = df.group_by(["set_number", "variant_type"]).agg(
         pl.len().alias("count")
-    ).to_pandas()
+    ).pipe(_maybe_collect).to_pandas()
     pdf["set_number"] = pdf["set_number"].astype(str)
     chart = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("set_number:N", title="Set"),
@@ -289,7 +296,7 @@ def plot_ti_tv_ratio(df, output_dir: str):
     ti = df.filter(pl.col("ti_tv") == True).group_by("set_number").agg(pl.len().alias("ti"))
     tv = df.filter(pl.col("ti_tv") == False).group_by("set_number").agg(pl.len().alias("tv"))
     ratio = ti.join(tv, on="set_number").with_columns(
-        (pl.col("ti") / pl.col("tv")).alias("ratio")).to_pandas()
+        (pl.col("ti") / pl.col("tv")).alias("ratio")).pipe(_maybe_collect).to_pandas()
     ratio["set_number"] = ratio["set_number"].astype(str)
     bars = alt.Chart(ratio).mark_bar().encode(
         x=alt.X("set_number:N", title="Set"),
@@ -321,7 +328,7 @@ def plot_cross_modality(df, output_dir: str):
             pl.len().alias("count")
         ).join(total_per_set, on="set_number").with_columns(
             (pl.col("count") / pl.col("total") * 100).round(1).alias("pct")
-        ).to_pandas()
+        ).pipe(_maybe_collect).to_pandas()
         pdf["set_number"] = pdf["set_number"].astype(str)
 
         bars = alt.Chart(pdf).mark_bar().encode(
@@ -358,7 +365,7 @@ def plot_per_sample_distribution(sample_stats_df, output_dir: str, top_n: int = 
 
     pdf = sample_stats_df.select(["sample_id", "total_variants"]).sort(
         "total_variants", descending=True
-    ).head(top_n).to_pandas()
+    ).head(top_n).pipe(_maybe_collect).to_pandas()
     chart = alt.Chart(pdf).mark_bar().encode(
         y=alt.Y("sample_id:N", title="Sample ID", sort=None),
         x=alt.X("total_variants:Q", title="Total Variants per Sample"),
@@ -376,7 +383,7 @@ def plot_validation_heatmap(report, output_dir: str):
     """Chart 13: Rescue VCF validation heatmap (mismatch % per metric × sample)."""
     if report is None or (hasattr(report, 'is_empty') and report.is_empty()):
         return
-    pivot = report.to_pandas().pivot(
+    pivot = report.pipe(_maybe_collect).to_pandas().pivot(
         index="sample_id", columns="metric", values="mismatch_pct"
     ).reset_index().melt(id_vars="sample_id", var_name="metric", value_name="mismatch_pct")
     chart = alt.Chart(pivot).mark_rect().encode(
@@ -410,7 +417,7 @@ def plot_vaf_boxplot_per_tier(df, output_dir: str):
     ).drop_nulls()
     if melted.height > 50000:
         melted = melted.sample(50000)
-    pdf = melted.to_pandas()
+    pdf = melted.pipe(_maybe_collect).to_pandas()
     # Clean caller names for display
     pdf["caller"] = pdf["caller"].str.replace("_VAF", "")
 
@@ -442,7 +449,7 @@ def plot_dp_boxplot_per_tier(df, output_dir: str):
     ).drop_nulls()
     if melted.height > 50000:
         melted = melted.sample(50000)
-    pdf = melted.to_pandas()
+    pdf = melted.pipe(_maybe_collect).to_pandas()
     pdf["caller"] = pdf["caller"].str.replace("_DP", "")
 
     chart = alt.Chart(pdf).mark_boxplot(extent="min-max").encode(
@@ -484,7 +491,7 @@ def plot_gt_concordance_per_tier(df, output_dir: str):
 
     pdf = pl.DataFrame(rows).group_by(["caller_tier", "agreement"]).agg(
         pl.len().alias("count")
-    ).to_pandas()
+    ).pipe(_maybe_collect).to_pandas()
     pdf["agreement"] = pdf["agreement"].astype(str)
 
     chart = alt.Chart(pdf).mark_bar().encode(
@@ -509,7 +516,7 @@ def plot_tiered_caller_overlap(df, output_dir: str):
     total_per_tier = df.group_by("caller_tier").agg(pl.len().alias("total"))
     pdf = counts.join(total_per_tier, on="caller_tier").with_columns(
         (pl.col("count") / pl.col("total") * 100).alias("pct")
-    ).to_pandas()
+    ).pipe(_maybe_collect).to_pandas()
 
     chart = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("N_SUPPORT_CALLERS:O", title="Number of Supporting Callers"),
@@ -529,7 +536,7 @@ def plot_tiered_variant_types(df, output_dir: str):
 
     pdf = df.group_by(["caller_tier", "variant_type"]).agg(
         pl.len().alias("count")
-    ).to_pandas()
+    ).pipe(_maybe_collect).to_pandas()
 
     chart = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("variant_type:N", title="Variant Type"),
@@ -557,7 +564,7 @@ def plot_ref_alt_dp_scatter(df, output_dir: str):
         pdf = df.select([x_col, y_col, "set_number"]).drop_nulls()
         if pdf.height > 5000:
             pdf = pdf.sample(5000)
-        pdf_pd = pdf.to_pandas()
+        pdf_pd = pdf.pipe(_maybe_collect).to_pandas()
         pdf_pd["set_number"] = pdf_pd["set_number"].astype(str)
         c = alt.Chart(pdf_pd).mark_circle(opacity=0.4, size=20).encode(
             x=alt.X(f"{x_col}:Q", title=f"DNA Mean {label}"),
@@ -589,7 +596,7 @@ def plot_bam_metrics_bars(bam_stats_df, output_dir: str, top_n: int = 20):
     ).sort("max_reads", descending=True).head(top_n)["sample_id"].to_list()
     pdf = bam_stats_df.filter(pl.col("sample_id").is_in(top_ids)).select(
         ["sample_id", "bam_type", "total_reads", "mapped_reads"]
-    ).to_pandas()
+    ).pipe(_maybe_collect).to_pandas()
     chart = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("sample_id:N", title="Sample", axis=alt.Axis(labelAngle=-45)),
         y=alt.Y("total_reads:Q", title="Total Reads"),
@@ -611,7 +618,7 @@ def plot_bam_coverage_violin(df, output_dir: str):
     ).drop_nulls()
     if melted.height > 50000:
         melted = melted.sample(50000)
-    pdf = melted.to_pandas()
+    pdf = melted.pipe(_maybe_collect).to_pandas()
     chart = alt.Chart(pdf).mark_boxplot(extent="min-max").encode(
         x=alt.X("bam_type:N", title="BAM Type"),
         y=alt.Y("DP:Q", title="Depth at Variant Position"),
@@ -628,7 +635,7 @@ def plot_per_sample_tier_distribution(sample_tier_df, output_dir: str):
         return
     if "sample_id" not in sample_tier_df.columns or "final_tier" not in sample_tier_df.columns:
         return
-    pdf = sample_tier_df.select(["sample_id", "final_tier", "n_variants"]).to_pandas()
+    pdf = sample_tier_df.select(["sample_id", "final_tier", "n_variants"]).pipe(_maybe_collect).to_pandas()
     chart = alt.Chart(pdf).mark_bar().encode(
         y=alt.Y("sample_id:N", title="Sample ID", sort=None),
         x=alt.X("n_variants:Q", title="Variants"),
@@ -649,7 +656,7 @@ def plot_per_tier_cross_sample_vaf(sample_tier_df, output_dir: str):
             break
     if not vaf_col or "final_tier" not in sample_tier_df.columns:
         return
-    pdf = sample_tier_df.select(["final_tier", vaf_col]).to_pandas()
+    pdf = sample_tier_df.select(["final_tier", vaf_col]).pipe(_maybe_collect).to_pandas()
     chart = alt.Chart(pdf).mark_boxplot().encode(
         x=alt.X("final_tier:N", title="Tier"),
         y=alt.Y(f"{vaf_col}:Q", title=f"Mean {vaf_col}"),
@@ -664,7 +671,7 @@ def plot_filter_distribution(df, output_dir: str):
     df = _eager(df)
     if "FILTER" not in df.columns:
         return
-    counts = df.group_by("FILTER").agg(pl.len().alias("count")).sort("count", descending=True).to_pandas()
+    counts = df.group_by("FILTER").agg(pl.len().alias("count")).sort("count", descending=True).pipe(_maybe_collect).to_pandas()
     chart = alt.Chart(counts).mark_bar().encode(
         x=alt.X("count:Q", title="Number of Variants"),
         y=alt.Y("FILTER:N", title="FILTER", sort="-x"),
@@ -691,7 +698,7 @@ def plot_dna_vs_rna_per_caller(df, output_dir: str):
         pdf = df.select(cols).drop_nulls(subset=[dna_vaf, rna_vaf])
         if pdf.height > 5000:
             pdf = pdf.sample(5000)
-        pdf_pd = pdf.to_pandas()
+        pdf_pd = pdf.pipe(_maybe_collect).to_pandas()
         caller_label = dna_caller.replace("DNA_", "")
         color_enc = alt.Color("VC:N", scale=alt.Scale(domain=VC_DOMAIN, range=VC_COLORS)) if "VC" in pdf_pd.columns else alt.value("#1f77b4")
         c = alt.Chart(pdf_pd).mark_circle(opacity=0.4, size=20).encode(
@@ -712,7 +719,7 @@ def plot_chromosome_density(df, output_dir: str):
     df = _eager(df)
     if "CHROM" not in df.columns:
         return
-    counts = df.group_by("CHROM").agg(pl.len().alias("count")).sort("count", descending=True).to_pandas()
+    counts = df.group_by("CHROM").agg(pl.len().alias("count")).sort("count", descending=True).pipe(_maybe_collect).to_pandas()
     chart = alt.Chart(counts).mark_bar().encode(
         x=alt.X("CHROM:N", title="Chromosome", sort="-y"),
         y=alt.Y("count:Q", title="Number of Variants"),
@@ -727,7 +734,7 @@ def plot_redi_evidence(df, output_dir: str):
     df = _eager(df)
     if "REDI_EVIDENCE" not in df.columns:
         return
-    counts = df.group_by("REDI_EVIDENCE").agg(pl.len().alias("count")).sort("count", descending=True).to_pandas()
+    counts = df.group_by("REDI_EVIDENCE").agg(pl.len().alias("count")).sort("count", descending=True).pipe(_maybe_collect).to_pandas()
     chart = alt.Chart(counts).mark_bar().encode(
         x=alt.X("REDI_EVIDENCE:N", title="REDIportal Evidence Level"),
         y=alt.Y("count:Q", title="Number of Variants"),
@@ -742,7 +749,7 @@ def plot_tier_quality_distribution(df, output_dir: str):
     df = _eager(df)
     if "tier_quality" not in df.columns:
         return
-    pdf = df.select(["tier_quality"]).to_pandas()
+    pdf = df.select(["tier_quality"]).pipe(_maybe_collect).to_pandas()
     chart = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("tier_quality:Q", bin=alt.Bin(maxbins=20), title="Tier Quality Score"),
         y=alt.Y("count()", title="Number of Variants"),
@@ -759,7 +766,7 @@ def plot_per_tier_vaf_boxplot(df, output_dir: str):
     pdf = df.select(["final_tier", "DNA_VAF_mean", "RNA_VAF_mean"]).drop_nulls(subset=["DNA_VAF_mean"])
     if pdf.height > 50000:
         pdf = pdf.sample(50000)
-    pdf = pdf.to_pandas()
+    pdf = pdf.pipe(_maybe_collect).to_pandas()
     chart = alt.Chart(pdf).mark_boxplot().encode(
         x=alt.X("final_tier:N", title="Tier"),
         y=alt.Y("DNA_VAF_mean:Q", title="DNA Mean VAF"),
@@ -799,7 +806,7 @@ def plot_caller_agreement_matrix(df, output_dir: str):
             rows.append({"caller_1": c1.replace("DNA_", "D_").replace("RNA_", "R_"),
                          "caller_2": c2.replace("DNA_", "D_").replace("RNA_", "R_"),
                          "pct": pct})
-    pdf = pl.DataFrame(rows).to_pandas()
+    pdf = pl.DataFrame(rows).pipe(_maybe_collect).to_pandas()
     chart = alt.Chart(pdf).mark_rect().encode(
         x=alt.X("caller_1:N", title=None),
         y=alt.Y("caller_2:N", title=None),

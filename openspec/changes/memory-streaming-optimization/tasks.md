@@ -59,6 +59,6 @@
 
 ## 7. End-to-end verification
 
-- [ ] 7.1 Run on 4 samples, verify all CSV outputs match previous eager mode
-- [ ] 7.2 Run on 20 samples, verify peak memory < 4 GB
-- [ ] 7.3 Run full non-e2e test suite, ensure 0 regressions
+- [x] 7.1 Run on 4 samples, verify all CSV outputs match previous eager mode
+- [x] 7.2 Run on 20 samples, verify peak memory < 4 GB
+- [x] 7.3 Run full non-e2e test suite, ensure 0 regressions
