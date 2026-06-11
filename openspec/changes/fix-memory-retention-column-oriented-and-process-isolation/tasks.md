@@ -62,8 +62,13 @@
 
 ## 7. Verification
 
-- [x] 7.1 Build Rust module with all 6 functions exported (parse_rescue, parse_rescue_columns, bam_stats, parse_caller_vcf, compute_tiers, pileup_variants)
-- [ ] 7.2 Run 4-sample test with `--sample-workers 4 --process-mode spawn`, verify no OOM and output parity
-- [ ] 7.3 Run 12-sample test (the same set that previously OOM-killed), verify all samples complete successfully
-- [ ] 7.4 Profile memory: log per-worker peak RSS, confirm <60 GB per process for large (>2M variant) samples
-- [ ] 7.5 Verify all output CSV/parquet files are byte-identical to a thread-based run
+- [x] 7.1 Build Rust module with all 6 functions exported
+- [x] 7.2 24-sample pipeline completed successfully with --process-mode spawn
+- [ ] 7.3 Verify resource_tracker semaphore warning eliminated (close+join fix)
+- [ ] 7.4 Profile memory: log per-worker peak RSS, confirm <60 GB per process
+- [ ] 7.5 Verify output parity with thread-based run
+
+## 8. Bugfix: Semaphore leak (6 leaked semaphore objects)
+
+- [x] 8.1 Root cause: mp.Pool creates 6 POSIX SemLocks (3 SimpleQueue × 2 locks each). `with` block calls `terminate()` → SIGTERM kills workers before their `Finalize` handlers run → `sem_close`/`sem_unlink` never called → resource_tracker warns at shutdown
+- [x] 8.2 Fix: Replace `with ctx.Pool(...)` with explicit `pool.close()` + `pool.join()` + `try/finally`. Workers exit gracefully → `Finalize` runs → `sem_unlink` called → no warning

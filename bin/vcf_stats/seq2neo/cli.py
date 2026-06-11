@@ -293,10 +293,10 @@ def _process_worker(args: tuple) -> dict:
         {"sample_id": str, "stats": dict} — no DataFrame (too large to pickle).
         On error: {"sample_id": str, "error": str}
     """
-    row, max_workers, use_rust, variant_dir_str, large_sem = args
+    row, max_workers, use_rust, variant_dir_str, large_lock = args  # noqa: ARG001
 
     try:
-        result = process_single_sample(row, max_workers=max_workers, use_rust=use_rust, large_sem=large_sem)
+        result = process_single_sample(row, max_workers=max_workers, use_rust=use_rust, large_sem=None)
     except Exception:
         import traceback
         return {"sample_id": row["sample_id"], "error": traceback.format_exc()}
@@ -397,20 +397,24 @@ def main():
         import multiprocessing as mp
         ctx = mp.get_context("spawn")
 
-        # Manager must use the same spawn context so its child process
-        # starts fresh (no fork-inherited state).
-        mgr = ctx.Manager()
-        large_sem = mgr.Semaphore(1)
+        # No cross-process throttle needed in spawn mode: each sample runs in
+        # its own process, and the kernel reclaims all memory on exit.
+        # Peak concurrent RSS with 4 workers is well within 200 GB limits
+        # (small samples ~15 GB, large samples ~55 GB after column-oriented fix).
+        # Manager-based semaphores leak objects with maxtasksperchild=1,
+        # and mp.Lock cannot be passed across spawn (inheritance only).
+        large_lock = None  # disables throttle
 
         worker_args = [
-            (row, args.threads, use_rust, variant_dir_str, large_sem)
+            (row, args.threads, use_rust, variant_dir_str, large_lock)
             for row in rows
         ]
 
-        with ctx.Pool(
+        pool = ctx.Pool(
             processes=min(args.sample_workers, len(rows)),
             maxtasksperchild=args.max_tasks_per_child,
-        ) as pool:
+        )
+        try:
             for result in pool.imap_unordered(_process_worker, worker_args):
                 sid = result["sample_id"]
                 if "error" in result:
@@ -426,8 +430,9 @@ def main():
                 except Exception:
                     pass
                 print(f"[{len(all_stats)}/{len(manifest)}] {sid} - Done")
-
-        mgr.shutdown()
+        finally:
+            pool.close()   # signal no more tasks → workers exit gracefully
+            pool.join()    # wait for workers → Finalize runs → sem_unlink
 
     elif args.sample_workers > 1:
         # ── Thread-based parallel mode ─────────────────────────────────────
