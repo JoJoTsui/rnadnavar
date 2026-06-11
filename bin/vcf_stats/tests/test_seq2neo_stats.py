@@ -2348,7 +2348,10 @@ class TestColumnOrientedRescueParser:
     @pytest.fixture(scope="class")
     def rescue_data(self):
         """Parse rescue VCF once for the entire class (saves ~80s across 7 tests)."""
-        import stats_core
+        try:
+            import stats_core
+        except ImportError:
+            pytest.skip("stats_core not available")
         import glob
 
         if not hasattr(stats_core, 'parse_rescue_columns'):
