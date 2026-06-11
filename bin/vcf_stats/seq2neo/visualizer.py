@@ -454,21 +454,23 @@ def plot_gt_concordance_per_tier(df, output_dir: str):
     from collections import Counter
 
     tiers = df["caller_tier"].unique().to_list()
-    rows = []
-    for row in df.select(existing_gt + ["caller_tier"]).to_dicts():
-        gts = [g for g in [row.get(c) for c in existing_gt]
+    # Use iter_rows() not to_dicts() — avoid creating Python dicts per row
+    agree_counts: dict[tuple, int] = {}
+    for row in df.select(existing_gt + ["caller_tier"]).iter_rows():
+        gts = [g for g in row[:-1]  # last column is caller_tier
                if g is not None and g not in ("./.", "./.", ".")]
         if len(gts) < 2:
             continue
         best = Counter(gts).most_common(1)[0][1]
         if best >= 2:
-            rows.append({"caller_tier": row["caller_tier"], "agreement": best})
+            key = (row[-1], best)  # (caller_tier, agreement)
+            agree_counts[key] = agree_counts.get(key, 0) + 1
 
-    if not rows:
+    if not agree_counts:
         return
 
-    pdf = pl.DataFrame(rows).group_by(["caller_tier", "agreement"]).agg(
-        pl.len().alias("count")
+    pdf = pl.DataFrame(
+        [{"caller_tier": k[0], "agreement": k[1], "count": v} for k, v in agree_counts.items()]
     ).pipe(_maybe_collect).to_pandas()
     pdf["agreement"] = pdf["agreement"].astype(str)
 

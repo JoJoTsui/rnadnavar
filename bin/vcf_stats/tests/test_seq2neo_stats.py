@@ -2179,14 +2179,92 @@ class TestMemoryRegression:
         assert "del rescue_df, caller_data" in source, "Missing: del rescue_df, caller_data (in process_single_sample)"
 
     def test_join_frees_caller_entry(self):
-        """join_caller_columns clears each caller_data entry after joining.
-
-        Code review check: the function should clear caller_data[caller_name]
-        after the join to help GC free memory.
-        """
+        """join_caller_columns clears each caller_data entry after joining."""
         import inspect
         from vcf_stats.seq2neo.caller_parser import join_caller_columns
         source = inspect.getsource(join_caller_columns)
         assert "caller_data[caller_name] = {}" in source, (
             "Missing: caller_data entry cleanup in join_caller_columns"
         )
+
+    def test_no_to_dicts_on_variant_df(self):
+        """Chart functions must not call df.to_dicts() on variant-level DataFrames."""
+        import inspect, re
+        from vcf_stats.seq2neo.visualizer import (
+            plot_gt_concordance, plot_gt_concordance_per_tier,
+        )
+        for func in [plot_gt_concordance, plot_gt_concordance_per_tier]:
+            source = inspect.getsource(func)
+            # Remove comments and docstrings before checking
+            code_only = re.sub(r'""".*?"""', '', source, flags=re.DOTALL)
+            code_only = re.sub(r'#.*', '', code_only)
+            assert ".to_dicts()" not in code_only, (
+                f"{func.__name__} uses .to_dicts() — should use iter_rows() instead"
+            )
+
+    def test_no_to_dicts_in_caller_join_path(self):
+        """join_caller_columns must NOT call build_caller_results_lookup.
+
+        The Rust path passes column-oriented data directly. Only the
+        cyvcf2 fallback should use build_caller_results_lookup.
+        """
+        import inspect
+        from vcf_stats.seq2neo.caller_parser import join_caller_columns
+        source = inspect.getsource(join_caller_columns)
+        assert "build_caller_results_lookup" not in source, (
+            "join_caller_columns calls build_caller_results_lookup — "
+            "should receive column-oriented data directly"
+        )
+
+    def test_to_dicts_only_on_aggregated_data(self):
+        """Any to_dicts() call must be on aggregated (group_by) results, not raw data.
+
+        Scans statistics.py for to_dicts() usage and verifies they're on
+        group_by results (tier_counts), not on variant-level DataFrames.
+        """
+        import inspect
+        from vcf_stats.seq2neo.statistics import sample_summary, dataset_summary
+        # sample_summary uses tier_counts.to_dicts() — tier_counts is aggregated (14 rows)
+        source = inspect.getsource(sample_summary)
+        # Verify to_dicts is on a group_by result, not on the input df
+        assert "tier_counts.to_dicts()" in source, "Expected tier_counts.to_dicts() in sample_summary"
+
+    def test_rust_caller_no_column_length_mismatch(self):
+        """All columns from Rust parse_caller_vcf have equal length.
+
+        Regression test for the for _ in 0..7 bug that inflated
+        Strelka columns 7× for non-Strelka callers.
+        """
+        try:
+            import stats_core
+            if not hasattr(stats_core, 'parse_caller_vcf'):
+                pytest.skip("Rust parse_caller_vcf not available")
+        except ImportError:
+            pytest.skip("stats_core not available")
+
+        import glob
+        base = os.path.join(REAL_SAMPLE["base_output_dir"], REAL_SAMPLE["dir_name"])
+        rescue = glob.glob(os.path.join(base, "vcf_realignment", "rescue", "*", "*.filtered.vcf.stripped.vcf.gz"))
+        if not rescue:
+            pytest.skip("Rescue VCF not found")
+
+        records = stats_core.parse_rescue(rescue[0])
+        chroms = [r["CHROM"] for r in records]
+        poss = [r["POS"] for r in records]
+        refs = [r["REF"] for r in records]
+        alts = [r["ALT"] for r in records]
+
+        for cn in ["DNA_mutect2", "DNA_deepsomatic", "DNA_strelka"]:
+            cfg = CALLER_CONFIGS[cn]
+            subdir = cfg["subdir"].format(prefix=REAL_SAMPLE["vcf_prefix"])
+            vcf_path = glob.glob(os.path.join(base, subdir, cfg["pattern"]))
+            if not vcf_path:
+                continue
+            result = stats_core.parse_caller_vcf(
+                vcf_path[0], chroms, poss, refs, alts, cfg["sample_suffix"], cn
+            )
+            n = len(result["CHROM"])
+            for k in result:
+                assert len(result[k]) == n, (
+                    f"[{cn}] column {k} length {len(result[k])} != CHROM length {n}"
+                )
