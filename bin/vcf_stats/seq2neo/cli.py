@@ -10,12 +10,19 @@ Usage:
 """
 
 import argparse
+import gc
 import os
 import sys
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import polars as pl
+
+# Semaphore to prevent concurrent processing of large (>2M position) samples.
+# With sample_workers=4, only 1 large sample processes at a time.
+_LARGE_SAMPLE_SEM = threading.Semaphore(1)
+_LARGE_THRESHOLD = 2_000_000
 
 from .bam_stats import compute_all_bam_stats
 from .bam_validation import validate_bam_vs_caller as validate_bam_one
@@ -88,49 +95,66 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         print(f"  [{sample_id}] WARNING: No variants in rescue VCF — sample SKIPPED (will not appear in cross-sample statistics)")
         return {"sample_id": sample_id, "df": None, "stats": None}
 
-    # Build target positions from rescue VCF as (CHROM, POS, REF, ALT) 4-tuples.
-    # Using all 4 columns ensures correct matching at multiallelic sites
-    # when joining caller FORMAT data. Normalized caller VCFs guarantee
-    # consistent REF/ALT representation.
-    chroms = rescue_df["CHROM"].to_list()
-    poss = rescue_df["POS"].to_list()
-    refs = rescue_df["REF"].to_list()
-    alts = rescue_df["ALT"].to_list()
-    target_positions = set(zip(chroms, poss, refs, alts))
-    # Free intermediate lists — target_positions is a set, lists no longer needed
-    del chroms, poss, refs, alts
+    # Auto-throttle: large samples (>2M positions) process exclusively to
+    # prevent memory spikes from concurrent 20-30 GB allocations.
+    n_variants = len(rescue_df)
+    is_large = n_variants > _LARGE_THRESHOLD
+    if is_large:
+        print(f"  [{sample_id}] Large sample ({n_variants} variants) — waiting for exclusive access...")
+        _LARGE_SAMPLE_SEM.acquire()
+        print(f"  [{sample_id}] Large sample acquired exclusive access")
+    try:
+        # Build target positions in chunks to avoid materializing all Python strings
+        # at once. For a 7M-variant sample, to_list() would create 28M Python objects
+        # (1.25 GB). Chunked iteration limits peak to ~100K objects per chunk.
+        chunk_size = 100_000
+        n_positions = len(rescue_df)
+        target_positions = set()
+        for start in range(0, n_positions, chunk_size):
+            end = min(start + chunk_size, n_positions)
+            chunk = rescue_df[start:end, ["CHROM", "POS", "REF", "ALT"]]
+            for row in chunk.iter_rows():
+                target_positions.add((row[0], row[1], row[2], row[3]))
+            del chunk
+        del start, end  # loop variables
 
-    print(f"  [{sample_id}] Found {len(target_positions)} positions, parsing 6 caller VCFs (max_workers={max_workers})...")
-    caller_data = parse_all_callers(base_dir, dir_name, vcf_prefix, target_positions, max_workers=max_workers)
-    # Free target_positions — no longer needed after caller parsing
-    del target_positions
+        print(f"  [{sample_id}] Found {len(target_positions)} positions, parsing 6 caller VCFs (max_workers={max_workers})...")
+        caller_data = parse_all_callers(base_dir, dir_name, vcf_prefix, target_positions, max_workers=max_workers)
+        # Free target_positions — no longer needed after caller parsing
+        del target_positions
+        gc.collect()
 
-    # Join caller columns onto rescue dataframe
-    df = join_caller_columns(rescue_df, caller_data)
-    # Free rescue_df and caller_data — no longer needed after join
-    del rescue_df, caller_data
+        # Join caller columns onto rescue dataframe
+        df = join_caller_columns(rescue_df, caller_data)
+        # Free rescue_df and caller_data — no longer needed after join
+        del rescue_df, caller_data
+        gc.collect()
 
-    # Add sample metadata
-    df = df.with_columns([
-        pl.lit(sample_id).alias("sample_id"),
-        pl.lit(row["set_number"]).cast(pl.Int64).alias("set_number"),
-        pl.lit(row["disease"]).alias("disease"),
-        pl.lit(row["disease_normalized"]).alias("disease_normalized"),
-    ])
+        # Add sample metadata
+        df = df.with_columns([
+            pl.lit(sample_id).alias("sample_id"),
+            pl.lit(row["set_number"]).cast(pl.Int64).alias("set_number"),
+            pl.lit(row["disease"]).alias("disease"),
+            pl.lit(row["disease_normalized"]).alias("disease_normalized"),
+        ])
 
-    # Compute per-variant statistics (VAF, means)
-    df = compute_all_per_variant(df)
+        # Compute per-variant statistics (VAF, means)
+        df = compute_all_per_variant(df)
 
-    # Compute CxDy tiers via tiering engine
-    df = compute_tiers_for_dataframe(df)
+        # Compute CxDy tiers via tiering engine
+        df = compute_tiers_for_dataframe(df)
 
-    # Compute sample-level summary
-    stats = sample_summary(df, sample_id)
-    stats["set_number"] = row["set_number"]
-    stats["disease"] = row["disease"]
+        # Compute sample-level summary
+        stats = sample_summary(df, sample_id)
+        stats["set_number"] = row["set_number"]
+        stats["disease"] = row["disease"]
 
-    print(f"  [{sample_id}] Done: {len(df)} variants")
-    return {"sample_id": sample_id, "df": df, "stats": stats}
+        print(f"  [{sample_id}] Done: {len(df)} variants")
+        return {"sample_id": sample_id, "df": df, "stats": stats}
+    finally:
+        if is_large:
+            _LARGE_SAMPLE_SEM.release()
+            print(f"  [{sample_id}] Large sample released exclusive access")
 
 
 def main():

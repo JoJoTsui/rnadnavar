@@ -90,7 +90,7 @@ fn parse_caller_vcf(
     let kind = caller::CallerKind::from_name(&caller_name);
 
     let results = py.detach(|| {
-        caller::parse_caller_vcf(&path_buf, &targets, &sample_suffix, kind)
+        caller::parse_caller_vcf(&path_buf, targets, &sample_suffix, kind)
             .map_err(|e| e.to_string())
     }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))?;
 

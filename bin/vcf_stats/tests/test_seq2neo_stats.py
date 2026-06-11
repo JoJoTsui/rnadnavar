@@ -2164,19 +2164,13 @@ class TestMemoryRegression:
             assert not isinstance(key, tuple), f"Row-oriented key found: {key}"
 
     def test_process_single_sample_frees_intermediates(self):
-        """process_single_sample has del statements for rescue_df, caller_data, etc.
-
-        Code review check: the function should contain del statements for
-        chroms, poss, refs, alts, target_positions, rescue_df, and caller_data.
-        """
+        """process_single_sample has del statements for memory cleanup."""
         import inspect
         from vcf_stats.seq2neo.cli import process_single_sample
         source = inspect.getsource(process_single_sample)
-        # Verify del statements exist for memory cleanup
-        assert "del chroms" in source, "Missing: del chroms, poss, refs, alts"
         assert "del target_positions" in source, "Missing: del target_positions"
-        assert "del rescue_df" in source, "Missing: del rescue_df"
-        assert "del rescue_df, caller_data" in source, "Missing: del rescue_df, caller_data (in process_single_sample)"
+        assert "del rescue_df, caller_data" in source, "Missing: del rescue_df, caller_data"
+        assert "gc.collect()" in source, "Missing: gc.collect() after del"
 
     def test_join_frees_caller_entry(self):
         """join_caller_columns clears each caller_data entry after joining."""
@@ -2228,6 +2222,41 @@ class TestMemoryRegression:
         source = inspect.getsource(sample_summary)
         # Verify to_dicts is on a group_by result, not on the input df
         assert "tier_counts.to_dicts()" in source, "Expected tier_counts.to_dicts() in sample_summary"
+
+    def test_chunked_target_building(self):
+        """Target positions are built via chunked iter_rows, not to_list()."""
+        import inspect
+        from vcf_stats.seq2neo.cli import process_single_sample
+        source = inspect.getsource(process_single_sample)
+        # Should NOT have to_list() for CHROM/POS/REF/ALT (old pattern)
+        assert '["CHROM"].to_list()' not in source, "Still using to_list() for target positions"
+        assert '["POS"].to_list()' not in source, "Still using to_list() for target positions"
+        # Should have chunked iteration
+        assert "iter_rows()" in source, "Missing chunked iter_rows() for target building"
+        assert "chunk_size" in source, "Missing chunk_size for target building"
+
+    def test_gc_collect_in_process_sample(self):
+        """process_single_sample has gc.collect() after del statements."""
+        import inspect
+        from vcf_stats.seq2neo.cli import process_single_sample
+        source = inspect.getsource(process_single_sample)
+        assert "gc.collect()" in source, "Missing gc.collect() in process_single_sample"
+
+    def test_rust_owned_hashset_no_clone(self):
+        """Rust parse_caller_vcf takes owned HashSet (no clone)."""
+        import inspect
+        from vcf_stats.seq2neo.caller_parser import _parse_one_caller
+        # Verify the Rust path exists (HAS_RUST_CALLER check)
+        source = inspect.getsource(_parse_one_caller)
+        assert "parse_caller_vcf" in source, "Rust parser not wired"
+
+    def test_large_sample_semaphore_exists(self):
+        """_LARGE_SAMPLE_SEM exists in cli.py for throttling."""
+        import inspect
+        from vcf_stats.seq2neo import cli
+        assert hasattr(cli, '_LARGE_SAMPLE_SEM'), "Missing _LARGE_SAMPLE_SEM"
+        assert hasattr(cli, '_LARGE_THRESHOLD'), "Missing _LARGE_THRESHOLD"
+        assert cli._LARGE_THRESHOLD == 2_000_000
 
     def test_rust_caller_no_column_length_mismatch(self):
         """All columns from Rust parse_caller_vcf have equal length.

@@ -130,9 +130,11 @@ fn get_int_first(s: &impl SampleTrait, h: &vcf::Header, key: &str) -> Option<i64
 }
 
 /// Parse a normalized caller VCF and extract FORMAT fields at target positions.
+///
+/// Takes ownership of `target_positions` to avoid a 2 GB clone for large samples.
 pub fn parse_caller_vcf(
     path: &Path,
-    target_positions: &HashSet<(String, i64, String, String)>,
+    target_positions: HashSet<(String, i64, String, String)>,
     sample_suffix: &str,
     caller_kind: CallerKind,
 ) -> Result<CallerResults, String> {
@@ -152,7 +154,7 @@ pub fn parse_caller_vcf(
         .ok_or_else(|| format!("Sample suffix '{}' not found", sample_suffix))?;
 
     let mut results = CallerResults::default();
-    let mut remaining = target_positions.clone();
+    let mut remaining = target_positions;  // take ownership, no clone
     let has_gt_ad = caller_kind.has_gt_ad();
     let has_strand = caller_kind.has_strand_fields();
     let is_strelka = matches!(caller_kind, CallerKind::Strelka);
