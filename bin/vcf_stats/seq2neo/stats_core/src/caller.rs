@@ -244,8 +244,8 @@ pub fn parse_caller_vcf(
             results.gu.push(sample.as_ref().and_then(|s| get_int_first(s, &header, "GU")));
             results.tu.push(sample.as_ref().and_then(|s| get_int_first(s, &header, "TU")));
         } else {
-            for _ in 0..7 { results.tar.push(None); results.tir.push(None); results.tor.push(None);
-                results.au.push(None); results.cu.push(None); results.gu.push(None); results.tu.push(None); }
+            results.tar.push(None); results.tir.push(None); results.tor.push(None);
+            results.au.push(None); results.cu.push(None); results.gu.push(None); results.tu.push(None);
         }
 
         // Mutect2 strand
