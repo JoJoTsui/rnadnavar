@@ -330,7 +330,6 @@ def main():
 
             for future in as_completed(futures):
                 i, sid = futures[future]
-                print(f"[{i+1}/{len(manifest)}] {sid} - processing...")
                 try:
                     future.result()
                     print(f"[{i+1}/{len(manifest)}] {sid} - Done")
