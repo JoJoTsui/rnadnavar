@@ -42,6 +42,63 @@ fn parse_rescue(py: Python<'_>, path: String) -> PyResult<Bound<'_, PyList>> {
     Ok(list)
 }
 
+/// Parse a rescue VCF into column-oriented data.
+///
+/// Returns a dict of column_name → list_of_values instead of a list of per-record
+/// dicts. Eliminates the intermediate 7M-PyDict construction for large samples.
+///
+/// Rust parsing is done with the GIL released so multiple samples' VCFs can
+/// be parsed concurrently. Python object construction re-acquires the GIL.
+#[pyfunction]
+fn parse_rescue_columns(py: Python<'_>, path: String) -> PyResult<Bound<'_, PyDict>> {
+    let path_buf = PathBuf::from(&path);
+    let columns = py.detach(|| {
+        vcf::parse_rescue_columns(&path_buf)
+            .map_err(|e| e.to_string())
+    }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))?;
+
+    // Re-acquire GIL for Python object construction
+    let d = PyDict::new(py);
+
+    fn push_str_list(py: Python<'_>, dict: &Bound<'_, PyDict>, key: &str, vals: &[String]) -> PyResult<()> {
+        let list = PyList::empty(py);
+        for v in vals { list.append(v.as_str())?; }
+        dict.set_item(key, list)
+    }
+    fn push_i64_list(py: Python<'_>, dict: &Bound<'_, PyDict>, key: &str, vals: &[i64]) -> PyResult<()> {
+        let list = PyList::empty(py);
+        for v in vals { list.append(*v)?; }
+        dict.set_item(key, list)
+    }
+    fn push_opt_str_list(py: Python<'_>, dict: &Bound<'_, PyDict>, key: &str, vals: &[Option<String>]) -> PyResult<()> {
+        let list = PyList::empty(py);
+        for v in vals { list.append(v.as_deref())?; }
+        dict.set_item(key, list)
+    }
+    fn push_opt_bool_list(py: Python<'_>, dict: &Bound<'_, PyDict>, key: &str, vals: &[Option<bool>]) -> PyResult<()> {
+        let list = PyList::empty(py);
+        for v in vals { list.append(*v)?; }
+        dict.set_item(key, list)
+    }
+
+    push_str_list(py, &d, "CHROM", &columns.chrom)?;
+    push_i64_list(py, &d, "POS", &columns.pos)?;
+    push_str_list(py, &d, "REF", &columns.ref_base)?;
+    push_str_list(py, &d, "ALT", &columns.alt)?;
+    push_str_list(py, &d, "FILTER", &columns.filter)?;
+    push_str_list(py, &d, "variant_type", &columns.variant_type)?;
+    push_opt_bool_list(py, &d, "ti_tv", &columns.ti_tv)?;
+
+    // Push each INFO column in header order
+    for key in &columns.info_keys {
+        if let Some(vals) = columns.info.get(key) {
+            push_opt_str_list(py, &d, key, vals)?;
+        }
+    }
+
+    Ok(d)
+}
+
 /// Compute whole-genome BAM statistics.
 ///
 /// Releases the GIL during the BAM scan so multiple threads can process
@@ -286,6 +343,7 @@ fn pileup_variants(
 #[pymodule]
 fn stats_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(parse_rescue, m)?)?;
+    m.add_function(wrap_pyfunction!(parse_rescue_columns, m)?)?;
     m.add_function(wrap_pyfunction!(bam_stats, m)?)?;
     m.add_function(wrap_pyfunction!(parse_caller_vcf, m)?)?;
     m.add_function(wrap_pyfunction!(compute_tiers, m)?)?;

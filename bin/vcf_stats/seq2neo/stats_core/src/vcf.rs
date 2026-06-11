@@ -1,5 +1,6 @@
 //! VCF parsing using noodles-vcf 0.88.
 
+use std::collections::HashMap;
 use std::path::Path;
 
 use std::fs::File;
@@ -9,7 +10,7 @@ use noodles_bgzf as bgzf;
 use noodles_vcf as vcf;
 use noodles_vcf::variant::record::{AlternateBases as _, Filters as _};
 
-/// A single variant record extracted from a rescue VCF.
+/// A single variant record extracted from a rescue VCF (legacy row-oriented).
 #[derive(Debug, Clone)]
 pub struct RescueRecord {
     pub chrom: String,
@@ -18,6 +19,51 @@ pub struct RescueRecord {
     pub alt: String,
     pub filter: String,
     pub info: Vec<(String, String)>,
+}
+
+/// Column-oriented rescue VCF parse results.
+///
+/// Each column is a separate Vec — no per-record Python dicts are created.
+/// INFO columns use HashMap keyed by INFO field name. `info_keys` preserves
+/// the VCF header declaration order for deterministic column output.
+#[derive(Debug, Clone)]
+pub struct RescueColumns {
+    pub chrom: Vec<String>,
+    pub pos: Vec<i64>,
+    pub ref_base: Vec<String>,
+    pub alt: Vec<String>,
+    pub filter: Vec<String>,
+    pub info: HashMap<String, Vec<Option<String>>>,
+    pub info_keys: Vec<String>,
+    pub variant_type: Vec<String>,
+    pub ti_tv: Vec<Option<bool>>,
+}
+
+/// Classify a variant as SNV, INS, DEL, or MNV based on REF/ALT lengths.
+fn derive_variant_type(ref_len: usize, alt_len: usize) -> &'static str {
+    if ref_len == 1 && alt_len == 1 {
+        "SNV"
+    } else if alt_len > ref_len {
+        "INS"
+    } else if ref_len > alt_len {
+        "DEL"
+    } else {
+        "MNV"
+    }
+}
+
+/// Determine if a single-nucleotide substitution is a transition.
+/// Returns None for non-SNV variants.
+fn is_transition(ref_base: &str, alt_base: &str) -> Option<bool> {
+    if ref_base.len() != 1 || alt_base.len() != 1 {
+        return None;
+    }
+    let r = ref_base.to_uppercase();
+    let a = alt_base.to_uppercase();
+    match (r.as_str(), a.as_str()) {
+        ("A", "G") | ("G", "A") | ("C", "T") | ("T", "C") => Some(true),
+        _ => Some(false),
+    }
 }
 
 /// Build a VCF header from raw text, deduplicating FILTER/INFO lines.
@@ -85,7 +131,106 @@ fn extract_meta_id(line: &str, prefix: &str) -> Option<String> {
         })
 }
 
-/// Parse a rescue VCF file and return all variant records with INFO fields.
+/// Parse a rescue VCF file into column-oriented data.
+///
+/// Returns a `RescueColumns` struct where each field is a separate column vector.
+/// INFO fields are stored in a `HashMap<String, Vec<Option<String>>>` with keys
+/// ordered by `info_keys` for deterministic column output.
+/// `variant_type` and `ti_tv` are computed during the parse pass.
+pub fn parse_rescue_columns(path: &Path) -> Result<RescueColumns, Box<dyn std::error::Error>> {
+    let (header, info_keys) = build_header(path)?;
+
+    // Initialize column vectors
+    let mut chrom: Vec<String> = Vec::new();
+    let mut pos: Vec<i64> = Vec::new();
+    let mut ref_base: Vec<String> = Vec::new();
+    let mut alt: Vec<String> = Vec::new();
+    let mut filter: Vec<String> = Vec::new();
+    let mut variant_type: Vec<String> = Vec::new();
+    let mut ti_tv: Vec<Option<bool>> = Vec::new();
+
+    // Initialize INFO columns: one Vec per declared INFO key
+    let mut info_columns: HashMap<String, Vec<Option<String>>> = HashMap::with_capacity(info_keys.len());
+    for key in &info_keys {
+        info_columns.insert(key.clone(), Vec::new());
+    }
+
+    // Open the VCF for record reading
+    let file = File::open(path)?;
+    let mut buf_reader = BufReader::new(bgzf::Reader::new(file));
+    let mut line = String::new();
+    loop {
+        line.clear();
+        let n = buf_reader.read_line(&mut line)?;
+        if n == 0 || line.starts_with("#CHROM") { break; }
+    }
+    let mut reader = vcf::io::Reader::new(buf_reader);
+
+    for result in reader.records() {
+        let record = result?;
+
+        // CHROM and POS
+        let c = record.reference_sequence_name().to_string();
+        let p = match record.variant_start() {
+            Some(Ok(p)) => usize::from(p) as i64,
+            _ => 0,
+        };
+
+        // REF and ALT
+        let r = record.reference_bases().to_string();
+        let alt_bases = record.alternate_bases();
+        let a = {
+            let mut iter = alt_bases.iter();
+            match iter.next() {
+                Some(Ok(s)) => s.to_string(),
+                _ => ".".to_string(),
+            }
+        };
+
+        // FILTER
+        let record_filters = record.filters();
+        let f = {
+            let filters_iter = record_filters.iter(&header);
+            let ids: Vec<&str> = filters_iter.filter_map(|r| r.ok()).collect();
+            if ids.is_empty() { "PASS".to_string() } else { ids.join(";") }
+        };
+
+        // Derived columns
+        let vt = derive_variant_type(r.len(), a.len());
+        let tt = is_transition(&r, &a);
+
+        chrom.push(c);
+        pos.push(p);
+        ref_base.push(r);
+        alt.push(a);
+        filter.push(f);
+        variant_type.push(vt.to_string());
+        ti_tv.push(tt);
+
+        // INFO columns: push Some(value) or None for each declared key
+        for key in &info_keys {
+            let value = match record.info().get(&header, key.as_str()) {
+                Some(Ok(Some(val))) => Some(format_info_value(&val)),
+                _ => None,
+            };
+            info_columns.get_mut(key).unwrap().push(value);
+        }
+    }
+
+    Ok(RescueColumns {
+        chrom,
+        pos,
+        ref_base,
+        alt,
+        filter,
+        info: info_columns,
+        info_keys,
+        variant_type,
+        ti_tv,
+    })
+}
+
+/// Parse a rescue VCF file and return all variant records with INFO fields (legacy row-oriented).
 pub fn parse_rescue_vcf(path: &Path) -> Result<Vec<RescueRecord>, Box<dyn std::error::Error>> {
     // Build a clean header by deduplicating meta lines
     let (header, info_keys) = build_header(path)?;

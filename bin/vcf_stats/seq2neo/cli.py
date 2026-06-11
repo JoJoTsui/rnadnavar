@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+import ctypes
 import gc
 import os
 import sys
@@ -19,9 +20,27 @@ from pathlib import Path
 
 import polars as pl
 
-# Semaphore to prevent concurrent processing of large (>2M position) samples.
-_LARGE_SAMPLE_SEM = threading.Semaphore(1)
+# ── Allocator utilities ────────────────────────────────────────────────────
+
+def _malloc_trim() -> None:
+    """Release free glibc heap pages back to the kernel via malloc_trim(0).
+
+    On non-glibc platforms (musl, macOS), the call is silently skipped.
+    Takes <1ms — safe to call frequently.
+    """
+    try:
+        libc = ctypes.CDLL("libc.so.6")
+        libc.malloc_trim(0)
+    except Exception:
+        pass  # Non-glibc platform — skip
+
+# ── Large-sample throttle ──────────────────────────────────────────────────
+# thread mode: threading.Semaphore
+# spawn mode: multiprocessing.Manager().Semaphore (passed via args)
+# Both share the same acquire/release interface.
+
 _LARGE_THRESHOLD = 2_000_000
+_THREAD_LARGE_SEM = threading.Semaphore(1)  # used in --process-mode thread
 
 # Columns needed during caller join + tiering. The remaining ~63 rescue INFO
 # fields are output-only — they hstack back before parquet write.
@@ -47,7 +66,7 @@ def _mem(msg: str) -> None:
 from .bam_stats import compute_all_bam_stats
 from .bam_validation import validate_bam_vs_caller as validate_bam_one
 from .caller_parser import _parse_one_caller, CALLERS_STRELKA, CALLERS_WITH_GT
-from .manifest_loader import filter_complete, load_manifest
+from .manifest_loader import CALLER_CONFIGS, filter_complete, load_manifest
 from .rescue_parser import parse_rescue_vcf as _py_parse_rescue
 from .rust_vcf import parse_rescue_vcf as _rust_parse_rescue
 from .rescue_validator import validate_all_samples, validation_summary
@@ -145,10 +164,18 @@ def _streaming_join_one(df: pl.DataFrame, col_data: dict, caller_name: str) -> p
 
 
 
-def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True) -> dict:
+def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True, large_sem=None) -> dict:
     """Process one sample: parse rescue VCF + all caller VCFs + compute stats.
 
     Returns a dict with 'sample_id', 'df', and 'stats'.
+
+    Args:
+        row: Manifest row dict.
+        max_workers: Threads for within-sample caller parsing.
+        use_rust: Use Rust VCF parser.
+        large_sem: Semaphore for large-sample exclusive access (threading.Semaphore
+                   or multiprocessing.Manager.Semaphore proxy). If None, large
+                   samples are not throttled.
     """
     sample_id = row["sample_id"]
     rescue_path = row["rescue_vcf_path"]
@@ -166,11 +193,19 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
 
     # Auto-throttle: large samples process exclusively
     n_variants = len(rescue_df)
-    is_large = n_variants > _LARGE_THRESHOLD
+    is_large = n_variants > _LARGE_THRESHOLD and large_sem is not None
     if is_large:
         print(f"  [{sample_id}] Large sample ({n_variants} variants) — waiting for exclusive access...")
-        _LARGE_SAMPLE_SEM.acquire()
-        print(f"  [{sample_id}] Large sample acquired exclusive access")
+        try:
+            acquired = large_sem.acquire(timeout=300)
+        except TypeError:
+            # Manager proxy may not support timeout — fall back to blocking acquire
+            acquired = large_sem.acquire()
+        if not acquired:
+            print(f"  [{sample_id}] WARNING: Semaphore timeout — processing without exclusive access")
+            is_large = False
+        else:
+            print(f"  [{sample_id}] Large sample acquired exclusive access")
     try:
         # Column pruning: split into slim (12 processing cols) and output (rest).
         slim_cols = [c for c in _SLIM_COLS if c in rescue_df.columns]
@@ -193,7 +228,6 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         del start, end
 
         print(f"  [{sample_id}] {len(target_positions)} positions, streaming join...")
-        from .caller_parser import _parse_one_caller, CALLERS_STRELKA, CALLERS_WITH_GT
         base = os.path.join(base_dir, dir_name)
 
         # Streaming join: parse + join one caller at a time.
@@ -239,9 +273,51 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         print(f"  [{sample_id}] Done: {len(df)} variants")
         return {"sample_id": sample_id, "df": df, "stats": stats}
     finally:
-        if is_large:
-            _LARGE_SAMPLE_SEM.release()
+        if is_large and large_sem is not None:
+            large_sem.release()
             print(f"  [{sample_id}] Large sample released exclusive access")
+
+
+# ── Multiprocessing worker (module-level, must be picklable) ──────────────
+
+def _process_worker(args: tuple) -> dict:
+    """Process one sample in a worker process. Writes parquet, returns only stats.
+
+    This is the entry point for multiprocessing.Pool workers. It must be
+    defined at module level so the 'spawn' context can import it.
+
+    Args:
+        args: (row_dict, max_workers, use_rust, variant_dir_str, large_sem)
+
+    Returns:
+        {"sample_id": str, "stats": dict} — no DataFrame (too large to pickle).
+        On error: {"sample_id": str, "error": str}
+    """
+    row, max_workers, use_rust, variant_dir_str, large_sem = args
+
+    try:
+        result = process_single_sample(row, max_workers=max_workers, use_rust=use_rust, large_sem=large_sem)
+    except Exception:
+        import traceback
+        return {"sample_id": row["sample_id"], "error": traceback.format_exc()}
+
+    sample_id = result["sample_id"]
+    df = result["df"]
+    stats = result["stats"]
+
+    if df is not None:
+        try:
+            parquet_path = os.path.join(variant_dir_str, f"{sample_id}_variants.parquet")
+            df.write_parquet(parquet_path)
+        except Exception:
+            import traceback
+            return {"sample_id": sample_id, "error": f"parquet write failed:\n{traceback.format_exc()}"}
+        finally:
+            del df
+            gc.collect()
+            _malloc_trim()
+
+    return {"sample_id": sample_id, "stats": stats}
 
 
 def main():
@@ -269,6 +345,12 @@ def main():
                         help="VCF parser: rust (default) or python (cyvcf2 fallback)")
     parser.add_argument("--verbose", action="store_true",
                         help="Show per-caller progress messages")
+    parser.add_argument("--process-mode", choices=["thread", "spawn"], default=None,
+                        help="Parallel execution mode: thread (ThreadPoolExecutor) or spawn "
+                             "(multiprocessing.Pool with fresh Python process per worker). "
+                             "Default: spawn when --sample-workers > 1, thread otherwise.")
+    parser.add_argument("--max-tasks-per-child", type=int, default=1,
+                        help="Max samples per worker process before restart (spawn mode only, default: 1).")
     args = parser.parse_args()
 
     # Load and filter manifest
@@ -287,7 +369,13 @@ def main():
         sys.exit(0)
 
     use_rust = args.parser == "rust"
-    print(f"Processing {len(manifest)} samples (parser={args.parser}, caller_threads={args.threads}, sample_workers={args.sample_workers}, bam_workers={args.bam_workers})")
+
+    # Determine process mode (used by print below and execution logic below)
+    process_mode = args.process_mode
+    if process_mode is None:
+        process_mode = "spawn" if args.sample_workers > 1 else "thread"
+
+    print(f"Processing {len(manifest)} samples (parser={args.parser}, caller_threads={args.threads}, sample_workers={args.sample_workers}, bam_workers={args.bam_workers}, process_mode={process_mode})")
     if len(manifest) > 20 and not args.no_validate:
         print("NOTE: >20 samples with validation enabled may be slow due to BAM pileup.")
         print("      Consider --no-validate for initial runs, then validate separately.")
@@ -301,27 +389,69 @@ def main():
     # ── Per-sample parquet directory (streaming, not memory-accumulated) ──
     variant_dir = output_dir / "variant_details"
     variant_dir.mkdir(parents=True, exist_ok=True)
-    import gc
+    variant_dir_str = str(variant_dir)
     total_variants = 0
 
-    def _process_one(row, max_workers, use_rust):
-        """Process one sample and write its variant details to parquet immediately."""
-        nonlocal total_variants
-        result = process_single_sample(row, max_workers=max_workers, use_rust=use_rust)
-        if result["df"] is not None:
-            sid = result["sample_id"]
-            parquet_path = str(variant_dir / f"{sid}_variants.parquet")
-            result["df"].write_parquet(parquet_path)
-            total_variants += len(result["df"])
-            # Free memory immediately
-            result["df"] = None
-            gc.collect()
-            _mem(f"after write+free [{sid}]")
-        if result["stats"] is not None:
-            all_stats.append(result["stats"])
-        return result
+    if process_mode == "spawn" and args.sample_workers > 1:
+        # ── Process-isolated parallel mode ──────────────────────────────────
+        import multiprocessing as mp
+        ctx = mp.get_context("spawn")
 
-    if args.sample_workers > 1:
+        # Manager must use the same spawn context so its child process
+        # starts fresh (no fork-inherited state).
+        mgr = ctx.Manager()
+        large_sem = mgr.Semaphore(1)
+
+        worker_args = [
+            (row, args.threads, use_rust, variant_dir_str, large_sem)
+            for row in rows
+        ]
+
+        with ctx.Pool(
+            processes=min(args.sample_workers, len(rows)),
+            maxtasksperchild=args.max_tasks_per_child,
+        ) as pool:
+            for result in pool.imap_unordered(_process_worker, worker_args):
+                sid = result["sample_id"]
+                if "error" in result:
+                    print(f"[ERROR] {sid}: {result['error']}", flush=True)
+                    continue
+                if result["stats"] is not None:
+                    all_stats.append(result["stats"])
+                # Count variants from the written parquet file
+                parquet_path = os.path.join(variant_dir_str, f"{sid}_variants.parquet")
+                try:
+                    n = pl.scan_parquet(parquet_path).select(pl.len()).collect().item()
+                    total_variants += n
+                except Exception:
+                    pass
+                print(f"[{len(all_stats)}/{len(manifest)}] {sid} - Done")
+
+        mgr.shutdown()
+
+    elif args.sample_workers > 1:
+        # ── Thread-based parallel mode ─────────────────────────────────────
+        def _process_one(row, max_workers, use_rust):
+            """Process one sample and write its variant details to parquet immediately."""
+            nonlocal total_variants
+            result = process_single_sample(
+                row, max_workers=max_workers, use_rust=use_rust,
+                large_sem=_THREAD_LARGE_SEM,
+            )
+            if result["df"] is not None:
+                sid = result["sample_id"]
+                parquet_path = str(variant_dir / f"{sid}_variants.parquet")
+                result["df"].write_parquet(parquet_path)
+                total_variants += len(result["df"])
+                # Free memory immediately
+                result["df"] = None
+                gc.collect()
+                _malloc_trim()
+                _mem(f"after write+free [{sid}]")
+            if result["stats"] is not None:
+                all_stats.append(result["stats"])
+            return result
+
         with ThreadPoolExecutor(max_workers=args.sample_workers) as executor:
             futures = {}
             for i, row in enumerate(rows):
@@ -338,11 +468,25 @@ def main():
                     print(f"[{i+1}/{len(manifest)}] {sid} - ERROR: {e}")
                     traceback.print_exc()
     else:
+        # ── Sequential mode ────────────────────────────────────────────────
         for i, row in enumerate(rows):
             sid = row["sample_id"]
             print(f"\n[{i+1}/{len(manifest)}] {sid}")
             try:
-                _process_one(row, max_workers=args.threads, use_rust=use_rust)
+                result = process_single_sample(
+                    row, max_workers=args.threads, use_rust=use_rust,
+                    large_sem=_THREAD_LARGE_SEM,
+                )
+                if result["df"] is not None:
+                    parquet_path = str(variant_dir / f"{sid}_variants.parquet")
+                    result["df"].write_parquet(parquet_path)
+                    total_variants += len(result["df"])
+                    del result["df"]
+                    gc.collect()
+                    _malloc_trim()
+                    _mem(f"after write+free [{sid}]")
+                if result["stats"] is not None:
+                    all_stats.append(result["stats"])
             except Exception as e:
                 import traceback
                 print(f"  [{sid}] ERROR: {e}")
