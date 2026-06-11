@@ -284,16 +284,16 @@ def _process_worker(args: tuple) -> dict:
     """Process one sample in a worker process. Writes parquet, returns only stats.
 
     This is the entry point for multiprocessing.Pool workers. It must be
-    defined at module level so the 'spawn' context can import it.
+    defined at module level so the 'fork' context can call it.
 
     Args:
-        args: (row_dict, max_workers, use_rust, variant_dir_str, large_sem)
+        args: (row_dict, max_workers, use_rust, variant_dir_str)
 
     Returns:
         {"sample_id": str, "stats": dict} — no DataFrame (too large to pickle).
         On error: {"sample_id": str, "error": str}
     """
-    row, max_workers, use_rust, variant_dir_str, large_lock = args  # noqa: ARG001
+    row, max_workers, use_rust, variant_dir_str = args
 
     try:
         result = process_single_sample(row, max_workers=max_workers, use_rust=use_rust, large_sem=None)
@@ -345,12 +345,12 @@ def main():
                         help="VCF parser: rust (default) or python (cyvcf2 fallback)")
     parser.add_argument("--verbose", action="store_true",
                         help="Show per-caller progress messages")
-    parser.add_argument("--process-mode", choices=["thread", "spawn"], default=None,
-                        help="Parallel execution mode: thread (ThreadPoolExecutor) or spawn "
-                             "(multiprocessing.Pool with fresh Python process per worker). "
-                             "Default: spawn when --sample-workers > 1, thread otherwise.")
+    parser.add_argument("--process-mode", choices=["thread", "fork"], default=None,
+                        help="Parallel execution mode: thread (ThreadPoolExecutor) or fork "
+                             "(multiprocessing.Pool with forked process per worker). "
+                             "Default: fork when --sample-workers > 1, thread otherwise.")
     parser.add_argument("--max-tasks-per-child", type=int, default=1,
-                        help="Max samples per worker process before restart (spawn mode only, default: 1).")
+                        help="Max samples per worker process before restart (fork mode only, default: 1).")
     args = parser.parse_args()
 
     # Load and filter manifest
@@ -373,7 +373,7 @@ def main():
     # Determine process mode (used by print below and execution logic below)
     process_mode = args.process_mode
     if process_mode is None:
-        process_mode = "spawn" if args.sample_workers > 1 else "thread"
+        process_mode = "fork" if args.sample_workers > 1 else "thread"
 
     print(f"Processing {len(manifest)} samples (parser={args.parser}, caller_threads={args.threads}, sample_workers={args.sample_workers}, bam_workers={args.bam_workers}, process_mode={process_mode})")
     if len(manifest) > 20 and not args.no_validate:
@@ -392,21 +392,17 @@ def main():
     variant_dir_str = str(variant_dir)
     total_variants = 0
 
-    if process_mode == "spawn" and args.sample_workers > 1:
-        # ── Process-isolated parallel mode ──────────────────────────────────
+    if process_mode == "fork" and args.sample_workers > 1:
+        # ── Process-isolated parallel mode (fork) ───────────────────────────
         import multiprocessing as mp
-        ctx = mp.get_context("spawn")
+        ctx = mp.get_context("fork")
 
-        # No cross-process throttle needed in spawn mode: each sample runs in
-        # its own process, and the kernel reclaims all memory on exit.
-        # Peak concurrent RSS with 4 workers is well within 200 GB limits
-        # (small samples ~15 GB, large samples ~55 GB after column-oriented fix).
-        # Manager-based semaphores leak objects with maxtasksperchild=1,
-        # and mp.Lock cannot be passed across spawn (inheritance only).
-        large_lock = None  # disables throttle
-
+        # Fork inherits parent's module state and file descriptors.
+        # maxtasksperchild=1 ensures each worker exits after one sample
+        # → kernel reclaims all memory. No Manager or Lock needed —
+        # process isolation alone keeps total RSS within limits.
         worker_args = [
-            (row, args.threads, use_rust, variant_dir_str, large_lock)
+            (row, args.threads, use_rust, variant_dir_str)
             for row in rows
         ]
 
