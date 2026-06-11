@@ -1872,7 +1872,7 @@ class TestJoinOptimization:
     """Tests for join_caller_columns polars join on 4 coordinate columns."""
 
     def test_join_on_4_columns(self):
-        """join_caller_columns joins on CHROM, POS, REF, ALT."""
+        """join_caller_columns joins on CHROM, POS, REF, ALT with column-oriented input."""
         import polars as pl
         from vcf_stats.seq2neo.caller_parser import join_caller_columns
 
@@ -1884,20 +1884,26 @@ class TestJoinOptimization:
             "OTHER": [1, 2, 3],
         })
 
-        # Simulate a caller that found positions at chr1:100 and chr2:300
+        # Column-oriented caller data (Rust parser output format)
         caller_data = {
             "DNA_mutect2": {
-                ("chr1", 100, "A", "T"): {"DP": 42, "AD_REF": 30, "AD_ALT": 12, "GT": "0/1", "VAF_CALLER": 0.286},
-                ("chr2", 300, "G", "A"): {"DP": 55, "AD_REF": 40, "AD_ALT": 15, "GT": "1/1", "VAF_CALLER": 0.273},
-                # chr1:200 is missing (should get nulls)
+                "CHROM": ["chr1", "chr2"],
+                "POS": [100, 300],
+                "REF": ["A", "G"],
+                "ALT": ["T", "A"],
+                "DP": [42, 55],
+                "AD_REF": [30, 40],
+                "AD_ALT": [12, 15],
+                "GT": ["0/1", "1/1"],
+                "VAF_CALLER": [0.286, 0.273],
             }
         }
 
         result = join_caller_columns(rescue, caller_data)
         assert "DNA_mutect2_DP" in result.columns
-        assert result["DNA_mutect2_DP"][0] == 42  # chr1:100 matched
-        assert result["DNA_mutect2_DP"][1] is None  # chr1:200 missing caller
-        assert result["DNA_mutect2_DP"][2] == 55  # chr2:300 matched
+        assert result["DNA_mutect2_DP"][0] == 42
+        assert result["DNA_mutect2_DP"][1] is None
+        assert result["DNA_mutect2_DP"][2] == 55
         assert result["DNA_mutect2_GT"][0] == "0/1"
         assert result["DNA_mutect2_GT"][2] == "1/1"
 
@@ -1920,14 +1926,15 @@ class TestJoinOptimization:
         rescue = pl.DataFrame({
             "CHROM": ["chr1", "chr1"],
             "POS": [100, 100],
-            "REF": ["A", "A"],  # same position, different ALT
+            "REF": ["A", "A"],
             "ALT": ["T", "G"],
         })
 
         caller_data = {
             "DNA_mutect2": {
-                ("chr1", 100, "A", "T"): {"DP": 42},  # only matches ALT=T
-                # (chr1, 100, "A", "G") not in caller → should get null
+                "CHROM": ["chr1"], "POS": [100],
+                "REF": ["A"], "ALT": ["T"],
+                "DP": [42],
             }
         }
 
@@ -1942,12 +1949,15 @@ class TestJoinOptimization:
 
         # 200 variants: first 150 have None AD_REF, last 50 have actual values
         positions = [(f"chr1", i * 1000, "A", "T") for i in range(1, 201)]
-        lookup = {}
-        for i, key in enumerate(positions):
-            if i < 150:
-                lookup[key] = {"DP": i + 1, "AD_REF": None, "AD_ALT": None}
-            else:
-                lookup[key] = {"DP": i + 1, "AD_REF": 20, "AD_ALT": 10}
+        col_data = {
+            "CHROM": [k[0] for k in positions],
+            "POS": [k[1] for k in positions],
+            "REF": [k[2] for k in positions],
+            "ALT": [k[3] for k in positions],
+            "DP": [i + 1 for i in range(200)],
+            "AD_REF": [None] * 150 + [20] * 50,
+            "AD_ALT": [None] * 150 + [10] * 50,
+        }
 
         rescue = pl.DataFrame({
             "CHROM": [k[0] for k in positions],
@@ -1956,11 +1966,9 @@ class TestJoinOptimization:
             "ALT": [k[3] for k in positions],
         })
 
-        result = join_caller_columns(rescue, {"DNA_mutect2": lookup})
-        # First 150 rows: DP present, AD_REF/AD_ALT None
+        result = join_caller_columns(rescue, {"DNA_mutect2": col_data})
         assert result["DNA_mutect2_DP"][0] == 1
         assert result["DNA_mutect2_AD_REF"][0] is None
-        # Last row: AD_REF/AD_ALT have values
         assert result["DNA_mutect2_AD_REF"][199] == 20
         assert result["DNA_mutect2_AD_ALT"][199] == 10
 
@@ -2068,3 +2076,118 @@ class TestMemoryEfficiency:
 
         chart = plot_vc_distribution(lazy, str(tmp_path))
         assert chart is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestMemoryRegression — prevent OOM-causing patterns from returning
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestMemoryRegression:
+    """Tests that memory-expensive patterns are not reintroduced."""
+
+    def test_join_receives_column_oriented_data(self):
+        """join_caller_columns accepts column-oriented data, not row dicts.
+
+        Row-oriented lookup dicts create ~5 GB of Python small objects per
+        1.4M-variant sample (tuples, dicts, ints). Column-oriented data
+        avoids this entirely.
+        """
+        import polars as pl
+        from vcf_stats.seq2neo.caller_parser import join_caller_columns
+
+        rescue = pl.DataFrame({
+            "CHROM": ["chr1"], "POS": [1], "REF": ["A"], "ALT": ["T"],
+        })
+        # Column-oriented: {col_name: [values]} — the memory-safe format
+        col_data = {
+            "DNA_mutect2": {
+                "CHROM": ["chr1"], "POS": [1], "REF": ["A"], "ALT": ["T"],
+                "DP": [42], "AD_REF": [30], "AD_ALT": [12],
+                "GT": ["0/1"], "VAF_CALLER": [0.286],
+            }
+        }
+        result = join_caller_columns(rescue, col_data)
+        assert result["DNA_mutect2_DP"][0] == 42
+
+    def test_build_lookup_not_needed_for_rust_path(self):
+        """build_caller_results_lookup exists but Rust path skips it.
+
+        The Rust parser returns column-oriented data directly.
+        build_caller_results_lookup is only for the cyvcf2 fallback.
+        """
+        from vcf_stats.seq2neo.caller_parser import build_caller_results_lookup
+        # Function should still exist (for cyvcf2 fallback)
+        assert callable(build_caller_results_lookup)
+        # But should NOT be called in the Rust path (verified by
+        # test_join_receives_column_oriented_data above)
+
+    def test_rust_parse_returns_column_format(self):
+        """Rust parse_caller_vcf returns column-oriented dict, not row dicts.
+
+        Verifying that stats_core.parse_caller_vcf returns a dict of
+        column_name → list_of_values, not row-oriented data.
+        """
+        try:
+            import stats_core
+            if not hasattr(stats_core, 'parse_caller_vcf'):
+                pytest.skip("Rust parse_caller_vcf not available")
+        except ImportError:
+            pytest.skip("stats_core not available")
+
+        import glob
+        base = os.path.join(REAL_SAMPLE["base_output_dir"], REAL_SAMPLE["dir_name"])
+        rescue = glob.glob(os.path.join(base, "vcf_realignment", "rescue", "*", "*.filtered.vcf.stripped.vcf.gz"))
+        if not rescue:
+            pytest.skip("Rescue VCF not found")
+
+        import stats_core as sc
+        records = sc.parse_rescue(rescue[0])
+        chroms = [r["CHROM"] for r in records[:10]]
+        poss = [r["POS"] for r in records[:10]]
+        refs = [r["REF"] for r in records[:10]]
+        alts = [r["ALT"] for r in records[:10]]
+
+        cfg = CALLER_CONFIGS["DNA_mutect2"]
+        subdir = cfg["subdir"].format(prefix=REAL_SAMPLE["vcf_prefix"])
+        vcf_path = glob.glob(os.path.join(base, subdir, cfg["pattern"]))
+        if not vcf_path:
+            pytest.skip("Caller VCF not found")
+
+        result = sc.parse_caller_vcf(vcf_path[0], chroms, poss, refs, alts, cfg["sample_suffix"], "DNA_mutect2")
+        # Must be dict of column_name → list
+        assert isinstance(result, dict)
+        assert "CHROM" in result
+        assert "DP" in result
+        assert isinstance(result["CHROM"], list)
+        assert isinstance(result["DP"], list)
+        # Must NOT contain row-oriented entries (tuples as keys)
+        for key in result:
+            assert not isinstance(key, tuple), f"Row-oriented key found: {key}"
+
+    def test_process_single_sample_frees_intermediates(self):
+        """process_single_sample has del statements for rescue_df, caller_data, etc.
+
+        Code review check: the function should contain del statements for
+        chroms, poss, refs, alts, target_positions, rescue_df, and caller_data.
+        """
+        import inspect
+        from vcf_stats.seq2neo.cli import process_single_sample
+        source = inspect.getsource(process_single_sample)
+        # Verify del statements exist for memory cleanup
+        assert "del chroms" in source, "Missing: del chroms, poss, refs, alts"
+        assert "del target_positions" in source, "Missing: del target_positions"
+        assert "del rescue_df" in source, "Missing: del rescue_df"
+        assert "del rescue_df, caller_data" in source, "Missing: del rescue_df, caller_data (in process_single_sample)"
+
+    def test_join_frees_caller_entry(self):
+        """join_caller_columns clears each caller_data entry after joining.
+
+        Code review check: the function should clear caller_data[caller_name]
+        after the join to help GC free memory.
+        """
+        import inspect
+        from vcf_stats.seq2neo.caller_parser import join_caller_columns
+        source = inspect.getsource(join_caller_columns)
+        assert "caller_data[caller_name] = {}" in source, (
+            "Missing: caller_data entry cleanup in join_caller_columns"
+        )

@@ -267,7 +267,8 @@ def _parse_one_caller(
     print(f"    [{caller_name}] scanning {vcf_path}...")
 
     if HAS_RUST_CALLER and target_positions:
-        # Use Rust parser with 4-tuple target positions
+        # Use Rust parser with 4-tuple target positions.
+        # Returns column-oriented data directly — no intermediate lookup dict.
         try:
             sample = next(iter(target_positions))
             if len(sample) >= 4:
@@ -279,9 +280,9 @@ def _parse_one_caller(
                     vcf_path, chroms, poss, refs, alts,
                     cfg["sample_suffix"], caller_name,
                 )
-                lookup = build_caller_results_lookup(result)
-                print(f"    [{caller_name}] found {len(lookup)} variants (Rust)")
-                return (caller_name, lookup)
+                n_found = len(result.get("CHROM", []))
+                print(f"    [{caller_name}] found {n_found} variants (Rust, column-oriented)")
+                return (caller_name, result)  # column-oriented: {col: [vals]}
         except Exception as e:
             print(f"    [{caller_name}] Rust parser failed ({e}), falling back to cyvcf2")
 
@@ -290,9 +291,37 @@ def _parse_one_caller(
     result = parse_single_caller(
         vcf_path, pos2, cfg["sample_suffix"], caller_name
     )
+    # Convert to column-oriented via build_caller_results_lookup (needed for cyvcf2 compat)
     lookup = build_caller_results_lookup(result)
-    print(f"    [{caller_name}] found {len(lookup)} variants")
-    return (caller_name, lookup)
+    # Convert lookup back to column-oriented for consistent return type
+    cols = _lookup_to_columns(lookup)
+    print(f"    [{caller_name}] found {len(cols.get('CHROM', []))} variants")
+    return (caller_name, cols)
+
+
+def _lookup_to_columns(lookup: dict) -> dict[str, list]:
+    """Convert a row-oriented lookup dict to column-oriented data.
+
+    Used only for the cyvcf2 fallback path — Rust parser returns columns directly.
+    """
+    if not lookup:
+        return {}
+    cols: dict[str, list] = {"CHROM": [], "POS": [], "REF": [], "ALT": []}
+    field_names: set[str] = set()
+    for key, fields in lookup.items():
+        cols["CHROM"].append(key[0])
+        cols["POS"].append(key[1])
+        cols["REF"].append(key[2] if len(key) >= 4 else "")
+        cols["ALT"].append(key[3] if len(key) >= 4 else "")
+        for fname in fields:
+            field_names.add(fname)
+    # Add field columns
+    for fname in field_names:
+        col = []
+        for key, fields in lookup.items():
+            col.append(fields.get(fname))
+        cols[fname] = col
+    return cols
 
 
 def parse_all_callers(
@@ -301,29 +330,20 @@ def parse_all_callers(
     vcf_prefix: str,
     target_positions: set[tuple],
     max_workers: int = 1,
-) -> dict[str, dict[str, Any]]:
-    """Parse all 6 caller VCFs and return position-keyed results.
-
-    Args:
-        base_output_dir: Sample's base output directory.
-        dir_name: Sample's directory name.
-        vcf_prefix: VCF prefix for this sample.
-        target_positions: Set of (CHROM, POS, REF, ALT) 4-tuples to extract.
-        max_workers: Number of threads for parallel caller parsing.
+) -> dict[str, dict[str, list]]:
+    """Parse all 6 caller VCFs and return column-oriented results.
 
     Returns:
-        Nested dict: {caller_name: {(chrom, pos): {field: value}}}
+        Dict: {caller_name: {column_name: [values]}} — column-oriented.
     """
     base = os.path.join(base_output_dir, dir_name)
-    caller_data = {}
+    caller_data: dict[str, dict[str, list]] = {}
 
     if max_workers <= 1:
-        # Sequential
         for caller_name, cfg in CALLER_CONFIGS.items():
-            name, lookup = _parse_one_caller(caller_name, cfg, base, vcf_prefix, target_positions)
-            caller_data[name] = lookup
+            name, cols = _parse_one_caller(caller_name, cfg, base, vcf_prefix, target_positions)
+            caller_data[name] = cols
     else:
-        # Thread-parallel (threads are safe with cyvcf2/htslib; processes are not)
         with ThreadPoolExecutor(max_workers=min(max_workers, len(CALLER_CONFIGS))) as executor:
             futures = {
                 executor.submit(
@@ -332,39 +352,36 @@ def parse_all_callers(
                 for caller_name, cfg in CALLER_CONFIGS.items()
             }
             for future in as_completed(futures):
-                name, lookup = future.result()
-                caller_data[name] = lookup
+                name, cols = future.result()
+                caller_data[name] = cols
 
     return caller_data
 
 
 def join_caller_columns(
     rescue_df: pl.DataFrame,
-    caller_data: dict[str, dict[str, Any]],
+    caller_data: dict[str, dict[str, list]],
 ) -> pl.DataFrame:
     """Join caller FORMAT columns onto the rescue DataFrame using polars join.
 
-    Uses (CHROM, POS, REF, ALT) 4-column matching for correct behavior at
-    multiallelic sites. Each caller's lookup dict is converted to a temporary
-    DataFrame and left-joined. Missing callers get null-filled columns.
+    Receives column-oriented data directly (no row-oriented lookup dict),
+    eliminating ~5 GB of Python small-object overhead per 1.4M-variant sample.
 
-    For each caller, adds columns: {caller}_DP, {caller}_AD_REF, {caller}_AD_ALT,
-    {caller}_GT (where available), {caller}_VAF_CALLER (where available), etc.
+    Uses (CHROM, POS, REF, ALT) 4-column matching. Missing callers get null-filled columns.
     """
     df = rescue_df.clone()
     join_cols = ["CHROM", "POS", "REF", "ALT"]
 
-    # Ensure the rescue DF has the join columns
     for col in join_cols:
         if col not in df.columns:
             raise KeyError(f"Rescue DataFrame missing join column: {col}")
 
     for caller_name in CALLER_CONFIGS:
-        lookup = caller_data.get(caller_name, {})
+        col_data = caller_data.get(caller_name, {})
         is_strelka = caller_name in CALLERS_STRELKA
         has_gt = caller_name in CALLERS_WITH_GT
 
-        if not lookup:
+        if not col_data or not col_data.get("CHROM"):
             # Missing caller — null-fill all expected columns
             null_fields = ["DP", "AD_REF", "AD_ALT"]
             if has_gt:
@@ -377,75 +394,59 @@ def join_caller_columns(
                 df = df.with_columns(pl.lit(None).alias(f"{caller_name}_{field}"))
             continue
 
-        # Build caller DataFrame from lookup dict with explicit column types.
-        # polars schema inference (default: first 100 rows) can mis-infer
-        # columns that have None in early rows but values later.
-        # Build columns incrementally, backfilling None for newly-seen fields.
-        col_data: dict[str, list] = {c: [] for c in join_cols}
-        for key, fields in lookup.items():
-            col_data["CHROM"].append(key[0])
-            col_data["POS"].append(key[1])
-            col_data["REF"].append(key[2] if len(key) >= 4 else "")
-            col_data["ALT"].append(key[3] if len(key) >= 4 else "")
-            # Track fields seen and backfill missing ones
-            for fname in list(fields.keys()):
-                if fname not in col_data:
-                    col_data[fname] = [None] * (len(col_data["CHROM"]) - 1)
-                col_data[fname].append(fields[fname])
-            # Backfill None for fields not in this row
-            for fname in col_data:
-                if fname not in join_cols and len(col_data[fname]) < len(col_data["CHROM"]):
-                    col_data[fname].append(None)
+        # Build caller DataFrame from column-oriented data with explicit dtypes
+        int_fields = {"DP", "AD_REF", "AD_ALT", "TAR", "TIR", "TOR", "AU", "CU", "GU", "TU", "POS"}
+        float_fields = {"VAF_CALLER"}
+        series_list = []
+        data_col_names = []
+        for cname, cvals in col_data.items():
+            if cname in join_cols:
+                series_list.append(pl.Series(cname, cvals, dtype=pl.Utf8 if cname != "POS" else pl.Int64))
+            elif cname in int_fields:
+                series_list.append(pl.Series(cname, cvals, dtype=pl.Int64))
+                data_col_names.append(cname)
+            elif cname in float_fields:
+                series_list.append(pl.Series(cname, cvals, dtype=pl.Float64))
+                data_col_names.append(cname)
+            else:
+                series_list.append(pl.Series(cname, cvals, dtype=pl.Utf8))
+                data_col_names.append(cname)
 
-        if col_data["CHROM"]:
-            # Build with explicit dtypes to avoid schema inference overhead
-            int_fields = {"DP", "AD_REF", "AD_ALT", "TAR", "TIR", "TOR", "AU", "CU", "GU", "TU", "POS"}
-            float_fields = {"VAF_CALLER"}
-            series_list = []
-            for cname, cvals in col_data.items():
-                if cname in int_fields:
-                    series_list.append(pl.Series(cname, cvals, dtype=pl.Int64))
-                elif cname in float_fields:
-                    series_list.append(pl.Series(cname, cvals, dtype=pl.Float64))
-                else:
-                    series_list.append(pl.Series(cname, cvals, dtype=pl.Utf8))
-            caller_df = pl.DataFrame(series_list)
-        else:
-            caller_df = pl.DataFrame(schema={c: pl.Utf8 for c in join_cols})
+        if not series_list:
+            continue
 
-        # Select columns to join (all except join columns)
-        data_cols = [c for c in caller_df.columns if c not in join_cols]
+        caller_df = pl.DataFrame(series_list)
 
-        if not data_cols:
+        if not data_col_names:
             continue
 
         # Rename data columns with caller prefix for join
-        rename_map = {c: f"{caller_name}_{c}" for c in data_cols}
-        caller_df = caller_df.select(list(join_cols) + data_cols).rename(rename_map)
+        rename_map = {c: f"{caller_name}_{c}" for c in data_col_names}
+        caller_df = caller_df.select(join_cols + data_col_names).rename(rename_map)
 
         # Left join on all 4 coordinate columns
         df = df.join(caller_df, on=join_cols, how="left")
 
-        # Ensure Strelka has AD_REF/AD_ALT columns (may come as TAR/TOR)
-        if is_strelka:
-            tor_col = f"{caller_name}_TOR"
-            tar_col = f"{caller_name}_TAR"
-            ad_ref_col = f"{caller_name}_AD_REF"
-            ad_alt_col = f"{caller_name}_AD_ALT"
-            if tor_col in df.columns:
-                df = df.with_columns(pl.col(tor_col).alias(ad_ref_col))
-            else:
-                df = df.with_columns(pl.lit(None).alias(ad_ref_col))
-            if tar_col in df.columns:
-                df = df.with_columns(pl.col(tar_col).alias(ad_alt_col))
-            else:
-                df = df.with_columns(pl.lit(None).alias(ad_alt_col))
+        # Free intermediate data immediately
+        del caller_df, series_list, col_data
 
-        # Ensure Mutect2/DeepSomatic have AD_REF/AD_ALT
+        # Ensure Strelka has AD_REF/AD_ALT columns
+        if is_strelka:
+            for suf, src in [("AD_REF", "TOR"), ("AD_ALT", "TAR")]:
+                src_col = f"{caller_name}_{src}"
+                tgt_col = f"{caller_name}_{suf}"
+                if src_col in df.columns:
+                    df = df.with_columns(pl.col(src_col).alias(tgt_col))
+                elif tgt_col not in df.columns:
+                    df = df.with_columns(pl.lit(None).alias(tgt_col))
+
         if not is_strelka and has_gt:
             for suf in ["AD_REF", "AD_ALT"]:
                 col = f"{caller_name}_{suf}"
                 if col not in df.columns:
                     df = df.with_columns(pl.lit(None).alias(col))
+
+        # Free caller_data entry to help GC
+        caller_data[caller_name] = {}
 
     return df

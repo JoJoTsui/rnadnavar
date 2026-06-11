@@ -97,12 +97,18 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
     refs = rescue_df["REF"].to_list()
     alts = rescue_df["ALT"].to_list()
     target_positions = set(zip(chroms, poss, refs, alts))
+    # Free intermediate lists — target_positions is a set, lists no longer needed
+    del chroms, poss, refs, alts
 
     print(f"  [{sample_id}] Found {len(target_positions)} positions, parsing 6 caller VCFs (max_workers={max_workers})...")
     caller_data = parse_all_callers(base_dir, dir_name, vcf_prefix, target_positions, max_workers=max_workers)
+    # Free target_positions — no longer needed after caller parsing
+    del target_positions
 
     # Join caller columns onto rescue dataframe
     df = join_caller_columns(rescue_df, caller_data)
+    # Free rescue_df and caller_data — no longer needed after join
+    del rescue_df, caller_data
 
     # Add sample metadata
     df = df.with_columns([
