@@ -1994,13 +1994,12 @@ class TestMemoryEfficiency:
         assert result.filter(pl.col("sample_id") == "A")["DP"][0] == 42
 
     def test_eager_helper_with_lazy_frame(self):
-        """_eager(df) materializes LazyFrame but passes through eager."""
+        """_maybe_collect(df) materializes LazyFrame but passes through eager."""
         import polars as pl
-        # Use the visualizer's _eager
-        from vcf_stats.seq2neo.visualizer import _eager
+        from vcf_stats.seq2neo.visualizer import _maybe_collect
 
         eager_df = pl.DataFrame({"x": [1, 2, 3]})
-        result = _eager(eager_df)
+        result = _maybe_collect(eager_df)
         assert isinstance(result, pl.DataFrame)
         assert result["x"].to_list() == [1, 2, 3]
 

@@ -13,6 +13,12 @@ import polars as pl
 # Disable altair's 5000-row default limit
 alt.data_transformers.disable_max_rows()
 
+def _maybe_collect(df):
+    """Collect if lazy, pass-through if eager."""
+    if isinstance(df, pl.LazyFrame):
+        return df.collect()
+    return df
+
 
 def _maybe_collect(df):
     """Collect if lazy, pass-through if eager."""
@@ -21,17 +27,6 @@ def _maybe_collect(df):
     return df
 
 
-def _eager(df):
-    """Materialize if lazy. Pass-through if eager."""
-    if isinstance(df, pl.LazyFrame):
-        return df.collect()
-    return df
-
-def _eager(df):
-    """Materialize a LazyFrame. Pass-through for eager frames."""
-    if isinstance(df, pl.LazyFrame):
-        return df.collect()
-    return df
 
 # ── Color palettes ────────────────────────────────────────────────────────
 VC_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
@@ -62,7 +57,6 @@ def _save_chart(chart: alt.Chart, name: str, output_dir: str):
 
 def plot_vc_distribution(df, output_dir: str, group_col: str = "set_number"):
     """Chart 1: Variant counts by VC classification, stacked bar per set."""
-    df = _eager(df)
     if "VC" not in df.columns:
         return
     counts = (
@@ -91,7 +85,6 @@ def plot_vc_distribution(df, output_dir: str, group_col: str = "set_number"):
 
 def plot_caller_overlap(df, output_dir: str):
     """Chart 2: Variant tier distribution (% by CxDy final tier)."""
-    df = _eager(df)
     if "final_tier" not in df.columns or "set_number" not in df.columns:
         return
     counts = df.group_by(["set_number", "final_tier"]).agg(pl.len().alias("count"))
@@ -112,7 +105,6 @@ def plot_caller_overlap(df, output_dir: str):
 
 def plot_vaf_distribution(df, output_dir: str):
     """Chart 3: Per-caller VAF distribution, box plot."""
-    df = _eager(df)
     caller_vaf_cols = [
         f"{c}_VAF" for c in [
             "DNA_mutect2", "RNA_mutect2", "DNA_deepsomatic",
@@ -139,7 +131,6 @@ def plot_vaf_distribution(df, output_dir: str):
 
 def plot_dna_vs_rna_vaf(df, output_dir: str):
     """Chart 4: DNA vs RNA mean VAF scatter."""
-    df = _eager(df)
     if "DNA_VAF_mean" not in df.columns or "RNA_VAF_mean" not in df.columns:
         return
     cols = ["DNA_VAF_mean", "RNA_VAF_mean"]
@@ -161,7 +152,6 @@ def plot_dna_vs_rna_vaf(df, output_dir: str):
 
 def plot_dna_vs_rna_dp(df, output_dir: str):
     """Chart 5: DNA vs RNA mean DP scatter."""
-    df = _eager(df)
     if "DNA_DP_mean" not in df.columns or "RNA_DP_mean" not in df.columns:
         return
     pdf = df.select(["DNA_DP_mean", "RNA_DP_mean", "set_number"]).drop_nulls()
@@ -180,7 +170,6 @@ def plot_dna_vs_rna_dp(df, output_dir: str):
 
 def plot_gt_concordance(df, output_dir: str):
     """Chart 6: GT concordance among 4 callers with GT fields."""
-    df = _eager(df)
     gt_cols = [
         "DNA_mutect2_GT", "RNA_mutect2_GT",
         "DNA_deepsomatic_GT", "RNA_deepsomatic_GT",
@@ -191,27 +180,23 @@ def plot_gt_concordance(df, output_dir: str):
 
     from collections import Counter
 
-    def count_agreement(row):
-        gts = [g for g in [row.get(c) for c in existing]
-               if g is not None and g not in ("./.", "./.", ".")]
-        if len(gts) < 2:
-            return 0
-        best = Counter(gts).most_common(1)[0][1]
-        return best if best >= 2 else 0
-
-    gt_subset = df.select(existing).to_dicts()
-    agreements = [count_agreement(r) for r in gt_subset]
-    n_total = len([a for a in agreements if a > 0])
+    # Compute GT agreement counts using iter_rows() (tuples, not dicts)
+    # Avoids df.to_dicts() which creates a Python dict per row — O(n) memory
+    agree_counts = {2: 0, 3: 0, 4: 0}
+    n_total = 0
+    for row in df.select(existing).iter_rows():
+        gts = [g for g in row if g is not None and g not in ("./.", "./.", ".")]
+        if len(gts) >= 2:
+            best = Counter(gts).most_common(1)[0][1]
+            if best >= 2:
+                agree_counts[best] = agree_counts.get(best, 0) + 1
+                n_total += 1
     if n_total == 0:
         return
 
     counts = pl.DataFrame({
         "agreement_level": ["2", "3", "4"],
-        "count": [
-            sum(1 for ag in agreements if ag == 2),
-            sum(1 for ag in agreements if ag == 3),
-            sum(1 for ag in agreements if ag == 4),
-        ],
+        "count": [agree_counts[2], agree_counts[3], agree_counts[4]],
     }).pipe(_maybe_collect).to_pandas()
 
     chart = alt.Chart(counts).mark_bar().encode(
@@ -226,7 +211,6 @@ def plot_gt_concordance(df, output_dir: str):
 
 def plot_cosmic_gnomad_annotation(df, output_dir: str):
     """Chart 7: COSMIC/gnomAD annotation coverage as side-by-side pies."""
-    df = _eager(df)
     n = df.height
     has_cosmic = df.filter(pl.col("COSMIC_ID").is_not_null()).height if "COSMIC_ID" in df.columns else -1
     has_gnomad = df.filter(pl.col("GNOMAD_AF").is_not_null()).height if "GNOMAD_AF" in df.columns else -1
@@ -272,7 +256,6 @@ def plot_cosmic_gnomad_annotation(df, output_dir: str):
 
 def plot_variant_type_distribution(df, output_dir: str):
     """Chart 9: Variant type distribution (SNV/INS/DEL/MNV), stacked bar per set."""
-    df = _eager(df)
     if "variant_type" not in df.columns:
         return
     pdf = df.group_by(["set_number", "variant_type"]).agg(
@@ -290,7 +273,6 @@ def plot_variant_type_distribution(df, output_dir: str):
 
 def plot_ti_tv_ratio(df, output_dir: str):
     """Chart 10: Ti/Tv ratio bar chart per set."""
-    df = _eager(df)
     if "ti_tv" not in df.columns:
         return
     ti = df.filter(pl.col("ti_tv") == True).group_by("set_number").agg(pl.len().alias("ti"))
@@ -314,7 +296,6 @@ def plot_ti_tv_ratio(df, output_dir: str):
 
 def plot_cross_modality(df, output_dir: str):
     """Chart 11: Cross-modality & rescue analysis with percentages."""
-    df = _eager(df)
     cols_needed = ["CROSS_MODALITY", "RESCUED", "set_number"]
     if not all(c in df.columns for c in cols_needed):
         return
@@ -401,7 +382,6 @@ def plot_validation_heatmap(report, output_dir: str):
 
 def plot_vaf_boxplot_per_tier(df, output_dir: str):
     """VAF distribution per caller, boxplot faceted by caller tier."""
-    df = _eager(df)
     caller_vaf_cols = [
         f"{c}_VAF" for c in [
             "DNA_mutect2", "RNA_mutect2", "DNA_deepsomatic",
@@ -433,7 +413,6 @@ def plot_vaf_boxplot_per_tier(df, output_dir: str):
 
 def plot_dp_boxplot_per_tier(df, output_dir: str):
     """DP distribution per caller, boxplot faceted by caller tier."""
-    df = _eager(df)
     caller_dp_cols = [
         f"{c}_DP" for c in [
             "DNA_mutect2", "RNA_mutect2", "DNA_deepsomatic",
@@ -464,7 +443,6 @@ def plot_dp_boxplot_per_tier(df, output_dir: str):
 
 def plot_gt_concordance_per_tier(df, output_dir: str):
     """GT concordance faceted by caller tier."""
-    df = _eager(df)
     gt_cols = [
         "DNA_mutect2_GT", "RNA_mutect2_GT",
         "DNA_deepsomatic_GT", "RNA_deepsomatic_GT",
@@ -506,7 +484,6 @@ def plot_gt_concordance_per_tier(df, output_dir: str):
 
 def plot_tiered_caller_overlap(df, output_dir: str):
     """N_SUPPORT_CALLERS histogram faceted by caller tier."""
-    df = _eager(df)
     if "N_SUPPORT_CALLERS" not in df.columns or "caller_tier" not in df.columns:
         return
 
@@ -530,7 +507,6 @@ def plot_tiered_caller_overlap(df, output_dir: str):
 
 def plot_tiered_variant_types(df, output_dir: str):
     """Variant type distribution (SNV/INS/DEL/MNV) faceted by caller tier."""
-    df = _eager(df)
     if "variant_type" not in df.columns or "caller_tier" not in df.columns:
         return
 
@@ -550,7 +526,6 @@ def plot_tiered_variant_types(df, output_dir: str):
 
 def plot_ref_alt_dp_scatter(df, output_dir: str):
     """Chart: DNA vs RNA mean REF_DP and ALT_DP scatter plots."""
-    df = _eager(df)
     needed = ["DNA_REF_DP_mean", "RNA_REF_DP_mean",
               "DNA_ALT_DP_mean", "RNA_ALT_DP_mean"]
     if not all(c in df.columns for c in needed):
@@ -609,7 +584,6 @@ def plot_bam_metrics_bars(bam_stats_df, output_dir: str, top_n: int = 20):
 
 def plot_bam_coverage_violin(df, output_dir: str):
     """BAM coverage distribution per BAM type, boxplot by tier."""
-    df = _eager(df)
     bam_cols = [c for c in df.columns if c.startswith("BAM_DP_")]
     if not bam_cols or "caller_tier" not in df.columns:
         return
@@ -668,7 +642,6 @@ def plot_per_tier_cross_sample_vaf(sample_tier_df, output_dir: str):
 
 def plot_filter_distribution(df, output_dir: str):
     """FILTER value distribution per set (pie or bar)."""
-    df = _eager(df)
     if "FILTER" not in df.columns:
         return
     counts = df.group_by("FILTER").agg(pl.len().alias("count")).sort("count", descending=True).pipe(_maybe_collect).to_pandas()
@@ -683,7 +656,6 @@ def plot_filter_distribution(df, output_dir: str):
 
 def plot_dna_vs_rna_per_caller(df, output_dir: str):
     """DNA vs RNA per-caller VAF scatter at shared positions (cross-modality)."""
-    df = _eager(df)
     pairs = [("DNA_mutect2", "RNA_mutect2"), ("DNA_deepsomatic", "RNA_deepsomatic"),
              ("DNA_strelka", "RNA_strelka")]
     subcharts = []
@@ -716,7 +688,6 @@ def plot_dna_vs_rna_per_caller(df, output_dir: str):
 
 def plot_chromosome_density(df, output_dir: str):
     """Variant count per chromosome (Manhattan-style bar chart)."""
-    df = _eager(df)
     if "CHROM" not in df.columns:
         return
     counts = df.group_by("CHROM").agg(pl.len().alias("count")).sort("count", descending=True).pipe(_maybe_collect).to_pandas()
@@ -731,7 +702,6 @@ def plot_chromosome_density(df, output_dir: str):
 
 def plot_redi_evidence(df, output_dir: str):
     """REDIportal RNA editing evidence distribution."""
-    df = _eager(df)
     if "REDI_EVIDENCE" not in df.columns:
         return
     counts = df.group_by("REDI_EVIDENCE").agg(pl.len().alias("count")).sort("count", descending=True).pipe(_maybe_collect).to_pandas()
@@ -746,7 +716,6 @@ def plot_redi_evidence(df, output_dir: str):
 
 def plot_tier_quality_distribution(df, output_dir: str):
     """Tier quality score histogram."""
-    df = _eager(df)
     if "tier_quality" not in df.columns:
         return
     pdf = df.select(["tier_quality"]).pipe(_maybe_collect).to_pandas()
@@ -760,7 +729,6 @@ def plot_tier_quality_distribution(df, output_dir: str):
 
 def plot_per_tier_vaf_boxplot(df, output_dir: str):
     """Per-tier DNA VAF boxplot across all variants."""
-    df = _eager(df)
     if "DNA_VAF_mean" not in df.columns or "final_tier" not in df.columns:
         return
     pdf = df.select(["final_tier", "DNA_VAF_mean", "RNA_VAF_mean"]).drop_nulls(subset=["DNA_VAF_mean"])
@@ -778,7 +746,6 @@ def plot_per_tier_vaf_boxplot(df, output_dir: str):
 
 def plot_caller_agreement_matrix(df, output_dir: str):
     """6×6 pairwise caller agreement matrix heatmap."""
-    df = _eager(df)
     callers = ["DNA_mutect2", "DNA_deepsomatic", "DNA_strelka",
                "RNA_mutect2", "RNA_deepsomatic", "RNA_strelka"]
     gt_cols = [f"{c}_GT" for c in callers]

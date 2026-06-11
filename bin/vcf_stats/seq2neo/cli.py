@@ -175,6 +175,9 @@ def main():
 
     use_rust = args.parser == "rust"
     print(f"Processing {len(manifest)} samples (parser={args.parser}, caller_threads={args.threads}, sample_workers={args.sample_workers}, bam_workers={args.bam_workers})")
+    if len(manifest) > 20 and not args.no_validate:
+        print("NOTE: >20 samples with validation enabled may be slow due to BAM pileup.")
+        print("      Consider --no-validate for initial runs, then validate separately.")
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
