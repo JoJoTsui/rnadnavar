@@ -113,8 +113,8 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         for start in range(0, n_positions, chunk_size):
             end = min(start + chunk_size, n_positions)
             chunk = rescue_df[start:end, ["CHROM", "POS", "REF", "ALT"]]
-            for row in chunk.iter_rows():
-                target_positions.add((row[0], row[1], row[2], row[3]))
+            for t in chunk.iter_rows():
+                target_positions.add((t[0], t[1], t[2], t[3]))
             del chunk
         del start, end  # loop variables
 

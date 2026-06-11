@@ -2224,16 +2224,24 @@ class TestMemoryRegression:
         assert "tier_counts.to_dicts()" in source, "Expected tier_counts.to_dicts() in sample_summary"
 
     def test_chunked_target_building(self):
-        """Target positions are built via chunked iter_rows, not to_list()."""
+        """Target positions are built via chunked iter_rows, not to_list().
+
+        Also verifies the loop variable doesn't shadow the function parameter
+        'row' (which is a manifest dict, not a tuple).
+        """
         import inspect
         from vcf_stats.seq2neo.cli import process_single_sample
         source = inspect.getsource(process_single_sample)
-        # Should NOT have to_list() for CHROM/POS/REF/ALT (old pattern)
         assert '["CHROM"].to_list()' not in source, "Still using to_list() for target positions"
         assert '["POS"].to_list()' not in source, "Still using to_list() for target positions"
-        # Should have chunked iteration
         assert "iter_rows()" in source, "Missing chunked iter_rows() for target building"
         assert "chunk_size" in source, "Missing chunk_size for target building"
+        # Loop variable must NOT shadow function parameter 'row' (which is a dict)
+        # 'for row in' would overwrite the dict parameter → tuple indexing error
+        assert 'for row in chunk.iter_rows()' not in source, (
+            "Loop variable 'row' shadows function parameter 'row' (manifest dict). "
+            "Use 'for t in chunk.iter_rows()' instead."
+        )
 
     def test_gc_collect_in_process_sample(self):
         """process_single_sample has gc.collect() after del statements."""
