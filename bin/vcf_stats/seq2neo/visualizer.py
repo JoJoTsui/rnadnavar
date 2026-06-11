@@ -20,14 +20,6 @@ def _maybe_collect(df):
     return df
 
 
-def _maybe_collect(df):
-    """Collect if lazy, pass-through if eager."""
-    if isinstance(df, pl.LazyFrame):
-        return df.collect()
-    return df
-
-
-
 # ── Color palettes ────────────────────────────────────────────────────────
 VC_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
 VC_DOMAIN = ["Somatic", "Germline", "Reference", "Artifact"]

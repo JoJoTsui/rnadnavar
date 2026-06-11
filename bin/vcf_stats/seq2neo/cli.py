@@ -321,6 +321,12 @@ def _process_worker(args: tuple) -> dict:
 
 
 def main():
+    # Suppress cosmetic resource_tracker warning from multiprocessing.spawn.
+    # The 6 POSIX named semaphores from mp.Pool's internal SimpleQueue objects
+    # are cleaned up by the kernel on process exit regardless.
+    import warnings
+    warnings.filterwarnings('ignore', message='resource_tracker')
+
     parser = argparse.ArgumentParser(description="Seq2neo variant statistics")
     parser.add_argument("--manifest", required=True, help="Path to sample manifest CSV/Parquet")
     parser.add_argument("--output-dir", required=True, help="Output directory for statistics")
@@ -345,12 +351,12 @@ def main():
                         help="VCF parser: rust (default) or python (cyvcf2 fallback)")
     parser.add_argument("--verbose", action="store_true",
                         help="Show per-caller progress messages")
-    parser.add_argument("--process-mode", choices=["thread", "fork"], default=None,
-                        help="Parallel execution mode: thread (ThreadPoolExecutor) or fork "
-                             "(multiprocessing.Pool with forked process per worker). "
-                             "Default: fork when --sample-workers > 1, thread otherwise.")
+    parser.add_argument("--process-mode", choices=["thread", "spawn"], default=None,
+                        help="Parallel execution mode: thread (ThreadPoolExecutor) or spawn "
+                             "(multiprocessing.Pool with fresh Python process per worker). "
+                             "Default: spawn when --sample-workers > 1, thread otherwise.")
     parser.add_argument("--max-tasks-per-child", type=int, default=1,
-                        help="Max samples per worker process before restart (fork mode only, default: 1).")
+                        help="Max samples per worker process before restart (spawn mode only, default: 1).")
     args = parser.parse_args()
 
     # Load and filter manifest
@@ -373,7 +379,7 @@ def main():
     # Determine process mode (used by print below and execution logic below)
     process_mode = args.process_mode
     if process_mode is None:
-        process_mode = "fork" if args.sample_workers > 1 else "thread"
+        process_mode = "spawn" if args.sample_workers > 1 else "thread"
 
     print(f"Processing {len(manifest)} samples (parser={args.parser}, caller_threads={args.threads}, sample_workers={args.sample_workers}, bam_workers={args.bam_workers}, process_mode={process_mode})")
     if len(manifest) > 20 and not args.no_validate:
@@ -392,15 +398,16 @@ def main():
     variant_dir_str = str(variant_dir)
     total_variants = 0
 
-    if process_mode == "fork" and args.sample_workers > 1:
-        # ── Process-isolated parallel mode (fork) ───────────────────────────
-        import multiprocessing as mp
-        ctx = mp.get_context("fork")
-
-        # Fork inherits parent's module state and file descriptors.
+    if process_mode == "spawn" and args.sample_workers > 1:
+        # ── Process-isolated parallel mode (spawn) ──────────────────────────
+        # spawn creates a fresh Python interpreter per worker (fork+exec),
+        # avoiding the fork+threads deadlock with polars' rayon pool.
         # maxtasksperchild=1 ensures each worker exits after one sample
-        # → kernel reclaims all memory. No Manager or Lock needed —
+        # → kernel reclaims all memory. No cross-process throttle needed —
         # process isolation alone keeps total RSS within limits.
+        import multiprocessing as mp
+        ctx = mp.get_context("spawn")
+
         worker_args = [
             (row, args.threads, use_rust, variant_dir_str)
             for row in rows
@@ -523,33 +530,39 @@ def main():
             set_summary_df.write_csv(str(output_dir / "set_summary.csv"))
 
         # Disease summary
+        _mem("before disease_summary")
         disease_summary_df = disease_summary(combined_df)
         if not disease_summary_df.is_empty():
             disease_summary_df.write_csv(str(output_dir / "disease_summary.csv"))
+        _mem("after disease_summary")
 
         # Tier summary
         tier_summary_df = compute_tier_summary(combined_df)
         if not tier_summary_df.is_empty():
             tier_summary_df.write_csv(str(output_dir / "tier_summary.csv"))
             print(f"Tier summary: {output_dir / 'tier_summary.csv'}")
+        _mem("after tier_summary")
 
         # Dataset summary (whole-dataset aggregates)
         ds_summary = dataset_summary(combined_df)
         if ds_summary:
             pl.DataFrame([ds_summary]).write_csv(str(output_dir / "dataset_summary.csv"))
             print(f"Dataset summary: {output_dir / 'dataset_summary.csv'}")
+        _mem("after dataset_summary")
 
         # Sample-tier summary (Level 4)
         sample_tier_df = sample_tier_summary(combined_df)
         if not sample_tier_df.is_empty():
             sample_tier_df.write_csv(str(output_dir / "sample_tier_summary.csv"))
             print(f"Sample-tier summary: {output_dir / 'sample_tier_summary.csv'}")
+        _mem("after sample_tier_summary")
 
     # Caller overlap
     from .statistics import caller_overlap_distribution
     overlap_df = caller_overlap_distribution(combined_df)
     if not overlap_df.is_empty():
         overlap_df.write_csv(str(output_dir / "caller_overlap.csv"))
+    _mem("after caller_overlap")
 
     # Filter distribution
     from .statistics import filter_distribution, variant_type_distribution, vc_distribution
@@ -561,6 +574,7 @@ def main():
     vt_df = variant_type_distribution(combined_df)
     if not vt_df.is_empty():
         vt_df.write_csv(str(output_dir / "variant_type_distribution.csv"))
+    _mem("after filter/vt distributions")
 
     # GT concordance
     concordance_data = gt_concordance(combined_df)
@@ -568,6 +582,10 @@ def main():
         pl.DataFrame({"agreement_level": list(concordance_data.keys()), "count": list(concordance_data.values())}).write_csv(
             str(output_dir / "gt_concordance.csv")
         )
+    _mem("after gt_concordance")
+    gc.collect()
+    _malloc_trim()
+    _mem("after aggregation cleanup")
 
     # Validation — read per-sample parquet files one at a time to keep memory low
     if not args.no_validate:

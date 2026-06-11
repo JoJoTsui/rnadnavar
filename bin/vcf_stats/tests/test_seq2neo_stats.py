@@ -2345,6 +2345,40 @@ class TestMemoryRegression:
 class TestColumnOrientedRescueParser:
     """Verify the Rust column-oriented rescue parser (parse_rescue_columns)."""
 
+    @pytest.fixture(scope="class")
+    def rescue_data(self):
+        """Parse rescue VCF once for the entire class (saves ~80s across 7 tests)."""
+        import stats_core
+        import glob
+
+        if not hasattr(stats_core, 'parse_rescue_columns'):
+            pytest.skip("parse_rescue_columns not available")
+
+        rescue = glob.glob(os.path.join(
+            REAL_SAMPLE["base_output_dir"], REAL_SAMPLE["dir_name"],
+            "vcf_realignment", "rescue", "*", "*.filtered.vcf.stripped.vcf.gz"
+        ))
+        if not rescue:
+            pytest.skip("Rescue VCF not found")
+
+        # Parse once — column-oriented
+        cols = stats_core.parse_rescue_columns(rescue[0])
+        # Parse once — row-oriented (for parity test)
+        from vcf_stats.seq2neo.rust_vcf import parse_rescue_vcf_columns
+        df_cols = parse_rescue_vcf_columns(rescue[0])
+        # Row-oriented legacy
+        records = stats_core.parse_rescue(rescue[0])
+        df_rows = pl.DataFrame(records)
+        from vcf_stats.seq2neo.rust_vcf import _cast_columns_fallback, _add_derived_columns_polars
+        df_rows = _cast_columns_fallback(df_rows)
+        df_rows = _add_derived_columns_polars(df_rows)
+
+        return {
+            "cols": cols,
+            "df_cols": df_cols,
+            "df_rows": df_rows,
+        }
+
     def test_parse_rescue_columns_available(self):
         """parse_rescue_columns is available in stats_core."""
         try:
@@ -2355,24 +2389,9 @@ class TestColumnOrientedRescueParser:
             "parse_rescue_columns not found in stats_core"
         )
 
-    def test_all_column_lengths_equal(self):
+    def test_all_column_lengths_equal(self, rescue_data):
         """All columns from parse_rescue_columns have identical length."""
-        try:
-            import stats_core
-            if not hasattr(stats_core, 'parse_rescue_columns'):
-                pytest.skip("parse_rescue_columns not available")
-        except ImportError:
-            pytest.skip("stats_core not available")
-
-        import glob
-        rescue = glob.glob(os.path.join(
-            REAL_SAMPLE["base_output_dir"], REAL_SAMPLE["dir_name"],
-            "vcf_realignment", "rescue", "*", "*.filtered.vcf.stripped.vcf.gz"
-        ))
-        if not rescue:
-            pytest.skip("Rescue VCF not found")
-
-        cols = stats_core.parse_rescue_columns(rescue[0])
+        cols = rescue_data["cols"]
         assert cols, "parse_rescue_columns returned empty dict"
         n = len(cols.get("CHROM", []))
         assert n > 0, "Expected variants but got empty CHROM column"
@@ -2381,85 +2400,38 @@ class TestColumnOrientedRescueParser:
                 f"Column '{k}' length {len(v)} != CHROM length {n}"
             )
 
-    def test_derived_columns_present(self):
+    def test_derived_columns_present(self, rescue_data):
         """variant_type and ti_tv are present in column-oriented output."""
-        try:
-            import stats_core
-            if not hasattr(stats_core, 'parse_rescue_columns'):
-                pytest.skip("parse_rescue_columns not available")
-        except ImportError:
-            pytest.skip("stats_core not available")
-
-        import glob
-        rescue = glob.glob(os.path.join(
-            REAL_SAMPLE["base_output_dir"], REAL_SAMPLE["dir_name"],
-            "vcf_realignment", "rescue", "*", "*.filtered.vcf.stripped.vcf.gz"
-        ))
-        if not rescue:
-            pytest.skip("Rescue VCF not found")
-
-        cols = stats_core.parse_rescue_columns(rescue[0])
+        cols = rescue_data["cols"]
         assert "variant_type" in cols, "variant_type missing from columns"
         assert "ti_tv" in cols, "ti_tv missing from columns"
-        # variant_type values should be valid strings
         vt_vals = set(cols["variant_type"])
         assert vt_vals.issubset({"SNV", "INS", "DEL", "MNV"}), (
             f"Unexpected variant_type values: {vt_vals - {'SNV', 'INS', 'DEL', 'MNV'}}"
         )
 
-    def test_parity_with_row_oriented(self):
+    def test_parity_with_row_oriented(self, rescue_data):
         """Column-oriented DataFrame matches row-oriented DataFrame."""
-        try:
-            import stats_core
-            if not hasattr(stats_core, 'parse_rescue_columns'):
-                pytest.skip("parse_rescue_columns not available")
-        except ImportError:
-            pytest.skip("stats_core not available")
+        df_cols = rescue_data["df_cols"]
+        df_rows = rescue_data["df_rows"]
 
-        import glob
-        rescue = glob.glob(os.path.join(
-            REAL_SAMPLE["base_output_dir"], REAL_SAMPLE["dir_name"],
-            "vcf_realignment", "rescue", "*", "*.filtered.vcf.stripped.vcf.gz"
-        ))
-        if not rescue:
-            pytest.skip("Rescue VCF not found")
-
-        from vcf_stats.seq2neo.rust_vcf import parse_rescue_vcf_columns
-
-        # Column-oriented
-        df_cols = parse_rescue_vcf_columns(rescue[0])
-
-        # Row-oriented (legacy)
-        records = stats_core.parse_rescue(rescue[0])
-        df_rows = pl.DataFrame(records)
-        from vcf_stats.seq2neo.rust_vcf import _cast_columns_fallback, _add_derived_columns_polars
-        df_rows = _cast_columns_fallback(df_rows)
-        df_rows = _add_derived_columns_polars(df_rows)
-
-        # Same number of rows
         assert len(df_cols) == len(df_rows), (
             f"Row count mismatch: cols={len(df_cols)}, rows={len(df_rows)}"
         )
 
-        # Same columns (column-oriented may have extra VCF header fields)
         for col in df_rows.columns:
             if col in df_cols.columns:
-                # Compare values — handle None/NaN
                 vals_cols = df_cols[col].to_list()
                 vals_rows = df_rows[col].to_list()
                 for i, (a, b) in enumerate(zip(vals_cols, vals_rows)):
                     if a is None and b is None:
                         continue
-                    # Boolean columns: treat None and False as equivalent for
-                    # absent flag fields (column-oriented uses None, row-oriented
-                    # uses False after _cast_columns_fallback).
                     if col in RESCUE_FLAG_FIELDS:
                         a_bool = bool(a) if a is not None else False
                         b_bool = bool(b) if b is not None else False
                         if a_bool == b_bool:
                             continue
                     if a != b:
-                        # Float comparison with tolerance
                         if isinstance(a, float) and isinstance(b, float):
                             assert abs(a - b) < 1e-6, (
                                 f"Column '{col}' row {i}: {a} != {b}"
@@ -2469,31 +2441,12 @@ class TestColumnOrientedRescueParser:
                                 f"Column '{col}' row {i}: {a!r} != {b!r}"
                             )
 
-    def test_polars_derived_columns_parity(self):
+    def test_polars_derived_columns_parity(self, rescue_data):
         """polars-native derived columns match per-row Python computation."""
-        import polars as pl
         from vcf_stats.seq2neo.rescue_parser import _add_derived_columns_polars
 
-        # Use real data for realistic test
-        try:
-            import stats_core
-            import glob
-            rescue = glob.glob(os.path.join(
-                REAL_SAMPLE["base_output_dir"], REAL_SAMPLE["dir_name"],
-                "vcf_realignment", "rescue", "*", "*.filtered.vcf.stripped.vcf.gz"
-            ))
-            if rescue:
-                records = stats_core.parse_rescue(rescue[0])
-                df = pl.DataFrame(records)[["CHROM", "POS", "REF", "ALT", "FILTER"]].head(1000)
-            else:
-                raise Exception("no rescue VCF")
-        except Exception:
-            df = pl.DataFrame({
-                "REF": ["A", "AC", "A", "AC"] * 250,
-                "ALT": ["G", "A", "ACGT", "TG"] * 250,
-            })
-
-        # polars-native
+        # Use the row-oriented data (first 1000 rows only for speed)
+        df = rescue_data["df_rows"].select(["CHROM", "POS", "REF", "ALT", "FILTER"]).head(1000)
         result = _add_derived_columns_polars(df)
         assert "variant_type" in result.columns
         assert "ti_tv" in result.columns
@@ -2501,12 +2454,11 @@ class TestColumnOrientedRescueParser:
     def test_malloc_trim_no_crash(self):
         """_malloc_trim() does not crash on Linux."""
         from vcf_stats.seq2neo.cli import _malloc_trim
-        _malloc_trim()  # Should not raise
+        _malloc_trim()
 
     def test_malloc_trim_handles_missing_libc(self):
         """_malloc_trim() handles platforms without libc.so.6."""
         import ctypes
-        # Simulate missing libc by patching CDLL
         original = ctypes.CDLL
         def mock_cdll(name):
             if name == "libc.so.6":
@@ -2515,6 +2467,6 @@ class TestColumnOrientedRescueParser:
         ctypes.CDLL = mock_cdll
         try:
             from vcf_stats.seq2neo.cli import _malloc_trim
-            _malloc_trim()  # Should not raise
+            _malloc_trim()
         finally:
             ctypes.CDLL = original

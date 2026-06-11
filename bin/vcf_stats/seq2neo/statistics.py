@@ -10,10 +10,41 @@ import polars as pl
 
 from .manifest_loader import CALLER_CONFIGS
 
+# Columns needed by cross-sample aggregation functions. The lazy scan over
+# per-sample parquet files has ~165 columns; selecting only these ~35 before
+# .collect() reduces memory from ~80 GB to ~15 GB (at 58M variants) and
+# enables the query optimizer to skip unneeded columns during parquet reads.
+_CROSS_SAMPLE_COLS = [
+    # Per-sample metadata
+    "sample_id", "set_number", "disease", "disease_normalized",
+    # Classification / filters
+    "FILTER", "VC", "variant_type", "ti_tv",
+    # Computed per-variant means (compute_all_per_variant output)
+    "DNA_VAF_mean", "RNA_VAF_mean", "DNA_DP_mean", "RNA_DP_mean",
+    "DNA_REF_DP_mean", "RNA_REF_DP_mean", "DNA_ALT_DP_mean", "RNA_ALT_DP_mean",
+    # Tiering columns
+    "final_tier", "caller_tier", "database_tier", "tier_quality",
+    # Caller support / cross-modality / rescue flags
+    "N_SUPPORT_CALLERS", "CROSS_MODALITY", "RESCUED",
+    # Database annotations
+    "COSMIC_ID", "GNOMAD_AF", "REDI_EVIDENCE",
+    # GT concordance (caller GT columns — only 4 of 6 callers have GT)
+    "DNA_mutect2_GT", "RNA_mutect2_GT", "DNA_deepsomatic_GT", "RNA_deepsomatic_GT",
+    # Flag filter breakdown fields
+    "min_alt_reads", "gnomad", "blacklist", "noncoding", "ig_pseudo",
+    "homopolymer", "vc_filter", "not_consensus", "multiallelic",
+]
+
+
 def _ensure_eager(df):
-    """Materialize a LazyFrame if needed. Accepts both eager and lazy frames."""
+    """Materialize a LazyFrame if needed, loading only cross-sample columns.
+
+    Avoids loading all 165 columns from the per-sample parquet files.
+    Accepts both eager (pass-through) and lazy (collect with column pruning).
+    """
     if isinstance(df, pl.LazyFrame):
-        return df.collect()
+        existing = [c for c in _CROSS_SAMPLE_COLS if c in df.columns]
+        return df.select(existing).collect()
     return df
 
 

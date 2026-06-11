@@ -14,6 +14,8 @@ from typing import Any
 
 import polars as pl
 
+from .statistics import _ensure_eager
+
 # Import TieringEngine from sibling tiering_engine.py
 from ..tiering_engine import TieringEngine
 
@@ -243,11 +245,14 @@ def tier_summary(df: pl.DataFrame) -> pl.DataFrame:
 
     Args:
         df: DataFrame with final_tier column and computed statistics columns.
+            Accepts both eager and lazy frames.
 
     Returns:
         DataFrame with one row per CxDy tier containing count, mean VAF, mean DP,
         mean REF_DP, mean ALT_DP, variant type distribution, and Ti/Tv ratio.
     """
+    df = _ensure_eager(df)
+
     if "final_tier" not in df.columns:
         return pl.DataFrame()
 
