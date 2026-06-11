@@ -20,13 +20,33 @@ from pathlib import Path
 import polars as pl
 
 # Semaphore to prevent concurrent processing of large (>2M position) samples.
-# With sample_workers=4, only 1 large sample processes at a time.
 _LARGE_SAMPLE_SEM = threading.Semaphore(1)
 _LARGE_THRESHOLD = 2_000_000
 
+# Columns needed during caller join + tiering. The remaining ~63 rescue INFO
+# fields are output-only — they hstack back before parquet write.
+_SLIM_COLS = [
+    "CHROM", "POS", "REF", "ALT", "FILTER",
+    "FILTERS_NORMALIZED", "GNOMAD_AF", "COSMIC_CNT", "REDI_EVIDENCE",
+    "N_DNA_CALLERS_SUPPORT", "N_RNA_CALLERS_SUPPORT",
+]
+
+
+def _mem(msg: str) -> None:
+    """Log current RSS in GB. Uses /proc/self/status — no external deps."""
+    try:
+        with open("/proc/self/status") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    kb = int(line.split()[1])
+                    print(f"  [MEM {kb / 1024**2:.1f}GB] {msg}", flush=True)
+                    return
+    except Exception:
+        print(f"  [MEM ?GB] {msg}", flush=True)
+
 from .bam_stats import compute_all_bam_stats
 from .bam_validation import validate_bam_vs_caller as validate_bam_one
-from .caller_parser import join_caller_columns, parse_all_callers
+from .caller_parser import _parse_one_caller, CALLERS_STRELKA, CALLERS_WITH_GT
 from .manifest_loader import filter_complete, load_manifest
 from .rescue_parser import parse_rescue_vcf as _py_parse_rescue
 from .rust_vcf import parse_rescue_vcf as _rust_parse_rescue
@@ -77,6 +97,54 @@ from .visualizer import (
 )
 
 
+def _streaming_join_one(df: pl.DataFrame, col_data: dict, caller_name: str) -> pl.DataFrame:
+    """Join a single caller's column-oriented data and rename columns."""
+    from .caller_parser import CALLERS_STRELKA, CALLERS_WITH_GT
+    join_cols = ["CHROM", "POS", "REF", "ALT"]
+    int_fields = {"DP", "AD_REF", "AD_ALT", "TAR", "TIR", "TOR", "AU", "CU", "GU", "TU", "POS"}
+    float_fields = {"VAF_CALLER"}
+    is_strelka = caller_name in CALLERS_STRELKA
+    has_gt = caller_name in CALLERS_WITH_GT
+
+    series_list = []
+    data_col_names = []
+    for cname, cvals in col_data.items():
+        if cname in join_cols:
+            series_list.append(pl.Series(cname, cvals, dtype=pl.Utf8 if cname != "POS" else pl.Int64))
+        elif cname in int_fields:
+            series_list.append(pl.Series(cname, cvals, dtype=pl.Int64))
+            data_col_names.append(cname)
+        elif cname in float_fields:
+            series_list.append(pl.Series(cname, cvals, dtype=pl.Float64))
+            data_col_names.append(cname)
+        else:
+            series_list.append(pl.Series(cname, cvals, dtype=pl.Utf8))
+            data_col_names.append(cname)
+
+    if not series_list or not data_col_names:
+        return df
+
+    caller_df = pl.DataFrame(series_list)
+    rename_map = {c: f"{caller_name}_{c}" for c in data_col_names}
+    caller_df = caller_df.select(join_cols + data_col_names).rename(rename_map)
+    df = df.join(caller_df, on=join_cols, how="left")
+    del caller_df, series_list
+
+    if is_strelka:
+        for suf, src in [("AD_REF", "TOR"), ("AD_ALT", "TAR")]:
+            src_col = f"{caller_name}_{src}"
+            tgt_col = f"{caller_name}_{suf}"
+            if src_col in df.columns:
+                df = df.with_columns(pl.col(src_col).alias(tgt_col))
+    if not is_strelka and has_gt:
+        for suf in ["AD_REF", "AD_ALT"]:
+            col = f"{caller_name}_{suf}"
+            if col not in df.columns:
+                df = df.with_columns(pl.lit(None).alias(col))
+    return df
+
+
+
 def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True) -> dict:
     """Process one sample: parse rescue VCF + all caller VCFs + compute stats.
 
@@ -92,11 +160,11 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
     print(f"  [{sample_id}] Parsing rescue VCF ({'rust' if use_rust else 'python'})...")
     rescue_df = parse_fn(rescue_path)
     if rescue_df.is_empty():
-        print(f"  [{sample_id}] WARNING: No variants in rescue VCF — sample SKIPPED (will not appear in cross-sample statistics)")
+        print(f"  [{sample_id}] WARNING: No variants in rescue VCF — sample SKIPPED")
         return {"sample_id": sample_id, "df": None, "stats": None}
+    _mem(f"after rescue parse ({len(rescue_df)} vars)")
 
-    # Auto-throttle: large samples (>2M positions) process exclusively to
-    # prevent memory spikes from concurrent 20-30 GB allocations.
+    # Auto-throttle: large samples process exclusively
     n_variants = len(rescue_df)
     is_large = n_variants > _LARGE_THRESHOLD
     if is_large:
@@ -104,31 +172,49 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         _LARGE_SAMPLE_SEM.acquire()
         print(f"  [{sample_id}] Large sample acquired exclusive access")
     try:
-        # Build target positions in chunks to avoid materializing all Python strings
-        # at once. For a 7M-variant sample, to_list() would create 28M Python objects
-        # (1.25 GB). Chunked iteration limits peak to ~100K objects per chunk.
+        # Column pruning: split into slim (12 processing cols) and output (rest).
+        slim_cols = [c for c in _SLIM_COLS if c in rescue_df.columns]
+        output_cols = [c for c in rescue_df.columns if c not in _SLIM_COLS]
+        rescue_slim = rescue_df.select(slim_cols)
+        rescue_output = rescue_df.select(output_cols) if output_cols else None
+        del rescue_df
+        _mem("after column split")
+
+        # Build target positions in chunks
         chunk_size = 100_000
-        n_positions = len(rescue_df)
+        n_positions = len(rescue_slim)
         target_positions = set()
         for start in range(0, n_positions, chunk_size):
             end = min(start + chunk_size, n_positions)
-            chunk = rescue_df[start:end, ["CHROM", "POS", "REF", "ALT"]]
+            chunk = rescue_slim[start:end, ["CHROM", "POS", "REF", "ALT"]]
             for t in chunk.iter_rows():
                 target_positions.add((t[0], t[1], t[2], t[3]))
             del chunk
-        del start, end  # loop variables
+        del start, end
 
-        print(f"  [{sample_id}] Found {len(target_positions)} positions, parsing 6 caller VCFs (max_workers={max_workers})...")
-        caller_data = parse_all_callers(base_dir, dir_name, vcf_prefix, target_positions, max_workers=max_workers)
-        # Free target_positions — no longer needed after caller parsing
-        del target_positions
-        gc.collect()
+        print(f"  [{sample_id}] {len(target_positions)} positions, streaming join...")
+        from .caller_parser import _parse_one_caller, CALLERS_STRELKA, CALLERS_WITH_GT
+        base = os.path.join(base_dir, dir_name)
 
-        # Join caller columns onto rescue dataframe
-        df = join_caller_columns(rescue_df, caller_data)
-        # Free rescue_df and caller_data — no longer needed after join
-        del rescue_df, caller_data
+        # Streaming join: parse + join one caller at a time.
+        df = rescue_slim.clone()
+        for caller_name, cfg in CALLER_CONFIGS.items():
+            name, cols = _parse_one_caller(caller_name, cfg, base, vcf_prefix, target_positions)
+            if cols:
+                df = _streaming_join_one(df, cols, caller_name)
+                del cols
+            gc.collect()
+            _mem(f"after caller: {caller_name}")
+
+        del target_positions, rescue_slim
         gc.collect()
+        _mem("after all callers joined")
+
+        # Re-join output-only rescue columns before stats
+        if rescue_output is not None:
+            df = df.hstack(rescue_output)
+            del rescue_output
+            _mem("after hstack output cols")
 
         # Add sample metadata
         df = df.with_columns([
@@ -149,6 +235,7 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         stats["set_number"] = row["set_number"]
         stats["disease"] = row["disease"]
 
+        _mem("after stats")
         print(f"  [{sample_id}] Done: {len(df)} variants")
         return {"sample_id": sample_id, "df": df, "stats": stats}
     finally:
@@ -180,6 +267,8 @@ def main():
                              "Uses ThreadPoolExecutor (safe with htslib).")
     parser.add_argument("--parser", choices=["rust", "python"], default="rust",
                         help="VCF parser: rust (default) or python (cyvcf2 fallback)")
+    parser.add_argument("--verbose", action="store_true",
+                        help="Show per-caller progress messages")
     args = parser.parse_args()
 
     # Load and filter manifest
@@ -227,6 +316,7 @@ def main():
             # Free memory immediately
             result["df"] = None
             gc.collect()
+            _mem(f"after write+free [{sid}]")
         if result["stats"] is not None:
             all_stats.append(result["stats"])
         return result

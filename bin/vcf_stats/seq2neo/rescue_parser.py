@@ -15,15 +15,10 @@ from cyvcf2 import VCF
 
 # Numeric (int) fields
 RESCUE_INT_FIELDS = [
-    "N_CALLERS",
     "N_SUPPORT_CALLERS",
     "N_CONSENSUS_SUPPORT",
-    "N_DNA_CALLERS",
-    "N_RNA_CALLERS",
     "N_DNA_CALLERS_SUPPORT",
     "N_RNA_CALLERS_SUPPORT",
-    "DNA_SUPPORT",
-    "RNA_SUPPORT",
     "COSMIC_CNT",
     "DP_MIN",
     "DP_MAX",

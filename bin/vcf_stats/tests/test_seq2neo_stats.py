@@ -2169,7 +2169,7 @@ class TestMemoryRegression:
         from vcf_stats.seq2neo.cli import process_single_sample
         source = inspect.getsource(process_single_sample)
         assert "del target_positions" in source, "Missing: del target_positions"
-        assert "del rescue_df, caller_data" in source, "Missing: del rescue_df, caller_data"
+        assert "del rescue_df" in source, "Missing: del rescue_df (column split)"
         assert "gc.collect()" in source, "Missing: gc.collect() after del"
 
     def test_join_frees_caller_entry(self):
