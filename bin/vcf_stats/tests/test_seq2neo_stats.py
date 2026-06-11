@@ -2258,6 +2258,38 @@ class TestMemoryRegression:
         source = inspect.getsource(_parse_one_caller)
         assert "parse_caller_vcf" in source, "Rust parser not wired"
 
+    def test_no_loop_variable_shadows_function_parameter(self):
+        """No for-loop variable shadows a function parameter (AST check).
+
+        Python's for-loop variables leak into the enclosing scope.
+        If a loop variable has the same name as a function parameter,
+        the parameter gets silently overwritten — causing TypeError
+        when the parameter is used later as a different type.
+        """
+        import ast, glob
+        issues = []
+        for fpath in glob.glob('bin/vcf_stats/seq2neo/*.py'):
+            with open(fpath) as f:
+                try:
+                    tree = ast.parse(f.read())
+                except SyntaxError:
+                    continue
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef):
+                    params = {a.arg for a in node.args.args}
+                    for child in ast.walk(node):
+                        if isinstance(child, ast.For):
+                            if isinstance(child.target, ast.Name):
+                                if child.target.id in params:
+                                    issues.append(
+                                        f"{fpath}:{child.lineno} — "
+                                        f"'{child.target.id}' in for-loop shadows "
+                                        f"parameter of {node.name}()"
+                                    )
+        assert not issues, (
+            "Loop variable shadows function parameter:\n" + "\n".join(issues)
+        )
+
     def test_large_sample_semaphore_exists(self):
         """_LARGE_SAMPLE_SEM exists in cli.py for throttling."""
         import inspect
