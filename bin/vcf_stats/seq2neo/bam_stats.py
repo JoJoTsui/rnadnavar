@@ -12,6 +12,50 @@ from typing import Any
 
 import polars as pl
 
+
+def sum_bed_regions(bed_path: str) -> int:
+    """Sum the total length of all intervals in a BED file.
+
+    Reads a BED file (0-based, 3+ column format: chrom, start, end, ...)
+    and returns the sum of (end - start) across all intervals. Used as the
+    coverage denominator for WES data where the BAM header reference length
+    (whole genome, ~3 Gbp) would under-report coverage by ~100×.
+    """
+    total = 0
+    with open(bed_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or line.startswith("track") or line.startswith("browser"):
+                continue
+            parts = line.split("\t")
+            if len(parts) < 3:
+                continue
+            try:
+                start = int(parts[1])
+                end = int(parts[2])
+                if end > start:
+                    total += end - start
+            except (ValueError, IndexError):
+                continue
+    return total
+
+
+def _get_bam_ref_total(bam_path: str) -> int:
+    """Get the total reference length from a BAM header (pysam, header-only).
+
+    Fast — reads only the header, not the alignment records.
+    Used to post-hoc recalculate mean_coverage with a custom denominator
+    (e.g., WES BED region total) without needing the Rust module rebuilt.
+    """
+    try:
+        import pysam
+        bam = pysam.AlignmentFile(bam_path, "rb")
+        total = sum(bam.lengths) if bam.lengths else 0
+        bam.close()
+        return total
+    except Exception:
+        return 0
+
 try:
     import stats_core
     HAS_RUST_BAM = hasattr(stats_core, 'bam_stats')
@@ -67,7 +111,7 @@ def _locate_bam_file(base_dir: str, dir_name: str, bam_type: str) -> str | None:
     return None
 
 
-def _compute_bam_stats_pysam(bam_path: str) -> dict[str, Any] | None:
+def _compute_bam_stats_pysam(bam_path: str, bed_total: int = 0) -> dict[str, Any] | None:
     """Compute BAM statistics using pysam (Python fallback)."""
     if not HAS_PYSAM:
         return None
@@ -82,8 +126,9 @@ def _compute_bam_stats_pysam(bam_path: str) -> dict[str, Any] | None:
         insert_count = 0
         total_length = 0
 
-        # Reference lengths for coverage estimation
-        ref_lengths = sum(bam.lengths) if bam.lengths else 1
+        # Reference lengths for coverage estimation — use BED total for WES,
+        # otherwise use BAM header reference lengths (whole-genome).
+        ref_lengths = bed_total if bed_total > 0 else (sum(bam.lengths) if bam.lengths else 1)
 
         for read in bam.fetch():
             total_reads += 1
@@ -142,10 +187,16 @@ def _compute_bam_stats_rust(bam_path: str) -> dict[str, Any] | None:
         return None
 
 
-def compute_bam_stats(bam_path: str) -> dict[str, Any] | None:
+def compute_bam_stats(bam_path: str, bed_total: int = 0) -> dict[str, Any] | None:
     """Compute basic statistics from a BAM file.
 
     Uses Rust stats_core when available (faster), falls back to pysam.
+
+    Args:
+        bam_path: Path to the BAM file.
+        bed_total: Total length of BED regions (for WES coverage denominator).
+                   When > 0, mean_coverage is recalculated using bed_total instead
+                   of the BAM header reference lengths. Default 0 = whole-genome.
 
     Returns dict with: total_reads, mapped_reads, mapping_rate_pct,
     mean_coverage, mean_insert_size, mean_mapq. Returns None if BAM is unreadable.
@@ -156,11 +207,20 @@ def compute_bam_stats(bam_path: str) -> dict[str, Any] | None:
     if HAS_RUST_BAM:
         result = _compute_bam_stats_rust(bam_path)
         if result is not None:
+            # WES coverage override: recalculate using BED denominator.
+            # Rust uses BAM header reference lengths (~3 Gbp for human genome).
+            # For WES, the BED region total is ~30-60 Mbp, so we scale up.
+            if bed_total > 0:
+                bam_ref = _get_bam_ref_total(bam_path)
+                if bam_ref > 0 and result.get("mean_coverage"):
+                    result["mean_coverage"] = round(
+                        result["mean_coverage"] * (bam_ref / bed_total), 4
+                    )
             return result
         # Fall through to pysam on Rust failure
         print(f"  [BAM STATS] Rust failed for {bam_path}, falling back to pysam")
 
-    return _compute_bam_stats_pysam(bam_path)
+    return _compute_bam_stats_pysam(bam_path, bed_total)
 
 
 def compute_sample_bam_stats(
@@ -168,6 +228,7 @@ def compute_sample_bam_stats(
     dir_name: str,
     sample_id: str,
     set_number: int,
+    bed_total: int = 0,
 ) -> list[dict[str, Any]]:
     """Compute BAM statistics for a single sample (DNA + RNA modalities).
 
@@ -179,7 +240,7 @@ def compute_sample_bam_stats(
 
     for bam_type in ["DN", "DT", "RT"]:
         bam_path = _locate_bam_file(base_output_dir, dir_name, bam_type)
-        stats = compute_bam_stats(bam_path) if bam_path else None
+        stats = compute_bam_stats(bam_path, bed_total) if bam_path else None
 
         row = {
             "sample_id": sample_id,
@@ -206,7 +267,7 @@ def compute_sample_bam_stats(
     return results
 
 
-def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8) -> pl.DataFrame:
+def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8, bed_total: int = 0) -> pl.DataFrame:
     """Compute BAM statistics for all samples in the manifest.
 
     Args:
@@ -214,6 +275,9 @@ def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8) -> pl
             dir_name, set_number.
         max_workers: Number of threads for parallel sample processing (default: 8).
             Uses ThreadPoolExecutor (threads, safe with htslib).
+        bed_total: Total length of BED regions for WES coverage denominator.
+                   When > 0, passed through to compute_bam_stats for coverage
+                   recalculation. Default 0 = whole-genome.
 
     Returns:
         polars DataFrame with one row per sample per modality.
@@ -232,6 +296,7 @@ def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8) -> pl
                     dir_name=row["dir_name"],
                     sample_id=row["sample_id"],
                     set_number=row["set_number"],
+                    bed_total=bed_total,
                 )
                 futures[future] = row["sample_id"]
 
@@ -254,6 +319,7 @@ def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8) -> pl
                 dir_name=row["dir_name"],
                 sample_id=row["sample_id"],
                 set_number=row["set_number"],
+                bed_total=bed_total,
             )
             all_rows.extend(sample_results)
             ok_flags = []

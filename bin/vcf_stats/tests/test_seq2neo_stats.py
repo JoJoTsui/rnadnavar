@@ -57,12 +57,13 @@ from vcf_stats.seq2neo.visualizer import (
     plot_dna_vs_rna_dp,
     plot_dna_vs_rna_vaf,
     plot_gt_concordance,
-    plot_per_sample_violin,
+    plot_per_sample_distribution,
     plot_ti_tv_ratio,
     plot_vaf_distribution,
     plot_validation_heatmap,
     plot_variant_type_distribution,
     plot_vc_distribution,
+    plot_bam_coverage_violin,
 )
 
 # ── Test data paths (read-only, from real pipeline output) ────────────────
@@ -241,7 +242,7 @@ class TestStatistics:
             "set_number": [3] * 5,
             "CHROM": ["chr1"] * 5,
             "POS": [100, 200, 300, 400, 500],
-            "FILTER": ["PASS", "PASS", "PASS", "NoConsensus", "PASS"],
+            "FILTER": ["Somatic", "Somatic", "Germline", "Artifact", "Somatic"],
             "VC": ["Somatic", "Somatic", "Germline", "Reference", "Somatic"],
             "variant_type": ["SNV", "SNV", "INS", "DEL", "SNV"],
             "ti_tv": [True, False, None, None, True],
@@ -299,8 +300,13 @@ class TestStatistics:
         df = compute_vaf_columns(sample_df)
         stats = sample_summary(df, "test")
         assert stats["total_variants"] == 5
-        assert stats["pass_variants"] == 4
-        assert stats["somatic_variants"] == 3
+        # 6-category FILTER classification: Somatic=3, Germline=1, Artifact=1
+        assert stats["n_somatic"] == 3
+        assert stats["n_germline"] == 1
+        assert stats["n_artifact"] == 1
+        assert stats["n_reference"] == 0
+        assert stats["n_rnaedit"] == 0
+        assert stats["n_noconsensus"] == 0
         assert stats["n_SNV"] == 3
         assert stats["n_INS"] == 1
         assert stats["n_DEL"] == 1
@@ -318,10 +324,11 @@ class TestStatistics:
         stats_df = pl.DataFrame({
             "set_number": [1, 1, 2],
             "total_variants": [100, 200, 50],
-            "pass_variants": [80, 160, 40],
+            "n_somatic": [80, 160, 40],
         })
         summary = set_summary(stats_df)
         assert summary.height == 2
+        assert "n_somatic" in summary.columns
 
     def test_variant_type_distribution(self, sample_df):
         dist = variant_type_distribution(sample_df, "set_number")
@@ -624,7 +631,7 @@ class TestVisualizer:
             "set_number": [1, 1, 1, 2, 2, 2],
             "CHROM": ["chr1"] * 6,
             "POS": range(100, 106),
-            "FILTER": ["PASS"] * 6,
+            "FILTER": ["Somatic", "Somatic", "Germline", "Somatic", "Reference", "Artifact"],
             "VC": ["Somatic", "Somatic", "Germline", "Somatic", "Reference", "Artifact"],
             "N_SUPPORT_CALLERS": [6, 4, 2, 3, 1, 5],
             "CROSS_MODALITY": ["YES", "NO", "YES", "NO", "YES", "NO"],
@@ -677,7 +684,7 @@ class TestVisualizer:
             "total_variants": [100, 200, 150, 300],
             "disease": ["colorectal", "colon", "colorectal", "pancreatic"],
         })
-        fig = plot_per_sample_violin(df, tmp_output_dir)
+        fig = plot_per_sample_distribution(df, tmp_output_dir)
         assert fig is not None
         assert hasattr(fig, "save")
 
@@ -870,7 +877,7 @@ class TestIntegrationEndToEnd:
             plot_cross_modality(df, d),
         ]
         if e2e_data["all_stats"]:
-            charts.append(plot_per_sample_violin(pl.DataFrame(e2e_data["all_stats"]), d))
+            charts.append(plot_per_sample_distribution(pl.DataFrame(e2e_data["all_stats"]), d))
         if not e2e_data["report"].is_empty():
             charts.append(plot_validation_heatmap(e2e_data["report"], d))
 
@@ -1032,7 +1039,7 @@ class TestRefAltDpStats:
         from vcf_stats.seq2neo.statistics import compute_vaf_columns
         df = pl.DataFrame({
             "sample_id": ["test"] * 2,
-            "FILTER": ["PASS", "PASS"],
+            "FILTER": ["Somatic", "Germline"],
             "VC": ["Somatic", "Germline"],
             "variant_type": ["SNV", "SNV"],
             "ti_tv": [True, False],
@@ -1063,7 +1070,7 @@ class TestMultiLevelAggregation:
         from vcf_stats.seq2neo.statistics import dataset_summary
         df = pl.DataFrame({
             "sample_id": ["s1", "s1", "s2", "s2"],
-            "FILTER": ["PASS", "PASS", "PASS", "NoConsensus"],
+            "FILTER": ["Somatic", "Somatic", "Germline", "Reference"],
             "VC": ["Somatic", "Somatic", "Germline", "Reference"],
             "variant_type": ["SNV", "SNV", "INS", "SNV"],
             "ti_tv": [True, False, None, True],
@@ -1077,8 +1084,10 @@ class TestMultiLevelAggregation:
         ds = dataset_summary(df)
         assert ds["total_variants"] == 4
         assert ds["n_samples"] == 2
-        assert ds["pass_variants"] == 3
-        assert ds["n_somatic"] == 2
+        # 6-category FILTER classification
+        assert ds["n_somatic"] == 2  # rows 0,1 → Somatic
+        assert ds["n_germline"] == 1  # row 2 → Germline
+        assert ds["n_reference"] == 1  # row 3 → Reference
         assert ds["n_SNV"] == 3
         assert ds["n_INS"] == 1
         assert ds["n_callers_6"] == 1
@@ -2013,13 +2022,13 @@ class TestMemoryEfficiency:
         d.mkdir()
         df_a = pl.DataFrame({
             "CHROM": ["chr1"] * 5, "POS": range(1, 6),
-            "FILTER": ["PASS"] * 5, "VC": ["Somatic"] * 5,
+            "FILTER": ["Somatic"] * 5, "VC": ["Somatic"] * 5,
             "variant_type": ["SNV"] * 5, "ti_tv": [True] * 5,
             "sample_id": ["A"] * 5, "disease_normalized": ["Lung"] * 5,
         })
         df_b = pl.DataFrame({
             "CHROM": ["chr2"] * 5, "POS": range(1, 6),
-            "FILTER": ["PASS"] * 5, "VC": ["Somatic"] * 5,
+            "FILTER": ["Somatic"] * 5, "VC": ["Somatic"] * 5,
             "variant_type": ["SNV"] * 5, "ti_tv": [True] * 5,
             "sample_id": ["B"] * 5, "disease_normalized": ["Lung"] * 5,
         })
@@ -2054,7 +2063,7 @@ class TestMemoryEfficiency:
 
         df = pl.DataFrame({
             "set_number": [1, 1, 2, 2],
-            "FILTER": ["PASS", "Somatic", "PASS", "Somatic"],
+            "FILTER": ["Somatic", "Germline", "Somatic", "Artifact"],
         })
         result = filter_distribution(df)
         assert result.height == 4  # 2 sets × 2 filters
@@ -2068,7 +2077,7 @@ class TestMemoryEfficiency:
         d.mkdir()
         df = pl.DataFrame({
             "CHROM": ["chr1"] * 10, "POS": range(10),
-            "FILTER": ["PASS"] * 10, "VC": ["Somatic"] * 10,
+            "FILTER": ["Somatic"] * 10, "VC": ["Somatic"] * 10,
             "set_number": [1] * 10,
         })
         df.write_parquet(str(d / "test_variants.parquet"))

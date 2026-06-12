@@ -4,11 +4,144 @@ Computes per-variant metrics (VAF, means) and aggregate statistics
 (per-sample, per-set, per-disease summaries).
 """
 
+import re
+from pathlib import Path
 from typing import Any
 
 import polars as pl
 
 from .manifest_loader import CALLER_CONFIGS
+
+
+def write_tsv(df: pl.DataFrame, path: str | Path) -> None:
+    """Write a polars DataFrame to a TSV (tab-separated) file.
+
+    Uses .write_csv(separator="\t") — polars handles the tab separator
+    without issues. TSV avoids column corruption from embedded commas in
+    VCF pipe/colon-delimited INFO fields and is natively readable by
+    pandas/polars with sep="\t".
+    """
+    df.write_csv(str(path), separator="\t")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Wise kernel — unified multi-dimension aggregation
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _metric_columns(expr) -> set[str]:
+    """Extract column names referenced in a polars expression string."""
+    return set(re.findall(r'col\("([^"]+)"\)', str(expr)))
+
+
+# Shared metrics applied across all wise dimensions.
+# Each entry: (name, polars_expression)
+_WISE_METRICS: list[tuple[str, pl.Expr]] = [
+    ("n_variants", pl.len()),
+    ("n_somatic", (pl.col("FILTER") == "Somatic").cast(pl.Int64).sum()),
+    ("n_germline", (pl.col("FILTER") == "Germline").cast(pl.Int64).sum()),
+    ("n_reference", (pl.col("FILTER") == "Reference").cast(pl.Int64).sum()),
+    ("n_artifact", (pl.col("FILTER") == "Artifact").cast(pl.Int64).sum()),
+    ("n_rnaedit", (pl.col("FILTER") == "RNAedit").cast(pl.Int64).sum()),
+    ("n_noconsensus", (pl.col("FILTER") == "NoConsensus").cast(pl.Int64).sum()),
+    ("n_snv", (pl.col("variant_type") == "SNV").cast(pl.Int64).sum()),
+    ("n_ins", (pl.col("variant_type") == "INS").cast(pl.Int64).sum()),
+    ("n_del", (pl.col("variant_type") == "DEL").cast(pl.Int64).sum()),
+    ("n_mnv", (pl.col("variant_type") == "MNV").cast(pl.Int64).sum()),
+    ("mean_dna_vaf", pl.col("DNA_VAF_mean").mean()),
+    ("mean_rna_vaf", pl.col("RNA_VAF_mean").mean()),
+    ("median_dna_vaf", pl.col("DNA_VAF_mean").median()),
+    ("median_rna_vaf", pl.col("RNA_VAF_mean").median()),
+    ("mean_dna_dp", pl.col("DNA_DP_mean").mean()),
+    ("mean_rna_dp", pl.col("RNA_DP_mean").mean()),
+    ("n_cross_modality", (pl.col("CROSS_MODALITY") == "YES").cast(pl.Int64).sum()),
+    ("n_rescued", (pl.col("RESCUED") == "YES").cast(pl.Int64).sum()),
+    ("n_cosmic", pl.col("COSMIC_ID").is_not_null().cast(pl.Int64).sum()),
+    ("n_gnomad", pl.col("GNOMAD_AF").is_not_null().cast(pl.Int64).sum()),
+    ("n_ti", pl.col("ti_tv").cast(pl.Int64).sum()),
+    ("n_tv", (pl.col("ti_tv") == False).cast(pl.Int64).sum()),
+    ("mean_n_support_callers", pl.col("N_SUPPORT_CALLERS").mean()),
+]
+
+# Additional per-caller metrics for caller-wise aggregation
+_CALLER_WISE_METRICS: list[tuple[str, pl.Expr]] = [
+    ("mean_vaf", pl.col("VAF").mean()),
+    ("median_vaf", pl.col("VAF").median()),
+    ("mean_dp", pl.col("DP").mean()),
+    ("median_dp", pl.col("DP").median()),
+]
+
+
+def compute_wise_summary(df, group_cols, extra_metrics=None):
+    """Generic kernel for wise-based aggregation.
+
+    Applies _WISE_METRICS (shared across all wises) to a group_by
+    aggregation. Only metrics whose columns exist in the dataframe
+    are included — missing columns are silently skipped.
+
+    Args:
+        df: DataFrame or LazyFrame with variant data.
+        group_cols: List of column names to group by.
+        extra_metrics: Optional list of (name, expr) tuples for
+            wise-specific metrics beyond the shared kernel.
+
+    Returns:
+        polars DataFrame grouped by group_cols with metric columns.
+    """
+    df = _ensure_eager(df)
+    df_cols = set(df.columns)
+
+    # Filter to metrics whose columns are available
+    metrics = []
+    for name, expr in _WISE_METRICS:
+        if _metric_columns(expr).issubset(df_cols):
+            metrics.append(expr.alias(name))
+
+    if extra_metrics:
+        for name, expr in extra_metrics:
+            if _metric_columns(expr).issubset(df_cols):
+                metrics.append(expr.alias(name))
+
+    if not metrics:
+        return pl.DataFrame()
+
+    return df.group_by(group_cols).agg(metrics).sort(group_cols)
+
+
+def compute_caller_wise_summary(df):
+    """Caller-wise aggregation — per-caller VAF/DP metrics.
+
+    Melts per-caller columns (DNA_mutect2_VAF, RNA_strelka_DP, etc.)
+    into a long-form caller × metric summary.
+    """
+    df = _ensure_eager(df)
+    callers = ["DNA_mutect2", "DNA_deepsomatic", "DNA_strelka",
+               "RNA_mutect2", "RNA_deepsomatic", "RNA_strelka"]
+
+    rows = []
+    for caller in callers:
+        vaf_col = f"{caller}_VAF"
+        dp_col = f"{caller}_DP"
+        row = {"caller": caller, "n_with_vaf": 0, "n_with_dp": 0,
+               "mean_vaf": None, "median_vaf": None,
+               "mean_dp": None, "median_dp": None}
+
+        if vaf_col in df.columns:
+            vaf_vals = df[vaf_col].drop_nulls()
+            row["n_with_vaf"] = len(vaf_vals)
+            if len(vaf_vals) > 0:
+                row["mean_vaf"] = vaf_vals.mean()
+                row["median_vaf"] = vaf_vals.median()
+
+        if dp_col in df.columns:
+            dp_vals = df[dp_col].drop_nulls()
+            row["n_with_dp"] = len(dp_vals)
+            if len(dp_vals) > 0:
+                row["mean_dp"] = dp_vals.mean()
+                row["median_dp"] = dp_vals.median()
+
+        rows.append(row)
+
+    return pl.DataFrame(rows)
 
 # Columns needed by cross-sample aggregation functions. The lazy scan over
 # per-sample parquet files has ~165 columns; selecting only these ~35 before
@@ -17,6 +150,8 @@ from .manifest_loader import CALLER_CONFIGS
 _CROSS_SAMPLE_COLS = [
     # Per-sample metadata
     "sample_id", "set_number", "disease", "disease_normalized",
+    # Coordinates (needed for chromosome-wise summaries)
+    "CHROM",
     # Classification / filters
     "FILTER", "VC", "variant_type", "ti_tv",
     # Computed per-variant means (compute_all_per_variant output)
@@ -54,10 +189,41 @@ RNA_CALLERS = ["RNA_deepsomatic", "RNA_mutect2", "RNA_strelka"]
 ALL_CALLERS = DNA_CALLERS + RNA_CALLERS
 
 
+# Per-caller VAF denominator metadata: documents which depth metric each
+# caller uses as the VAF denominator. This matters because Strelka and
+# Mutect2/DeepSomatic compute VAF against different depth definitions.
+#
+#   Strelka:      VAF = TAR[0] / DP_tier1
+#     DP = FORMAT/DP which is tier-1 filtered depth (reads passing all
+#     internal filters including Q13, minTier=1, no duplicates, no filtered
+#     sites). Excludes low-quality and artifact reads. Consequently Strelka
+#     VAF tends to be higher than Mutect2/DeepSomatic VAF at the same site
+#     because the denominator is smaller.
+#
+#   Mutect2:      VAF = AD[1] / DP_total
+#   DeepSomatic:  VAF = AD[1] / DP_total (or FORMAT/VAF when available)
+#     DP = FORMAT/DP which is total unfiltered depth. Includes all reads
+#     passing mapping quality filters but not tier-1 filtering.
+#
+# The difference is CORRECT and EXPECTED — each caller defines VAF against
+# its own internal depth metric. Cross-caller VAF comparisons must account
+# for this denominator difference.
+CALLER_VAF_DENOMINATOR = {
+    "DNA_strelka": "tier1_depth",
+    "RNA_strelka": "tier1_depth",
+    "DNA_mutect2": "total_depth",
+    "RNA_mutect2": "total_depth",
+    "DNA_deepsomatic": "total_depth",
+    "RNA_deepsomatic": "total_depth",
+}
+
+
 def compute_vaf_columns(df: pl.DataFrame) -> pl.DataFrame:
     """Compute per-caller VAF = AD_ALT / DP.
 
-    For Strelka callers, AD_ALT comes from TAR[0] and AD_REF from TOR[0].
+    For Strelka callers, AD_ALT comes from TAR[0] and AD_REF from TOR[0],
+    and DP is tier-1 filtered depth (see CALLER_VAF_DENOMINATOR above).
+    For Mutect2/DeepSomatic, AD_ALT comes from AD[1] and DP is total depth.
     VAF is set to NaN when DP == 0 or DP is null.
     """
     for caller in ALL_CALLERS:
@@ -447,6 +613,95 @@ def dataset_summary(df: pl.DataFrame | pl.LazyFrame) -> dict[str, Any]:
             result[f"tier_{row['final_tier']}"] = row["count"]
 
     return result
+
+
+def compute_vaf_threshold_sweep(df) -> pl.DataFrame:
+    """VAF threshold sweep: retention % vs threshold per caller.
+
+    For each caller and each classification category, counts how many
+    variants are retained at VAF thresholds from 0.05 to 0.50 in 0.05
+    increments. Returns a long-form DataFrame for charting.
+
+    This answers: "If I require VAF ≥ X, what fraction of variants survive?"
+    """
+    df = _ensure_eager(df)
+    callers = ["DNA_mutect2", "DNA_deepsomatic", "DNA_strelka",
+               "RNA_mutect2", "RNA_deepsomatic", "RNA_strelka"]
+    thresholds = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
+    classifications = ["Somatic", "Germline", "Reference", "Artifact", "RNAedit", "NoConsensus"]
+
+    has_filter = "FILTER" in df.columns
+    rows = []
+
+    for caller in callers:
+        vaf_col = f"{caller}_VAF"
+        if vaf_col not in df.columns:
+            continue
+        total = df[vaf_col].drop_nulls().len()
+        if total == 0:
+            continue
+
+        for thr in thresholds:
+            n_retained = df.filter(pl.col(vaf_col) >= thr).height
+            row = {"caller": caller, "threshold": thr,
+                   "n_retained": n_retained, "n_total": total,
+                   "pct_retained": round(n_retained / total * 100, 2)}
+            rows.append(row)
+
+            # Per-classification breakdown (if FILTER column present)
+            if has_filter:
+                for cat in classifications:
+                    cat_total = df.filter(pl.col("FILTER") == cat)[vaf_col].drop_nulls().len()
+                    if cat_total == 0:
+                        continue
+                    n = df.filter((pl.col("FILTER") == cat) & (pl.col(vaf_col) >= thr)).height
+                    rows.append({"caller": caller, "threshold": thr,
+                                 "classification": cat,
+                                 "n_retained": n, "n_total": cat_total,
+                                 "pct_retained": round(n / cat_total * 100, 2) if cat_total > 0 else 0})
+
+    if not rows:
+        return pl.DataFrame()
+    return pl.DataFrame(rows)
+
+
+def compute_filter_effectiveness_matrix(df) -> pl.DataFrame:
+    """Filter effectiveness matrix: FILTER × Classification.
+
+    For each FILTER value (Somatic, Germline, etc.) counts how many
+    variants have each flag filter set (min_alt_reads, gnomad, blacklist,
+    etc.). Returns a pivoted matrix for heatmap visualization.
+
+    This answers: "Which filters are most effective for each classification?"
+    """
+    df = _ensure_eager(df)
+    flags = ["min_alt_reads", "gnomad", "blacklist", "noncoding",
+             "ig_pseudo", "homopolymer", "vc_filter", "not_consensus", "multiallelic"]
+
+    if "FILTER" not in df.columns:
+        return pl.DataFrame()
+
+    rows = []
+    for cat in ["Somatic", "Germline", "Reference", "Artifact", "RNAedit", "NoConsensus"]:
+        cat_df = df.filter(pl.col("FILTER") == cat)
+        cat_total = cat_df.height
+        if cat_total == 0:
+            continue
+        for flag in flags:
+            if flag not in df.columns:
+                continue
+            n = cat_df.filter(pl.col(flag) == True).height
+            rows.append({
+                "classification": cat,
+                "filter_flag": flag,
+                "n_flagged": n,
+                "n_total": cat_total,
+                "pct_flagged": round(n / cat_total * 100, 2),
+            })
+
+    if not rows:
+        return pl.DataFrame()
+    return pl.DataFrame(rows)
 
 
 def sample_tier_summary(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:

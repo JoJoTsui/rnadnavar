@@ -63,7 +63,7 @@ def _mem(msg: str) -> None:
     except Exception:
         print(f"  [MEM ?GB] {msg}", flush=True)
 
-from .bam_stats import compute_all_bam_stats
+from .bam_stats import compute_all_bam_stats, sum_bed_regions
 from .bam_validation import validate_bam_vs_caller as validate_bam_one
 from .caller_parser import _parse_one_caller, CALLERS_STRELKA, CALLERS_WITH_GT
 from .manifest_loader import CALLER_CONFIGS, filter_complete, load_manifest
@@ -74,6 +74,10 @@ from .rust_bam import pileup_variants
 from .tiering_stats import compute_tiers_for_dataframe, tier_summary as compute_tier_summary
 from .statistics import (
     compute_all_per_variant,
+    compute_caller_wise_summary,
+    compute_filter_effectiveness_matrix,
+    compute_vaf_threshold_sweep,
+    compute_wise_summary,
     dataset_summary,
     disease_summary,
     flag_filter_breakdown,
@@ -81,9 +85,11 @@ from .statistics import (
     sample_summary,
     sample_tier_summary,
     set_summary,
+    write_tsv,
 )
 from .visualizer import (
     generate_dashboard,
+    plot_bam_coverage_violin,
     plot_bam_metrics_bars,
     plot_caller_overlap,
     plot_cosmic_gnomad_annotation,
@@ -109,6 +115,10 @@ from .visualizer import (
     plot_redi_evidence,
     plot_vaf_distribution,
     plot_vaf_boxplot_per_tier,
+    plot_vaf_threshold_sweep,
+    plot_caller_concordance_vs_vaf,
+    plot_filter_effectiveness_heatmap,
+    plot_database_enrichment_by_tier,
     plot_validation_heatmap,
     plot_variant_type_distribution,
     plot_vc_distribution,
@@ -163,7 +173,8 @@ def _streaming_join_one(df: pl.DataFrame, col_data: dict, caller_name: str) -> p
 
 
 
-def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True, large_sem=None) -> dict:
+def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True,
+                         large_sem=None, no_pileup: bool = False) -> dict:
     """Process one sample: parse rescue VCF + all caller VCFs + compute stats.
 
     Returns a dict with 'sample_id', 'df', and 'stats'.
@@ -175,6 +186,7 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         large_sem: Semaphore for large-sample exclusive access (threading.Semaphore
                    or multiprocessing.Manager.Semaphore proxy). If None, large
                    samples are not throttled.
+        no_pileup: Skip variant-wise BAM pileup (enabled by default).
     """
     sample_id = row["sample_id"]
     rescue_path = row["rescue_vcf_path"]
@@ -263,6 +275,37 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         # Compute CxDy tiers via tiering engine
         df = compute_tiers_for_dataframe(df)
 
+        # Variant-wise BAM pileup (enabled by default, --no-pileup to skip).
+        # Computes per-position DP, strand bias, BQ, MQ from alignment BAMs.
+        if not no_pileup:
+            from .bam_stats import _locate_bam_file
+            from .rust_bam import pileup_variants as do_pileup
+
+            positions = [(row[0], row[1], row[2], row[3])
+                         for row in df.select(["CHROM", "POS", "REF", "ALT"]).iter_rows()]
+            base = os.path.join(base_dir, dir_name)
+
+            for bt in ["DN", "DT", "RT"]:
+                bam_path = _locate_bam_file(base_dir, dir_name, bt)
+                if not bam_path:
+                    continue
+                try:
+                    pileup_df = do_pileup(bam_path, positions)
+                    if pileup_df is not None and not pileup_df.is_empty():
+                        # Rename pileup columns with BAM type prefix
+                        rename = {c: f"BAM_{bt}_{c}" for c in pileup_df.columns
+                                  if c not in ("CHROM", "POS")}
+                        pileup_df = pileup_df.rename(rename)
+                        df = df.join(
+                            pileup_df.select(["CHROM", "POS"] + list(rename.values())),
+                            on=["CHROM", "POS"], how="left",
+                        )
+                        del pileup_df
+                        _mem(f"after pileup {bt}")
+                except Exception as e:
+                    print(f"  [{sample_id}] BAM pileup {bt} error: {e}")
+            del positions
+
         # Compute sample-level summary
         stats = sample_summary(df, sample_id)
         stats["set_number"] = row["set_number"]
@@ -286,16 +329,17 @@ def _process_worker(args: tuple) -> dict:
     defined at module level so the 'fork' context can call it.
 
     Args:
-        args: (row_dict, max_workers, use_rust, variant_dir_str)
+        args: (row_dict, max_workers, use_rust, variant_dir_str, no_pileup)
 
     Returns:
         {"sample_id": str, "stats": dict} — no DataFrame (too large to pickle).
         On error: {"sample_id": str, "error": str}
     """
-    row, max_workers, use_rust, variant_dir_str = args
+    row, max_workers, use_rust, variant_dir_str, no_pileup = args
 
     try:
-        result = process_single_sample(row, max_workers=max_workers, use_rust=use_rust, large_sem=None)
+        result = process_single_sample(row, max_workers=max_workers, use_rust=use_rust,
+                                       large_sem=None, no_pileup=no_pileup)
     except Exception:
         import traceback
         return {"sample_id": row["sample_id"], "error": traceback.format_exc()}
@@ -345,11 +389,18 @@ def main():
     parser.add_argument("--resume", action="store_true", help="Skip variant processing and BAM stats — go straight to "
                         "aggregation + validation + visualizations using existing parquet files")
     parser.add_argument("--no-pileup", action="store_true", help="Skip variant-wise BAM pileup (whole-genome only)")
+    parser.add_argument("--bed", type=str, default=None, help="Path to BED file for WES coverage denominator. "
+                        "When provided, mean_coverage is recalculated using BED region total instead of "
+                        "whole-genome reference lengths (which under-report coverage by ~100× for WES).")
     parser.add_argument("--bam-workers", type=int, default=8,
                         help="Threads for parallel BAM stats processing (default: 8). "
                              "Uses ThreadPoolExecutor (safe with htslib).")
     parser.add_argument("--parser", choices=["rust", "python"], default="rust",
                         help="VCF parser: rust (default) or python (cyvcf2 fallback)")
+    parser.add_argument("--wise", nargs="*", default=None, metavar="WISE",
+                        help="Generate specific wise summaries and charts (space-separated). "
+                             "Choices: set, disease, sample, tier, caller, chromosome, threshold. "
+                             "Default: all wises.")
     parser.add_argument("--verbose", action="store_true",
                         help="Show per-caller progress messages")
     parser.add_argument("--process-mode", choices=["thread", "spawn"], default=None,
@@ -426,15 +477,15 @@ def main():
             sys.exit(1)
         print(f"Found {total_variants} variants in existing parquet files")
 
-        # Reload per-sample stats so downstream CSVs + charts still generate
-        stats_csv = output_dir / "sample_summary.csv"
-        if stats_csv.exists():
-            all_stats = pl.read_csv(str(stats_csv)).to_dicts()
+        # Reload per-sample stats so downstream TSVs + charts still generate
+        stats_tsv = output_dir / "sample_summary.tsv"
+        if stats_tsv.exists():
+            all_stats = pl.read_csv(str(stats_tsv), separator="\t").to_dicts()
 
         # Reload BAM stats so BAM charts still render
-        bam_csv = output_dir / "bam_stats.csv"
-        if bam_csv.exists():
-            bam_stats_df = pl.read_csv(str(bam_csv))
+        bam_tsv = output_dir / "bam_stats.tsv"
+        if bam_tsv.exists():
+            bam_stats_df = pl.read_csv(str(bam_tsv), separator="\t")
 
         # Skip BAM stats (they were already computed)
         args.no_bam = True
@@ -450,7 +501,7 @@ def main():
         ctx = mp.get_context("spawn")
 
         worker_args = [
-            (row, args.threads, use_rust, variant_dir_str)
+            (row, args.threads, use_rust, variant_dir_str, args.no_pileup)
             for row in rows
         ]
 
@@ -485,7 +536,7 @@ def main():
             nonlocal total_variants
             result = process_single_sample(
                 row, max_workers=max_workers, use_rust=use_rust,
-                large_sem=_THREAD_LARGE_SEM,
+                large_sem=_THREAD_LARGE_SEM, no_pileup=args.no_pileup,
             )
             if result["df"] is not None:
                 sid = result["sample_id"]
@@ -524,7 +575,7 @@ def main():
             try:
                 result = process_single_sample(
                     row, max_workers=args.threads, use_rust=use_rust,
-                    large_sem=_THREAD_LARGE_SEM,
+                    large_sem=_THREAD_LARGE_SEM, no_pileup=args.no_pileup,
                 )
                 if result["df"] is not None:
                     parquet_path = str(variant_dir / f"{sid}_variants.parquet")
@@ -551,79 +602,157 @@ def main():
 
     # BAM statistics (per-sample per-modality)
     if not args.no_bam:
+        # WES coverage denominator from BED file (optional)
+        bed_total = 0
+        if args.bed:
+            if not os.path.isfile(args.bed):
+                print(f"WARNING: BED file not found: {args.bed}, using whole-genome denominator")
+            else:
+                bed_total = sum_bed_regions(args.bed)
+                print(f"BED coverage denominator: {bed_total:,} bp ({bed_total / 1e6:.1f} Mbp)")
         print("Computing per-sample BAM statistics...")
-        bam_stats_df = compute_all_bam_stats(rows, max_workers=args.bam_workers)
+        bam_stats_df = compute_all_bam_stats(rows, max_workers=args.bam_workers, bed_total=bed_total)
         if not bam_stats_df.is_empty():
-            bam_stats_df.write_csv(str(output_dir / "bam_stats.csv"))
-            print(f"BAM stats: {output_dir / 'bam_stats.csv'}")
+            write_tsv(bam_stats_df, str(output_dir / "bam_stats.tsv"))
+            print(f"BAM stats: {output_dir / 'bam_stats.tsv'}")
     else:
         print("Skipping BAM statistics (--no-bam)")
 
     # Sample summary
     if all_stats:
         sample_stats_df = pl.DataFrame(all_stats)
-        sample_stats_df.write_csv(str(output_dir / "sample_summary.csv"))
-        print(f"Sample summary: {output_dir / 'sample_summary.csv'}")
+        write_tsv(sample_stats_df, str(output_dir / "sample_summary.tsv"))
+        print(f"Sample summary: {output_dir / 'sample_summary.tsv'}")
 
         # Set summary
         set_summary_df = set_summary(sample_stats_df)
         if not set_summary_df.is_empty():
-            set_summary_df.write_csv(str(output_dir / "set_summary.csv"))
+            write_tsv(set_summary_df, str(output_dir / "set_summary.tsv"))
 
         # Disease summary
         _mem("before disease_summary")
         disease_summary_df = disease_summary(combined_df)
         if not disease_summary_df.is_empty():
-            disease_summary_df.write_csv(str(output_dir / "disease_summary.csv"))
+            write_tsv(disease_summary_df, str(output_dir / "disease_summary.tsv"))
         _mem("after disease_summary")
 
         # Tier summary
         tier_summary_df = compute_tier_summary(combined_df)
         if not tier_summary_df.is_empty():
-            tier_summary_df.write_csv(str(output_dir / "tier_summary.csv"))
-            print(f"Tier summary: {output_dir / 'tier_summary.csv'}")
+            write_tsv(tier_summary_df, str(output_dir / "tier_summary.tsv"))
+            print(f"Tier summary: {output_dir / 'tier_summary.tsv'}")
         _mem("after tier_summary")
 
         # Dataset summary (whole-dataset aggregates)
         ds_summary = dataset_summary(combined_df)
         if ds_summary:
-            pl.DataFrame([ds_summary]).write_csv(str(output_dir / "dataset_summary.csv"))
-            print(f"Dataset summary: {output_dir / 'dataset_summary.csv'}")
+            write_tsv(pl.DataFrame([ds_summary]), str(output_dir / "dataset_summary.tsv"))
+            print(f"Dataset summary: {output_dir / 'dataset_summary.tsv'}")
         _mem("after dataset_summary")
 
         # Sample-tier summary (Level 4)
         sample_tier_df = sample_tier_summary(combined_df)
         if not sample_tier_df.is_empty():
-            sample_tier_df.write_csv(str(output_dir / "sample_tier_summary.csv"))
-            print(f"Sample-tier summary: {output_dir / 'sample_tier_summary.csv'}")
+            write_tsv(sample_tier_df, str(output_dir / "sample_tier_summary.tsv"))
+            print(f"Sample-tier summary: {output_dir / 'sample_tier_summary.tsv'}")
         _mem("after sample_tier_summary")
 
     # Caller overlap
     from .statistics import caller_overlap_distribution
     overlap_df = caller_overlap_distribution(combined_df)
     if not overlap_df.is_empty():
-        overlap_df.write_csv(str(output_dir / "caller_overlap.csv"))
+        write_tsv(overlap_df, str(output_dir / "caller_overlap.tsv"))
     _mem("after caller_overlap")
 
     # Filter distribution
     from .statistics import filter_distribution, variant_type_distribution, vc_distribution
     filter_df = filter_distribution(combined_df)
     if not filter_df.is_empty():
-        filter_df.write_csv(str(output_dir / "filter_distribution.csv"))
+        write_tsv(filter_df, str(output_dir / "filter_distribution.tsv"))
 
     # Variant type distribution
     vt_df = variant_type_distribution(combined_df)
     if not vt_df.is_empty():
-        vt_df.write_csv(str(output_dir / "variant_type_distribution.csv"))
+        write_tsv(vt_df, str(output_dir / "variant_type_distribution.tsv"))
     _mem("after filter/vt distributions")
 
     # GT concordance
     concordance_data = gt_concordance(combined_df)
     if concordance_data:
-        pl.DataFrame({"agreement_level": list(concordance_data.keys()), "count": list(concordance_data.values())}).write_csv(
-            str(output_dir / "gt_concordance.csv")
-        )
+        write_tsv(pl.DataFrame({"agreement_level": list(concordance_data.keys()),
+                                 "count": list(concordance_data.values())}),
+                   str(output_dir / "gt_concordance.tsv"))
     _mem("after gt_concordance")
+
+    # ── Initialize chart list early (used by threshold analysis below) ──────
+    figs = []
+
+    # ── Wise-based summaries ──────────────────────────────────────────────────
+    # Generate set, disease, sample, tier, caller, chromosome summaries
+    # using the shared wise kernel. Output to stats/{wise}/ directories.
+    # Controlled by --wise flag (default: all wises).
+    wise_names = args.wise
+    if wise_names is not None and len(wise_names) == 0:
+        wise_names = None  # --wise with no args → all wises
+    if wise_names is not None:
+        wise_names = set(wise_names)
+
+    wise_configs = [
+        ("set", ["set_number"]),
+        ("disease", ["disease_normalized"]),
+        ("sample", ["sample_id"]),
+        ("tier", ["final_tier"]),
+        ("chromosome", ["CHROM"]),
+    ]
+
+    if wise_names is None or "set" in wise_names or "disease" in wise_names or "sample" in wise_names or "tier" in wise_names or "chromosome" in wise_names:
+        print("Generating wise summaries...")
+        for wise_name, group_cols in wise_configs:
+            if wise_names is not None and wise_name not in wise_names:
+                continue
+            wise_dir = output_dir / "stats" / wise_name
+            wise_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                wise_df = compute_wise_summary(combined_df, group_cols)
+                if not wise_df.is_empty():
+                    write_tsv(wise_df, str(wise_dir / f"{wise_name}_summary.tsv"))
+            except Exception as e:
+                print(f"  WARNING: {wise_name}-wise summary failed: {e}")
+
+    # Caller-wise summary (special aggregation — per-caller VAF/DP)
+    if wise_names is None or "caller" in wise_names:
+        caller_dir = output_dir / "stats" / "caller"
+        caller_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            caller_df = compute_caller_wise_summary(combined_df)
+            if not caller_df.is_empty():
+                write_tsv(caller_df, str(caller_dir / "caller_summary.tsv"))
+        except Exception as e:
+            print(f"  WARNING: caller-wise summary failed: {e}")
+
+    # ── Threshold analysis ────────────────────────────────────────────────────
+    if wise_names is None or "threshold" in wise_names:
+        print("Generating threshold analysis...")
+        threshold_dir = output_dir / "stats" / "threshold"
+        threshold_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            vaf_sweep_df = compute_vaf_threshold_sweep(combined_df)
+            if not vaf_sweep_df.is_empty():
+                write_tsv(vaf_sweep_df, str(threshold_dir / "vaf_threshold_sweep.tsv"))
+                print(f"  VAF threshold sweep: {threshold_dir / 'vaf_threshold_sweep.tsv'}")
+                figs.append(plot_vaf_threshold_sweep(vaf_sweep_df, str(output_dir)))
+        except Exception as e:
+            print(f"  WARNING: VAF threshold sweep failed: {e}")
+
+        try:
+            filter_matrix_df = compute_filter_effectiveness_matrix(combined_df)
+            if not filter_matrix_df.is_empty():
+                write_tsv(filter_matrix_df, str(threshold_dir / "filter_effectiveness.tsv"))
+                print(f"  Filter effectiveness: {threshold_dir / 'filter_effectiveness.tsv'}")
+                figs.append(plot_filter_effectiveness_heatmap(filter_matrix_df, str(output_dir)))
+        except Exception as e:
+            print(f"  WARNING: filter effectiveness matrix failed: {e}")
+
     gc.collect()
     _malloc_trim()
     _mem("after aggregation cleanup")
@@ -642,21 +771,20 @@ def main():
             del df
         report = pl.DataFrame(report_rows) if report_rows else pl.DataFrame()
         if not report.is_empty():
-            report.write_csv(str(output_dir / "rescue_validation_report.csv"))
+            write_tsv(report, str(output_dir / "rescue_validation_report.tsv"))
             summary = validation_summary(report)
             if not summary.is_empty():
-                summary.write_csv(str(output_dir / "rescue_validation_summary.csv"))
-                print(f"  Validation report: {output_dir / 'rescue_validation_report.csv'}")
+                write_tsv(summary, str(output_dir / "rescue_validation_summary.tsv"))
+                print(f"  Validation report: {output_dir / 'rescue_validation_report.tsv'}")
         bam_report = pl.DataFrame(bam_rows) if bam_rows else pl.DataFrame()
         if not bam_report.is_empty():
-            bam_report.write_csv(str(output_dir / "bam_validation.csv"))
-            print(f"  BAM validation: {output_dir / 'bam_validation.csv'}")
+            write_tsv(bam_report, str(output_dir / "bam_validation.tsv"))
+            print(f"  BAM validation: {output_dir / 'bam_validation.tsv'}")
     else:
         report = None
 
     # Visualizations
     print("Generating visualizations...")
-    figs = []
 
     # Pass lazy frame directly to chart functions.
     # Each chart function calls _eager(df) internally, which triggers
@@ -688,9 +816,17 @@ def main():
     figs.append(plot_tier_quality_distribution(combined_df, str(output_dir)))
     figs.append(plot_redi_evidence(combined_df, str(output_dir)))
 
+    # Threshold charts (from combined data, not pre-computed)
+    figs.append(plot_caller_concordance_vs_vaf(combined_df, str(output_dir)))
+    figs.append(plot_database_enrichment_by_tier(combined_df, str(output_dir)))
+
     # BAM charts
     if not args.no_bam and not bam_stats_df.is_empty():
         figs.append(plot_bam_metrics_bars(bam_stats_df, str(output_dir)))
+
+    # BAM pileup coverage violin (requires pileup data, skipped with --no-pileup)
+    if not args.no_pileup:
+        figs.append(plot_bam_coverage_violin(combined_df, str(output_dir)))
 
     if all_stats:
         sample_stats_df = pl.DataFrame(all_stats)
