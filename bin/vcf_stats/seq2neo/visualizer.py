@@ -277,14 +277,15 @@ def plot_tiered_variant_types(df, output_dir: str):
 
 
 def plot_tier_quality_distribution(df, output_dir: str):
-    """Tier quality score histogram."""
+    """Tier quality score histogram (sampled — raw data too large for altair PNG)."""
     if "tier_quality" not in df.columns:
         return
-    pdf = df.select(["tier_quality"]).collect().to_pandas()
+    pdf = df.select(["tier_quality"]).drop_nulls()
+    pdf = _sample_if_large(pdf, max_rows=50000).to_pandas()
     chart = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("tier_quality:Q", bin=alt.Bin(maxbins=20), title="Tier Quality Score"),
         y=alt.Y("count()", title="Number of Variants"),
-    ).properties(title="Tier Quality Score Distribution")
+    ).properties(title="Tier Quality Score Distribution (sampled)")
     _save_chart(chart, "27_tier_quality", output_dir)
     return chart
 
