@@ -159,18 +159,15 @@ def sample_summary(df: pl.DataFrame, sample_id: str) -> dict[str, Any]:
     if n == 0:
         return {"sample_id": sample_id, "total_variants": 0}
 
-    pass_count = df.filter(pl.col("FILTER") == "PASS").height
-    somatic_count = df.filter(pl.col("VC") == "Somatic").height if "VC" in df.columns else 0
-    germline_count = df.filter(pl.col("VC") == "Germline").height if "VC" in df.columns else 0
-
     result = {
         "sample_id": sample_id,
         "total_variants": n,
-        "pass_variants": pass_count,
-        "pass_pct": pass_count / n * 100 if n > 0 else 0,
-        "somatic_variants": somatic_count,
-        "germline_variants": germline_count,
     }
+
+    # Classification counts — use FILTER column (VC is null in rescue VCF)
+    if "FILTER" in df.columns:
+        for cat in ["Somatic", "Germline", "Reference", "Artifact", "RNAedit", "NoConsensus"]:
+            result[f"n_{cat.lower()}"] = df.filter(pl.col("FILTER") == cat).height
 
     # Variant type counts
     if "variant_type" in df.columns:
@@ -244,10 +241,12 @@ def set_summary(sample_stats: pl.DataFrame) -> pl.DataFrame:
     agg_exprs = [
         pl.col("total_variants").sum().alias("total_variants"),
         pl.col("total_variants").mean().alias("mean_variants_per_sample"),
-        pl.col("pass_variants").sum().alias("pass_variants"),
-        pl.col("somatic_variants").sum().alias("somatic_variants") if "somatic_variants" in sample_stats.columns else pl.lit(0).alias("somatic_variants"),
-        pl.col("germline_variants").sum().alias("germline_variants") if "germline_variants" in sample_stats.columns else pl.lit(0).alias("germline_variants"),
     ]
+    # Aggregate all 6 classification categories if present
+    for cat in ["somatic", "germline", "reference", "artifact", "rnaedit", "noconsensus"]:
+        col = f"n_{cat}"
+        if col in sample_stats.columns:
+            agg_exprs.append(pl.col(col).sum().alias(col))
 
     # Add mean VAF/DP columns if present
     for col in ["mean_dna_vaf_mean", "mean_rna_vaf_mean", "mean_dna_dp_mean", "mean_rna_dp_mean"]:
@@ -400,15 +399,10 @@ def dataset_summary(df: pl.DataFrame | pl.LazyFrame) -> dict[str, Any]:
         "n_samples": df["sample_id"].n_unique() if "sample_id" in df.columns else 0,
     }
 
-    # Pass/filter
+    # Classification — use FILTER column (VC is null in rescue VCF)
     if "FILTER" in df.columns:
-        result["pass_variants"] = df.filter(pl.col("FILTER") == "PASS").height
-        result["pass_pct"] = result["pass_variants"] / n * 100
-
-    # VC classification
-    if "VC" in df.columns:
-        for vc in ["Somatic", "Germline", "Reference", "Artifact"]:
-            result[f"n_{vc.lower()}"] = df.filter(pl.col("VC") == vc).height
+        for cat in ["Somatic", "Germline", "Reference", "Artifact", "RNAedit", "NoConsensus"]:
+            result[f"n_{cat.lower()}"] = df.filter(pl.col("FILTER") == cat).height
 
     # Variant types
     if "variant_type" in df.columns:

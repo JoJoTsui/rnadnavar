@@ -93,7 +93,9 @@ def _compute_bam_stats_pysam(bam_path: str) -> dict[str, Any] | None:
                 total_length += read.query_length or 0
                 # Insert size: only count properly paired reads (TLEN can be
                 # arbitrarily large for supplementary/improper pairs)
-                if read.is_proper_pair and read.template_length and read.template_length > 0:
+                if (read.is_proper_pair and not read.is_supplementary
+                    and not read.is_secondary
+                    and read.template_length and read.template_length > 0):
                     total_insert += read.template_length
                     insert_count += 1
 

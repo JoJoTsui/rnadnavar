@@ -19,8 +19,8 @@ import polars as pl
 alt.data_transformers.disable_max_rows()
 
 # ── Color palettes ────────────────────────────────────────────────────────
-VC_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
-VC_DOMAIN = ["Somatic", "Germline", "Reference", "Artifact"]
+CLASSIFICATION_DOMAIN = ["Somatic", "Germline", "Reference", "Artifact", "RNAedit", "NoConsensus"]
+CLASSIFICATION_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -75,19 +75,19 @@ def _save_chart(chart: alt.Chart, name: str, output_dir: str):
 
 def plot_vc_distribution(df, output_dir: str, group_col: str = "set_number"):
     """Chart 1: Variant counts by VC classification, stacked bar per set."""
-    if "VC" not in df.columns:
+    if "FILTER" not in df.columns:
         return
     counts = (
-        df.group_by([group_col, "VC"]).agg(pl.len().alias("count"))
-        .sort([group_col, "VC"]).collect().to_pandas()
+        df.group_by([group_col, "FILTER"]).agg(pl.len().alias("count"))
+        .sort([group_col, "FILTER"]).collect().to_pandas()
     )
     counts[group_col] = counts[group_col].astype(str)
     chart = alt.Chart(counts).mark_bar().encode(
         x=alt.X(f"{group_col}:N", title="Set"),
         y=alt.Y("count:Q", title="Number of Variants"),
         color=alt.Color(
-            "VC:N", title="Variant Classification",
-            scale=alt.Scale(domain=VC_DOMAIN, range=VC_COLORS),
+            "FILTER:N", title="Variant Classification",
+            scale=alt.Scale(domain=CLASSIFICATION_DOMAIN, range=VC_COLORS),
             legend=alt.Legend(orient="right", title="Variant Classification",
                               labelFontSize=11, titleFontSize=12),
         ),
@@ -323,11 +323,11 @@ def plot_dna_vs_rna_vaf(df, output_dir: str):
     if "DNA_VAF_mean" not in df.columns or "RNA_VAF_mean" not in df.columns:
         return
     cols = ["DNA_VAF_mean", "RNA_VAF_mean"]
-    if "VC" in df.columns:
-        cols.append("VC")
+    if "FILTER" in df.columns:
+        cols.append("FILTER")
     pdf = df.select(cols).drop_nulls(subset=["DNA_VAF_mean", "RNA_VAF_mean"])
     pdf = _sample_if_large(pdf, max_rows=5000).to_pandas()
-    color_enc = alt.Color("VC:N", scale=alt.Scale(domain=VC_DOMAIN, range=VC_COLORS)) if "VC" in pdf.columns else alt.value("#1f77b4")
+    color_enc = alt.Color("FILTER:N", scale=alt.Scale(domain=CLASSIFICATION_DOMAIN, range=VC_COLORS)) if "FILTER" in pdf.columns else alt.value("#1f77b4")
     chart = alt.Chart(pdf).mark_circle(opacity=0.4, size=20).encode(
         x=alt.X("DNA_VAF_mean:Q", title="DNA Mean VAF"),
         y=alt.Y("RNA_VAF_mean:Q", title="RNA Mean VAF"),
@@ -456,12 +456,12 @@ def plot_dna_vs_rna_per_caller(df, output_dir: str):
         if dna_vaf not in df.columns or rna_vaf not in df.columns:
             continue
         cols = [dna_vaf, rna_vaf]
-        if "VC" in df.columns:
-            cols.append("VC")
+        if "FILTER" in df.columns:
+            cols.append("FILTER")
         pdf = df.select(cols).drop_nulls(subset=[dna_vaf, rna_vaf])
         pdf = _sample_if_large(pdf, max_rows=5000).to_pandas()
         caller_label = dna_caller.replace("DNA_", "")
-        color_enc = alt.Color("VC:N", scale=alt.Scale(domain=VC_DOMAIN, range=VC_COLORS)) if "VC" in pdf.columns else alt.value("#1f77b4")
+        color_enc = alt.Color("FILTER:N", scale=alt.Scale(domain=CLASSIFICATION_DOMAIN, range=VC_COLORS)) if "FILTER" in pdf.columns else alt.value("#1f77b4")
         c = alt.Chart(pdf).mark_circle(opacity=0.4, size=20).encode(
             x=alt.X(f"{dna_vaf}:Q", title=f"{caller_label} DNA VAF"),
             y=alt.Y(f"{rna_vaf}:Q", title=f"{caller_label} RNA VAF"),

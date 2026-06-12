@@ -52,7 +52,10 @@ pub fn whole_genome_stats(bam_path: &Path, max_reads: u64) -> Result<BamStats, B
             // Insert size: only count properly paired reads with positive TLEN.
             // Supplementary/improper pairs can have arbitrarily large TLEN values
             // that would bias the mean.
-            if flags.is_properly_segmented() {
+            if flags.is_properly_segmented()
+                && !flags.is_supplementary()
+                && !flags.is_secondary()
+            {
                 let tlen = record.template_length();
                 if tlen > 0 {
                     insert_sum += tlen as f64;
