@@ -342,6 +342,8 @@ def main():
     parser.add_argument("--pileup-mode", choices=["all", "filtered"], default="all",
                         help="Variant-wise BAM pileup mode: all variants (default) or exclude NoConsensus")
     parser.add_argument("--no-bam", action="store_true", help="Skip all BAM processing")
+    parser.add_argument("--resume", action="store_true", help="Skip variant processing and BAM stats — go straight to "
+                        "aggregation + validation + visualizations using existing parquet files")
     parser.add_argument("--no-pileup", action="store_true", help="Skip variant-wise BAM pileup (whole-genome only)")
     parser.add_argument("--bam-workers", type=int, default=8,
                         help="Threads for parallel BAM stats processing (default: 8). "
@@ -397,7 +399,24 @@ def main():
     variant_dir_str = str(variant_dir)
     total_variants = 0
 
-    if process_mode == "spawn" and args.sample_workers > 1:
+    if args.resume:
+        # Skip variant processing + BAM stats — parquet files already exist.
+        # Count variants from existing parquet files.
+        print(f"Resuming from existing parquet files in {variant_dir_str}/")
+        import glob as _glob
+        for pq in _glob.glob(os.path.join(variant_dir_str, "*_variants.parquet")):
+            try:
+                total_variants += pl.scan_parquet(pq).select(pl.len()).collect().item()
+            except Exception:
+                pass
+        if total_variants == 0:
+            print("No existing parquet files found. Run without --resume first.")
+            sys.exit(1)
+        print(f"Found {total_variants} variants in existing parquet files")
+        # Also skip BAM stats (they were already computed)
+        args.no_bam = True
+
+    elif process_mode == "spawn" and args.sample_workers > 1:
         # ── Process-isolated parallel mode (spawn) ──────────────────────────
         # spawn creates a fresh Python interpreter per worker (fork+exec),
         # avoiding the fork+threads deadlock with polars' rayon pool.
