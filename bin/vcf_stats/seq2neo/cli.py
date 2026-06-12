@@ -85,7 +85,6 @@ from .statistics import (
 from .visualizer import (
     generate_dashboard,
     plot_bam_metrics_bars,
-    plot_bam_coverage_violin,
     plot_caller_overlap,
     plot_cosmic_gnomad_annotation,
     plot_cross_modality,
@@ -650,7 +649,6 @@ def main():
     # BAM charts
     if not args.no_bam and not bam_stats_df.is_empty():
         figs.append(plot_bam_metrics_bars(bam_stats_df, str(output_dir)))
-        figs.append(plot_bam_coverage_violin(combined_df, str(output_dir)))
 
     if all_stats:
         sample_stats_df = pl.DataFrame(all_stats)
