@@ -401,19 +401,42 @@ def main():
 
     if args.resume:
         # Skip variant processing + BAM stats — parquet files already exist.
-        # Count variants from existing parquet files.
         print(f"Resuming from existing parquet files in {variant_dir_str}/")
         import glob as _glob
-        for pq in _glob.glob(os.path.join(variant_dir_str, "*_variants.parquet")):
-            try:
-                total_variants += pl.scan_parquet(pq).select(pl.len()).collect().item()
-            except Exception:
-                pass
+
+        # Count variants, respecting active filters if any
+        if args.max_samples or args.set or args.sample_ids:
+            sample_ids = {r["sample_id"] for r in rows}
+            for pq in _glob.glob(os.path.join(variant_dir_str, "*_variants.parquet")):
+                sid = os.path.basename(pq).replace("_variants.parquet", "")
+                if sid in sample_ids:
+                    try:
+                        total_variants += pl.scan_parquet(pq).select(pl.len()).collect().item()
+                    except Exception:
+                        pass
+        else:
+            for pq in _glob.glob(os.path.join(variant_dir_str, "*_variants.parquet")):
+                try:
+                    total_variants += pl.scan_parquet(pq).select(pl.len()).collect().item()
+                except Exception:
+                    pass
+
         if total_variants == 0:
             print("No existing parquet files found. Run without --resume first.")
             sys.exit(1)
         print(f"Found {total_variants} variants in existing parquet files")
-        # Also skip BAM stats (they were already computed)
+
+        # Reload per-sample stats so downstream CSVs + charts still generate
+        stats_csv = output_dir / "sample_summary.csv"
+        if stats_csv.exists():
+            all_stats = pl.read_csv(str(stats_csv)).to_dicts()
+
+        # Reload BAM stats so BAM charts still render
+        bam_csv = output_dir / "bam_stats.csv"
+        if bam_csv.exists():
+            bam_stats_df = pl.read_csv(str(bam_csv))
+
+        # Skip BAM stats (they were already computed)
         args.no_bam = True
 
     elif process_mode == "spawn" and args.sample_workers > 1:
