@@ -39,17 +39,15 @@ def _count_rows(df) -> int:
 
 
 def _sample_if_large(df, max_rows: int = 5000) -> pl.DataFrame:
-    """Collect a LazyFrame, sampling first if it exceeds max_rows.
+    """Collect a LazyFrame, sampling if it exceeds max_rows.
 
     Returns an eager pl.DataFrame suitable for .to_pandas().
     Safe to call on already-eager DataFrames (pass-through with sampling).
+    Collects first (LazyFrame.sample() not available in polars < 1.42),
+    then samples the eager frame.
     """
     if isinstance(df, pl.LazyFrame):
-        n = _count_rows(df)
-        if n > max_rows:
-            df = df.sample(max_rows)
-        return df.collect()
-    # Already eager
+        df = df.collect()
     if df.height > max_rows:
         return df.sample(max_rows)
     return df
