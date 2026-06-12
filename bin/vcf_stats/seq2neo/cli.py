@@ -69,7 +69,7 @@ from .caller_parser import _parse_one_caller, CALLERS_STRELKA, CALLERS_WITH_GT
 from .manifest_loader import CALLER_CONFIGS, filter_complete, load_manifest
 from .rescue_parser import parse_rescue_vcf as _py_parse_rescue
 from .rust_vcf import parse_rescue_vcf as _rust_parse_rescue
-from .rescue_validator import validate_all_samples, validation_summary
+from .rescue_validator import validate_all_samples, validate_sample, validation_summary
 from .rust_bam import pileup_variants
 from .tiering_stats import compute_tiers_for_dataframe, tier_summary as compute_tier_summary
 from .statistics import (
