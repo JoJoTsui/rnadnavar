@@ -92,6 +92,12 @@ from .visualizer import (
     plot_bam_coverage_violin,
     plot_bam_metrics_bars,
     plot_caller_overlap,
+    plot_caller_tier_heatmap,
+    plot_dp_distribution,
+    plot_mean_vaf_per_group,
+    plot_mean_dp_per_group,
+    plot_n_support_callers_dist,
+    plot_sample_overview_scatter,
     plot_cosmic_gnomad_annotation,
     plot_cross_modality,
     plot_dna_vs_rna_dp,
@@ -481,11 +487,21 @@ def main():
         stats_tsv = output_dir / "sample_summary.tsv"
         if stats_tsv.exists():
             all_stats = pl.read_csv(str(stats_tsv), separator="\t").to_dicts()
+        else:
+            # Fallback: check legacy CSV for backwards compatibility with old runs
+            stats_csv = output_dir / "sample_summary.csv"
+            if stats_csv.exists():
+                all_stats = pl.read_csv(str(stats_csv)).to_dicts()
 
         # Reload BAM stats so BAM charts still render
         bam_tsv = output_dir / "bam_stats.tsv"
         if bam_tsv.exists():
             bam_stats_df = pl.read_csv(str(bam_tsv), separator="\t")
+        else:
+            # Fallback: check legacy CSV for backwards compatibility
+            bam_csv = output_dir / "bam_stats.csv"
+            if bam_csv.exists():
+                bam_stats_df = pl.read_csv(str(bam_csv))
 
         # Skip BAM stats (they were already computed)
         args.no_bam = True
@@ -783,64 +799,140 @@ def main():
     else:
         report = None
 
-    # Visualizations
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Visualizations — per-wise chart generation
+    # ═══════════════════════════════════════════════════════════════════════════
     print("Generating visualizations...")
 
-    # Pass lazy frame directly to chart functions.
-    # Each chart function calls _eager(df) internally, which triggers
-    # polars scan + collect. polars' query optimizer ensures that only
-    # the columns needed by each chart are read from the parquet files.
-    # Scatter charts sample internally to 5-10K rows.
+    # Determine which wises to generate (from --wise flag)
+    all_wise_names = ["set", "disease", "sample", "tier", "caller", "chromosome"]
+    if args.wise is not None:
+        active_wises = [w for w in args.wise if w in all_wise_names] if args.wise else all_wise_names
+    else:
+        active_wises = all_wise_names
 
-    figs.append(plot_cosmic_gnomad_annotation(combined_df, str(output_dir)))
-    figs.append(plot_gt_concordance(combined_df, str(output_dir)))
-    figs.append(plot_vc_distribution(combined_df, str(output_dir)))
-    figs.append(plot_caller_overlap(combined_df, str(output_dir)))
-    figs.append(plot_vaf_distribution(combined_df, str(output_dir)))
-    figs.append(plot_vaf_boxplot_per_tier(combined_df, str(output_dir)))
-    figs.append(plot_dp_boxplot_per_tier(combined_df, str(output_dir)))
-    figs.append(plot_dna_vs_rna_vaf(combined_df, str(output_dir)))
-    figs.append(plot_dna_vs_rna_dp(combined_df, str(output_dir)))
-    figs.append(plot_ref_alt_dp_scatter(combined_df, str(output_dir)))
-    figs.append(plot_variant_type_distribution(combined_df, str(output_dir)))
-    figs.append(plot_ti_tv_ratio(combined_df, str(output_dir)))
-    figs.append(plot_cross_modality(combined_df, str(output_dir)))
-    figs.append(plot_gt_concordance_per_tier(combined_df, str(output_dir)))
-    figs.append(plot_tiered_caller_overlap(combined_df, str(output_dir)))
-    figs.append(plot_tiered_variant_types(combined_df, str(output_dir)))
-    figs.append(plot_filter_distribution(combined_df, str(output_dir)))
-    figs.append(plot_per_tier_vaf_boxplot(combined_df, str(output_dir)))
-    figs.append(plot_caller_agreement_matrix(combined_df, str(output_dir)))
-    figs.append(plot_chromosome_density(combined_df, str(output_dir)))
-    figs.append(plot_dna_vs_rna_per_caller(combined_df, str(output_dir)))
-    figs.append(plot_tier_quality_distribution(combined_df, str(output_dir)))
-    figs.append(plot_redi_evidence(combined_df, str(output_dir)))
+    # Wise chart registry: wise_name → [(chart_fn, kwargs), ...]
+    # Each chart function receives the wise-specific plot directory as output_dir.
+    _WISE_CHART_REGISTRY = {
+        "set": [
+            (plot_vc_distribution, {"group_col": "set_number"}),
+            (plot_caller_overlap, {"group_col": "set_number"}),
+            (plot_vaf_distribution, {"color_col": "set_number"}),
+            (plot_dna_vs_rna_vaf, {"color_col": "set_number"}),
+            (plot_dna_vs_rna_dp, {"group_col": "set_number"}),
+            (plot_gt_concordance, {"group_col": "set_number"}),
+            (plot_cosmic_gnomad_annotation, {"group_col": "set_number"}),
+            (plot_variant_type_distribution, {"group_col": "set_number"}),
+            (plot_ti_tv_ratio, {"group_col": "set_number"}),
+            (plot_cross_modality, {"group_col": "set_number"}),
+            (plot_ref_alt_dp_scatter, {"group_col": "set_number"}),
+            (plot_filter_distribution, {"group_col": "set_number"}),
+            (plot_redi_evidence, {"group_col": "set_number"}),
+            (plot_caller_agreement_matrix, {}),
+            (plot_tier_quality_distribution, {}),
+            (plot_caller_concordance_vs_vaf, {"color_col": "set_number"}),
+            (plot_dna_vs_rna_per_caller, {"color_col": "set_number"}),
+        ],
+        "disease": [
+            (plot_vc_distribution, {"group_col": "disease_normalized"}),
+            (plot_vaf_distribution, {"color_col": "disease_normalized"}),
+            (plot_dna_vs_rna_vaf, {"color_col": "disease_normalized"}),
+            (plot_dna_vs_rna_dp, {"group_col": "disease_normalized"}),
+            (plot_gt_concordance, {"group_col": "disease_normalized"}),
+            (plot_cosmic_gnomad_annotation, {"group_col": "disease_normalized"}),
+            (plot_variant_type_distribution, {"group_col": "disease_normalized"}),
+            (plot_ti_tv_ratio, {"group_col": "disease_normalized"}),
+            (plot_cross_modality, {"group_col": "disease_normalized"}),
+            (plot_ref_alt_dp_scatter, {"group_col": "disease_normalized"}),
+            (plot_filter_distribution, {"group_col": "disease_normalized"}),
+            (plot_redi_evidence, {"group_col": "disease_normalized"}),
+            (plot_caller_agreement_matrix, {}),
+            (plot_tier_quality_distribution, {}),
+            (plot_caller_concordance_vs_vaf, {"color_col": "disease_normalized"}),
+        ],
+        "sample": [
+            (plot_vc_distribution, {"group_col": "sample_id"}),
+            (plot_ti_tv_ratio, {"group_col": "sample_id"}),
+            (plot_cross_modality, {"group_col": "sample_id"}),
+            (plot_cosmic_gnomad_annotation, {"group_col": "sample_id"}),
+            (plot_variant_type_distribution, {"group_col": "sample_id"}),
+        ],
+        "tier": [
+            (plot_vc_distribution, {"group_col": "final_tier"}),
+            (plot_variant_type_distribution, {"group_col": "final_tier"}),
+            (plot_ti_tv_ratio, {"group_col": "final_tier"}),
+            (plot_cross_modality, {"group_col": "final_tier"}),
+            (plot_filter_distribution, {"group_col": "final_tier"}),
+            (plot_redi_evidence, {"group_col": "final_tier"}),
+            (plot_cosmic_gnomad_annotation, {"group_col": "final_tier"}),
+            (plot_vaf_boxplot_per_tier, {}),
+            (plot_dp_boxplot_per_tier, {}),
+            (plot_gt_concordance_per_tier, {}),
+            (plot_tiered_caller_overlap, {}),
+            (plot_tiered_variant_types, {}),
+            (plot_per_tier_vaf_boxplot, {}),
+            (plot_database_enrichment_by_tier, {}),
+            (plot_caller_concordance_vs_vaf, {"color_col": "final_tier"}),
+        ],
+        "caller": [
+            (plot_vaf_distribution, {}),
+            (plot_caller_agreement_matrix, {}),
+            (plot_dna_vs_rna_per_caller, {}),
+        ],
+        "chromosome": [
+            (plot_chromosome_density, {}),
+            (plot_vc_distribution, {"group_col": "CHROM"}),
+            (plot_variant_type_distribution, {"group_col": "CHROM"}),
+            (plot_ti_tv_ratio, {"group_col": "CHROM"}),
+            (plot_cross_modality, {"group_col": "CHROM"}),
+            (plot_filter_distribution, {"group_col": "CHROM"}),
+            (plot_cosmic_gnomad_annotation, {"group_col": "CHROM"}),
+        ],
+    }
 
-    # Threshold charts (from combined data, not pre-computed)
+    # Global charts (not per-wise — plotted once into top-level plots/)
+    global_charts = []
+    global_charts.append(plot_chromosome_density(combined_df, str(output_dir)))
+    global_charts.append(plot_tier_quality_distribution(combined_df, str(output_dir)))
+    global_charts.append(plot_caller_agreement_matrix(combined_df, str(output_dir)))
+
+    # Per-wise chart generation
+    for wise_name in active_wises:
+        wise_plot_dir = output_dir / "plots" / wise_name
+        wise_plot_dir.mkdir(parents=True, exist_ok=True)
+        chart_entries = _WISE_CHART_REGISTRY.get(wise_name, [])
+        for chart_fn, kwargs in chart_entries:
+            try:
+                result = chart_fn(combined_df, str(wise_plot_dir), **kwargs)
+                if result is not None:
+                    figs.append(result)
+            except Exception as e:
+                print(f"  WARNING: {chart_fn.__name__} ({wise_name}) failed: {e}")
+
+    # Threshold charts (global, pre-computed data)
     figs.append(plot_caller_concordance_vs_vaf(combined_df, str(output_dir)))
     figs.append(plot_database_enrichment_by_tier(combined_df, str(output_dir)))
 
-    # BAM charts
+    # BAM charts (sample-wise only)
     if not args.no_bam and not bam_stats_df.is_empty():
         figs.append(plot_bam_metrics_bars(bam_stats_df, str(output_dir)))
-
-    # BAM pileup coverage violin (requires pileup data, skipped with --no-pileup)
     if not args.no_pileup:
         figs.append(plot_bam_coverage_violin(combined_df, str(output_dir)))
 
+    # Per-sample charts (use sample_stats_df, not combined_df)
     if all_stats:
         sample_stats_df = pl.DataFrame(all_stats)
         figs.append(plot_per_sample_distribution(sample_stats_df, str(output_dir)))
-
-        # Per-sample per-tier charts
         sample_tier_df = sample_tier_summary(combined_df)
         if not sample_tier_df.is_empty():
             figs.append(plot_per_sample_tier_distribution(sample_tier_df, str(output_dir)))
             figs.append(plot_per_tier_cross_sample_vaf(sample_tier_df, str(output_dir)))
 
+    # Validation heatmap (global)
     if not args.no_validate and report is not None:
         figs.append(plot_validation_heatmap(report, str(output_dir)))
 
+    # Master dashboard
     generate_dashboard(figs, str(output_dir))
 
     print(f"\nAll outputs written to: {output_dir}")

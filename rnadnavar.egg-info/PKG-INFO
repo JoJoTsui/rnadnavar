@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: rnadnavar
+Version: 1.0.0
+Summary: RNA and DNA integrated analysis for somatic mutation detection
+Requires-Python: >=3.10
+License-File: LICENSE
+Requires-Dist: altair>=6.1.0
+Requires-Dist: cyvcf2>=0.33.0
+Requires-Dist: pandas>=2.3.3
+Requires-Dist: polars>=1.41.2
+Requires-Dist: pyarrow>=24.0.0
+Requires-Dist: pysam>=0.24.0
+Requires-Dist: vl-convert-python>=1.9.0.post1
+Dynamic: license-file

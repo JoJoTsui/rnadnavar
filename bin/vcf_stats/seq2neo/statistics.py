@@ -157,6 +157,21 @@ _CROSS_SAMPLE_COLS = [
     # Computed per-variant means (compute_all_per_variant output)
     "DNA_VAF_mean", "RNA_VAF_mean", "DNA_DP_mean", "RNA_DP_mean",
     "DNA_REF_DP_mean", "RNA_REF_DP_mean", "DNA_ALT_DP_mean", "RNA_ALT_DP_mean",
+    # Per-caller VAF columns (6) — needed for caller-wise stats, threshold sweep
+    "DNA_mutect2_VAF", "RNA_mutect2_VAF",
+    "DNA_deepsomatic_VAF", "RNA_deepsomatic_VAF",
+    "DNA_strelka_VAF", "RNA_strelka_VAF",
+    # Per-caller DP columns (6) — needed for caller-wise depth stats
+    "DNA_mutect2_DP", "RNA_mutect2_DP",
+    "DNA_deepsomatic_DP", "RNA_deepsomatic_DP",
+    "DNA_strelka_DP", "RNA_strelka_DP",
+    # Per-caller AD columns (12) — needed for REF/ALT analysis per caller
+    "DNA_mutect2_AD_REF", "DNA_mutect2_AD_ALT",
+    "RNA_mutect2_AD_REF", "RNA_mutect2_AD_ALT",
+    "DNA_deepsomatic_AD_REF", "DNA_deepsomatic_AD_ALT",
+    "RNA_deepsomatic_AD_REF", "RNA_deepsomatic_AD_ALT",
+    "DNA_strelka_AD_REF", "DNA_strelka_AD_ALT",
+    "RNA_strelka_AD_REF", "RNA_strelka_AD_ALT",
     # Tiering columns
     "final_tier", "caller_tier", "database_tier", "tier_quality",
     # Caller support / cross-modality / rescue flags
@@ -176,9 +191,12 @@ def _ensure_eager(df):
 
     Avoids loading all 165 columns from the per-sample parquet files.
     Accepts both eager (pass-through) and lazy (collect with column pruning).
+    Uses collect_schema().names() to avoid the PerformanceWarning triggered
+    by accessing .columns on a LazyFrame (which requires full schema resolution).
     """
     if isinstance(df, pl.LazyFrame):
-        existing = [c for c in _CROSS_SAMPLE_COLS if c in df.columns]
+        schema_names = df.collect_schema().names()
+        existing = [c for c in _CROSS_SAMPLE_COLS if c in schema_names]
         return df.select(existing).collect()
     return df
 

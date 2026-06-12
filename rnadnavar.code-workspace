@@ -1,0 +1,40 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../sequencing/aim_exp/rdv_test/output/COO8801.shared"
+		},
+		{
+			"path": "../../sequencing/aim_exp/rdv_test/output/COO8801.neoantigen"
+		},
+		{
+			"path": "../../../../../WorkSpace/data/ngs/xuzhenyu/work/rnadnavar_test"
+		},
+		{
+			"path": "../../clairs/ClairS"
+		},
+		{
+			"path": "../../deepvariant/deepvariant"
+		},
+		{
+			"path": "../../neo_var"
+		},
+		{
+			"path": "../../dv_tensor"
+		},
+		{
+			"path": "../../deepvariant/install_deepsomatic"
+		},
+		{
+			"path": "../../../../../WorkSpace/data/ngs/xuzhenyu/pipeline/neo_var"
+		}
+	],
+	"settings": {
+		"workbench.colorTheme": "Dark Modern",
+		"workbench.preferredDarkColorTheme": "Dark Modern",
+		"window.autoDetectColorScheme": true,
+		"nextflow.telemetry.enabled": false
+	}
+}

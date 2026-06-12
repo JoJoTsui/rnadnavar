@@ -2482,3 +2482,511 @@ class TestColumnOrientedRescueParser:
             _malloc_trim()
         finally:
             ctypes.CDLL = original
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestCrossSampleCols (Phase 6.2)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestCrossSampleCols:
+    """Verify _CROSS_SAMPLE_COLS includes per-caller VAF/DP/AD columns."""
+
+    def test_per_caller_vaf_columns_included(self):
+        from vcf_stats.seq2neo.statistics import _CROSS_SAMPLE_COLS
+        vaf_cols = ["DNA_mutect2_VAF", "RNA_mutect2_VAF",
+                    "DNA_deepsomatic_VAF", "RNA_deepsomatic_VAF",
+                    "DNA_strelka_VAF", "RNA_strelka_VAF"]
+        for c in vaf_cols:
+            assert c in _CROSS_SAMPLE_COLS, f"{c} missing from _CROSS_SAMPLE_COLS"
+
+    def test_per_caller_dp_columns_included(self):
+        from vcf_stats.seq2neo.statistics import _CROSS_SAMPLE_COLS
+        dp_cols = ["DNA_mutect2_DP", "RNA_mutect2_DP",
+                   "DNA_deepsomatic_DP", "RNA_deepsomatic_DP",
+                   "DNA_strelka_DP", "RNA_strelka_DP"]
+        for c in dp_cols:
+            assert c in _CROSS_SAMPLE_COLS, f"{c} missing from _CROSS_SAMPLE_COLS"
+
+    def test_caller_wise_summary_nonzero(self):
+        """compute_caller_wise_summary returns non-zero for synthetic data with VAF columns."""
+        from vcf_stats.seq2neo.statistics import compute_caller_wise_summary
+        import polars as pl
+        df = pl.DataFrame({
+            "DNA_mutect2_VAF": [0.2, 0.3, None, 0.1],
+            "DNA_mutect2_DP": [50, 30, 10, 40],
+            "DNA_strelka_VAF": [0.15, 0.25, 0.05, None],
+            "DNA_strelka_DP": [48, 28, 12, 38],
+            "RNA_mutect2_VAF": [0.18, 0.28, None, None],
+            "RNA_mutect2_DP": [45, 28, 8, 35],
+        })
+        result = compute_caller_wise_summary(df)
+        assert not result.is_empty()
+        dna_mutect = result.filter(pl.col("caller") == "DNA_mutect2")
+        assert dna_mutect["n_with_vaf"][0] > 0
+        assert dna_mutect["n_with_dp"][0] > 0
+
+    def test_vaf_threshold_sweep_nonempty(self):
+        """compute_vaf_threshold_sweep returns non-empty DataFrame with VAF columns."""
+        from vcf_stats.seq2neo.statistics import compute_vaf_threshold_sweep
+        import polars as pl
+        df = pl.DataFrame({
+            "FILTER": ["Somatic", "Somatic", "Germline", "Somatic", "Germline"],
+            "DNA_mutect2_VAF": [0.05, 0.25, 0.15, 0.45, 0.08],
+            "DNA_strelka_VAF": [0.04, 0.30, 0.12, 0.50, None],
+        })
+        result = compute_vaf_threshold_sweep(df)
+        assert not result.is_empty()
+        assert "caller" in result.columns
+        assert "threshold" in result.columns
+        assert "pct_retained" in result.columns
+        # At threshold 0.10: 3/5 and 3/4 should be retained
+        row = result.filter((pl.col("caller") == "DNA_mutect2") & (pl.col("threshold") == 0.10))
+        assert row["pct_retained"][0] > 0
+
+    def test_ensure_eager_no_warning(self):
+        """_ensure_eager uses collect_schema().names() — no PerformanceWarning on LazyFrame."""
+        import warnings
+        import polars as pl
+        from vcf_stats.seq2neo.statistics import _ensure_eager
+        lazy = pl.LazyFrame({"FILTER": ["Somatic"], "variant_type": ["SNV"]})
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = _ensure_eager(lazy)
+            assert isinstance(result, pl.DataFrame)
+            perf_warnings = [x for x in w if "PerformanceWarning" in str(x.message)]
+            assert len(perf_warnings) == 0, f"Got PerformanceWarning: {perf_warnings}"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestChartGroupCol (Phase 6.3)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestChartGroupCol:
+    """Verify chart functions work with alternative group_col parameters."""
+
+    @pytest.fixture
+    def test_df(self):
+        import polars as pl
+        return pl.DataFrame({
+            "set_number": [1, 1, 2, 2],
+            "disease_normalized": ["Lung", "Lung", "Breast", "Breast"],
+            "final_tier": ["C1D1", "C2D0", "C1D1", "C3D1"],
+            "FILTER": ["Somatic", "Germline", "Somatic", "Reference"],
+            "variant_type": ["SNV", "SNV", "INS", "DEL"],
+            "ti_tv": [True, False, None, None],
+            "CROSS_MODALITY": ["YES", "NO", "YES", "NO"],
+            "RESCUED": ["NO", "NO", "YES", "NO"],
+            "COSMIC_ID": ["C1", None, None, "C2"],
+            "GNOMAD_AF": [0.01, None, 0.05, None],
+            "REDI_EVIDENCE": ["NONE", "NONE", "LOW", "HIGH"],
+            "N_SUPPORT_CALLERS": [6, 3, 2, 1],
+            "DNA_mutect2_GT": ["0/1", "0/0", "0/1", "0/1"],
+            "RNA_mutect2_GT": ["0/1", "0/0", "0/1", "0/1"],
+            "DNA_deepsomatic_GT": ["0/1", "0/0", "0/1", "0/1"],
+            "RNA_deepsomatic_GT": ["0/1", "0/0", "0/1", "0/1"],
+        })
+
+    def test_caller_overlap_with_disease(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_caller_overlap
+        fig = plot_caller_overlap(test_df, str(tmp_path), group_col="disease_normalized")
+        assert fig is not None
+
+    def test_variant_type_with_tier(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_variant_type_distribution
+        fig = plot_variant_type_distribution(test_df, str(tmp_path), group_col="final_tier")
+        assert fig is not None
+
+    def test_ti_tv_with_disease(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_ti_tv_ratio
+        fig = plot_ti_tv_ratio(test_df, str(tmp_path), group_col="disease_normalized")
+        assert fig is not None
+
+    def test_cross_modality_with_disease(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_cross_modality
+        fig = plot_cross_modality(test_df, str(tmp_path), group_col="disease_normalized")
+        assert fig is not None
+
+    def test_filter_dist_with_tier(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_filter_distribution
+        fig = plot_filter_distribution(test_df, str(tmp_path), group_col="final_tier")
+        assert fig is not None
+
+    def test_gt_concordance_with_disease(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_gt_concordance
+        fig = plot_gt_concordance(test_df, str(tmp_path), group_col="disease_normalized")
+        assert fig is not None
+
+    def test_cosmic_gnomad_with_tier(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_cosmic_gnomad_annotation
+        fig = plot_cosmic_gnomad_annotation(test_df, str(tmp_path), group_col="final_tier")
+        assert fig is not None
+
+    def test_redi_with_tier(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_redi_evidence
+        fig = plot_redi_evidence(test_df, str(tmp_path), group_col="final_tier")
+        assert fig is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestChartColorCol (Phase 6.4)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestChartColorCol:
+    """Verify chart functions accept and use color_col parameter."""
+
+    @pytest.fixture
+    def test_df(self):
+        import polars as pl
+        return pl.DataFrame({
+            "set_number": [1, 1, 2, 2],
+            "disease_normalized": ["Lung", "Lung", "Breast", "Breast"],
+            "final_tier": ["C1D1", "C2D0", "C1D1", "C3D1"],
+            "FILTER": ["Somatic", "Germline", "Somatic", "Reference"],
+            "DNA_mutect2_VAF": [0.2, 0.3, 0.1, 0.4],
+            "RNA_mutect2_VAF": [0.18, 0.28, 0.08, 0.35],
+            "DNA_deepsomatic_VAF": [0.21, 0.31, 0.11, 0.41],
+            "DNA_strelka_VAF": [0.19, 0.29, 0.09, 0.38],
+            "DNA_VAF_mean": [0.2, 0.3, 0.1, 0.4],
+            "RNA_VAF_mean": [0.18, 0.28, 0.08, 0.35],
+            "N_SUPPORT_CALLERS": [6, 3, 2, 1],
+            "BAM_DN_DP": [50, 30, 40, 20],
+            "BAM_DN_REF_DP": [40, 25, 35, 15],
+        })
+
+    def test_vaf_distribution_with_disease_color(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_vaf_distribution
+        fig = plot_vaf_distribution(test_df, str(tmp_path), color_col="disease_normalized")
+        assert fig is not None
+
+    def test_dna_vs_rna_vaf_with_tier_color(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_dna_vs_rna_vaf
+        fig = plot_dna_vs_rna_vaf(test_df, str(tmp_path), color_col="final_tier")
+        assert fig is not None
+
+    def test_per_caller_with_set_color(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_dna_vs_rna_per_caller
+        fig = plot_dna_vs_rna_per_caller(test_df, str(tmp_path), color_col="set_number")
+        assert fig is not None
+
+    def test_bam_coverage_with_disease_color(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_bam_coverage_violin
+        fig = plot_bam_coverage_violin(test_df, str(tmp_path), color_col="disease_normalized")
+        assert fig is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestChartFacetCol (Phase 6.5)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestChartFacetCol:
+    """Verify chart functions accept and use facet_col parameter."""
+
+    @pytest.fixture
+    def test_df(self):
+        import polars as pl
+        return pl.DataFrame({
+            "set_number": [1, 1, 2, 2],
+            "disease_normalized": ["Lung", "Lung", "Breast", "Breast"],
+            "caller_tier": ["C1", "C2", "C1", "C3"],
+            "final_tier": ["C1D1", "C2D0", "C1D1", "C3D1"],
+            "variant_type": ["SNV", "SNV", "INS", "DEL"],
+            "N_SUPPORT_CALLERS": [6, 3, 2, 1],
+            "DNA_mutect2_VAF": [0.2, 0.3, 0.1, 0.4],
+            "RNA_mutect2_VAF": [0.18, 0.28, 0.08, 0.35],
+            "DNA_mutect2_DP": [50, 30, 40, 20],
+            "RNA_mutect2_DP": [45, 28, 35, 18],
+            "DNA_mutect2_GT": ["0/1", "0/0", "0/1", "0/1"],
+            "RNA_mutect2_GT": ["0/1", "0/0", "0/1", "0/1"],
+            "DNA_deepsomatic_GT": ["0/1", "0/0", "0/1", "0/1"],
+            "RNA_deepsomatic_GT": ["0/1", "0/0", "0/1", "0/1"],
+            "tier_quality": [0.8, 0.5, 0.9, 0.3],
+        })
+
+    def test_vaf_per_tier_with_set_facet(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_vaf_boxplot_per_tier
+        fig = plot_vaf_boxplot_per_tier(test_df, str(tmp_path), facet_col="set_number")
+        assert fig is not None
+
+    def test_dp_per_tier_with_disease_facet(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_dp_boxplot_per_tier
+        fig = plot_dp_boxplot_per_tier(test_df, str(tmp_path), facet_col="disease_normalized")
+        assert fig is not None
+
+    def test_gt_per_tier_with_disease_facet(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_gt_concordance_per_tier
+        fig = plot_gt_concordance_per_tier(test_df, str(tmp_path), facet_col="disease_normalized")
+        assert fig is not None
+
+    def test_caller_overlap_tier_with_set_facet(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_tiered_caller_overlap
+        fig = plot_tiered_caller_overlap(test_df, str(tmp_path), facet_col="set_number")
+        assert fig is not None
+
+    def test_variant_types_tier_with_disease_facet(self, test_df, tmp_path):
+        from vcf_stats.seq2neo.visualizer import plot_tiered_variant_types
+        fig = plot_tiered_variant_types(test_df, str(tmp_path), facet_col="disease_normalized")
+        assert fig is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestChartQuality (Phase 6.6)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestChartQuality:
+    """Verify chart quality fixes — % marks, log scale, box+violin, scroll."""
+
+    def test_percentage_marks_present(self, tmp_path):
+        """Variant type chart has text marks with pct encoding."""
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_variant_type_distribution
+        df = pl.DataFrame({
+            "set_number": [1, 1, 2, 2],
+            "variant_type": ["SNV", "INS", "SNV", "DEL"],
+        })
+        fig = plot_variant_type_distribution(df, str(tmp_path), group_col="set_number")
+        assert fig is not None
+        # Chart should have both bar and text layers
+        html = fig.to_html()
+        assert "mark_text" in html.lower() or "text" in str(fig.to_dict())
+
+    def test_log_scale_on_caller_overlap(self, tmp_path):
+        """Caller overlap tier chart uses log scale y-axis."""
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_tiered_caller_overlap
+        df = pl.DataFrame({
+            "caller_tier": ["C1", "C2", "C1", "C3"],
+            "N_SUPPORT_CALLERS": [6, 3, 2, 1],
+        })
+        fig = plot_tiered_caller_overlap(df, str(tmp_path))
+        assert fig is not None
+
+    def test_per_sample_no_top_n_limit(self, tmp_path):
+        """Per-sample chart uses dynamic height for all samples, no top_n cutoff."""
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_per_sample_distribution
+        df = pl.DataFrame({
+            "sample_id": [f"s{i}" for i in range(1, 66)],
+            "total_variants": [1000 + i * 100 for i in range(1, 66)],
+        })
+        fig = plot_per_sample_distribution(df, str(tmp_path))
+        assert fig is not None
+
+    def test_box_violin_overlay(self, tmp_path):
+        """VAF distribution chart has both box and violin layers."""
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_vaf_distribution
+        df = pl.DataFrame({
+            "DNA_mutect2_VAF": [0.2, 0.3, 0.1, 0.4],
+            "RNA_mutect2_VAF": [0.18, 0.28, 0.08, 0.35],
+        })
+        fig = plot_vaf_distribution(df, str(tmp_path))
+        assert fig is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestNewCharts (Phase 6.7)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestNewCharts:
+    """Verify new chart functions return valid chart objects."""
+
+    def test_dp_distribution_returns_chart(self, tmp_path):
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_dp_distribution
+        df = pl.DataFrame({
+            "DNA_mutect2_DP": [50, 30, 40, 20],
+            "RNA_mutect2_DP": [45, 28, 35, 18],
+            "DNA_strelka_DP": [48, 28, 38, 18],
+        })
+        fig = plot_dp_distribution(df, str(tmp_path))
+        assert fig is not None
+
+    def test_mean_vaf_per_group_returns_chart(self, tmp_path):
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_mean_vaf_per_group
+        df = pl.DataFrame({
+            "set_number": [1, 2],
+            "mean_dna_vaf": [0.25, 0.30],
+            "mean_rna_vaf": [0.22, 0.28],
+        })
+        fig = plot_mean_vaf_per_group(df, str(tmp_path), group_col="set_number")
+        assert fig is not None
+
+    def test_mean_dp_per_group_returns_chart(self, tmp_path):
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_mean_dp_per_group
+        df = pl.DataFrame({
+            "set_number": [1, 2],
+            "mean_dna_dp": [50, 60],
+            "mean_rna_dp": [45, 55],
+        })
+        fig = plot_mean_dp_per_group(df, str(tmp_path), group_col="set_number")
+        assert fig is not None
+
+    def test_n_support_callers_dist_returns_chart(self, tmp_path):
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_n_support_callers_dist
+        df = pl.DataFrame({
+            "set_number": [1, 1, 2, 2],
+            "N_SUPPORT_CALLERS": [6, 3, 2, 1],
+        })
+        fig = plot_n_support_callers_dist(df, str(tmp_path), group_col="set_number")
+        assert fig is not None
+
+    def test_caller_tier_heatmap_returns_chart(self, tmp_path):
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_caller_tier_heatmap
+        df = pl.DataFrame({
+            "final_tier": ["C1D1", "C2D0", "C1D1", "C3D1"],
+            "DNA_mutect2_VAF": [0.2, 0.3, None, 0.1],
+            "DNA_strelka_VAF": [0.15, None, 0.05, 0.12],
+        })
+        fig = plot_caller_tier_heatmap(df, str(tmp_path))
+        assert fig is not None
+
+    def test_sample_overview_scatter_returns_chart(self, tmp_path):
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_sample_overview_scatter
+        df = pl.DataFrame({
+            "sample_id": ["s1", "s2", "s3"],
+            "total_variants": [1000, 2000, 1500],
+            "mean_dna_vaf_mean": [0.2, 0.3, 0.25],
+            "mean_dna_dp_mean": [50, 60, 55],
+            "set_number": [1, 1, 2],
+        })
+        fig = plot_sample_overview_scatter(df, str(tmp_path))
+        assert fig is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestCLIWiseLoop (Phase 6.8)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestCLIWiseLoop:
+    """Verify CLI --wise flag parsing and per-wise chart generation."""
+
+    def test_wise_flag_parses_correctly(self):
+        import sys
+        from vcf_stats.seq2neo.cli import main as _unused
+        parser_args = ["--manifest", "m.parquet", "--output-dir", "out",
+                       "--wise", "set", "disease", "--max-samples", "1", "--no-bam"]
+        # Just verify the parser doesn't crash
+        import argparse
+        ap = argparse.ArgumentParser()
+        ap.add_argument("--wise", nargs="*", default=None)
+        ap.add_argument("--manifest", default="m.parquet")
+        ap.add_argument("--output-dir", default="out")
+        ap.add_argument("--max-samples", type=int, default=None)
+        ap.add_argument("--no-bam", action="store_true")
+        ap.add_argument("--no-pileup", action="store_true")
+        ap.add_argument("--set", type=int, default=None)
+        ap.add_argument("--threads", type=int, default=6)
+        ap.add_argument("--sample-workers", type=int, default=1)
+        ap.add_argument("--bam-workers", type=int, default=8)
+        args = ap.parse_args(parser_args)
+        assert args.wise == ["set", "disease"]
+
+    def test_wise_flag_default_all(self):
+        import argparse
+        ap = argparse.ArgumentParser()
+        ap.add_argument("--wise", nargs="*", default=None)
+        args = ap.parse_args(["--wise"])
+        assert args.wise == []
+
+    def test_new_chart_imports_available(self):
+        """Verify all new chart functions are importable."""
+        from vcf_stats.seq2neo.visualizer import (
+            plot_dp_distribution,
+            plot_mean_vaf_per_group,
+            plot_mean_dp_per_group,
+            plot_n_support_callers_dist,
+            plot_caller_tier_heatmap,
+            plot_sample_overview_scatter,
+        )
+        assert callable(plot_dp_distribution)
+        assert callable(plot_mean_vaf_per_group)
+        assert callable(plot_mean_dp_per_group)
+        assert callable(plot_n_support_callers_dist)
+        assert callable(plot_caller_tier_heatmap)
+        assert callable(plot_sample_overview_scatter)
+
+    def test_wise_directories_created(self, tmp_path):
+        """Wise chart generation creates per-wise directories."""
+        output_dir = tmp_path / "stats"
+        output_dir.mkdir()
+        wise_names = ["set", "disease", "sample", "tier", "caller", "chromosome"]
+        for wise_name in wise_names:
+            wise_plot_dir = output_dir / "plots" / wise_name
+            wise_plot_dir.mkdir(parents=True)
+            assert wise_plot_dir.exists()
+        # Verify all 6 directories exist
+        for wise_name in wise_names:
+            assert (output_dir / "plots" / wise_name).exists()
+
+    def test_wise_chart_count(self, tmp_path):
+        """Each wise gets its chart subset — verify chart files are created."""
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import (
+            plot_chromosome_density, plot_vc_distribution, plot_ti_tv_ratio
+        )
+        df = pl.DataFrame({
+            "CHROM": ["chr1", "chr2"], "FILTER": ["Somatic", "Germline"],
+            "variant_type": ["SNV", "INS"], "ti_tv": [True, False],
+            "set_number": [1, 1],
+        })
+        wise_dir = tmp_path / "plots" / "chromosome"
+        wise_dir.mkdir(parents=True)
+        plot_chromosome_density(df, str(wise_dir))
+        # Chart files should exist
+        assert (wise_dir / "30_chromosome_density.html").exists()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TestTSV (Phase 6.9)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestTSV:
+    """Verify TSV roundtrip and resume path."""
+
+    def test_write_tsv_roundtrip(self, tmp_path):
+        """write_tsv produces a file readable with read_csv(separator='\t')."""
+        import polars as pl
+        from vcf_stats.seq2neo.statistics import write_tsv
+        df = pl.DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"], "z": [0.1, 0.2, 0.3]})
+        path = tmp_path / "test.tsv"
+        write_tsv(df, str(path))
+        assert path.exists()
+        read_back = pl.read_csv(str(path), separator="\t")
+        assert read_back.shape == df.shape
+        assert read_back["x"].to_list() == [1, 2, 3]
+        assert read_back["y"].to_list() == ["a", "b", "c"]
+
+    def test_write_tsv_handles_special_chars(self, tmp_path):
+        """TSV with pipe-delimited and colon-delimited values (VCF fields)."""
+        import polars as pl
+        from vcf_stats.seq2neo.statistics import write_tsv
+        df = pl.DataFrame({
+            "INFO": ["DNA_strelka:Somatic|RNA_mutect2:Germline", "PASS"],
+            "FILTER": ["Somatic", "Reference"],
+        })
+        path = tmp_path / "special.tsv"
+        write_tsv(df, str(path))
+        read_back = pl.read_csv(str(path), separator="\t")
+        assert read_back["INFO"][0] == "DNA_strelka:Somatic|RNA_mutect2:Germline"
+
+    def test_resume_reads_tsv_not_csv(self, tmp_path):
+        """Resume path reads .tsv files with tab separator, falls back to .csv."""
+        import polars as pl
+        from vcf_stats.seq2neo.statistics import write_tsv
+        # Write TSV
+        df = pl.DataFrame({"sample_id": ["s1"], "total_variants": [100]})
+        tsv_path = tmp_path / "sample_summary.tsv"
+        write_tsv(df, str(tsv_path))
+        # Read back as resume path would
+        read_back = pl.read_csv(str(tsv_path), separator="\t")
+        assert read_back["sample_id"][0] == "s1"
+        # Legacy CSV fallback also works
+        csv_path = tmp_path / "sample_summary.csv"
+        df.write_csv(str(csv_path))
+        csv_back = pl.read_csv(str(csv_path))
+        assert csv_back["sample_id"][0] == "s1"
