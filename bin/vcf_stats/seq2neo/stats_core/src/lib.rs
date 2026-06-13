@@ -106,10 +106,38 @@ fn parse_rescue_columns(py: Python<'_>, path: String) -> PyResult<Bound<'_, PyDi
 #[pyfunction]
 fn bam_stats(py: Python<'_>, path: String, max_reads: u64) -> PyResult<Bound<'_, PyDict>> {
     let path_buf = PathBuf::from(&path);
-    // detach() releases the GIL while scanning. Must convert errors to String
-    // because Box<dyn Error> is not Ungil (pyo3 auto-trait for GIL-free types).
     let stats = py.detach(|| {
         bam::whole_genome_stats(&path_buf, max_reads)
+            .map_err(|e| e.to_string())
+    }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))?;
+
+    let d = PyDict::new(py);
+    d.set_item("total_reads", stats.total_reads)?;
+    d.set_item("mapped_reads", stats.mapped_reads)?;
+    d.set_item("mapping_rate", stats.mapping_rate)?;
+    d.set_item("mean_coverage", stats.mean_coverage)?;
+    d.set_item("mean_insert_size", stats.mean_insert_size)?;
+    d.set_item("mean_mapq", stats.mean_mapq)?;
+    Ok(d)
+}
+
+/// Compute BAM statistics with BED-guided on-target coverage.
+///
+/// When BED regions are provided, only bases overlapping BED intervals
+/// are counted toward mean_coverage (WES mode). Other metrics (reads,
+/// mapping rate, insert size, MAPQ) remain whole-genome.
+#[pyfunction]
+fn bam_stats_bed(
+    py: Python<'_>,
+    path: String,
+    max_reads: u64,
+    bed_chroms: Vec<String>,
+    bed_starts: Vec<i64>,
+    bed_ends: Vec<i64>,
+) -> PyResult<Bound<'_, PyDict>> {
+    let path_buf = PathBuf::from(&path);
+    let stats = py.detach(|| {
+        bam::whole_genome_stats_bed(&path_buf, max_reads, &bed_chroms, &bed_starts, &bed_ends)
             .map_err(|e| e.to_string())
     }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))?;
 
@@ -298,6 +326,54 @@ fn pileup_variants(
             .map_err(|e| e.to_string())
     }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))?;
 
+    pileup_results_to_pydict(py, &results)
+}
+
+/// Perform combined BAM pileup across multiple BAMs in a single FFI call.
+///
+/// Opens all BAMs once, shares position grouping and window iteration,
+/// and uses binary search to match reads to positions within each region.
+/// When bed_regions is provided, uses BED intervals instead of 1Mb windows.
+///
+/// Returns a dict mapping bam_label → dict of pileup columns.
+#[pyfunction]
+fn pileup_variants_multi(
+    py: Python<'_>,
+    bam_paths: Vec<String>,
+    bam_labels: Vec<String>,
+    chroms: Vec<String>,
+    positions: Vec<i64>,
+    ref_bases: Vec<String>,
+    alt_bases: Vec<String>,
+    bed_chroms: Vec<String>,
+    bed_starts: Vec<i64>,
+    bed_ends: Vec<i64>,
+) -> PyResult<Bound<'_, PyDict>> {
+    let bed_regions: Option<Vec<(String, i64, i64)>> = if bed_chroms.is_empty() {
+        None
+    } else {
+        let n = bed_chroms.len();
+        Some((0..n).map(|i| (bed_chroms[i].clone(), bed_starts[i], bed_ends[i])).collect())
+    };
+
+    let multi_results = py.detach(|| {
+        pileup::pileup_variants_multi(
+            &bam_paths, &bam_labels,
+            &chroms, &positions, &ref_bases, &alt_bases,
+            bed_regions.as_deref(),
+        )
+        .map_err(|e| e.to_string())
+    }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))?;
+
+    let d = PyDict::new(py);
+    for (label, results) in &multi_results {
+        d.set_item(label.as_str(), pileup_results_to_pydict(py, results)?)?;
+    }
+    Ok(d)
+}
+
+/// Convert a Vec<PileupResult> to a Python dict of column lists.
+fn pileup_results_to_pydict<'a>(py: Python<'a>, results: &[pileup::PileupResult]) -> PyResult<Bound<'a, PyDict>> {
     let d = PyDict::new(py);
     let dp: Vec<Option<i64>> = results.iter().map(|r| r.dp).collect();
     let ref_dp: Vec<Option<i64>> = results.iter().map(|r| r.ref_dp).collect();
@@ -345,8 +421,10 @@ fn stats_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(parse_rescue, m)?)?;
     m.add_function(wrap_pyfunction!(parse_rescue_columns, m)?)?;
     m.add_function(wrap_pyfunction!(bam_stats, m)?)?;
+    m.add_function(wrap_pyfunction!(bam_stats_bed, m)?)?;
     m.add_function(wrap_pyfunction!(parse_caller_vcf, m)?)?;
     m.add_function(wrap_pyfunction!(compute_tiers, m)?)?;
     m.add_function(wrap_pyfunction!(pileup_variants, m)?)?;
+    m.add_function(wrap_pyfunction!(pileup_variants_multi, m)?)?;
     Ok(())
 }

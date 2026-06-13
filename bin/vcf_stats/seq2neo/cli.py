@@ -63,14 +63,14 @@ def _mem(msg: str) -> None:
     except Exception:
         print(f"  [MEM ?GB] {msg}", flush=True)
 
-from .bam_stats import compute_all_bam_stats, sum_bed_regions
+from .bam_stats import compute_all_bam_stats, read_and_merge_bed
 from .bam_validation import validate_bam_vs_caller as validate_bam_one
 from .caller_parser import _parse_one_caller, CALLERS_STRELKA, CALLERS_WITH_GT
 from .manifest_loader import CALLER_CONFIGS, filter_complete, load_manifest
 from .rescue_parser import parse_rescue_vcf as _py_parse_rescue
 from .rust_vcf import parse_rescue_vcf as _rust_parse_rescue
 from .rescue_validator import validate_all_samples, validate_sample, validation_summary
-from .rust_bam import pileup_variants
+from .rust_bam import pileup_variants, pileup_variants_multi
 from .tiering_stats import compute_tiers_for_dataframe, tier_summary as compute_tier_summary
 from .statistics import (
     compute_all_per_variant,
@@ -181,7 +181,8 @@ def _streaming_join_one(df: pl.DataFrame, col_data: dict, caller_name: str) -> p
 
 def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True,
                          large_sem=None, no_pileup: bool = False,
-                         pileup_mode: str = "all") -> dict:
+                         pileup_mode: str = "all",
+                         bed_regions: list | None = None) -> dict:
     """Process one sample: parse rescue VCF + all caller VCFs + compute stats.
 
     Returns a dict with 'sample_id', 'df', and 'stats'.
@@ -193,6 +194,7 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         large_sem: Semaphore for large-sample exclusive access.
         no_pileup: Skip variant-wise BAM pileup (enabled by default).
         pileup_mode: "all" (default) or "filtered" (exclude NoConsensus).
+        bed_regions: Optional merged BED regions for region-guided pileup (WES).
     """
     sample_id = row["sample_id"]
     rescue_path = row["rescue_vcf_path"]
@@ -283,9 +285,10 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
 
         # Variant-wise BAM pileup (enabled by default, --no-pileup to skip).
         # Computes per-position DP, strand bias, BQ, MQ from alignment BAMs.
+        # Uses combined multi-BAM Rust function for efficiency (all BAMs in
+        # one FFI call, shared position grouping, binary search inner loop).
         if not no_pileup:
             from .bam_stats import _locate_bam_file
-            from .rust_bam import pileup_variants as do_pileup
 
             # Build positions list, optionally excluding NoConsensus variants
             cols_4 = ["CHROM", "POS", "REF", "ALT"]
@@ -303,27 +306,54 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
             n_pos = len(positions)
             print(f"  [{sample_id}] BAM pileup: {n_pos} positions ({pileup_mode} mode)")
 
+            # Collect available BAM paths
+            bam_paths = {}
             for bt in ["DN", "DT", "RT"]:
                 bam_path = _locate_bam_file(base_dir, dir_name, bt)
-                if not bam_path:
-                    continue
+                if bam_path:
+                    bam_paths[bt] = bam_path
+
+            if bam_paths:
                 try:
-                    print(f"  [{sample_id}] BAM pileup {bt}: starting...")
-                    pileup_df = do_pileup(bam_path, positions)
-                    if pileup_df is not None and not pileup_df.is_empty():
-                        # Rename pileup columns with BAM type prefix
-                        join_key = ["CHROM", "POS", "REF", "ALT"]
-                        rename = {c: f"BAM_{bt}_{c}" for c in pileup_df.columns
-                                  if c not in join_key}
-                        pileup_df = pileup_df.rename(rename)
-                        df = df.join(
-                            pileup_df.select(join_key + list(rename.values())),
-                            on=join_key, how="left",
-                        )
-                        del pileup_df
-                        _mem(f"after pileup {bt}")
-                except Exception as e:
-                    print(f"  [{sample_id}] BAM pileup {bt} error: {e}")
+                    print(f"  [{sample_id}] BAM pileup: combined multi-BAM ({','.join(bam_paths.keys())})...")
+                    pileup_results = pileup_variants_multi(bam_paths, positions, bed_regions)
+                    for bt, pileup_df in pileup_results.items():
+                        if pileup_df is not None and not pileup_df.is_empty():
+                            join_key = ["CHROM", "POS", "REF", "ALT"]
+                            rename = {c: f"BAM_{bt}_{c}" for c in pileup_df.columns
+                                      if c not in join_key}
+                            pileup_df = pileup_df.rename(rename)
+                            df = df.join(
+                                pileup_df.select(join_key + list(rename.values())),
+                                on=join_key, how="left",
+                            )
+                            del pileup_df
+                            _mem(f"after pileup {bt}")
+                except BaseException as e:
+                    # PanicException (from Rust panics) inherits from BaseException,
+                    # not Exception. Catch BaseException to handle both panics and
+                    # normal errors.
+                    if isinstance(e, KeyboardInterrupt):
+                        raise
+                    print(f"  [{sample_id}] BAM pileup error: {e}")
+                    # Fall back to per-BAM calls if multi-BAM fails
+                    for bt, bam_path in bam_paths.items():
+                        try:
+                            pileup_df = pileup_variants(bam_path, positions)
+                            if pileup_df is not None and not pileup_df.is_empty():
+                                join_key = ["CHROM", "POS", "REF", "ALT"]
+                                rename = {c: f"BAM_{bt}_{c}" for c in pileup_df.columns
+                                          if c not in join_key}
+                                pileup_df = pileup_df.rename(rename)
+                                df = df.join(
+                                    pileup_df.select(join_key + list(rename.values())),
+                                    on=join_key, how="left",
+                                )
+                                del pileup_df
+                        except BaseException as e2:
+                            if isinstance(e2, KeyboardInterrupt):
+                                raise
+                            print(f"  [{sample_id}] BAM pileup {bt} fallback error: {e2}")
             del positions
 
         # Compute sample-level summary
@@ -349,19 +379,19 @@ def _process_worker(args: tuple) -> dict:
     defined at module level so the 'fork' context can call it.
 
     Args:
-        args: (row_dict, max_workers, use_rust, variant_dir_str, no_pileup, pileup_mode)
+        args: (row_dict, max_workers, use_rust, variant_dir_str, no_pileup, pileup_mode, bed_regions)
 
     Returns:
         {"sample_id": str, "stats": dict} — no DataFrame (too large to pickle).
         On error: {"sample_id": str, "error": str}
     """
-    row, max_workers, use_rust, variant_dir_str, no_pileup, pileup_mode = args
+    row, max_workers, use_rust, variant_dir_str, no_pileup, pileup_mode, bed_regions = args
 
     try:
         result = process_single_sample(row, max_workers=max_workers, use_rust=use_rust,
                                        large_sem=None, no_pileup=no_pileup,
-                                       pileup_mode=pileup_mode)
-    except Exception:
+                                       pileup_mode=pileup_mode, bed_regions=bed_regions)
+    except BaseException:
         import traceback
         return {"sample_id": row["sample_id"], "error": traceback.format_exc()}
 
@@ -465,11 +495,39 @@ def main():
     all_stats = []
     bam_stats_df = pl.DataFrame()
 
+    # ── Read and merge BED regions early (shared between pileup and BAM stats) ──
+    bed_total = 0
+    bed_regions = None
+    if args.bed:
+        if not os.path.isfile(args.bed):
+            print(f"WARNING: BED file not found: {args.bed}, using whole-genome mode")
+        else:
+            bed_total, bed_regions = read_and_merge_bed(args.bed, gap=500_000)
+            print(f"BED coverage denominator: {bed_total:,} bp ({bed_total / 1e6:.1f} Mbp, "
+                  f"{len(bed_regions)} merged regions with 500Kb gap)")
+
     # ── Per-sample parquet directory (streaming, not memory-accumulated) ──
     variant_dir = output_dir / "variant_details"
     variant_dir.mkdir(parents=True, exist_ok=True)
     variant_dir_str = str(variant_dir)
     total_variants = 0
+
+    # ── Launch BAM stats in background before variant processing ───────────
+    # BAM stats (manifest-only, no variant data needed) runs concurrently
+    # with variant processing, hiding BAM latency (~9 min for large samples)
+    # behind variant processing (~2-3 min). Max wall-clock = max(variant, BAM)
+    # instead of sum.
+    bam_future = None
+    bam_bg_executor = None
+    if not args.no_bam and not args.resume:
+        bam_bg_executor = ThreadPoolExecutor(max_workers=1)
+        bam_future = bam_bg_executor.submit(
+            compute_all_bam_stats, rows,
+            max_workers=args.bam_workers,
+            bed_total=bed_total,
+            bed_regions=bed_regions,
+        )
+        print("BAM statistics running in background...")
 
     if args.resume:
         # Skip variant processing + BAM stats — parquet files already exist.
@@ -532,7 +590,7 @@ def main():
         ctx = mp.get_context("spawn")
 
         worker_args = [
-            (row, args.threads, use_rust, variant_dir_str, args.no_pileup, args.pileup_mode)
+            (row, args.threads, use_rust, variant_dir_str, args.no_pileup, args.pileup_mode, bed_regions)
             for row in rows
         ]
 
@@ -568,7 +626,7 @@ def main():
             result = process_single_sample(
                 row, max_workers=max_workers, use_rust=use_rust,
                 large_sem=_THREAD_LARGE_SEM, no_pileup=args.no_pileup,
-                pileup_mode=args.pileup_mode,
+                pileup_mode=args.pileup_mode, bed_regions=bed_regions,
             )
             if result["df"] is not None:
                 sid = result["sample_id"]
@@ -608,7 +666,7 @@ def main():
                 result = process_single_sample(
                     row, max_workers=args.threads, use_rust=use_rust,
                     large_sem=_THREAD_LARGE_SEM, no_pileup=args.no_pileup,
-                    pileup_mode=args.pileup_mode,
+                    pileup_mode=args.pileup_mode, bed_regions=bed_regions,
                 )
                 if result["df"] is not None:
                     parquet_path = str(variant_dir / f"{sid}_variants.parquet")
@@ -633,23 +691,28 @@ def main():
     combined_df = pl.scan_parquet(str(variant_dir / "*_variants.parquet"))
     print(f"Variant details: {variant_dir}/ (lazy scan, {total_variants} variants across {len(rows)} samples)")
 
-    # BAM statistics (per-sample per-modality)
-    if not args.no_bam:
-        # WES coverage denominator from BED file (optional)
-        bed_total = 0
-        if args.bed:
-            if not os.path.isfile(args.bed):
-                print(f"WARNING: BED file not found: {args.bed}, using whole-genome denominator")
-            else:
-                bed_total = sum_bed_regions(args.bed)
-                print(f"BED coverage denominator: {bed_total:,} bp ({bed_total / 1e6:.1f} Mbp)")
-        print("Computing per-sample BAM statistics...")
-        bam_stats_df = compute_all_bam_stats(rows, max_workers=args.bam_workers, bed_total=bed_total)
+    # BAM statistics — collect background result or compute now
+    if not args.no_bam and not args.resume:
+        if bam_future is not None:
+            try:
+                bam_stats_df = bam_future.result()
+                print("BAM statistics completed (background)")
+            except Exception as e:
+                print(f"WARNING: Background BAM stats failed: {e}")
+                bam_stats_df = pl.DataFrame()
+            finally:
+                if bam_bg_executor is not None:
+                    bam_bg_executor.shutdown(wait=False)
+        else:
+            print("Computing per-sample BAM statistics...")
+            bam_stats_df = compute_all_bam_stats(rows, max_workers=args.bam_workers,
+                                                  bed_total=bed_total, bed_regions=bed_regions)
         if not bam_stats_df.is_empty():
             write_tsv(bam_stats_df, str(output_dir / "bam_stats.tsv"))
             print(f"BAM stats: {output_dir / 'bam_stats.tsv'}")
-    else:
+    elif args.no_bam:
         print("Skipping BAM statistics (--no-bam)")
+    # else: resume mode — BAM stats already loaded from TSV above
 
     # Sample summary
     if all_stats:

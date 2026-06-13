@@ -13,15 +13,22 @@ from typing import Any
 import polars as pl
 
 
-def sum_bed_regions(bed_path: str) -> int:
-    """Sum the total length of all intervals in a BED file.
+def read_and_merge_bed(bed_path: str, gap: int = 100_000) -> tuple[int, list[tuple[str, int, int]]]:
+    """Read BED file, merge adjacent intervals, return total + merged regions.
 
-    Reads a BED file (0-based, 3+ column format: chrom, start, end, ...)
-    and returns the sum of (end - start) across all intervals. Used as the
-    coverage denominator for WES data where the BAM header reference length
-    (whole genome, ~3 Gbp) would under-report coverage by ~100×.
+    Reads a BED file (0-based, 3+ column format: chrom, start, end, ...),
+    sorts intervals by (chromosome, start), and merges intervals on the same
+    chromosome when they are within `gap` bp of each other.
+
+    Merging within gap reduces ~50K raw target intervals to ~300 contiguous
+    regions for WES — critical for efficient BAM pileup region-guided queries
+    and accurate on-target coverage calculation in BAM stats.
+
+    Returns:
+        (bed_total, bed_regions) where bed_total is the sum of merged
+        interval lengths and bed_regions is the list of merged (chrom, start, end).
     """
-    total = 0
+    intervals = []
     with open(bed_path) as f:
         for line in f:
             line = line.strip()
@@ -34,10 +41,27 @@ def sum_bed_regions(bed_path: str) -> int:
                 start = int(parts[1])
                 end = int(parts[2])
                 if end > start:
-                    total += end - start
+                    intervals.append((parts[0], start, end))
             except (ValueError, IndexError):
                 continue
-    return total
+
+    if not intervals:
+        return 0, []
+
+    # Sort by chromosome then start position
+    intervals.sort(key=lambda x: (x[0], x[1]))
+
+    # Merge adjacent intervals within gap
+    merged = []
+    for chrom, start, end in intervals:
+        if (merged and merged[-1][0] == chrom
+            and start - merged[-1][2] <= gap):
+            merged[-1] = (chrom, merged[-1][1], max(merged[-1][2], end))
+        else:
+            merged.append((chrom, start, end))
+
+    bed_total = sum(end - start for _, start, end in merged)
+    return bed_total, merged
 
 
 def _get_bam_ref_total(bam_path: str) -> int:
@@ -111,7 +135,8 @@ def _locate_bam_file(base_dir: str, dir_name: str, bam_type: str) -> str | None:
     return None
 
 
-def _compute_bam_stats_pysam(bam_path: str, bed_total: int = 0) -> dict[str, Any] | None:
+def _compute_bam_stats_pysam(bam_path: str, bed_total: int = 0,
+                             bed_regions: list[tuple[str, int, int]] | None = None) -> dict[str, Any] | None:
     """Compute BAM statistics using pysam (Python fallback)."""
     if not HAS_PYSAM:
         return None
@@ -125,17 +150,25 @@ def _compute_bam_stats_pysam(bam_path: str, bed_total: int = 0) -> dict[str, Any
         total_insert = 0
         insert_count = 0
         total_length = 0
+        on_target_bases = 0
 
         # Reference lengths for coverage estimation — use BED total for WES,
         # otherwise use BAM header reference lengths (whole-genome).
         ref_lengths = bed_total if bed_total > 0 else (sum(bam.lengths) if bam.lengths else 1)
+
+        # Build per-chromosome BED interval index for on-target check
+        bed_index: dict[str, list[tuple[int, int]]] = {}
+        if bed_regions:
+            for chrom, start, end in bed_regions:
+                bed_index.setdefault(chrom, []).append((start, end))
 
         for read in bam.fetch():
             total_reads += 1
             if not read.is_unmapped:
                 mapped_reads += 1
                 total_mapq += read.mapping_quality
-                total_length += read.query_length or 0
+                read_len = read.query_length or 0
+                total_length += read_len
                 # Insert size: only count properly paired reads (TLEN can be
                 # arbitrarily large for supplementary/improper pairs)
                 if (read.is_proper_pair and not read.is_supplementary
@@ -143,6 +176,20 @@ def _compute_bam_stats_pysam(bam_path: str, bed_total: int = 0) -> dict[str, Any
                     and read.template_length and read.template_length > 0):
                     total_insert += read.template_length
                     insert_count += 1
+
+                # On-target check for WES coverage accuracy
+                if bed_index:
+                    chrom = read.reference_name
+                    if chrom in bed_index:
+                        read_start = read.reference_start
+                        read_end = read.reference_end or (read_start + read_len)
+                        for int_start, int_end in bed_index[chrom]:
+                            if read_start < int_end and read_end > int_start:
+                                overlap_start = max(read_start, int_start)
+                                overlap_end = min(read_end, int_end)
+                                if overlap_end > overlap_start:
+                                    on_target_bases += overlap_end - overlap_start
+                                break  # one interval is enough per read
 
         bam.close()
 
@@ -152,7 +199,8 @@ def _compute_bam_stats_pysam(bam_path: str, bed_total: int = 0) -> dict[str, Any
         mapping_rate = mapped_reads / total_reads * 100 if total_reads > 0 else 0
         mean_mapq = total_mapq / mapped_reads if mapped_reads > 0 else 0
         mean_insert = total_insert / insert_count if insert_count > 0 else 0
-        mean_coverage = total_length / ref_lengths if total_length > 0 else 0
+        coverage_bases = on_target_bases if bed_regions else total_length
+        mean_coverage = coverage_bases / ref_lengths if coverage_bases > 0 else 0
 
         return {
             "total_reads": total_reads,
@@ -167,13 +215,23 @@ def _compute_bam_stats_pysam(bam_path: str, bed_total: int = 0) -> dict[str, Any
         return None
 
 
-def _compute_bam_stats_rust(bam_path: str) -> dict[str, Any] | None:
+def _compute_bam_stats_rust(bam_path: str,
+                            bed_regions: list[tuple[str, int, int]] | None = None) -> dict[str, Any] | None:
     """Compute BAM statistics using Rust stats_core (noodles-bam).
 
     Passes max_reads=0 to read the entire BAM file without sampling.
+    When bed_regions is provided, passes them to Rust for on-target coverage
+    calculation (WES mode).
     """
     try:
-        raw = stats_core.bam_stats(bam_path, 0)  # max_reads=0 → no limit
+        if bed_regions:
+            # Separate into three parallel lists for FFI
+            bed_chroms = [r[0] for r in bed_regions]
+            bed_starts = [r[1] for r in bed_regions]
+            bed_ends = [r[2] for r in bed_regions]
+            raw = stats_core.bam_stats_bed(bam_path, 0, bed_chroms, bed_starts, bed_ends)
+        else:
+            raw = stats_core.bam_stats(bam_path, 0)  # max_reads=0 → no limit
         return {
             "total_reads": raw["total_reads"],
             "mapped_reads": raw["mapped_reads"],
@@ -187,7 +245,8 @@ def _compute_bam_stats_rust(bam_path: str) -> dict[str, Any] | None:
         return None
 
 
-def compute_bam_stats(bam_path: str, bed_total: int = 0) -> dict[str, Any] | None:
+def compute_bam_stats(bam_path: str, bed_total: int = 0,
+                     bed_regions: list[tuple[str, int, int]] | None = None) -> dict[str, Any] | None:
     """Compute basic statistics from a BAM file.
 
     Uses Rust stats_core when available (faster), falls back to pysam.
@@ -195,8 +254,11 @@ def compute_bam_stats(bam_path: str, bed_total: int = 0) -> dict[str, Any] | Non
     Args:
         bam_path: Path to the BAM file.
         bed_total: Total length of BED regions (for WES coverage denominator).
-                   When > 0, mean_coverage is recalculated using bed_total instead
-                   of the BAM header reference lengths. Default 0 = whole-genome.
+                   When > 0, used as coverage denominator instead of whole-genome
+                   reference lengths. Default 0 = whole-genome.
+        bed_regions: Merged BED regions [(chrom, start, end), ...] for on-target
+                     coverage. When provided, only bases overlapping BED regions
+                     are counted toward coverage. Default None = whole-genome.
 
     Returns dict with: total_reads, mapped_reads, mapping_rate_pct,
     mean_coverage, mean_insert_size, mean_mapq. Returns None if BAM is unreadable.
@@ -205,12 +267,13 @@ def compute_bam_stats(bam_path: str, bed_total: int = 0) -> dict[str, Any] | Non
         return None
 
     if HAS_RUST_BAM:
-        result = _compute_bam_stats_rust(bam_path)
+        result = _compute_bam_stats_rust(bam_path, bed_regions)
         if result is not None:
-            # WES coverage override: recalculate using BED denominator.
-            # Rust uses BAM header reference lengths (~3 Gbp for human genome).
-            # For WES, the BED region total is ~30-60 Mbp, so we scale up.
-            if bed_total > 0:
+            # When bed_regions provided, Rust already computes on-target coverage.
+            # No post-hoc recalculation needed.
+            if not bed_regions and bed_total > 0:
+                # Legacy path: no BED regions but BED total provided.
+                # Recalculate using WES denominator (kept for backwards compat).
                 bam_ref = _get_bam_ref_total(bam_path)
                 if bam_ref > 0 and result.get("mean_coverage"):
                     result["mean_coverage"] = round(
@@ -220,7 +283,7 @@ def compute_bam_stats(bam_path: str, bed_total: int = 0) -> dict[str, Any] | Non
         # Fall through to pysam on Rust failure
         print(f"  [BAM STATS] Rust failed for {bam_path}, falling back to pysam")
 
-    return _compute_bam_stats_pysam(bam_path, bed_total)
+    return _compute_bam_stats_pysam(bam_path, bed_total, bed_regions)
 
 
 def compute_sample_bam_stats(
@@ -229,6 +292,7 @@ def compute_sample_bam_stats(
     sample_id: str,
     set_number: int,
     bed_total: int = 0,
+    bed_regions: list[tuple[str, int, int]] | None = None,
 ) -> list[dict[str, Any]]:
     """Compute BAM statistics for a single sample (DNA + RNA modalities).
 
@@ -240,7 +304,7 @@ def compute_sample_bam_stats(
 
     for bam_type in ["DN", "DT", "RT"]:
         bam_path = _locate_bam_file(base_output_dir, dir_name, bam_type)
-        stats = compute_bam_stats(bam_path, bed_total) if bam_path else None
+        stats = compute_bam_stats(bam_path, bed_total, bed_regions) if bam_path else None
 
         row = {
             "sample_id": sample_id,
@@ -267,7 +331,8 @@ def compute_sample_bam_stats(
     return results
 
 
-def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8, bed_total: int = 0) -> pl.DataFrame:
+def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8, bed_total: int = 0,
+                         bed_regions: list[tuple[str, int, int]] | None = None) -> pl.DataFrame:
     """Compute BAM statistics for all samples in the manifest.
 
     Args:
@@ -278,6 +343,9 @@ def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8, bed_t
         bed_total: Total length of BED regions for WES coverage denominator.
                    When > 0, passed through to compute_bam_stats for coverage
                    recalculation. Default 0 = whole-genome.
+        bed_regions: Merged BED regions [(chrom, start, end), ...] for on-target
+                     coverage calculation. Passed to Rust/pysam for accurate WES
+                     coverage. Default None = whole-genome.
 
     Returns:
         polars DataFrame with one row per sample per modality.
@@ -297,6 +365,7 @@ def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8, bed_t
                     sample_id=row["sample_id"],
                     set_number=row["set_number"],
                     bed_total=bed_total,
+                    bed_regions=bed_regions,
                 )
                 futures[future] = row["sample_id"]
 
@@ -320,6 +389,7 @@ def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8, bed_t
                 sample_id=row["sample_id"],
                 set_number=row["set_number"],
                 bed_total=bed_total,
+                bed_regions=bed_regions,
             )
             all_rows.extend(sample_results)
             ok_flags = []

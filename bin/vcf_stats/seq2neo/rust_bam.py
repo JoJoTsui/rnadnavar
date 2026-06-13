@@ -9,8 +9,10 @@ import polars as pl
 try:
     import stats_core
     HAS_RUST_BAM = hasattr(stats_core, 'pileup_variants')
+    HAS_RUST_MULTI = hasattr(stats_core, 'pileup_variants_multi')
 except ImportError:
     HAS_RUST_BAM = False
+    HAS_RUST_MULTI = False
 
 try:
     import pysam
@@ -56,6 +58,91 @@ def pileup_variants(bam_path: str, positions: list[tuple[str, int, str, str]]) -
         return _pileup_pysam(bam_path, positions)
 
     return None
+
+
+def pileup_variants_multi(
+    bam_paths: dict[str, str],
+    positions: list[tuple[str, int, str, str]],
+    bed_regions: list[tuple[str, int, int]] | None = None,
+) -> dict[str, pl.DataFrame]:
+    """Perform combined BAM pileup across multiple BAMs in a single FFI call.
+
+    Opens all BAMs once, shares position grouping and window iteration,
+    and uses binary search to match reads to positions within each region.
+
+    Args:
+        bam_paths: Dict mapping BAM label (e.g., "DN", "DT", "RT") to BAM path.
+                   Only BAMs with existing files are included.
+        positions: List of (chrom, pos, ref_base, alt_base) tuples.
+        bed_regions: Optional merged BED regions [(chrom, start, end), ...] for
+                     region-guided queries (WES mode).
+
+    Returns:
+        Dict mapping BAM label to DataFrame with pileup columns (CHROM, POS,
+        REF, ALT, DP, REF_DP, ALT_DP, F1R2_ref, F2R1_ref, F1R2_alt, F2R1_alt,
+        mean_BQ, mean_MQ). Returns empty dict if no BAMs or Rust unavailable.
+    """
+    if not bam_paths or not positions:
+        return {}
+
+    if not HAS_RUST_MULTI:
+        # Fall back to per-BAM single calls
+        result = {}
+        for label, path in bam_paths.items():
+            df = pileup_variants(path, positions)
+            if df is not None:
+                result[label] = df
+        return result
+
+    try:
+        chroms = [p[0] for p in positions]
+        poss = [p[1] for p in positions]
+        refs = [p[2] for p in positions]
+        alts = [p[3] for p in positions]
+
+        bam_labels = list(bam_paths.keys())
+        bam_file_paths = [bam_paths[l] for l in bam_labels]
+
+        # BED regions for region-guided queries
+        if bed_regions:
+            bed_chroms = [r[0] for r in bed_regions]
+            bed_starts = [r[1] for r in bed_regions]
+            bed_ends = [r[2] for r in bed_regions]
+        else:
+            bed_chroms, bed_starts, bed_ends = [], [], []
+
+        multi_result = stats_core.pileup_variants_multi(
+            bam_file_paths, bam_labels,
+            chroms, poss, refs, alts,
+            bed_chroms, bed_starts, bed_ends,
+        )
+
+        if not multi_result:
+            return {}
+
+        # Convert each BAM's result dict to a DataFrame
+        output = {}
+        for label in bam_labels:
+            if label in multi_result:
+                result_dict = multi_result[label]
+                # Add coordinate columns
+                result_dict["CHROM"] = chroms
+                result_dict["POS"] = poss
+                result_dict["REF"] = refs
+                result_dict["ALT"] = alts
+                output[label] = pl.DataFrame(result_dict)
+
+        return output
+
+    except Exception as e:
+        print(f"  [WARNING] Rust multi-BAM pileup failed: {e}")
+        # Fall back to per-BAM calls
+        result = {}
+        for label, path in bam_paths.items():
+            df = pileup_variants(path, positions)
+            if df is not None:
+                result[label] = df
+        return result
 
 
 def _pileup_pysam(bam_path: str, positions: list[tuple[str, int, str, str]]) -> pl.DataFrame:
