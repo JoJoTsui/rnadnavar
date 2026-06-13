@@ -180,7 +180,8 @@ def _streaming_join_one(df: pl.DataFrame, col_data: dict, caller_name: str) -> p
 
 
 def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True,
-                         large_sem=None, no_pileup: bool = False) -> dict:
+                         large_sem=None, no_pileup: bool = False,
+                         pileup_mode: str = "all") -> dict:
     """Process one sample: parse rescue VCF + all caller VCFs + compute stats.
 
     Returns a dict with 'sample_id', 'df', and 'stats'.
@@ -189,10 +190,9 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         row: Manifest row dict.
         max_workers: Threads for within-sample caller parsing.
         use_rust: Use Rust VCF parser.
-        large_sem: Semaphore for large-sample exclusive access (threading.Semaphore
-                   or multiprocessing.Manager.Semaphore proxy). If None, large
-                   samples are not throttled.
+        large_sem: Semaphore for large-sample exclusive access.
         no_pileup: Skip variant-wise BAM pileup (enabled by default).
+        pileup_mode: "all" (default) or "filtered" (exclude NoConsensus).
     """
     sample_id = row["sample_id"]
     rescue_path = row["rescue_vcf_path"]
@@ -287,24 +287,38 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
             from .bam_stats import _locate_bam_file
             from .rust_bam import pileup_variants as do_pileup
 
-            positions = [(row[0], row[1], row[2], row[3])
-                         for row in df.select(["CHROM", "POS", "REF", "ALT"]).iter_rows()]
-            base = os.path.join(base_dir, dir_name)
+            # Build positions list, optionally excluding NoConsensus variants
+            cols_4 = ["CHROM", "POS", "REF", "ALT"]
+            if pileup_mode == "filtered" and "FILTER" in df.columns:
+                mask = df["FILTER"] != "NoConsensus"
+                positions = [
+                    (row[0], row[1], row[2], row[3])
+                    for row, keep in zip(df.select(cols_4).iter_rows(), mask.to_list())
+                    if keep
+                ]
+            else:
+                positions = [(row[0], row[1], row[2], row[3])
+                             for row in df.select(cols_4).iter_rows()]
+
+            n_pos = len(positions)
+            print(f"  [{sample_id}] BAM pileup: {n_pos} positions ({pileup_mode} mode)")
 
             for bt in ["DN", "DT", "RT"]:
                 bam_path = _locate_bam_file(base_dir, dir_name, bt)
                 if not bam_path:
                     continue
                 try:
+                    print(f"  [{sample_id}] BAM pileup {bt}: starting...")
                     pileup_df = do_pileup(bam_path, positions)
                     if pileup_df is not None and not pileup_df.is_empty():
                         # Rename pileup columns with BAM type prefix
+                        join_key = ["CHROM", "POS", "REF", "ALT"]
                         rename = {c: f"BAM_{bt}_{c}" for c in pileup_df.columns
-                                  if c not in ("CHROM", "POS")}
+                                  if c not in join_key}
                         pileup_df = pileup_df.rename(rename)
                         df = df.join(
-                            pileup_df.select(["CHROM", "POS"] + list(rename.values())),
-                            on=["CHROM", "POS"], how="left",
+                            pileup_df.select(join_key + list(rename.values())),
+                            on=join_key, how="left",
                         )
                         del pileup_df
                         _mem(f"after pileup {bt}")
@@ -335,17 +349,18 @@ def _process_worker(args: tuple) -> dict:
     defined at module level so the 'fork' context can call it.
 
     Args:
-        args: (row_dict, max_workers, use_rust, variant_dir_str, no_pileup)
+        args: (row_dict, max_workers, use_rust, variant_dir_str, no_pileup, pileup_mode)
 
     Returns:
         {"sample_id": str, "stats": dict} — no DataFrame (too large to pickle).
         On error: {"sample_id": str, "error": str}
     """
-    row, max_workers, use_rust, variant_dir_str, no_pileup = args
+    row, max_workers, use_rust, variant_dir_str, no_pileup, pileup_mode = args
 
     try:
         result = process_single_sample(row, max_workers=max_workers, use_rust=use_rust,
-                                       large_sem=None, no_pileup=no_pileup)
+                                       large_sem=None, no_pileup=no_pileup,
+                                       pileup_mode=pileup_mode)
     except Exception:
         import traceback
         return {"sample_id": row["sample_id"], "error": traceback.format_exc()}
@@ -517,7 +532,7 @@ def main():
         ctx = mp.get_context("spawn")
 
         worker_args = [
-            (row, args.threads, use_rust, variant_dir_str, args.no_pileup)
+            (row, args.threads, use_rust, variant_dir_str, args.no_pileup, args.pileup_mode)
             for row in rows
         ]
 
@@ -553,6 +568,7 @@ def main():
             result = process_single_sample(
                 row, max_workers=max_workers, use_rust=use_rust,
                 large_sem=_THREAD_LARGE_SEM, no_pileup=args.no_pileup,
+                pileup_mode=args.pileup_mode,
             )
             if result["df"] is not None:
                 sid = result["sample_id"]
@@ -592,6 +608,7 @@ def main():
                 result = process_single_sample(
                     row, max_workers=args.threads, use_rust=use_rust,
                     large_sem=_THREAD_LARGE_SEM, no_pileup=args.no_pileup,
+                    pileup_mode=args.pileup_mode,
                 )
                 if result["df"] is not None:
                     parquet_path = str(variant_dir / f"{sid}_variants.parquet")
