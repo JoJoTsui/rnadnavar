@@ -54,10 +54,17 @@ pub fn pileup_variants(
     let mut reader = bam::io::Reader::new(file);
     let header = reader.read_header().map_err(|e| format!("Header error: {}", e))?;
 
+    // ── Build chromosome length map from BAM header ──────────────────────
+    let mut chrom_lengths: HashMap<String, i64> = HashMap::new();
+    for (name, rs) in header.reference_sequences() {
+        if let Ok(name_str) = std::str::from_utf8(name) {
+            chrom_lengths.insert(name_str.to_string(), usize::from(rs.length()) as i64);
+        }
+    }
+
     let bai_path = format!("{}.bai", bam_path.display());
     let bai_path = Path::new(&bai_path);
     if !bai_path.exists() {
-        // No BAI index — fall back to empty results
         return Ok(vec![PileupResult::default(); n]);
     }
     let index = bai::fs::read(bai_path)
@@ -66,12 +73,13 @@ pub fn pileup_variants(
     let mut results: Vec<PileupResult> = vec![PileupResult::default(); n];
 
     // ── Group positions by (chromosome, window_start) ────────────────────
-    // Key: (chrom, window_start), Value: Vec<(pos, orig_idx, ref_byte, alt_byte)>
     let mut windows: HashMap<(String, i64), Vec<(i64, usize, u8, u8)>> = HashMap::new();
 
     for i in 0..n {
         let pos = positions[i];
         if pos <= 0 { continue; }
+        // Skip positions on chromosomes not in the BAM header
+        if !chrom_lengths.contains_key(&chroms[i]) { continue; }
         let win_start = (pos - 1) / WINDOW_SIZE * WINDOW_SIZE + 1;
         let ref_byte = ref_bases.get(i)
             .and_then(|s| s.as_bytes().first()).copied().unwrap_or(0);
@@ -86,7 +94,11 @@ pub fn pileup_variants(
 
     // ── Process each window with a single BAI query ──────────────────────
     for ((chrom, win_start), win_positions) in &windows {
-        let win_end = win_start + WINDOW_SIZE - 1;
+        // Clamp window end to chromosome length to avoid BGZF block errors
+        let chrom_len = chrom_lengths.get(chrom).copied().unwrap_or(0);
+        if chrom_len == 0 { continue; }
+        let win_end = (*win_start + WINDOW_SIZE - 1).min(chrom_len);
+        if *win_start > chrom_len { continue; }
 
         // Build pos_map: pos → Vec<(orig_idx, ref_byte, alt_byte)>
         let mut pos_map: HashMap<i64, Vec<(usize, u8, u8)>> = HashMap::new();
