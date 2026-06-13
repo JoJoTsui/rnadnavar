@@ -1,138 +1,232 @@
 ## Context
 
-BAM pileup validates variant calls against raw alignment data. For each variant position, it computes total depth, REF vs ALT allele support, strand bias (F1R2/F2R1), base quality, and mapping quality from the alignment BAM files.
+BAM pileup validates variant calls against alignment data. BAM stats computes whole-genome quality metrics. Both operate on the same BAM files but share no infrastructure. The `--bed` flag defines WES target regions but is only used for coverage denominator post-hoc recalculation — the actual region boundaries are discarded. This design unifies BED processing and implements a Rust combined multi-BAM pileup function.
 
-The current implementation uses noodles-bam in Rust (with pysam fallback), correctly computing all metrics, but with a per-position BAI query loop that creates unacceptable performance and a 2-column join that causes data misattribution at multiallelic sites.
+## Goals / Non-Goals
 
-## Design
+**Goals:** Shared BED processing, accurate on-target coverage in BAM stats, Rust combined multi-BAM pileup, binary search inner loop, parallel BAM stats + variant processing.
 
-### Part 1 — Windowed BAM Queries (pileup.rs)
+**Non-Goals:** Changing BAM stats metrics beyond coverage, modifying the Nextflow pipeline, changing rescue VCF semantics.
 
-**Current algorithm:**
-```
-for each of N positions:
-    region = Region(chrom, pos..=pos)       // single-base region
-    query  = reader.query(header, index, region)  // BAI lookup + BAM seek
-    for each read in query:
-        classify base (REF/ALT), count DP, strand, BQ, MQ
-```
+---
 
-**New algorithm:**
-```
-1. Group positions by (chromosome, window)
-   — Sort positions by (chrom, pos)
-   — Divide into windows of ~1,000,000 bp per chromosome
-   — Build HashMap<(chrom, window_start), Vec<(pos, orig_idx, ref_byte, alt_byte)>>
+## Part 1 — Shared BED Processing
 
-2. For each window:
-   region = Region(chrom, window_start..=window_end)  // 1Mb range
-   query  = reader.query(header, index, region)        // ONE query per window
-   
-   // Build position lookup within this window
-   pos_map: HashMap<i64, Vec<(usize, u8, u8)>>  // pos → [(orig_idx, ref_byte, alt_byte)]
+### Problem
 
-   for each read in query:
-       if read is unmapped or duplicate: skip
-       for each position that this read overlaps:
-           if position is in pos_map:
-               for each (orig_idx, ref_byte, alt_byte) for this position:
-                   if base == ref_byte: ref_dp += 1
-                   elif base == alt_byte: alt_dp += 1
-                   update strand counts, BQ, MQ
+`sum_bed_regions()` computes total BED length but discards the merged region coordinates. Pileup would need to re-read and re-merge the same BED file.
 
-3. Return results in original input order (via orig_idx)
-```
-
-**Performance estimate:**
-- 24 chromosomes × ~3 windows each = ~72 windows per BAM type
-- ~72 queries × 3 BAM types = ~216 queries total
-- Each query: BAI lookup + sequential BAM read within window
-- Estimated: 30-60 seconds per BAM type, ~2-3 minutes total
-
-**Key implementation detail:** A single read can overlap multiple target positions. For a 150bp read, it could overlap up to 150 positions. The algorithm must check each position the read covers against `pos_map`. This is O(read_length × positions_per_window) per read, but read_length ≤ 150 and positions_per_window is bounded.
-
-Alternative approach if per-read position check is slow: use a sliding window over positions. Since positions are sorted and reads are sorted by alignment start, we can advance through both lists in parallel.
-
-### Part 2 — 4-Column Join Fix
-
-**rust_bam.py change:**
-```python
-# Before:
-result["CHROM"] = chroms
-result["POS"] = poss
-return pl.DataFrame(result)
-
-# After:
-result["CHROM"] = chroms
-result["POS"] = poss
-result["REF"] = refs   # ADDED
-result["ALT"] = alts   # ADDED
-return pl.DataFrame(result)
-```
-
-**cli.py change:**
-```python
-# Before:
-df = df.join(
-    pileup_df.select(["CHROM", "POS"] + list(rename.values())),
-    on=["CHROM", "POS"], how="left",
-)
-
-# After:
-df = df.join(
-    pileup_df.select(["CHROM", "POS", "REF", "ALT"] + list(rename.values())),
-    on=["CHROM", "POS", "REF", "ALT"], how="left",
-)
-```
-
-This ensures pileup data for (chr1, 100, A, G) joins only to the row with (chr1, 100, A, G), not to (chr1, 100, A, T) at multiallelic sites.
-
-### Part 3 — Wire --pileup-mode Flag
+### Design
 
 ```python
-# In process_single_sample(), after building positions:
-if not no_pileup:
-    # Filter positions by pileup mode
-    if pileup_mode == "filtered" and "FILTER" in df.columns:
-        mask = df["FILTER"] != "NoConsensus"
-        positions = [
-            (row[0], row[1], row[2], row[3])
-            for row, keep in zip(
-                df.select(["CHROM", "POS", "REF", "ALT"]).iter_rows(),
-                mask.to_list()
-            ) if keep
-        ]
-    else:
-        positions = [(row[0], row[1], row[2], row[3])
-                     for row in df.select(["CHROM", "POS", "REF", "ALT"]).iter_rows()]
-    
-    n_pos = len(positions)
-    print(f"  [{sample_id}] BAM pileup: {n_pos} positions ({pileup_mode} mode)")
+def read_and_merge_bed(bed_path: str, gap: int = 100_000) -> tuple[int, list[tuple[str, int, int]]]:
+    """Read BED file, merge adjacent intervals, return total + merged regions.
 
-    for bt in ["DN", "DT", "RT"]:
-        ...
-        print(f"  [{sample_id}] BAM pileup {bt}: starting ({n_pos} positions)...")
-        pileup_df = do_pileup(bam_path, positions)
-        _mem(f"after pileup {bt}")
+    Merging within 'gap' bp reduces ~50K raw exons to ~300 contiguous regions.
+    These regions feed both BAM stats (on-target coverage) and BAM pileup
+    (region-guided queries).
+    """
+    intervals = []
+    with open(bed_path) as f:
+        for line in f:
+            parts = line.strip().split('\t')
+            if len(parts) < 3: continue
+            try:
+                intervals.append((parts[0], int(parts[1]), int(parts[2])))
+            except ValueError: continue
+
+    intervals.sort(key=lambda x: (x[0], x[1]))
+    merged = []
+    for chrom, start, end in intervals:
+        if (merged and merged[-1][0] == chrom
+            and start - merged[-1][2] <= gap):
+            merged[-1] = (chrom, merged[-1][1], max(merged[-1][2], end))
+        else:
+            merged.append((chrom, start, end))
+
+    bed_total = sum(end - start for _, start, end in merged)
+    return bed_total, merged
 ```
 
-### Part 4 — Tests
+Calling code in cli.py:
+```python
+bed_total = 0
+bed_regions = None
+if args.bed:
+    bed_total, bed_regions = read_and_merge_bed(args.bed)
+    print(f"BED: {bed_total:,} bp, {len(bed_regions)} merged regions")
+```
 
-**New tests in `TestRustPileup`:**
+---
 
-1. `test_pileup_output_includes_ref_alt` — Result dict has "REF" and "ALT" keys
-2. `test_pileup_multiallelic_join_correct` — 4-column DataFrame join matches correct alleles
-3. `test_pileup_windowed_matches_per_position` — Windowed query produces identical results to per-position for 100 positions
-4. `test_pileup_10k_positions_completes_quickly` — 10,000 positions complete in < 60 seconds
+## Part 2 — BAM Stats On-Target Coverage
 
-**New test class `TestPileupIntegration`:**
+### Problem
 
-5. `test_pileup_mode_filtered_excludes_noconsensus` — Filtered mode positions < all mode positions
-6. `test_process_single_sample_writes_pileup_columns` — Parquet output has BAM_DN_DP etc.
-7. `test_pileup_join_uses_4_columns` — Join key is (CHROM, POS, REF, ALT)
+Current Rust `whole_genome_stats()` uses `total_query_length` (all mapped reads) as coverage numerator. Post-hoc recalculation multiplies by `bam_ref/bed_total` but numerator still includes off-target reads.
+
+### Design
+
+Add `bed_regions` parameter to `whole_genome_stats()`:
+
+```rust
+pub fn whole_genome_stats(
+    bam_path: &Path,
+    max_reads: u64,
+    bed_regions: Option<&Vec<(String, i64, i64)>>,
+) -> Result<BamStats, Box<dyn std::error::Error>> {
+    let mut on_target_bases: u64 = 0;
+
+    // Build per-chromosome BED interval list for efficient lookup
+    let bed_index = build_bed_index(bed_regions);
+
+    for record in reader.records() {
+        total += 1;
+        if !flags.is_unmapped() {
+            mapped += 1;
+            total_query_length += seq_len;
+
+            // On-target check: only for coverage denominator
+            if let Some(ref bed) = bed_index {
+                if read_overlaps_bed(&record, bed) {
+                    on_target_bases += seq_len;
+                }
+            }
+            // ... other metrics unchanged
+        }
+    }
+
+    let denominator = bed_regions.as_ref()
+        .map(|regions| sum_region_lengths(regions))
+        .unwrap_or(ref_lengths);
+
+    let coverage_bases = if bed_regions.is_some() { on_target_bases } else { total_query_length };
+    mean_coverage = coverage_bases as f64 / denominator as f64;
+}
+```
+
+Performance: the on-target check uses a two-pointer walk since BAM records and BED regions are both sorted by coordinate. O(reads + regions) per chromosome.
+
+---
+
+## Part 3 — Rust Combined Multi-BAM Pileup
+
+### Function Signature
+
+```rust
+pub fn pileup_variants_multi(
+    bam_paths: &[String],
+    bam_labels: &[String],
+    chroms: &[String],
+    positions: &[i64],
+    ref_bases: &[String],
+    alt_bases: &[String],
+    bed_regions: Option<&[(String, i64, i64)]>,
+) -> Result<Vec<(String, Vec<PileupResult>)>, String>
+```
+
+### Algorithm
+
+```
+Phase 1: Region grouping (shared across all BAMs)
+  1. Determine query regions:
+     - BED provided → merged BED intervals
+     - No BED → 1Mb sliding windows (current)
+  2. Group positions into regions:
+     region_map: HashMap<(chrom, start), Vec<(pos, orig_idx, ref_byte, alt_byte)>>
+
+Phase 2: Per-region processing
+  3. Open all BAMs + BAI indices
+  4. Build chrom_lengths from first BAM header
+  5. FOR each region:
+     a. Build sorted position array for binary search
+     b. FOR each BAM:
+        - Clamp region to chromosome length
+        - Create Region(chrom, start..=end)
+        - reader.query(&header, &index, &region)
+        - FOR each read:
+          * Skip unmapped/duplicate
+          * Binary search positions overlapping [align_start, align_end)
+          * FOR each overlapping position:
+            → Update PileupResult accumulators
+     c. Reads from all BAMs dropped after region
+
+Phase 3: Finalize
+  6. Divide BQ/MQ sums by counts → means
+  7. Return Vec<(bam_label, Vec<PileupResult>)>
+```
+
+### Binary Search Inner Loop
+
+```rust
+// Per window: build sorted position array (once)
+let sorted_pos: Vec<i64> = positions.iter().copied().sorted().collect();
+
+// Per read: binary search for overlap range
+for each read:
+    let align_end = align_start + seq_len as i64;
+    let start_idx = sorted_pos.binary_search_by(|p| p.cmp(&align_start))
+        .unwrap_or_else(|i| i);
+
+    for pos in &sorted_pos[start_idx..] {
+        if *pos >= align_end { break; }  // past read end, stop
+        // Process this position
+        for (orig_idx, ref_byte, alt_byte) in pos_map[pos] {
+            // update PileupResult
+        }
+    }
+```
+
+Complexity: O(n_reads × log(n_positions) + n_overlaps) per window.
+
+### BED Region Mode
+
+When `bed_regions` is provided:
+- Regions are the merged BED intervals (not 1Mb windows)
+- ~300 queries for WES (vs ~2,765 for genome-wide windows)
+- Skip regions with no target positions
+- Clamp regions to chromosome length (existing safety)
+
+---
+
+## Part 4 — Parallelize BAM Stats and Variant Processing
+
+BAM stats (manifest-only) is independent of variant processing (needs positions from VCF). They can run concurrently:
+
+```python
+# In main(), launch BAM stats in background before variant processing
+if not args.no_bam:
+    with ThreadPoolExecutor(max_workers=1) as bam_bg:
+        bam_future = bam_bg.submit(
+            compute_all_bam_stats, rows, max_workers=args.bam_workers,
+            bed_total=bed_total
+        )
+
+# ... variant processing runs in parallel ...
+
+# Collect BAM stats result
+if not args.no_bam:
+    bam_stats_df = bam_future.result()
+```
+
+This hides BAM stats latency (~9 min for large samples) behind variant processing (~2-3 min), making total wall-clock time max(variant, BAM stats) instead of sum.
+
+---
+
+## Part 5 — Tests
+
+### New tests in TestRustPileup:
+- `test_pileup_multi_bam_parity` — combined function matches individual calls
+- `test_bed_merge_intervals` — merge within 100Kb gap produces correct regions
+- `test_pileup_bed_guided_region_count` — BED mode creates fewer regions than 1Mb mode
+- `test_pileup_binary_search_matches_hashmap` — binary search produces identical results
+
+### New tests in TestBamStats:
+- `test_bam_stats_on_target_coverage` — BED-filtered coverage lower than total coverage
+- `test_read_and_merge_bed_total` — merged total matches input intervals
 
 ## Risks
 
-- **Windowed query memory**: A 1Mb window at 100× coverage contains ~30K reads. With decompressed records, memory is < 100 MB per window — acceptable.
-- **Rust rewrite complexity**: The windowed algorithm is more complex than per-position queries. Fall back to per-position if windowed mode fails.
-- **BAI index requirement**: Windowed queries still need BAI index. If missing, fall back to per-position with pysam.
+- **Multi-BAM memory**: 3 result sets = ~320 MB peak. Acceptable for 200 GB machines.
+- **BED interval tree**: Per-chromosome interval lookup needs correct two-pointer implementation. Fall back to full scan if intervals exceed 10K.
+- **Binary search correctness**: Must handle edge cases (position at exact alignment start/end). Validated by parity test against HashMap approach.
