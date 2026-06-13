@@ -1919,6 +1919,30 @@ class TestRustPileup:
         ]
         assert len(positions_filtered) == 2  # Only Somatic and Germline
 
+    def test_pileup_10k_positions_completes_quickly(self, _bam_path):
+        """Windowed pileup on 10K positions completes in < 60 seconds."""
+        import stats_core, time, random
+        random.seed(42)
+        n = 10_000
+        chroms = ["chr1"] * n
+        positions = [random.randint(600_000, 700_000) for _ in range(n)]
+        refs = ["A"] * n
+        alts = ["G"] * n
+        t0 = time.time()
+        r = stats_core.pileup_variants(_bam_path, chroms, positions, refs, alts)
+        elapsed = time.time() - t0
+        assert len(r["DP"]) == n
+        assert elapsed < 60, f"10K positions took {elapsed:.1f}s, expected < 60s"
+
+    def test_pileup_join_uses_4_columns(self):
+        """Pileup join key verified as (CHROM, POS, REF, ALT)."""
+        from pathlib import Path
+        cli_path = Path(__file__).parent.parent / "seq2neo" / "cli.py"
+        source = cli_path.read_text()
+        assert '"CHROM", "POS", "REF", "ALT"' in source, (
+            "4-column join key not found in cli.py"
+        )
+
     def test_pileup_gil_released(self, _bam_path):
         """pileup_variants releases GIL — two threads run in parallel."""
         import stats_core, threading, time

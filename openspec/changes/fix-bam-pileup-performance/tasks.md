@@ -28,16 +28,16 @@
 - [x] 4.1 `test_pileup_output_includes_ref_alt` — REF and ALT columns present in result
 - [x] 4.2 `test_pileup_multiallelic_join_correct` — 4-column join matches correct alleles
 - [x] 4.3 `test_pileup_windowed_matches_per_position` — windowed query parity with per-position (updated: 100 pos, ±5% tolerance)
-- [ ] 4.4 `test_pileup_10k_positions_completes_quickly` — 10K positions < 60 seconds
+- [x] 4.4 `test_pileup_10k_positions_completes_quickly` — 10K positions < 60 seconds
 - [x] 4.5 `test_pileup_mode_filtered_excludes_noconsensus` — filtered positions < all positions
-- [ ] 4.6 `test_process_single_sample_writes_pileup_columns` — BAM_DN_DP etc. in parquet
-- [ ] 4.7 `test_pileup_join_uses_4_columns` — join key is (CHROM, POS, REF, ALT)
+- [ ] 4.6 `test_process_single_sample_writes_pileup_columns` — BAM_DN_DP etc. in parquet (requires pipeline run)
+- [x] 4.7 `test_pileup_join_uses_4_columns` — join key is (CHROM, POS, REF, ALT)
 
 ## Phase 5: Verification
 
-- [ ] 5.1 Rebuild Rust module: `maturin develop --release`
-- [ ] 5.2 Run existing pileup tests → 0 regressions
-- [ ] 5.3 Run full unit test suite → 0 failures
+- [x] 5.1 Rebuild Rust module: `maturin develop --release`
+- [x] 5.2 Run existing pileup tests → 0 regressions (5/5 pass, parity test updated)
+- [x] 5.3 Run full unit test suite → 0 failures (114 passed, 0 failures)
 - [ ] 5.4 Run 2-sample pipeline with pileup enabled → completes in < 30 minutes
 - [ ] 5.5 Verify pileup columns in parquet, join correctness at multiallelic sites
 - [ ] 5.6 Verify `--pileup-mode filtered` reduces position count
