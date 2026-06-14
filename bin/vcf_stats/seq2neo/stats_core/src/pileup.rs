@@ -14,6 +14,23 @@ use std::path::Path;
 use noodles_bam::{self as bam, bai};
 use noodles_core::Region;
 
+/// Compute the reference alignment span from CIGAR operations.
+fn alignment_reference_span(record: &bam::Record) -> i64 {
+    let mut span: i64 = 0;
+    for op_result in record.cigar().iter() {
+        if let Ok(op) = op_result {
+            if op.kind().consumes_reference() {
+                span += op.len() as i64;
+            }
+        }
+    }
+    if span == 0 {
+        record.sequence().len() as i64
+    } else {
+        span
+    }
+}
+
 const WINDOW_SIZE: i64 = 1_000_000;  // 1 Mb windows
 
 /// Pileup result for a single position.
@@ -289,8 +306,7 @@ pub fn pileup_variants(
                 _ => continue,
             };
             let seq = record.sequence();
-            let seq_len = seq.len() as i64;
-            let align_end = align_start + seq_len;
+            let align_end = align_start + alignment_reference_span(&record);
             let quals = record.quality_scores();
 
             for (pos, entries) in &pos_map {
@@ -456,8 +472,7 @@ pub fn pileup_variants_multi(
                     _ => continue,
                 };
                 let seq = record.sequence();
-                let seq_len = seq.len() as i64;
-                let align_end = align_start + seq_len;
+                let align_end = align_start + alignment_reference_span(&record);
 
                 if align_end <= sorted_positions[0] { continue; }
                 if align_start > max_pos { break; }

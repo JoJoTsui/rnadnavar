@@ -8,6 +8,28 @@ use std::path::Path;
 
 use noodles_bam as bam;
 
+/// Compute the reference alignment span from CIGAR operations.
+///
+/// Sums lengths of reference-consuming ops (M, D, N, =, X).
+/// This is the correct alignment_end offset — record.sequence().len()
+/// includes insertions and excludes deletions/skipped regions.
+fn alignment_reference_span(record: &bam::Record) -> i64 {
+    let mut span: i64 = 0;
+    for op_result in record.cigar().iter() {
+        if let Ok(op) = op_result {
+            if op.kind().consumes_reference() {
+                span += op.len() as i64;
+            }
+        }
+    }
+    // Fallback to sequence length if CIGAR is empty (unmapped reads, etc.)
+    if span == 0 {
+        record.sequence().len() as i64
+    } else {
+        span
+    }
+}
+
 /// Whole-genome BAM statistics.
 #[derive(Debug, Clone, Default)]
 pub struct BamStats {
@@ -117,7 +139,7 @@ fn whole_genome_stats_impl(
                             Some(Ok(p)) => usize::from(p) as i64,
                             _ => 0,
                         };
-                        let align_end = align_start + seq_len as i64;
+                        let align_end = align_start + alignment_reference_span(&record);
                         // Two-pointer walk: advance cursor past intervals before this read
                         let cursor = bed_cursors.entry(chrom_name.clone()).or_insert(0);
                         while *cursor < intervals.len() && intervals[*cursor].1 <= align_start {
