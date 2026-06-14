@@ -500,15 +500,17 @@ def main():
     bam_stats_df = pl.DataFrame()
 
     # ── Read and merge BED regions early (shared between pileup and BAM stats) ──
-    bed_total = 0
-    bed_regions = None
+    raw_bed_total = 0
+    raw_bed_regions = None
+    bed_regions = None   # merged regions for pileup (gap=500Kb)
     if args.bed:
         if not os.path.isfile(args.bed):
             print(f"WARNING: BED file not found: {args.bed}, using whole-genome mode")
         else:
-            bed_total, bed_regions = read_and_merge_bed(args.bed, gap=500_000)
-            print(f"BED coverage denominator: {bed_total:,} bp ({bed_total / 1e6:.1f} Mbp, "
-                  f"{len(bed_regions)} merged regions with 500Kb gap)")
+            raw_bed_total, raw_bed_regions, bed_regions = read_and_merge_bed(args.bed, gap=500_000)
+            print(f"BED raw total: {raw_bed_total:,} bp ({raw_bed_total / 1e6:.1f} Mbp), "
+                  f"{len(raw_bed_regions)} raw intervals, "
+                  f"{len(bed_regions)} merged regions (500Kb gap)")
 
     # ── Per-sample parquet directory (streaming, not memory-accumulated) ──
     variant_dir = output_dir / "variant_details"
@@ -528,8 +530,8 @@ def main():
         bam_future = bam_bg_executor.submit(
             compute_all_bam_stats, rows,
             max_workers=args.bam_workers,
-            bed_total=bed_total,
-            bed_regions=bed_regions,
+            bed_total=raw_bed_total,
+            bed_regions=raw_bed_regions,
         )
         print("BAM statistics running in background...")
 
@@ -710,7 +712,7 @@ def main():
         else:
             print("Computing per-sample BAM statistics...")
             bam_stats_df = compute_all_bam_stats(rows, max_workers=args.bam_workers,
-                                                  bed_total=bed_total, bed_regions=bed_regions)
+                                                  bed_total=raw_bed_total, bed_regions=raw_bed_regions)
         if not bam_stats_df.is_empty():
             write_tsv(bam_stats_df, str(output_dir / "bam_stats.tsv"))
             print(f"BAM stats: {output_dir / 'bam_stats.tsv'}")

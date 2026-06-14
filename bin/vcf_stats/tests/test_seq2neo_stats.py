@@ -1410,10 +1410,11 @@ class TestBamStats:
             f.write(content)
             bed_path = f.name
         try:
-            bed_total, bed_regions = read_and_merge_bed(bed_path, gap=100_000)
+            raw_bed_total, raw_bed_regions, merged_bed_regions = read_and_merge_bed(bed_path, gap=100_000)
             # chr1: 1000bp, chr2: 1000bp, chr3: 2000bp = 4000bp total
-            assert bed_total == 4000, f"Expected 4000, got {bed_total}"
-            assert len(bed_regions) == 3
+            assert raw_bed_total == 4000, f"Expected 4000, got {raw_bed_total}"
+            assert len(raw_bed_regions) == 3
+            assert len(merged_bed_regions) == 3  # no merging across chromosomes
         finally:
             os.unlink(bed_path)
 
@@ -1430,16 +1431,17 @@ class TestBamStats:
             f.write(content)
             bed_path = f.name
         try:
-            bed_total, bed_regions = read_and_merge_bed(bed_path, gap=100_000)
-            assert len(bed_regions) == 2, (
-                f"Expected 2 merged regions, got {len(bed_regions)}: {bed_regions}"
+            raw_bed_total, raw_bed_regions, merged_bed_regions = read_and_merge_bed(bed_path, gap=100_000)
+            assert len(raw_bed_regions) == 3
+            assert len(merged_bed_regions) == 2, (
+                f"Expected 2 merged regions, got {len(merged_bed_regions)}: {merged_bed_regions}"
             )
             # chr1: merged [1000, 51000)
-            assert bed_regions[0] == ("chr1", 1000, 51000), f"Unexpected: {bed_regions[0]}"
+            assert merged_bed_regions[0] == ("chr1", 1000, 51000), f"Unexpected: {merged_bed_regions[0]}"
             # chr2: unchanged
-            assert bed_regions[1] == ("chr2", 3000, 4000)
-            # Total: (51000-1000) + (4000-3000) = 50000 + 1000 = 51000
-            assert bed_total == 51000, f"Expected 51000, got {bed_total}"
+            assert merged_bed_regions[1] == ("chr2", 3000, 4000)
+            # Raw total: 1000+1000+1000 = 3000, merged total: (51000-1000)+(4000-3000)=51000
+            assert raw_bed_total == 3000, f"Expected raw total 3000, got {raw_bed_total}"
         finally:
             os.unlink(bed_path)
 
@@ -1454,9 +1456,9 @@ class TestBamStats:
             f.write(content)
             bed_path = f.name
         try:
-            bed_total, bed_regions = read_and_merge_bed(bed_path, gap=100_000)
-            assert len(bed_regions) == 2, (
-                f"Expected 2 separate regions, got {len(bed_regions)}"
+            raw_bed_total, raw_bed_regions, merged_bed_regions = read_and_merge_bed(bed_path, gap=100_000)
+            assert len(merged_bed_regions) == 2, (
+                f"Expected 2 separate regions, got {len(merged_bed_regions)}"
             )
         finally:
             os.unlink(bed_path)
@@ -1473,14 +1475,15 @@ class TestBamStats:
             f.write(content)
             bed_path = f.name
         try:
-            bed_total, bed_regions = read_and_merge_bed(bed_path, gap=100_000)
-            assert bed_total == 200000  # 100Kb + 100Kb, not merged
-            assert len(bed_regions) == 2
+            raw_bed_total, raw_bed_regions, merged_bed_regions = read_and_merge_bed(bed_path, gap=100_000)
+            assert raw_bed_total == 200000  # 100Kb + 100Kb, not merged
+            assert len(raw_bed_regions) == 2
+            assert len(merged_bed_regions) == 2
             # On-target coverage is always ≤ total when using same reads:
             # on_target_bases counts bases within BED only,
             # total_query_length counts all mapped bases.
             # This is a structural invariant, not a runtime test.
-            assert bed_total > 0
+            assert raw_bed_total > 0
         finally:
             os.unlink(bed_path)
 

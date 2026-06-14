@@ -13,20 +13,26 @@ from typing import Any
 import polars as pl
 
 
-def read_and_merge_bed(bed_path: str, gap: int = 100_000) -> tuple[int, list[tuple[str, int, int]]]:
-    """Read BED file, merge adjacent intervals, return total + merged regions.
+def read_and_merge_bed(bed_path: str, gap: int = 100_000) -> tuple[int, list[tuple[str, int, int]], list[tuple[str, int, int]]]:
+    """Read BED file, merge adjacent intervals, return raw/merged totals + regions.
 
     Reads a BED file (0-based, 3+ column format: chrom, start, end, ...),
     sorts intervals by (chromosome, start), and merges intervals on the same
     chromosome when they are within `gap` bp of each other.
 
     Merging within gap reduces ~50K raw target intervals to ~300 contiguous
-    regions for WES — critical for efficient BAM pileup region-guided queries
-    and accurate on-target coverage calculation in BAM stats.
+    regions for WES — critical for efficient BAM pileup region-guided queries.
+
+    For BAM stats coverage, raw (unmerged) intervals MUST be used as the
+    on-target denominator. Using merged intervals inflates bed_total (e.g.,
+    170 Mbp → 2,780 Mbp with gap=500Kb), making on-target coverage
+    indistinguishable from whole-genome.
 
     Returns:
-        (bed_total, bed_regions) where bed_total is the sum of merged
-        interval lengths and bed_regions is the list of merged (chrom, start, end).
+        (raw_bed_total, raw_bed_regions, merged_bed_regions)
+        - raw_bed_total: sum of all unmerged interval lengths (coverage denominator)
+        - raw_bed_regions: list of (chrom, start, end) before merging (on-target counting)
+        - merged_bed_regions: list of (chrom, start, end) after merging (pileup queries)
     """
     intervals = []
     with open(bed_path) as f:
@@ -46,12 +52,15 @@ def read_and_merge_bed(bed_path: str, gap: int = 100_000) -> tuple[int, list[tup
                 continue
 
     if not intervals:
-        return 0, []
+        return 0, [], []
+
+    # Raw total: sum of all unmerged intervals (correct coverage denominator)
+    raw_total = sum(end - start for _, start, end in intervals)
 
     # Sort by chromosome then start position
     intervals.sort(key=lambda x: (x[0], x[1]))
 
-    # Merge adjacent intervals within gap
+    # Merge adjacent intervals within gap (for efficient pileup region queries)
     merged = []
     for chrom, start, end in intervals:
         if (merged and merged[-1][0] == chrom
@@ -60,8 +69,7 @@ def read_and_merge_bed(bed_path: str, gap: int = 100_000) -> tuple[int, list[tup
         else:
             merged.append((chrom, start, end))
 
-    bed_total = sum(end - start for _, start, end in merged)
-    return bed_total, merged
+    return raw_total, intervals, merged
 
 
 def _get_bam_ref_total(bam_path: str) -> int:
