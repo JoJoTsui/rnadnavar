@@ -1,24 +1,35 @@
 ## Why
 
-The visualizer module (`visualizer.py`) has 17 crash bugs from calling `.height`, `.iter_rows()`, and subscript access on `pl.LazyFrame` objects — methods that only exist on eager `DataFrame`. These bugs were masked while the pipeline OOM-killed before reaching visualizations. Now that the cross-sample aggregation is fixed, every pipeline run will crash at the first chart (`plot_cosmic_gnomad_annotation` line 206: `df.height` on a LazyFrame).
+The visualizer module has issues discovered during the first successful full-pipeline run (65 samples, June 2026):
 
-Beyond the crashes, the visualizer reads all 58M+ rows from 24 parquet files for each of 23 charts — 23 sequential full scans. While column projection keeps memory manageable, several functions load 50K-70M rows before sampling, and two functions (`plot_gt_concordance`, `plot_gt_concordance_per_tier`) use `.iter_rows()` to process all 58M rows in Python.
+1. **`_save_chart` crash**: PNG/SVG export fails if `vl-convert` is not installed, killing all visualization generation including HTML (which doesn't need vl-convert).
+
+2. **`plot_gt_concordance_per_tier` bug**: When `facet_col` is present, `row[:-1]` incorrectly includes `caller_tier` in the GT agreement list, corrupting concordance counts. This bug is silently producing wrong data in tier-wise GT concordance charts.
+
+3. **Performance**: Several chart functions (`plot_cosmic_gnomad_annotation`, `plot_caller_agreement_matrix`, `plot_database_enrichment_by_tier`, `plot_caller_tier_heatmap`) do O(n_groups) separate `_count_rows` calls, each triggering a full lazy scan of all parquet files. With 65 samples, this makes visualization generation extremely slow.
+
+4. **Defensive hardening**: `_sample_if_large` and `_maybe_collect` have no `ColumnNotFoundError` handling. While the missing-column issue in this run was caused by truncated BAM files for one sample (PRJNA298376_4264), defensive handling prevents future edge cases from crashing the pipeline.
+
+5. **Missing CLI flag**: No `--exclude-sample-ids` to skip broken samples without editing the manifest.
 
 ## What Changes
 
-- **Fix 17 lazy-frame crash bugs**: Replace `.height` on LazyFrame with `.select(pl.len()).collect().item()`. Replace `.iter_rows()` on LazyFrame with `.collect().iter_rows()`. Replace subscript + `.to_list()` on LazyFrame with `.select().collect()["col"].to_list()`.
-- **Reorganize chart data loading**: Extract a shared `_count_rows(df)` helper and a `_sample_if_large(df, max_rows)` helper used by all chart functions. Standardize the pattern: select needed columns → count → sample if needed → collect → pandas.
-- **Fix `plot_bam_coverage_violin`**: It accesses `BAM_DP_*` columns from `combined_df` but those columns don't exist in the per-sample parquets. Either remove the chart or source data from BAM validation instead.
-- **Optimize expensive charts**: `plot_cosmic_gnomad_annotation` (3 count queries) and `plot_caller_agreement_matrix` (36 count queries) — use lazy `.select(pl.len()).collect().item()` instead of full collects.
-- **Remove unused `_maybe_collect`**: All charts will use explicit `.collect()` instead of the pipe pattern, making the data flow explicit.
+- **Fix `_save_chart`**: Wrap PNG/SVG saves in try/except `ImportError` — HTML always succeeds
+- **Fix `plot_gt_concordance_per_tier`**: Use `row[:len(existing_gt)]` instead of `row[:-1]` to correctly exclude `caller_tier` and `facet_col` from GT list
+- **Optimize count-based charts**: Batch count queries instead of per-group lazy scans
+- **Harden helpers**: Add `ColumnNotFoundError` catch in `_sample_if_large` and `_maybe_collect`
+- **Add `--exclude-sample-ids`**: CLI flag to skip specific samples
+- **Remove dead code**: `_chromosome_sort_key` (unused), `plot_per_sample_violin` alias
+- **Update tests**: 7 new test methods covering vl-convert crash, GT concordance bug, exclusion flag, and helper hardening
 
 ## Capabilities
 
 ### Modified Capabilities
-- `variant-visualization`: All 23 chart functions updated for LazyFrame compatibility, OOM safety, and polars 1.41.2 API conformance.
+- `variant-visualization`: All chart functions updated
 
 ## Impact
 
-- **Python**: `visualizer.py` — ~25 functions updated, ~15 new helper lines, no API changes.
-- **Memory**: No chart loads more than 50K rows into memory (sampled charts) or uses efficient count queries (aggregate charts). Peak ~2 GB down from potential ~70M-row unpivot.
-- **Speed**: 23 sequential parquet scans remain (I/O bound), but each scan now uses column projection efficiently. Count queries don't load data.
+- **Python**: `visualizer.py` (~5 functions modified), `cli.py` (1 new flag, 1 import fix)
+- **Memory**: No change — charts already use efficient patterns
+- **Speed**: Count-based charts significantly faster after batching (eliminates redundant scans)
+- **Robustness**: Visualizations survive missing vl-convert, missing columns, and broken-sample edge cases

@@ -432,6 +432,8 @@ def main():
     parser.add_argument("--max-samples", type=int, default=None, help="Limit number of samples")
     parser.add_argument("--set", type=int, default=None, help="Process only this set (1-4)")
     parser.add_argument("--sample-ids", nargs="*", default=None, help="Process specific sample IDs")
+    parser.add_argument("--exclude-sample-ids", nargs="*", default=None,
+                        help="Exclude specific sample IDs from processing")
     parser.add_argument("--no-validate", action="store_true", help="Skip rescue VCF validation")
     parser.add_argument("--tolerance", type=float, default=0.01, help="Validation tolerance")
     parser.add_argument("--pileup-mode", choices=["all", "filtered"], default="all",
@@ -472,6 +474,8 @@ def main():
         manifest = manifest.filter(pl.col("sample_id").is_in(args.sample_ids))
     if args.max_samples:
         manifest = manifest.head(args.max_samples)
+    if args.exclude_sample_ids:
+        manifest = manifest.filter(~pl.col("sample_id").is_in(args.exclude_sample_ids))
 
     if manifest.is_empty():
         print("No samples to process.")

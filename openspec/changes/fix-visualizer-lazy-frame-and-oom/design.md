@@ -1,98 +1,112 @@
 ## Context
 
-`visualizer.py` was originally written for eager `pl.DataFrame`. When `combined_df` was changed to `pl.scan_parquet()` (a `LazyFrame`) in the streaming architecture, none of the chart functions were updated. The OOM kills during cross-sample aggregation masked these bugs — the pipeline never reached the visualization phase. Now that aggregation is fixed, the first chart call crashes.
+After the first full pipeline run completed (65 samples), visualization generation crashed at `plot_bam_coverage_violin` due to missing columns from one broken sample. Root cause analysis confirmed the broken sample had truncated BAM files — not a code bug. The remaining issues are code-quality and robustness problems discovered during systematic code review.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Fix all 17 LazyFrame crash bugs
-- Ensure no chart loads >50K rows into memory without explicit sampling
-- Standardize data loading pattern across all 23 chart functions
-- Remove dead code (duplicate `_maybe_collect`, broken `BAM_DP_*` chart)
+- Fix `_save_chart` PNG/SVG crash when vl-convert missing
+- Fix `plot_gt_concordance_per_tier` row slicing bug
+- Optimize count-based charts (eliminate redundant lazy scans)
+- Add `--exclude-sample-ids` CLI flag
+- Harden helpers against `ColumnNotFoundError`
+- Remove dead code
 
 **Non-Goals:**
-- Changing chart layout, colors, or visual design
-- Changing the dashboard HTML generation
+- Changing chart layouts, colors, or visual design
+- Changing dashboard HTML generation
 - Adding new chart types
-- Parallelizing chart generation (separate optimization)
+- Fixing BAM pileup panic (addressed in `fix-bam-pileup-performance`)
 
 ## Decisions
 
-### Decision 1: Two shared helpers instead of `_maybe_collect`
-
-Replace the single `_maybe_collect()` with two focused helpers:
+### Decision 1: Fix `_save_chart` — HTML always, PNG/SVG best-effort
 
 ```python
-def _count_rows(df):
-    """Efficient row count on LazyFrame — reads no data columns."""
-    if isinstance(df, pl.LazyFrame):
-        return df.select(pl.len()).collect().item()
-    return df.height
+def _save_chart(chart, name, output_dir):
+    # HTML always works (no external deps)
+    chart.save(str(html_path))
 
+    # PNG/SVG require vl-convert — optional
+    try:
+        chart.save(str(png_path), format="png", scale_factor=3)
+    except (ImportError, ModuleNotFoundError):
+        pass  # vl-convert not installed, skip PNG
+    try:
+        chart.save(str(svg_path), format="svg")
+    except (ImportError, ModuleNotFoundError):
+        pass  # vl-convert not installed, skip SVG
+```
+
+### Decision 2: Fix `plot_gt_concordance_per_tier` row slicing
+
+The bug: when `facet_col` is present, `cols_to_collect` is `[GT1, GT2, GT3, GT4, caller_tier, facet_val]` and `row[:-1]` returns `[GT1, GT2, GT3, GT4, caller_tier]` — including `caller_tier` as a GT value.
+
+The fix: use explicit indexing on the GT columns only.
+
+```python
+# BEFORE (broken):
+gts = [g for g in row[:-1] if g is not None and g not in ("./.", "./.", ".")]
+
+# AFTER (fixed):
+n_gt = len(existing_gt)
+gts = [g for g in row[:n_gt] if g is not None and g not in ("./.", "./.", ".")]
+tier = row[n_gt]  # caller_tier is at index n_gt
+```
+
+### Decision 3: Batch count queries in slow charts
+
+Instead of per-group lazy scans, pre-aggregate with a single `group_by`:
+
+```python
+# BEFORE (slow — O(n_groups) lazy scans):
+for group in groups:
+    n = _count_rows(df.filter(pl.col(group_col) == group))
+    has_cosmic = _count_rows(df.filter(
+        (pl.col(group_col) == group) & pl.col("COSMIC_ID").is_not_null()
+    ))
+
+# AFTER (fast — single lazy scan):
+counts = df.group_by(group_col).agg([
+    pl.len().alias("n_total"),
+    pl.col("COSMIC_ID").is_not_null().sum().alias("n_cosmic"),
+    pl.col("GNOMAD_AF").is_not_null().sum().alias("n_gnomad"),
+]).collect()
+```
+
+This eliminates redundant parquet scans and makes chart generation O(1) instead of O(n_groups).
+
+### Decision 4: Harden `_sample_if_large` and `_maybe_collect`
+
+```python
 def _sample_if_large(df, max_rows=5000):
-    """Sample LazyFrame if it exceeds max_rows, then collect."""
-    n = _count_rows(df)
-    if n > max_rows:
-        df = df.sample(max_rows)
-    return df.collect()
+    try:
+        if isinstance(df, pl.LazyFrame):
+            df = df.collect()
+    except pl.exceptions.ColumnNotFoundError:
+        return pl.DataFrame()  # graceful degradation
+    if df.height > max_rows:
+        return df.sample(max_rows)
+    return df
 ```
 
-Every chart that needs sampling uses `_sample_if_large`. Every chart that only needs counts uses `_count_rows`. No more `.height` on lazy frames — it doesn't exist.
+### Decision 5: Add `--exclude-sample-ids` CLI flag
 
-### Decision 2: Fix pattern per bug category
-
-**Category A — height-before-sampling (12 functions):**
 ```python
-# BEFORE (broken):
-pdf = df.select(cols).drop_nulls()
-if pdf.height > 5000:           # ← CRASH
-    pdf = pdf.sample(5000)
-pdf_pd = pdf.pipe(_maybe_collect).to_pandas()
+parser.add_argument("--exclude-sample-ids", nargs="*", default=None,
+                    help="Exclude specific sample IDs from processing")
 
-# AFTER (fixed):
-pdf = df.select(cols).drop_nulls()
-pdf = _sample_if_large(pdf, max_rows=5000)
-pdf_pd = pdf.to_pandas()
+# After existing filters:
+if args.exclude_sample_ids:
+    manifest = manifest.filter(~pl.col("sample_id").is_in(args.exclude_sample_ids))
 ```
 
-**Category B — count queries (cosmic_gnomad, caller_agreement):**
-```python
-# BEFORE (broken):
-n = df.height                              # ← CRASH
-has_cosmic = df.filter(...).height         # ← CRASH
+### Decision 6: Remove dead code
 
-# AFTER (fixed):
-n = _count_rows(df)
-has_cosmic = _count_rows(df.filter(pl.col("COSMIC_ID").is_not_null()))
-```
-
-**Category C — iter_rows (gt_concordance × 2):**
-```python
-# BEFORE (broken):
-for row in df.select(cols).iter_rows():     # ← CRASH
-
-# AFTER (fixed):
-pdf = df.select(cols).collect()
-for row in pdf.iter_rows():
-```
-
-### Decision 3: Remove `plot_bam_coverage_violin` or fix data source
-
-`plot_bam_coverage_violin` accesses `BAM_DP_*` columns from `combined_df`. These columns exist only in `bam_validation.csv` (written by `validate_bam_one`), NOT in the per-sample parquet files. The function silently returns today. Fix: remove the chart from the pipeline (it's the only chart that references non-existent columns).
-
-### Decision 4: Reorganize function layout
-
-Current layout is ad-hoc. Reorganize into clear sections:
-1. Helpers (`_count_rows`, `_sample_if_large`, `_save_chart`)
-2. Aggregate charts (group_by → small result, no sampling needed)
-3. Sampled charts (use `_sample_if_large`)
-4. Count-based charts (use `_count_rows` only)
-5. Per-sample/small-data charts (use eager DataFrames, no lazy concerns)
-6. Dashboard assembly
-
-This makes it clear which charts have lazy frame concerns and which don't.
+- `_chromosome_sort_key` (line 77-83): unused function — `plot_chromosome_density` uses inline `when/then` instead
+- `plot_per_sample_violin` alias: backward compatibility alias, never called
 
 ## Risks / Trade-offs
 
-- **[Risk] `_count_rows` on 58M rows with filters is a full scan** → For `plot_caller_agreement_matrix` with 36 pairwise counts, that's 36 sequential scans of 24 parquet files. Slow (potentially minutes). → **Mitigation:** Acceptable — this chart was already broken, so any working version is an improvement. Can be optimized later with single-pass computation.
-- **[Trade-off] `iter_rows()` replacement loads all GT data** → `plot_gt_concordance` loads 58M × 4 string columns (~2 GB) into memory for Python iteration. → **Acceptable:** GT columns are short strings, 2 GB fits in 200 GB limit. Alternative (vectorized computation) would be faster but more complex.
+- **[Risk] Batch count queries change output format** → `plot_cosmic_gnomad_annotation` and `plot_database_enrichment_by_tier` currently build results row-by-row. Switching to `group_by().agg()` changes intermediate DataFrames. → **Mitigation:** Keep the existing per-group iteration for correctness, just replace `_count_rows` calls with indexed lookups from a pre-computed DataFrame.
+- **[Trade-off] `_sample_if_large` returns empty DataFrame on error** → Charts silently produce nothing instead of crashing. → **Acceptable:** An empty chart is better than a crashed pipeline. The underlying issue (missing data) is logged elsewhere.

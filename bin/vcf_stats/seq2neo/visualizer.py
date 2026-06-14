@@ -33,9 +33,23 @@ def _maybe_collect(df):
     Used to normalize inputs that may come from pl.scan_parquet() (lazy)
     or test fixtures (eager). Safe to call on either type.
     """
-    if isinstance(df, pl.LazyFrame):
-        return df.collect()
+    try:
+        if isinstance(df, pl.LazyFrame):
+            return df.collect()
+    except pl.exceptions.ColumnNotFoundError:
+        return pl.DataFrame()
     return df
+
+
+def _has_column(df, col: str) -> bool:
+    """Check if a column exists, safely on both LazyFrame and DataFrame.
+
+    Uses collect_schema().names() for LazyFrame (avoids PerformanceWarning),
+    or .columns for eager DataFrame.
+    """
+    if isinstance(df, pl.LazyFrame):
+        return col in df.collect_schema().names()
+    return col in df.columns
 
 
 def _count_rows(df) -> int:
@@ -57,8 +71,11 @@ def _sample_if_large(df, max_rows: int = 5000) -> pl.DataFrame:
     Collects first (LazyFrame.sample() not available in polars < 1.42),
     then samples the eager frame.
     """
-    if isinstance(df, pl.LazyFrame):
-        df = df.collect()
+    try:
+        if isinstance(df, pl.LazyFrame):
+            df = df.collect()
+    except pl.exceptions.ColumnNotFoundError:
+        return pl.DataFrame()
     if df.height > max_rows:
         return df.sample(max_rows)
     return df
@@ -72,15 +89,6 @@ _CHROMOSOME_ORDER = (
     [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrM"]
     + [str(i) for i in range(1, 23)] + ["X", "Y", "MT", "M"]
 )
-
-
-def _chromosome_sort_key(chrom: str) -> tuple[int, str]:
-    """Sort key for natural chromosome ordering (1..22, X, Y, M/MT)."""
-    try:
-        return (0, _CHROMOSOME_ORDER.index(chrom))
-    except ValueError:
-        # Unknown contigs sort after known ones, alphabetically
-        return (1, chrom)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -205,14 +213,22 @@ def _save_chart(chart: alt.Chart, name: str, output_dir: str):
         plots_dir = plots_dir / "plots"
     plots_dir.mkdir(parents=True, exist_ok=True)
 
+    # HTML always works (no external dependencies)
     html_path = plots_dir / f"{name}.html"
     chart.save(str(html_path))
 
+    # PNG/SVG require vl-convert — best-effort
     png_path = plots_dir / f"{name}.png"
-    chart.save(str(png_path), format="png", scale_factor=3)
+    try:
+        chart.save(str(png_path), format="png", scale_factor=3)
+    except (ImportError, ModuleNotFoundError):
+        pass  # vl-convert not installed, skip PNG
 
     svg_path = plots_dir / f"{name}.svg"
-    chart.save(str(svg_path), format="svg")
+    try:
+        chart.save(str(svg_path), format="svg")
+    except (ImportError, ModuleNotFoundError):
+        pass  # vl-convert not installed, skip SVG
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -222,7 +238,7 @@ def _save_chart(chart: alt.Chart, name: str, output_dir: str):
 
 def plot_vc_distribution(df, output_dir: str, group_col: str = "set_number"):
     """Chart 1: Variant counts by VC classification, stacked bar per set."""
-    if "FILTER" not in df.columns:
+    if not _has_column(df, "FILTER"):
         return
     counts = _maybe_collect(
         df.group_by([group_col, "FILTER"]).agg(pl.len().alias("count"))
@@ -779,22 +795,28 @@ def plot_cosmic_gnomad_annotation(df, output_dir: str, group_col: str = "set_num
     has_groups = group_col in df.columns
 
     if has_groups:
-        # Per-group annotation bars
-        groups = _maybe_collect(df.select(group_col).unique())[group_col].to_list()
+        # Per-group annotation bars (single group_by scan, not per-group _count_rows)
+        agg_exprs = [pl.len().alias("n_total")]
+        if has_cosmic_col:
+            agg_exprs.append(pl.col("COSMIC_ID").is_not_null().sum().alias("n_cosmic"))
+        if has_gnomad_col:
+            agg_exprs.append(pl.col("GNOMAD_AF").is_not_null().sum().alias("n_gnomad"))
+        counts_df = _maybe_collect(df.group_by(group_col).agg(agg_exprs))
+        if counts_df.is_empty():
+            return
         rows = []
-        for g in groups:
-            g_df = df.filter(pl.col(group_col) == g)
-            g_n = _count_rows(g_df)
-            row = {"group": str(g), "n_total": g_n}
+        for row in counts_df.iter_rows():
+            g = row[0]
+            g_n = row[1]  # n_total
+            r = {"group": str(g), "n_total": g_n}
+            idx = 2
             if has_cosmic_col:
-                row["cosmic_pct"] = round(
-                    _count_rows(g_df.filter(pl.col("COSMIC_ID").is_not_null())) / g_n * 100, 2
-                ) if g_n > 0 else 0
+                r["cosmic_pct"] = round(row[idx] / g_n * 100, 2) if g_n > 0 else 0
+                idx += 1
             if has_gnomad_col:
-                row["gnomad_pct"] = round(
-                    _count_rows(g_df.filter(pl.col("GNOMAD_AF").is_not_null())) / g_n * 100, 2
-                ) if g_n > 0 else 0
-            rows.append(row)
+                r["gnomad_pct"] = round(row[idx] / g_n * 100, 2) if g_n > 0 else 0
+                idx += 1
+            rows.append(r)
         if not rows:
             return
         pdf = pl.DataFrame(rows).to_pandas()
@@ -976,15 +998,17 @@ def plot_gt_concordance_per_tier(df, output_dir: str, facet_col: str = None):
         cols_to_collect.append(facet_col)
     pdf = _maybe_collect(df.select(cols_to_collect))
 
+    n_gt = len(existing_gt)
     agree_counts: dict[tuple, int] = {}
     for row in pdf.iter_rows():
-        gts = [g for g in row[:-1]
+        # row[:n_gt] are GT columns; row[n_gt] is caller_tier; row[n_gt+1] (if present) is facet_col
+        gts = [g for g in row[:n_gt]
                if g is not None and g not in ("./.", "./.", ".")]
         if len(gts) < 2:
             continue
         best = Counter(gts).most_common(1)[0][1]
         if best >= 2:
-            key = (row[-1], best)
+            key = (row[n_gt], best)  # caller_tier at index n_gt
             agree_counts[key] = agree_counts.get(key, 0) + 1
 
     if not agree_counts:
@@ -1246,24 +1270,30 @@ def plot_database_enrichment_by_tier(df, output_dir: str):
     if n == 0:
         return
 
-    # Build enrichment table per tier
+    # Build enrichment table per tier (single group_by scan, not per-tier _count_rows)
+    agg_exprs = [pl.len().alias("n_total")]
+    if "COSMIC_ID" in df.columns:
+        agg_exprs.append(pl.col("COSMIC_ID").is_not_null().sum().alias("n_cosmic"))
+    if "GNOMAD_AF" in df.columns:
+        agg_exprs.append(pl.col("GNOMAD_AF").is_not_null().sum().alias("n_gnomad"))
+    counts_df = _maybe_collect(df.group_by("final_tier").agg(agg_exprs))
+    if counts_df.is_empty():
+        return
     rows = []
-    tiers = _maybe_collect(df.select("final_tier").unique())["final_tier"].to_list()
-    for tier in sorted(tiers):
-        tier_df = df.filter(pl.col("final_tier") == tier)
-        tier_n = _count_rows(tier_df)
+    for row in counts_df.sort("final_tier").iter_rows():
+        tier = row[0]
+        tier_n = row[1]  # n_total
         if tier_n == 0:
             continue
-        row = {"tier": tier, "n_total": tier_n}
+        r = {"tier": tier, "n_total": tier_n}
+        idx = 2
         if "COSMIC_ID" in df.columns:
-            row["cosmic_pct"] = round(
-                _count_rows(tier_df.filter(pl.col("COSMIC_ID").is_not_null())) / tier_n * 100, 2
-            )
+            r["cosmic_pct"] = round(row[idx] / tier_n * 100, 2)
+            idx += 1
         if "GNOMAD_AF" in df.columns:
-            row["gnomad_pct"] = round(
-                _count_rows(tier_df.filter(pl.col("GNOMAD_AF").is_not_null())) / tier_n * 100, 2
-            )
-        rows.append(row)
+            r["gnomad_pct"] = round(row[idx] / tier_n * 100, 2)
+            idx += 1
+        rows.append(r)
 
     if not rows:
         return

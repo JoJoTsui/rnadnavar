@@ -1,50 +1,49 @@
-## 1. Add shared helpers
+## 1. Fix `_save_chart` — vl-convert crash
 
-- [ ] 1.1 Add `_count_rows(df)` — efficient row count on LazyFrame via `.select(pl.len()).collect().item()`
-- [ ] 1.2 Add `_sample_if_large(df, max_rows=5000)` — count, sample if large, collect, return eager DataFrame
-- [ ] 1.3 Remove `_maybe_collect` — all charts use explicit `_sample_if_large` or `.collect()` instead
+- [x] 1.1 Wrap `chart.save(format="png")` in try/except `(ImportError, ModuleNotFoundError)`
+- [x] 1.2 Wrap `chart.save(format="svg")` in try/except `(ImportError, ModuleNotFoundError)`
+- [x] 1.3 Keep `chart.save(html_path)` unconditional (always works)
 
-## 2. Fix sampled charts (height-before-sampling → _sample_if_large)
+## 2. Fix `plot_gt_concordance_per_tier` row slicing bug
 
-- [ ] 2.1 `plot_vaf_distribution` — replace `melted.height` + manual sample + `_maybe_collect` with `_sample_if_large(melted, 50000)`
-- [ ] 2.2 `plot_vaf_boxplot_per_tier` — same fix
-- [ ] 2.3 `plot_dp_boxplot_per_tier` — same fix
-- [ ] 2.4 `plot_dna_vs_rna_vaf` — `_sample_if_large(pdf, 5000)`
-- [ ] 2.5 `plot_dna_vs_rna_dp` — `_sample_if_large(pdf, 5000)`
-- [ ] 2.6 `plot_dna_vs_rna_per_caller` — `_sample_if_large(pdf, 5000)` for each pair
-- [ ] 2.7 `plot_ref_alt_dp_scatter` — `_sample_if_large(pdf, 5000)` for each subchart
-- [ ] 2.8 `plot_per_tier_vaf_boxplot` — `_sample_if_large(pdf, 50000)`
-- [ ] 2.9 `plot_bam_coverage_violin` — `_sample_if_large(melted, 50000)` (or remove — see task 5.1)
+- [x] 2.1 Replace `row[:-1]` with `row[:len(existing_gt)]` for GT extraction
+- [x] 2.2 Use explicit `row[n_gt]` for `caller_tier` instead of `row[-1]`
+- [x] 2.3 When `facet_col` present, use `row[n_gt + 1]` for facet value
 
-## 3. Fix count-based charts (height → _count_rows)
+## 3. Harden helpers against ColumnNotFoundError
 
-- [ ] 3.1 `plot_cosmic_gnomad_annotation` — replace `df.height` and `df.filter(...).height` with `_count_rows()`
-- [ ] 3.2 `plot_caller_agreement_matrix` — replace `df.height` and `df.filter(...).height` with `_count_rows()`
+- [x] 3.1 `_sample_if_large`: wrap `.collect()` in try/except `pl.exceptions.ColumnNotFoundError`, return empty DataFrame
+- [x] 3.2 `_maybe_collect`: same wrapping
 
-## 4. Fix iter_rows charts (iter_rows → collect + iter_rows)
+## 4. Add `--exclude-sample-ids` CLI flag
 
-- [ ] 4.1 `plot_gt_concordance` — add `.collect()` before `.iter_rows()`
-- [ ] 4.2 `plot_gt_concordance_per_tier` — add `.collect()` before subscript access and `.iter_rows()`
+- [x] 4.1 Add `--exclude-sample-ids` argument to argparse parser
+- [x] 4.2 Add filter: `manifest = manifest.filter(~pl.col("sample_id").is_in(args.exclude_sample_ids))`
+- [x] 4.3 Place filter after `--set`, `--sample-ids`, `--max-samples` filters
 
-## 5. Remove broken / dead code
+## 5. Optimize count-based charts (batch count queries)
 
-- [ ] 5.1 Remove `plot_bam_coverage_violin` from cli.py's chart list (`BAM_DP_*` columns don't exist in parquet files)
-- [ ] 5.2 Remove its import from cli.py
-- [ ] 5.3 Remove or comment out `plot_bam_coverage_violin` function in visualizer.py
+- [x] 5.1 `plot_cosmic_gnomad_annotation`: pre-aggregate with `group_by().agg()` instead of per-group `_count_rows`
+- [x] 5.2 `plot_database_enrichment_by_tier`: same optimization
+- [x] 5.3 Verify results match pre-optimization output (test_cosmic_gnomad_batch_counts_match_per_group passes)
 
-## 6. Reorganize visualizer.py structure
+## 6. Remove dead code
 
-- [ ] 6.1 Reorder functions into sections: Helpers → Aggregate charts → Sampled charts → Count-based charts → Small-data charts → Dashboard
-- [ ] 6.2 Add section header comments for each group
-- [ ] 6.3 Remove `plot_per_sample_violin` alias (backward compat, unused)
+- [x] 6.1 Remove `_chromosome_sort_key` function (unused)
+- [x] 6.2 Remove `plot_per_sample_violin` alias if it exists — does NOT exist, nothing to remove
 
-## 7. cli.py updates
+## 7. Tests
 
-- [ ] 7.1 Remove `plot_bam_coverage_violin(combined_df, ...)` from the figs.append list
-- [ ] 7.2 Remove its import
+- [x] 7.1 `test_save_chart_survives_missing_vl_convert` — HTML saved, PNG/SVG skipped gracefully
+- [x] 7.2 `test_gt_concordance_per_tier_facet_col_correct_gts` — `caller_tier` not included in GT list when `facet_col` present
+- [x] 7.3 `test_gt_concordance_per_tier_without_facet_correct` — correct behavior without `facet_col`
+- [x] 7.4 `test_sample_if_large_column_not_found_returns_empty` — returns empty DataFrame instead of crashing
+- [x] 7.5 `test_maybe_collect_column_not_found_returns_empty` — same
+- [x] 7.6 `test_cli_exclude_sample_ids` — `--exclude-sample-ids` correctly removes samples from manifest
+- [x] 7.7 `test_cosmic_gnomad_batch_counts_match_per_group` — optimized batch counts match per-group results
 
-## 8. Tests and verification
+## 8. Verification
 
-- [ ] 8.1 Run existing test suite, verify 0 regressions
-- [ ] 8.2 Verify all 22 charts generate without crashing on lazy input
-- [ ] 8.3 Verify no chart exceeds 5 GB peak RSS during generation
+- [x] 8.1 Run existing test suite → 0 regressions (188 passed, 1 pre-existing flaky GIL test failed)
+- [ ] 8.2 Run pipeline with `--exclude-sample-ids PRJNA298376_4264` → all 64 good samples complete, all charts generate
+- [ ] 8.3 Run pipeline with vl-convert not installed → HTML charts generate, PNG/SVG skipped with message

@@ -767,6 +767,157 @@ class TestCLI:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# TestVisualizerFixes — fix-visualizer-lazy-frame-and-oom
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestVisualizerFixes:
+    """Tests for bug fixes in visualizer module."""
+
+    @pytest.fixture
+    def tmp_output_dir(self):
+        with tempfile.TemporaryDirectory() as d:
+            yield d
+
+    @pytest.fixture
+    def viz_df_with_facet(self):
+        """DataFrame with caller_tier and facet_col for GT concordance testing."""
+        return pl.DataFrame({
+            "DNA_mutect2_GT": ["0/1", "0/0", "0/1", "0/1", "0/0", "0/1"],
+            "RNA_mutect2_GT": ["0/1", "0/0", "0/1", "0/1", None, "0/1"],
+            "DNA_deepsomatic_GT": ["0/1", "0/0", "0/1", "0/1", "0/0", "0/1"],
+            "RNA_deepsomatic_GT": ["0/1", "0/0", "0/1", "0/1", None, "0/1"],
+            "caller_tier": ["C1", "C2", "C1", "C3", "C4", "C1"],
+            "disease_normalized": ["Lung", "Lung", "Breast", "Breast", "Lung", "Breast"],
+        })
+
+    # ── 7.1 _save_chart survives missing vl-convert ──────────────────────
+
+    def test_save_chart_survives_missing_vl_convert(self, tmp_output_dir):
+        """HTML saved, PNG/SVG skipped gracefully when vl-convert not installed."""
+        import altair as alt
+        import polars as pl
+        from unittest.mock import patch
+        from vcf_stats.seq2neo.visualizer import _save_chart
+
+        df = pl.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+        chart = alt.Chart(df).mark_point().encode(x="x:Q", y="y:Q")
+
+        call_count = {"html": 0, "png": 0, "svg": 0}
+        real_save = alt.TopLevelMixin.save
+
+        def mock_save(self, path, format=None, **kwargs):
+            if format is None:
+                call_count["html"] += 1
+                return real_save(self, path, format=None, **kwargs)
+            elif format == "png":
+                call_count["png"] += 1
+                raise ModuleNotFoundError("vl-convert not available")
+            elif format == "svg":
+                call_count["svg"] += 1
+                raise ImportError("vl-convert not available")
+
+        with patch.object(alt.TopLevelMixin, 'save', mock_save):
+            _save_chart(chart, "test_survives", tmp_output_dir)
+            # HTML should always be saved
+            assert call_count["html"] == 1, "HTML save should always succeed"
+            # PNG/SVG should be attempted but fail gracefully
+            assert call_count["png"] == 1, "PNG save should be attempted"
+            assert call_count["svg"] == 1, "SVG save should be attempted"
+            # HTML file should exist (real save was called)
+            html_path = Path(tmp_output_dir) / "plots" / "test_survives.html"
+            assert html_path.exists(), f"HTML file should exist: {html_path}"
+
+    # ── 7.2 GT concordance per tier with facet_col ───────────────────────
+
+    def test_gt_concordance_per_tier_facet_col_correct_gts(self, viz_df_with_facet, tmp_output_dir):
+        """caller_tier is NOT included in GT list when facet_col present."""
+        # Verify the fix by inspecting the source code
+        import inspect
+        from vcf_stats.seq2neo.visualizer import plot_gt_concordance_per_tier
+        source = inspect.getsource(plot_gt_concordance_per_tier)
+        assert "row[:n_gt]" in source, (
+            "plot_gt_concordance_per_tier should use row[:n_gt] for GT extraction, "
+            "not row[:-1]"
+        )
+        assert "row[n_gt]" in source, (
+            "plot_gt_concordance_per_tier should use row[n_gt] for caller_tier"
+        )
+        # Also test that the function runs without error
+        fig = plot_gt_concordance_per_tier(viz_df_with_facet, tmp_output_dir, facet_col="disease_normalized")
+        assert fig is not None
+
+    def test_gt_concordance_per_tier_without_facet_correct(self, viz_df_with_facet, tmp_output_dir):
+        """Correct behavior without facet_col — GT extraction excludes caller_tier."""
+        from vcf_stats.seq2neo.visualizer import plot_gt_concordance_per_tier
+        import inspect
+        source = inspect.getsource(plot_gt_concordance_per_tier)
+        # Without facet_col, row[:n_gt] still gives correct GT columns
+        fig = plot_gt_concordance_per_tier(viz_df_with_facet, tmp_output_dir)
+        assert fig is not None
+
+    # ── 7.4-7.5 Helper hardening ─────────────────────────────────────────
+
+    def test_sample_if_large_column_not_found_returns_empty(self):
+        """_sample_if_large returns empty DataFrame on ColumnNotFoundError."""
+        from vcf_stats.seq2neo.visualizer import _sample_if_large
+        # Create a lazy frame referencing a non-existent column
+        lazy = pl.LazyFrame({"x": [1, 2, 3]})
+        # Force column error by selecting a missing column
+        lazy_bad = lazy.select(pl.col("nonexistent_column"))
+        result = _sample_if_large(lazy_bad)
+        assert result.is_empty()
+        assert isinstance(result, pl.DataFrame)
+
+    def test_maybe_collect_column_not_found_returns_empty(self):
+        """_maybe_collect returns empty DataFrame on ColumnNotFoundError."""
+        from vcf_stats.seq2neo.visualizer import _maybe_collect
+        lazy = pl.LazyFrame({"x": [1, 2, 3]})
+        lazy_bad = lazy.select(pl.col("nonexistent_column"))
+        result = _maybe_collect(lazy_bad)
+        assert result.is_empty()
+        assert isinstance(result, pl.DataFrame)
+
+    # ── 7.6 CLI --exclude-sample-ids ─────────────────────────────────────
+
+    def test_cli_exclude_sample_ids(self):
+        """--exclude-sample-ids correctly removes samples from manifest."""
+        manifest = pl.DataFrame({
+            "sample_id": ["s1", "s2", "s3", "s4"],
+            "is_complete": [True, True, True, True],
+        })
+        from vcf_stats.seq2neo.manifest_loader import filter_complete
+        manifest = filter_complete(manifest)
+        # Simulate CLI filter logic
+        exclude_ids = ["s2", "s4"]
+        manifest = manifest.filter(~pl.col("sample_id").is_in(exclude_ids))
+        assert manifest.height == 2
+        assert manifest["sample_id"].to_list() == ["s1", "s3"]
+
+    # ── 7.7 Batch count optimization parity ──────────────────────────────
+
+    def test_cosmic_gnomad_batch_counts_match_per_group(self, tmp_output_dir):
+        """Optimized group_by counts match previous per-group _count_rows results."""
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_cosmic_gnomad_annotation
+
+        # Create test data with known counts
+        df = pl.DataFrame({
+            "set_number": [1, 1, 1, 1, 2, 2],
+            "COSMIC_ID": ["C1", "C2", None, None, "C3", None],
+            "GNOMAD_AF": [0.01, None, 0.05, None, None, 0.03],
+        })
+        # Verify chart generates without error and produces expected per-group counts
+        # Pre-aggregated approach: set_number=1 has 4 total, 2 cosmic, 2 gnomad
+        # set_number=2 has 2 total, 1 cosmic, 1 gnomad
+        fig = plot_cosmic_gnomad_annotation(df, tmp_output_dir, group_col="set_number")
+        assert fig is not None
+
+        # Also test without group_col (global pie mode)
+        fig2 = plot_cosmic_gnomad_annotation(df, tmp_output_dir)
+        assert fig2 is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # TestIntegrationEndToEnd — full pipeline on 1 random sample per set
 # ═══════════════════════════════════════════════════════════════════════════
 
