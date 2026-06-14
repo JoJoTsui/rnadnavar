@@ -81,6 +81,30 @@ def _sample_if_large(df, max_rows: int = 5000) -> pl.DataFrame:
     return df
 
 
+def _sort_chromosomes(df: pl.DataFrame, chrom_col: str = "CHROM") -> pl.DataFrame:
+    """Sort a DataFrame by natural chromosome order (chr1..22, chrX, chrY, chrM).
+
+    Used by chromosome-grouped charts to replace the default alphanumeric sort
+    (which puts chr10 before chr2). Adds a _sort_idx column, sorts, then drops it.
+
+    Chromosomes not in the known order (e.g., alt contigs) sort after known ones,
+    alphabetically.
+    """
+    # Build sort order: chr1..22 → 1..22, chrX→23, chrY→24, chrM/MT→25
+    chrom_order = {f"chr{i}": i for i in range(1, 23)}
+    chrom_order.update({"chrX": 23, "chrY": 24, "chrM": 25, "chrMT": 25})
+    for i in range(1, 23):
+        chrom_order[str(i)] = i
+    chrom_order.update({"X": 23, "Y": 24, "M": 25, "MT": 25})
+
+    sort_expr = pl.lit(99)  # default: unknown contigs sort last
+    for chrom, idx in sorted(chrom_order.items(), key=lambda x: x[1]):
+        sort_expr = pl.when(pl.col(chrom_col) == chrom).then(pl.lit(idx)).otherwise(sort_expr)
+
+    return df.with_columns(sort_expr.alias("_sort_idx")).sort(
+        ["_sort_idx", chrom_col]
+    ).drop("_sort_idx")
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Chromosome natural sort order
 # ═══════════════════════════════════════════════════════════════════════════
@@ -243,7 +267,10 @@ def plot_vc_distribution(df, output_dir: str, group_col: str = "set_number"):
     counts = _maybe_collect(
         df.group_by([group_col, "FILTER"]).agg(pl.len().alias("count"))
         .sort([group_col, "FILTER"])
-    ).to_pandas()
+    )
+    if group_col == "CHROM":
+        counts = _sort_chromosomes(counts, group_col)
+    counts = counts.to_pandas()
     counts[group_col] = counts[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
     chart = alt.Chart(counts).mark_bar().encode(
@@ -291,7 +318,10 @@ def plot_variant_type_distribution(df, output_dir: str, group_col: str = "set_nu
     pdf = pdf.join(total_per_group, on=group_col).with_columns(
         (pl.col("count") / pl.col("total") * 100).round(1).alias("pct")
     )
-    pdf = _maybe_collect(pdf).to_pandas()
+    pdf = _maybe_collect(pdf)
+    if group_col == "CHROM":
+        pdf = _sort_chromosomes(pdf, group_col)
+    pdf = pdf.to_pandas()
     pdf[group_col] = pdf[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
     bars = alt.Chart(pdf).mark_bar().encode(
@@ -316,7 +346,10 @@ def plot_ti_tv_ratio(df, output_dir: str, group_col: str = "set_number"):
     tv = df.filter(pl.col("ti_tv") == False).group_by(group_col).agg(pl.len().alias("tv"))
     ratio = ti.join(tv, on=group_col).with_columns(
         (pl.col("ti") / pl.col("tv")).alias("ratio"))
-    ratio = _maybe_collect(ratio).to_pandas()
+    ratio = _maybe_collect(ratio)
+    if group_col == "CHROM":
+        ratio = _sort_chromosomes(ratio, group_col)
+    ratio = ratio.to_pandas()
     ratio[group_col] = ratio[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
     bars = alt.Chart(ratio).mark_bar().encode(
@@ -347,7 +380,10 @@ def plot_cross_modality(df, output_dir: str, group_col: str = "set_number"):
         ).join(total_per_group, on=group_col).with_columns(
             (pl.col("count") / pl.col("total") * 100).round(1).alias("pct")
         )
-        pdf = _maybe_collect(pdf).to_pandas()
+        pdf = _maybe_collect(pdf)
+        if group_col == "CHROM":
+            pdf = _sort_chromosomes(pdf, group_col)
+        pdf = pdf.to_pandas()
         pdf[group_col] = pdf[group_col].astype(str)
         group_title = group_col.replace("_", " ").title()
 
@@ -380,7 +416,10 @@ def plot_filter_distribution(df, output_dir: str, group_col: str = "set_number")
     counts = counts.join(total_per_group, on=group_col).with_columns(
         (pl.col("count") / pl.col("total") * 100).round(1).alias("pct")
     )
-    counts = _maybe_collect(counts).to_pandas()
+    counts = _maybe_collect(counts)
+    if group_col == "CHROM":
+        counts = _sort_chromosomes(counts, group_col)
+    counts = counts.to_pandas()
     counts[group_col] = counts[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
     bars = alt.Chart(counts).mark_bar().encode(
@@ -403,24 +442,7 @@ def plot_chromosome_density(df, output_dir: str):
         return
     counts = df.group_by("CHROM").agg(pl.len().alias("count"))
     counts = _maybe_collect(counts)
-
-    # Natural sort using native polars: compute numeric order for known
-    # chromosomes (chr1..22→1..22, chrX→23, chrY→24, chrM→25, others→99),
-    # then sort by (sort_idx, CHROM). Avoids map_elements Object dtype.
-    chrom_order = {f"chr{i}": i for i in range(1, 23)}
-    chrom_order.update({"chrX": 23, "chrY": 24, "chrM": 25, "chrMT": 25})
-    for i in range(1, 23):
-        chrom_order[str(i)] = i
-    chrom_order.update({"X": 23, "Y": 24, "M": 25, "MT": 25})
-
-    # Build a when/then chain for sort index
-    sort_expr = pl.lit(99)  # default: unknown contigs sort last
-    for chrom, idx in sorted(chrom_order.items(), key=lambda x: x[1]):
-        sort_expr = pl.when(pl.col("CHROM") == chrom).then(pl.lit(idx)).otherwise(sort_expr)
-
-    counts = counts.with_columns(sort_expr.alias("_sort_idx")).sort(
-        ["_sort_idx", "CHROM"]
-    ).drop("_sort_idx")
+    counts = _sort_chromosomes(counts, "CHROM")
 
     chart = alt.Chart(counts.to_pandas()).mark_bar().encode(
         x=alt.X("CHROM:N", title="Chromosome", sort=counts["CHROM"].to_list()),
@@ -435,10 +457,11 @@ def plot_redi_evidence(df, output_dir: str, group_col: str = "set_number"):
     """REDIportal RNA editing evidence distribution per group."""
     if "REDI_EVIDENCE" not in df.columns or group_col not in df.columns:
         return
-    counts = df.group_by([group_col, "REDI_EVIDENCE"]).agg(pl.len().alias("count")).sort(
-        [group_col, "count"], descending=[False, True]
-    )
-    counts = _maybe_collect(counts).to_pandas()
+    counts = df.group_by([group_col, "REDI_EVIDENCE"]).agg(pl.len().alias("count"))
+    counts = _maybe_collect(counts)
+    if group_col == "CHROM":
+        counts = _sort_chromosomes(counts, group_col)
+    counts = counts.sort([group_col, "count"], descending=[False, True]).to_pandas()
     counts[group_col] = counts[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
     chart = alt.Chart(counts).mark_bar().encode(
@@ -819,7 +842,10 @@ def plot_cosmic_gnomad_annotation(df, output_dir: str, group_col: str = "set_num
             rows.append(r)
         if not rows:
             return
-        pdf = pl.DataFrame(rows).to_pandas()
+        pdf_pl = pl.DataFrame(rows)
+        if group_col == "CHROM":
+            pdf_pl = _sort_chromosomes(pdf_pl, "group")
+        pdf = pdf_pl.to_pandas()
         group_title = group_col.replace("_", " ").title()
 
         subcharts = []

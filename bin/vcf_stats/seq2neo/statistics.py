@@ -645,7 +645,7 @@ def compute_vaf_threshold_sweep(df) -> pl.DataFrame:
     df = _ensure_eager(df)
     callers = ["DNA_mutect2", "DNA_deepsomatic", "DNA_strelka",
                "RNA_mutect2", "RNA_deepsomatic", "RNA_strelka"]
-    thresholds = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
+    thresholds = [0.005, 0.01, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
     classifications = ["Somatic", "Germline", "Reference", "Artifact", "RNAedit", "NoConsensus"]
 
     has_filter = "FILTER" in df.columns
