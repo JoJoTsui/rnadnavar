@@ -267,6 +267,9 @@ def compute_bam_stats(bam_path: str, bed_total: int = 0,
         return None
 
     if HAS_RUST_BAM:
+        has_bed = bool(bed_regions)
+        if has_bed:
+            print(f"  [BAM STATS] Using Rust bam_stats_bed ({len(bed_regions)} regions, bed_total={bed_total})")
         result = _compute_bam_stats_rust(bam_path, bed_regions)
         if result is not None:
             # When bed_regions provided, Rust already computes on-target coverage.
@@ -279,11 +282,21 @@ def compute_bam_stats(bam_path: str, bed_total: int = 0,
                     result["mean_coverage"] = round(
                         result["mean_coverage"] * (bam_ref / bed_total), 4
                     )
+            # Diagnostic: show path taken + coverage value
+            mode = "BED" if bed_regions else "WG"
+            cov = result.get("mean_coverage", "N/A")
+            print(f"  [BAM STATS] mode={mode} mean_coverage={cov}")
             return result
         # Fall through to pysam on Rust failure
         print(f"  [BAM STATS] Rust failed for {bam_path}, falling back to pysam")
 
-    return _compute_bam_stats_pysam(bam_path, bed_total, bed_regions)
+    result = _compute_bam_stats_pysam(bam_path, bed_total, bed_regions)
+    if result:
+        mode = "BED" if bed_regions else "WG"
+        cov = result.get("mean_coverage", "N/A")
+        print(f"  [BAM STATS] mode={mode} (pysam) mean_coverage={cov}")
+    return result
+    return result
 
 
 def compute_sample_bam_stats(
