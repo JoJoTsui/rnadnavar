@@ -50,7 +50,9 @@ def pileup_variants(bam_path: str, positions: list[tuple[str, int, str, str]]) -
                 result["REF"] = refs
                 result["ALT"] = alts
                 return pl.DataFrame(result)
-        except Exception as e:
+        except BaseException as e:
+            if isinstance(e, KeyboardInterrupt):
+                raise
             print(f"  [WARNING] Rust BAM pileup failed: {e}, falling back to pysam")
 
     # Python fallback using pysam
@@ -87,11 +89,15 @@ def pileup_variants_multi(
 
     if not HAS_RUST_MULTI:
         # Fall back to per-BAM single calls
+        print(f"  [BAM pileup] Rust multi-BAM not available, using per-BAM calls ({len(bam_paths)} BAMs, {len(positions)} positions)")
         result = {}
         for label, path in bam_paths.items():
             df = pileup_variants(path, positions)
-            if df is not None:
+            if df is not None and not df.is_empty():
                 result[label] = df
+                print(f"  [BAM pileup] {label}: {len(df)} rows, DP non-null: {(df['DP'].is_not_null()).sum()}")
+            else:
+                print(f"  [BAM pileup] {label}: no data returned")
         return result
 
     try:
@@ -118,6 +124,7 @@ def pileup_variants_multi(
         )
 
         if not multi_result:
+            print(f"  [BAM pileup] Rust multi-BAM returned empty result ({len(bam_labels)} BAMs, {len(positions)} positions)")
             return {}
 
         # Convert each BAM's result dict to a DataFrame
@@ -134,7 +141,9 @@ def pileup_variants_multi(
 
         return output
 
-    except Exception as e:
+    except BaseException as e:
+        if isinstance(e, KeyboardInterrupt):
+            raise
         print(f"  [WARNING] Rust multi-BAM pileup failed: {e}")
         # Fall back to per-BAM calls
         result = {}

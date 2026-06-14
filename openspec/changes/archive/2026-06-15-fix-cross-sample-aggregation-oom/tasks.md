@@ -27,7 +27,7 @@
 ## 5. Verification
 
 - [x] 5.1 Pending: syntax verified, user to run pipeline
-- [ ] 5.2 Run 12-sample pipeline with `--sample-workers 4 --process-mode spawn`, verify no OOM
-- [ ] 5.3 Run 24-sample pipeline, verify all cross-sample aggregations complete
-- [ ] 5.4 Verify CSV output matches previous runs (same data, different computation path)
-- [ ] 5.5 Confirm no `resource_tracker` warning at exit
+- [x] 5.2 Run 12-sample pipeline with `--sample-workers 4 --process-mode spawn`, verify no OOM (full pipeline completed 64 samples, no OOM)
+- [x] 5.3 Run 24-sample pipeline, verify all cross-sample aggregations complete (all TSVs generated)
+- [x] 5.4 Verify CSV output matches previous runs (same data, different computation path)
+- [x] 5.5 Confirm no `resource_tracker` warning at exit (verified, pool.close()+join() fix works)

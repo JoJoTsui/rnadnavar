@@ -204,13 +204,20 @@
 
 ## Phase 7: Verification
 
-- [ ] 7.1 Run 12-sample pipeline, verify sample_summary counts use 6-category FILTER
-- [ ] 7.2 Verify all 6 wise directories created with charts
-- [ ] 7.3 Verify ~100 chart files generated (count across all wise dirs)
-- [ ] 7.4 Verify caller-wise stats non-zero (per-caller columns present in _CROSS_SAMPLE_COLS)
-- [ ] 7.5 Verify VAF threshold sweep non-empty
-- [ ] 7.6 Verify BAM pileup columns present in parquet
-- [ ] 7.7 Verify all charts render (HTML inspection — no white pages)
-- [ ] 7.8 Verify Strelka VAF documentation in output
-- [ ] 7.9 Verify no stale .csv duplicates (only .tsv files in output)
-- [ ] 7.10 Verify shell script `run_stats.sh` works with --bed, --wise, --no-pileup flags
+- [x] 7.1 Run 12-sample pipeline, verify sample_summary counts use 6-category FILTER (pipeline completed, 6-category counts verified)
+- [x] 7.2 Verify all 6 wise directories created with charts (wise dirs generated)
+- [x] 7.3 Verify ~100 chart files generated (count across all wise dirs) (charts generated)
+- [x] 7.4 Verify caller-wise stats non-zero (per-caller columns present in _CROSS_SAMPLE_COLS) (caller-wise stats generated)
+- [ ] 7.5 Verify VAF threshold sweep non-empty (**ISSUE: missing thresholds 0.005 and 0.01** — thresholds fixed at coarse values)
+- [ ] 7.6 Verify BAM pileup columns present in parquet (**ISSUE: bam_validation.tsv shows has_bam_data: false for all 64 samples** — pileup join silently failing, linked to fix-bam-pileup-performance 12.2)
+- [ ] 7.7 Verify all charts render (HTML inspection — no white pages) (**ISSUE: dashboard and individual HTML blank** — needs investigation)
+- [x] 7.8 Verify Strelka VAF documentation in output
+- [x] 7.9 Verify no stale .csv duplicates (only .tsv files in output) (TSV files confirmed)
+- [x] 7.10 Verify shell script `run_stats.sh` works with --bed, --wise, --no-pileup flags
+
+## Phase 8: Bugs Found in Full Pipeline Run (2026-06-15)
+
+- [ ] 8.1 **Chromosome ordering**: Only `plot_chromosome_density` has human chromosome order (chr1..22, chrX, chrY, chrM). All other charts using `group_col="CHROM"` (vc_distribution, variant_type_distribution, ti_tv_ratio, cross_modality, filter_distribution, cosmic_gnomad_annotation) use alphanumeric order. Need centralized chromosome sort or per-chart sort key.
+- [ ] 8.2 **VAF threshold sweep missing fine-grained thresholds**: Add 0.005 and 0.01 to `compute_vaf_threshold_sweep()` threshold list for early-detection sensitivity analysis.
+- [ ] 8.3 **Blank HTML dashboard**: All dashboard.html and individual chart HTML files are blank. Investigate whether altair chart objects are None, or if vegalite spec is empty, or if VS Code live preview is the issue.
+- [ ] 8.4 **BAM pileup columns missing**: Linked to [[fix-bam-pileup-performance]] Phase 12 — pileup join silently failing means BAM coverage violin chart and validation always show no data.

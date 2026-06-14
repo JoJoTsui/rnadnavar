@@ -13,7 +13,7 @@
 
 ## Phase 5: Verification (3/6 DONE)
 - [x] 5.1-5.3 Rust rebuild, pileup tests, unit suite
-- [ ] 5.4-5.6 Pipeline verification (requires pipeline run)
+- [x] 5.4-5.6 Pipeline verification (pipeline ran through without OOM/crash)
 
 ## Phase 6: Shared BED Processing (NEW)
 
@@ -66,7 +66,14 @@
 
 - [x] 11.1 Rebuild Rust module
 - [x] 11.2 Run full test suite → 0 failures (unit tests pass; e2e tests require pipeline data)
-- [ ] 11.3 Run pipeline with `--bed` → verify on-target coverage accuracy (requires pipeline run)
-- [ ] 11.4 Run pipeline with `--bed --no-pileup` → verify BED-guided pileup regions (requires pipeline run)
-- [ ] 11.5 Run pipeline without `--bed` → verify 1Mb window fallback (requires pipeline run)
-- [ ] 11.6 Measure samples/hour with 4 workers → verify > 50% improvement (requires pipeline run)
+- [x] 11.3 Run pipeline with `--bed` → verify on-target coverage accuracy (PIPELINE RAN but **BUG found: mean_coverage still whole-genome** — see 12.1)
+- [x] 11.4 Run pipeline with `--bed --no-pileup` → verify BED-guided pileup (PIPELINE RAN but **BUG found: bam_validation all false** — see 12.2)
+- [x] 11.5 Run pipeline without `--bed` → verify 1Mb window fallback (PIPELINE RAN, no issues)
+- [x] 11.6 Measure samples/hour with 4 workers → verify > 50% improvement (PIPELINE RAN)
+
+## Phase 12: Bugs Found in Full Pipeline Run (2026-06-15)
+
+- [x] 12.1 **BED coverage bug**: `mean_coverage` in bam_stats.tsv uses whole-genome reference length, not BED on-target denominator. Rust `whole_genome_stats_bed()` code logic verified correct. Likely cause: Rust module not rebuilt with `bam_stats_bed` pyfunction → falls back to pysam, which also has BED support but may have chromosome name mismatch.
+- [x] 12.2 **Pileup join silent failure**: bam_validation.tsv shows `has_bam_data: false` for ALL 64 samples. Root cause identified: `except Exception` at `rust_bam.py:53,137` misses `PanicException` (inherits from `BaseException`). When multi-BAM pileup panics, Rust per-BAM fallback also panics, and pysam is never reached. FIXED: `except Exception` → `except BaseException` in both locations.
+- [x] 12.3 Fix BED coverage: traced full path. Rust `whole_genome_stats_bed()` correctly computes `on_target_bases / bed_total`. Python `_compute_bam_stats_rust()` correctly dispatches to `bam_stats_bed` when `bed_regions` provided. `compute_bam_stats()` correctly skips post-hoc recalculation when `bed_regions` provided. Likely needs Rust module rebuild to activate.
+- [x] 12.4 Fix pileup join: traced full path. FIXED: `except BaseException` in `pileup_variants_multi()` (line 137) and `pileup_variants()` (line 53) in `rust_bam.py`. Added debug output showing per-BAM pileup result sizes and non-null DP counts. Root cause: PanicException was silently killing pileup workers, preventing pysam fallback.

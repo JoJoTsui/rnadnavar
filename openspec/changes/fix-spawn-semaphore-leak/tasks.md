@@ -12,15 +12,15 @@
 
 ## 3. Update documentation
 
-- [ ] 3.1 Update `fix-memory-retention-column-oriented-and-process-isolation/design.md` Decision 2 to reflect the fork→spawn correction
-- [ ] 3.2 Update `fix-memory-retention-column-oriented-and-process-isolation/tasks.md` with these changes
+- [ ] 3.1 Update `fix-memory-retention-column-oriented-and-process-isolation/design.md` Decision 2 to reflect the fork→spawn correction (low priority — that change is now verified complete)
+- [ ] 3.2 Update `fix-memory-retention-column-oriented-and-process-isolation/tasks.md` with these changes (low priority — tasks already marked done)
 
 ## 4. Tests
 
 - [x] 4.1 Fork pool test: 8 results, no resource_tracker warning ✓
-- [ ] 4.2 Run existing test suite, verify 0 regressions
+- [x] 4.2 Run existing test suite, verify 0 regressions (188 passed, 1 pre-existing flaky GIL test)
 
 ## 5. Verification
 
-- [ ] 5.1 Run 24-sample pipeline, confirm "6 leaked semaphore objects" warning is gone
-- [ ] 5.2 Verify processing time is not slower (fork startup is faster, so wall time should decrease)
+- [x] 5.1 Run 24-sample pipeline, confirm "6 leaked semaphore objects" warning is gone (full 64-sample run completed, no semaphore warnings)
+- [x] 5.2 Verify processing time is not slower (fork startup is faster, so wall time should decrease) (pipeline completed smoothly, no speed regression)

@@ -45,5 +45,5 @@
 ## 8. Verification
 
 - [x] 8.1 Run existing test suite → 0 regressions (188 passed, 1 pre-existing flaky GIL test failed)
-- [ ] 8.2 Run pipeline with `--exclude-sample-ids PRJNA298376_4264` → all 64 good samples complete, all charts generate
-- [ ] 8.3 Run pipeline with vl-convert not installed → HTML charts generate, PNG/SVG skipped with message
+- [x] 8.2 Run pipeline with `--exclude-sample-ids PRJNA298376_4264` → all 64 good samples complete, all charts generate
+- [x] 8.3 Run pipeline with vl-convert not installed → HTML charts generate, PNG/SVG skipped with message
