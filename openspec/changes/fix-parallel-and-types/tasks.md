@@ -9,7 +9,7 @@
 
 ## 2. Rust BAM Module — Audit + Fix + Document
 
-- [ ] 2.1 Fix `mean_coverage`: read reference lengths from BAM header
+- [x] 2.1 Fix `mean_coverage`: read reference lengths from BAM header (bam.rs:80 `header.reference_sequences()`, line 189 uses BED total when provided)
 - [ ] 2.2 Document noodles-sam version conflict blocking per-position pileup
 - [ ] 2.3 Improve BAM index staleness detection
 - [ ] 2.4 Add ThreadPoolExecutor to `rust_bam.py::pileup_variants()` pysam fallback
