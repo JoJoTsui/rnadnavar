@@ -1,9 +1,12 @@
-"""Python wrapper for Rust BAM pileup with pysam fallback.
+"""Python wrapper for Rust BAM pileup via stats_core.
 
-Uses stats_core (Rust) when available, falls back to pysam when not.
+Uses stats_core (Rust) exclusively. No pysam fallback — if Rust fails,
+the error propagates so the root cause can be debugged and fixed.
 """
 
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import polars as pl
 
 try:
@@ -14,15 +17,18 @@ except ImportError:
     HAS_RUST_BAM = False
     HAS_RUST_MULTI = False
 
-try:
-    import pysam
-    HAS_PYSAM = True
-except ImportError:
-    HAS_PYSAM = False
+
+def _require_rust():
+    """Raise ImportError if the Rust stats_core module is not available."""
+    if not HAS_RUST_BAM:
+        raise ImportError(
+            "stats_core.pileup_variants not found. "
+            "Build the Rust module: cd bin/vcf_stats/seq2neo/stats_core && ./build_rust.sh"
+        )
 
 
 def pileup_variants(bam_path: str, positions: list[tuple[str, int, str, str]]) -> pl.DataFrame | None:
-    """Perform BAM pileup at specific variant positions.
+    """Perform BAM pileup at specific variant positions using Rust stats_core.
 
     Args:
         bam_path: Path to the BAM file.
@@ -31,34 +37,36 @@ def pileup_variants(bam_path: str, positions: list[tuple[str, int, str, str]]) -
     Returns:
         DataFrame with columns: CHROM, POS, DP, REF_DP, ALT_DP,
         F1R2_ref, F2R1_ref, F1R2_alt, F2R1_alt, mean_BQ, mean_MQ.
-        Returns None if BAM is unavailable or parsing fails.
+        Returns None if BAM file doesn't exist.
+
+    Raises:
+        ImportError: stats_core module not built.
+        RuntimeError: Rust pileup failed.
     """
     if not os.path.isfile(bam_path):
         return None
 
-    if HAS_RUST_BAM:
-        try:
-            chroms = [p[0] for p in positions]
-            poss = [p[1] for p in positions]
-            refs = [p[2] for p in positions]
-            alts = [p[3] for p in positions]
-            result = stats_core.pileup_variants(bam_path, chroms, poss, refs, alts)
-            if result:
-                # Add coordinate columns (Rust returns only metric columns)
-                result["CHROM"] = chroms
-                result["POS"] = poss
-                result["REF"] = refs
-                result["ALT"] = alts
-                return pl.DataFrame(result)
-        except BaseException as e:
-            if isinstance(e, KeyboardInterrupt):
-                raise
-            print(f"  [WARNING] Rust BAM pileup failed: {e}, falling back to pysam")
+    _require_rust()
 
-    # Python fallback using pysam
-    if HAS_PYSAM:
-        return _pileup_pysam(bam_path, positions)
+    chroms = [p[0] for p in positions]
+    poss = [p[1] for p in positions]
+    refs = [p[2] for p in positions]
+    alts = [p[3] for p in positions]
 
+    try:
+        result = stats_core.pileup_variants(bam_path, chroms, poss, refs, alts)
+    except BaseException as e:
+        if isinstance(e, KeyboardInterrupt):
+            raise
+        raise RuntimeError(f"Rust BAM pileup failed for {bam_path}: {e}") from e
+
+    if result:
+        # Add coordinate columns (Rust returns only metric columns)
+        result["CHROM"] = chroms
+        result["POS"] = poss
+        result["REF"] = refs
+        result["ALT"] = alts
+        return pl.DataFrame(result)
     return None
 
 
@@ -80,36 +88,28 @@ def pileup_variants_multi(
                      region-guided queries (WES mode).
 
     Returns:
-        Dict mapping BAM label to DataFrame with pileup columns (CHROM, POS,
-        REF, ALT, DP, REF_DP, ALT_DP, F1R2_ref, F2R1_ref, F1R2_alt, F2R1_alt,
-        mean_BQ, mean_MQ). Returns empty dict if no BAMs or Rust unavailable.
+        Dict mapping BAM label to DataFrame with pileup columns. Returns empty
+        dict if no BAMs or no positions provided.
+
+    Raises:
+        ImportError: stats_core module not built.
+        RuntimeError: Rust multi-BAM pileup failed.
     """
     if not bam_paths or not positions:
         return {}
 
-    if not HAS_RUST_MULTI:
-        # Fall back to per-BAM single calls
-        print(f"  [BAM pileup] Rust multi-BAM not available, using per-BAM calls ({len(bam_paths)} BAMs, {len(positions)} positions)")
-        result = {}
-        for label, path in bam_paths.items():
-            df = pileup_variants(path, positions)
-            if df is not None and not df.is_empty():
-                result[label] = df
-                print(f"  [BAM pileup] {label}: {len(df)} rows, DP non-null: {(df['DP'].is_not_null()).sum()}")
-            else:
-                print(f"  [BAM pileup] {label}: no data returned")
-        return result
+    _require_rust()
 
-    try:
-        chroms = [p[0] for p in positions]
-        poss = [p[1] for p in positions]
-        refs = [p[2] for p in positions]
-        alts = [p[3] for p in positions]
+    chroms = [p[0] for p in positions]
+    poss = [p[1] for p in positions]
+    refs = [p[2] for p in positions]
+    alts = [p[3] for p in positions]
 
+    # Preferred path: Rust multi-BAM in a single FFI call
+    if HAS_RUST_MULTI:
         bam_labels = list(bam_paths.keys())
         bam_file_paths = [bam_paths[l] for l in bam_labels]
 
-        # BED regions for region-guided queries
         if bed_regions:
             bed_chroms = [r[0] for r in bed_regions]
             bed_starts = [r[1] for r in bed_regions]
@@ -117,120 +117,59 @@ def pileup_variants_multi(
         else:
             bed_chroms, bed_starts, bed_ends = [], [], []
 
-        multi_result = stats_core.pileup_variants_multi(
-            bam_file_paths, bam_labels,
-            chroms, poss, refs, alts,
-            bed_chroms, bed_starts, bed_ends,
-        )
+        try:
+            multi_result = stats_core.pileup_variants_multi(
+                bam_file_paths, bam_labels,
+                chroms, poss, refs, alts,
+                bed_chroms, bed_starts, bed_ends,
+            )
+        except BaseException as e:
+            if isinstance(e, KeyboardInterrupt):
+                raise
+            raise RuntimeError(f"Rust multi-BAM pileup failed: {e}") from e
 
-        if not multi_result:
-            print(f"  [BAM pileup] Rust multi-BAM returned empty result ({len(bam_labels)} BAMs, {len(positions)} positions)")
-            return {}
+        if multi_result:
+            output = {}
+            for label in bam_labels:
+                if label in multi_result:
+                    result_dict = multi_result[label]
+                    result_dict["CHROM"] = chroms
+                    result_dict["POS"] = poss
+                    result_dict["REF"] = refs
+                    result_dict["ALT"] = alts
+                    output[label] = pl.DataFrame(result_dict)
+            return output
 
-        # Convert each BAM's result dict to a DataFrame
-        output = {}
-        for label in bam_labels:
-            if label in multi_result:
-                result_dict = multi_result[label]
-                # Add coordinate columns
-                result_dict["CHROM"] = chroms
-                result_dict["POS"] = poss
-                result_dict["REF"] = refs
-                result_dict["ALT"] = alts
-                output[label] = pl.DataFrame(result_dict)
+        # Multi-BAM returned empty — fall through to per-BAM Rust
+        print(f"  [BAM pileup] Rust multi-BAM returned empty, trying per-BAM ({len(bam_paths)} BAMs, {len(positions)} positions)")
 
-        return output
-
-    except BaseException as e:
-        if isinstance(e, KeyboardInterrupt):
-            raise
-        print(f"  [WARNING] Rust multi-BAM pileup failed: {e}")
-        # Fall back to per-BAM calls
-        result = {}
+    # Fallback: per-BAM Rust calls (used when HAS_RUST_MULTI is False or multi returned empty)
+    print(f"  [BAM pileup] Using per-BAM Rust calls ({len(bam_paths)} BAMs, {len(positions)} positions)")
+    result = {}
+    if len(bam_paths) > 1:
+        with ThreadPoolExecutor(max_workers=min(len(bam_paths), 4)) as executor:
+            futures = {
+                executor.submit(pileup_variants, path, positions): label
+                for label, path in bam_paths.items()
+            }
+            for future in as_completed(futures):
+                label = futures[future]
+                try:
+                    df = future.result()
+                except Exception as e:
+                    print(f"  [BAM pileup] {label}: error: {e}")
+                    continue
+                if df is not None and not df.is_empty():
+                    result[label] = df
+                    print(f"  [BAM pileup] {label}: {len(df)} rows, DP non-null: {(df['DP'].is_not_null()).sum()}")
+                else:
+                    print(f"  [BAM pileup] {label}: no data returned")
+    else:
         for label, path in bam_paths.items():
             df = pileup_variants(path, positions)
-            if df is not None:
+            if df is not None and not df.is_empty():
                 result[label] = df
-        return result
-
-
-def _pileup_pysam(bam_path: str, positions: list[tuple[str, int, str, str]]) -> pl.DataFrame:
-    """Pysam-based pileup at variant positions (fallback)."""
-    import numpy as np
-    bam = pysam.AlignmentFile(bam_path, "rb")
-
-    rows = []
-    for chrom, pos, ref_base, alt_base in positions:
-        row = {
-            "CHROM": chrom, "POS": pos, "REF": ref_base, "ALT": alt_base,
-            "DP": None, "REF_DP": None, "ALT_DP": None,
-            "F1R2_ref": None, "F2R1_ref": None,
-            "F1R2_alt": None, "F2R1_alt": None,
-            "mean_BQ": None, "mean_MQ": None,
-        }
-
-        try:
-            reads = list(bam.fetch(chrom, pos - 1, pos))
-            if not reads:
-                rows.append(row)
-                continue
-
-            dp = 0
-            ref_dp = 0
-            alt_dp = 0
-            f1r2_ref = 0
-            f2r1_ref = 0
-            f1r2_alt = 0
-            f2r1_alt = 0
-            bq_sum = 0.0
-            bq_count = 0
-            mq_sum = 0.0
-
-            for read in reads:
-                if read.is_unmapped or read.is_duplicate:
-                    continue
-                try:
-                    pos_in_read = pos - read.reference_start - 1
-                    if pos_in_read < 0 or pos_in_read >= len(read.query_sequence):
-                        continue
-                    base = read.query_sequence[pos_in_read]
-                    q = read.query_qualities[pos_in_read] if read.query_qualities else None
-                    dp += 1
-                    if base == ref_base:
-                        ref_dp += 1
-                        if read.is_reverse:
-                            f2r1_ref += 1
-                        else:
-                            f1r2_ref += 1
-                    elif base == alt_base:
-                        alt_dp += 1
-                        if read.is_reverse:
-                            f2r1_alt += 1
-                        else:
-                            f1r2_alt += 1
-                    if q is not None:
-                        bq_sum += q
-                        bq_count += 1
-                    if read.mapping_quality is not None:
-                        mq_sum += read.mapping_quality
-                except Exception:
-                    continue
-
-            row["DP"] = dp
-            row["REF_DP"] = ref_dp
-            row["ALT_DP"] = alt_dp
-            row["F1R2_ref"] = f1r2_ref
-            row["F2R1_ref"] = f2r1_ref
-            row["F1R2_alt"] = f1r2_alt
-            row["F2R1_alt"] = f2r1_alt
-            row["mean_BQ"] = round(bq_sum / bq_count, 1) if bq_count > 0 else None
-            row["mean_MQ"] = round(mq_sum / dp, 1) if dp > 0 else None
-        except Exception:
-            pass
-
-        rows.append(row)
-
-    bam.close()
-    if not rows:
-        return pl.DataFrame()
-    return pl.DataFrame(rows)
+                print(f"  [BAM pileup] {label}: {len(df)} rows, DP non-null: {(df['DP'].is_not_null()).sum()}")
+            else:
+                print(f"  [BAM pileup] {label}: no data returned")
+    return result

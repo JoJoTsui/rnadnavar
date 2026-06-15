@@ -56,37 +56,32 @@ stats_core/
 |-------|---------|---------|
 | pyo3 | 0.28 | Python bindings |
 | noodles-vcf | 0.88 | VCF parsing |
-| noodles-bam | 0.90 | BAM record iteration |
-| noodles-sam | 0.85 | SAM/BAM alignment types (CIGAR ops, flags) |
+| noodles-bam | 0.90 | BAM record iteration (re-exports noodles-sam types) |
 | noodles-bgzf | 0.36 | BGZF block reading |
 | noodles-csi | 0.42 | BAM index (BAI) reading |
 | noodles-core | 0.20 | Core types (Position, Region) |
 | pyo3-arrow | 0.17 | Arrow/Polars interop (future: zero-copy) |
 
-## Version Compatibility Notes
+## Version Compatibility
 
-### noodles-sam (0.85) and per-position pileup
+All noodles crates are pinned to the latest available versions on crates.io
+(as of 2026-06). There are no known version conflicts — `noodles-bam 0.90`,
+`noodles-vcf 0.88`, `noodles-bgzf 0.36`, `noodles-csi 0.42`,
+and `noodles-core 0.20` work together. `noodles-sam` is not a direct
+dependency — its alignment types (CIGAR ops, flags) are re-exported by
+`noodles-bam`.
 
-The `noodles-sam` crate provides alignment record types including CIGAR
-operations (`Kind::consumes_reference()`) and flags. However, the current
-noodles ecosystem has a version conflict that blocks implementing per-position
-pileup (strand bias, base quality) entirely in Rust:
+### Rust vs Python
 
-- `noodles-bam 0.90` depends on `noodles-sam ~0.85`
-- `noodles-csi 0.42` depends on `noodles-core 0.20`
-- Full per-position pileup (querying individual bases, strand, quality) would
-  require `noodles-sam >= 0.90` for the complete alignment record API
+The Rust module handles all BAM operations:
+- **Whole-genome/WES statistics** (reads, coverage, insert size, mapping quality)
+  via `bam.rs` — exposed as `stats_core.bam_stats()` and `stats_core.bam_stats_bed()`
+- **Per-position pileup** (DP, REF_DP, ALT_DP, strand bias F1R2/F2R1, mean_BQ,
+  mean_MQ) via `pileup.rs` — exposed as `stats_core.pileup_variants()` and
+  `stats_core.pileup_variants_multi()`
 
-**Current state:** The Rust BAM module does whole-genome/WES statistics (reads,
-coverage, insert size, mapping quality) via `noodles-bam 0.90`. The per-position
-pileup with strand bias and base quality is handled by the Python pysam fallback
-in `rust_bam.py::_pileup_pysam()`. This is the recommended path until noodles
-stabilizes its SAM/BAM type hierarchy.
-
-**Upgrade path:** When noodles releases aligned versions (estimated noodles 0.120+),
-the pileup can be migrated to Rust for a 5-10× speedup. Track:
-- https://crates.io/crates/noodles-sam
-- https://crates.io/crates/noodles-bam
+There is no Python fallback for BAM pileup. If `stats_core` is not built, the
+pipeline raises `ImportError` with instructions to run `./build_rust.sh`.
 
 ## Troubleshooting
 

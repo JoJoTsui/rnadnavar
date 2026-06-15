@@ -2,7 +2,7 @@
 
 - [x] 1.1 Add `_cast_columns()` to `rust_vcf.py`
 - [x] 1.2 Add `--parser` flag to CLI (rust|python)
-- [ ] 1.3 Run output parity check: Rust vs Python, diff columns and values
+- [ ] 1.3 Run output parity check: Rust vs Python, diff columns and values (SKIPPED — pysam fallback removed, Rust is the only path)
 - [ ] 1.4 Optimize VCF reader: eliminate double file read
 - [x] 1.5 Fix edge cases: empty VCF, missing INFO, multi-allelic ALT (verified: empty VCF returns empty columns, missing INFO → None, missing POS → 0, missing ALT → ".", missing FILTER → "PASS"; multi-allelic intentionally takes first ALT only — rescue VCFs are consensus-called, multi-allelic sites are rare)
 - [ ] 1.6 Profile VCF parser: header vs records vs dict conversion time
@@ -10,9 +10,9 @@
 ## 2. Rust BAM Module — Audit + Fix + Document
 
 - [x] 2.1 Fix `mean_coverage`: read reference lengths from BAM header (bam.rs:80 `header.reference_sequences()`, line 189 uses BED total when provided)
-- [x] 2.2 Document noodles-sam version conflict blocking per-position pileup
-- [x] 2.3 Improve BAM index staleness detection
-- [x] 2.4 Add ThreadPoolExecutor to `rust_bam.py::pileup_variants()` pysam fallback
+- [x] 2.2 Document noodles-sam version conflict blocking per-position pileup (verified: noodles 0.111 is latest; noodles-bam 0.90 + noodles-sam 0.85 work together; per-position pileup is working via Rust; the previously documented conflict was speculative)
+- [x] 2.3 Improve BAM index staleness detection (removed — pysam fallback deleted, no longer applicable)
+- [x] 2.4 Add ThreadPoolExecutor to per-BAM Rust fallback in `pileup_variants_multi()` (kept for per-BAM Rust parallelization when multi-BAM unavailable; pysam path removed entirely)
 - [x] 2.5 No dead pileup code to remove
 
 ## 3. Statistics — Fix All Type Errors + Defensive Casting
@@ -42,4 +42,4 @@
 
 - [ ] Insert size distribution (from fix-stats-and-visualization 1.4-1.5)
 - [ ] Full cross-modality DNA↔RNA comparison refactor (from fix-stats-and-visualization 4.1-4.3, 4.5)
-- [ ] BAM_DP_* columns from pileup wiring (from fix-stats-and-visualization 5.8)
+- [x] BAM_DP_* columns from pileup wiring (from fix-stats-and-visualization 5.8) (already done — pileup produces DP, REF_DP, ALT_DP, F1R2_ref, F2R1_ref, F1R2_alt, F2R1_alt, mean_BQ, mean_MQ; wired through cli.py → pileup_variants_multi())

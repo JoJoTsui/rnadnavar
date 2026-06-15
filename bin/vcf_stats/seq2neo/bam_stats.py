@@ -304,7 +304,6 @@ def compute_bam_stats(bam_path: str, bed_total: int = 0,
         cov = result.get("mean_coverage", "N/A")
         print(f"  [BAM STATS] mode={mode} (pysam) mean_coverage={cov}")
     return result
-    return result
 
 
 def compute_sample_bam_stats(

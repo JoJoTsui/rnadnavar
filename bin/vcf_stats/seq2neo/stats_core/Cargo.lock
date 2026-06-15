@@ -1006,7 +1006,6 @@ dependencies = [
  "noodles-bgzf 0.36.0",
  "noodles-core 0.20.0",
  "noodles-csi 0.42.0",
- "noodles-sam",
  "noodles-vcf",
  "pyo3",
  "pyo3-arrow",
