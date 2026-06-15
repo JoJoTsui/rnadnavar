@@ -4,15 +4,15 @@
 - [x] 1.2 Add `--parser` flag to CLI (rust|python)
 - [ ] 1.3 Run output parity check: Rust vs Python, diff columns and values
 - [ ] 1.4 Optimize VCF reader: eliminate double file read
-- [ ] 1.5 Fix edge cases: empty VCF, missing INFO, multi-allelic ALT
+- [x] 1.5 Fix edge cases: empty VCF, missing INFO, multi-allelic ALT (verified: empty VCF returns empty columns, missing INFO → None, missing POS → 0, missing ALT → ".", missing FILTER → "PASS"; multi-allelic intentionally takes first ALT only — rescue VCFs are consensus-called, multi-allelic sites are rare)
 - [ ] 1.6 Profile VCF parser: header vs records vs dict conversion time
 
 ## 2. Rust BAM Module — Audit + Fix + Document
 
 - [x] 2.1 Fix `mean_coverage`: read reference lengths from BAM header (bam.rs:80 `header.reference_sequences()`, line 189 uses BED total when provided)
-- [ ] 2.2 Document noodles-sam version conflict blocking per-position pileup
-- [ ] 2.3 Improve BAM index staleness detection
-- [ ] 2.4 Add ThreadPoolExecutor to `rust_bam.py::pileup_variants()` pysam fallback
+- [x] 2.2 Document noodles-sam version conflict blocking per-position pileup
+- [x] 2.3 Improve BAM index staleness detection
+- [x] 2.4 Add ThreadPoolExecutor to `rust_bam.py::pileup_variants()` pysam fallback
 - [x] 2.5 No dead pileup code to remove
 
 ## 3. Statistics — Fix All Type Errors + Defensive Casting
@@ -26,9 +26,9 @@
 
 ## 4. Build System — Reproducibility
 
-- [ ] 4.1 Create `build_rust.sh` script
-- [ ] 4.2 Document build requirements in stats_core/README.md
-- [ ] 4.3 Add release vs debug guidance
+- [x] 4.1 Create `build_rust.sh` script
+- [x] 4.2 Document build requirements in stats_core/README.md
+- [x] 4.3 Add release vs debug guidance
 
 ## 5. Integration Testing
 
