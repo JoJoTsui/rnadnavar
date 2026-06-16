@@ -76,6 +76,10 @@ from .statistics import (
     compute_all_per_variant,
     compute_caller_wise_summary,
     compute_filter_effectiveness_matrix,
+    compute_filter_vaf_dp_cross_tab,
+    compute_fp_cross_tab,
+    compute_low_vaf_rna_support,
+    compute_somatic_modality,
     compute_dp_threshold_sweep,
     compute_vaf_threshold_sweep,
     compute_wise_summary,
@@ -97,10 +101,15 @@ from .visualizer import (
     plot_bam_dp_distribution,
     plot_caller_tier_heatmap,
     plot_dp_distribution,
+    plot_filter_vaf_dp_heatmap,
+    plot_fp_cross_tab_heatmap,
+    plot_low_vaf_rna_support,
     plot_mean_vaf_per_group,
     plot_mean_dp_per_group,
     plot_n_support_callers_dist,
     plot_sample_overview_scatter,
+    plot_somatic_modality_pie,
+    plot_somatic_modality_bars,
     plot_cosmic_gnomad_annotation,
     plot_cross_modality,
     plot_dna_vs_rna_dp,
@@ -507,6 +516,8 @@ def main():
                              "Default: spawn when --sample-workers > 1, thread otherwise.")
     parser.add_argument("--max-tasks-per-child", type=int, default=1,
                         help="Max samples per worker process before restart (spawn mode only, default: 1).")
+    parser.add_argument("--theme", choices=["default", "publishing"], default="default",
+                        help="Chart theme: default (Altair built-in) or publishing (clean journal-ready style)")
     args = parser.parse_args()
 
     # Load and filter manifest
@@ -740,6 +751,18 @@ def main():
 
     # ── Lazy scan across all per-sample parquet files ──────────────────────
     combined_df = pl.scan_parquet(str(variant_dir / "*_variants.parquet"))
+
+    # ── Add ML train/val/test partition column (Section 7.1) ──────────────
+    # Partition by chromosome: chr1 → test, chr21/chr22 → val, rest → train.
+    # This is a deterministic, reproducible split that avoids data leakage
+    # between genomic regions.
+    combined_df = combined_df.with_columns(
+        pl.when(pl.col("CHROM") == "chr1").then(pl.lit("test"))
+        .when(pl.col("CHROM").is_in(["chr21", "chr22"])).then(pl.lit("val"))
+        .otherwise(pl.lit("train"))
+        .alias("partition")
+    )
+
     print(f"Variant details: {variant_dir}/ (lazy scan, {total_variants} variants across {len(rows)} samples)")
 
     # BAM statistics — collect background result or compute now
@@ -911,6 +934,75 @@ def main():
         except Exception as e:
             print(f"  WARNING: DP threshold sweep failed: {e}")
 
+        # ── ML Threshold Guidance (Section 7) ────────────────────────────────
+        try:
+            cross_tab_df = compute_filter_vaf_dp_cross_tab(combined_df)
+            if not cross_tab_df.is_empty():
+                write_tsv(cross_tab_df, str(threshold_dir / "filter_vaf_dp_cross_tab.tsv"))
+                print(f"  FILTER x VAF x DP cross-tab: {threshold_dir / 'filter_vaf_dp_cross_tab.tsv'}")
+                figs.append(plot_filter_vaf_dp_heatmap(cross_tab_df, str(output_dir)))
+        except Exception as e:
+            print(f"  WARNING: FILTER x VAF x DP cross-tab failed: {e}")
+
+        try:
+            low_vaf_df = compute_low_vaf_rna_support(combined_df)
+            if not low_vaf_df.is_empty():
+                write_tsv(low_vaf_df, str(threshold_dir / "low_vaf_rna_support.tsv"))
+                print(f"  Low VAF RNA support: {threshold_dir / 'low_vaf_rna_support.tsv'}")
+                figs.append(plot_low_vaf_rna_support(low_vaf_df, str(output_dir)))
+        except Exception as e:
+            print(f"  WARNING: Low VAF RNA support failed: {e}")
+
+        # Partition summary (7.4)
+        try:
+            from .statistics import _ensure_eager
+            part_df = _ensure_eager(combined_df)
+            if "partition" in part_df.columns:
+                part_summary = part_df.group_by("partition").agg([
+                    pl.len().alias("n_variants"),
+                    pl.col("sample_id").n_unique().alias("n_samples") if "sample_id" in part_df.columns else pl.lit(0).alias("n_samples"),
+                ]).sort("partition")
+                write_tsv(part_summary, str(threshold_dir / "partition_summary.tsv"))
+                print(f"  Partition summary: {threshold_dir / 'partition_summary.tsv'}")
+
+                # Disease x partition (7.5)
+                if "disease_normalized" in part_df.columns:
+                    disease_part = part_df.group_by(["disease_normalized", "partition"]).agg([
+                        pl.len().alias("n_variants"),
+                    ]).sort(["disease_normalized", "partition"])
+                    write_tsv(disease_part, str(threshold_dir / "disease_partition_summary.tsv"))
+                    print(f"  Disease x partition: {threshold_dir / 'disease_partition_summary.tsv'}")
+                del part_df
+        except Exception as e:
+            print(f"  WARNING: Partition summary failed: {e}")
+
+    # ── FP Cross-Tabulation (Section 8) ──────────────────────────────────────
+    if wise_names is None or "threshold" in wise_names:
+        try:
+            fp_ct_df = compute_fp_cross_tab(combined_df)
+            if not fp_ct_df.is_empty():
+                fp_dir = output_dir / "stats" / "threshold"
+                fp_dir.mkdir(parents=True, exist_ok=True)
+                write_tsv(fp_ct_df, str(fp_dir / "fp_cross_tab.tsv"))
+                print(f"  FP cross-tab: {fp_dir / 'fp_cross_tab.tsv'}")
+                figs.append(plot_fp_cross_tab_heatmap(fp_ct_df, str(output_dir)))
+        except Exception as e:
+            print(f"  WARNING: FP cross-tabulation failed: {e}")
+
+    # ── Somatic Modality Sub-Classification (Section 9) ──────────────────────
+    if wise_names is None or "tier" in wise_names:
+        try:
+            modality_df = compute_somatic_modality(combined_df)
+            if not modality_df.is_empty():
+                modality_dir = output_dir / "stats" / "tier"
+                modality_dir.mkdir(parents=True, exist_ok=True)
+                write_tsv(modality_df, str(modality_dir / "somatic_modality.tsv"))
+                print(f"  Somatic modality: {modality_dir / 'somatic_modality.tsv'}")
+                figs.append(plot_somatic_modality_pie(modality_df, str(output_dir)))
+                figs.append(plot_somatic_modality_bars(modality_df, str(output_dir)))
+        except Exception as e:
+            print(f"  WARNING: Somatic modality sub-classification failed: {e}")
+
     gc.collect()
     _malloc_trim()
     _mem("after aggregation cleanup")
@@ -945,6 +1037,12 @@ def main():
     # Visualizations — per-wise chart generation
     # ═══════════════════════════════════════════════════════════════════════════
     print("Generating visualizations...")
+
+    # Activate chart theme if requested (Section 10)
+    if args.theme == "publishing":
+        import altair as alt
+        alt.themes.enable("publishing")
+        print("  Using publishing theme for charts")
 
     # Determine which wises to generate (from --wise flag)
     all_wise_names = ["set", "disease", "sample", "tier", "caller", "chromosome"]

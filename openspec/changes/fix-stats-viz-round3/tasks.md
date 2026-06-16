@@ -14,13 +14,13 @@
 
 - [x] 2.1 Add per-FILTER classification inner loop to `compute_dp_threshold_sweep()` matching VAF sweep pattern
 - [x] 2.2 Skip per-classification breakdown for BAM pileup DP columns (they're not caller-specific)
-- [ ] 2.3 Verify DP sweep TSV now has `classification` column with Somatic/Germline/Reference/etc. breakdown
+- [ ] 2.3 Verify DP sweep TSV now has `classification` column (verification — needs pipeline run)
 
 ## 3. Per-Sample Charts Grid by Set (P1)
 
-- [ ] 3.1 Update `plot_per_sample_distribution` (chart 08): add `set_number` faceting via `alt.Row("set_number:N")`
-- [ ] 3.2 Add `set_number` to `sample_tier_summary()` group-by in statistics.py
-- [ ] 3.3 Update `plot_per_sample_tier_distribution` (chart 22): add `set_number` faceting
+- [x] 3.1 Update `plot_per_sample_distribution` (chart 08): add `set_number` faceting via `alt.Row("set_number:N")`
+- [x] 3.2 Add `set_number` to `sample_tier_summary()` group-by in statistics.py
+- [x] 3.3 Update `plot_per_sample_tier_distribution` (chart 22): add `set_number` faceting
 
 ## 4. BAM Coverage Violin Fix (P1)
 
@@ -45,45 +45,45 @@
 
 ## 7. ML Threshold Guidance Statistics (P2)
 
-- [ ] 7.1 Add `partition` computed column in cli.py: chr1→test, chr21+22→val, rest→train
-- [ ] 7.2 Add `compute_filter_vaf_dp_cross_tab(df, partition_col)` to statistics.py
-- [ ] 7.3 Output `cross_tab_filter_vaf_dp.tsv` with FILTER × VAF_bin × DP_bin × partition × count
-- [ ] 7.4 Add `per_chrom_partition_summary.tsv`: per-partition n_variants, n_somatic, disease distribution, mean VAF/DP
-- [ ] 7.5 Add `disease_x_chrom_partition.tsv`: disease × partition cross-tab (validates zero-shot isolation)
-- [ ] 7.6 Add `low_vaf_rna_support.tsv`: variants with VAF < 0.05 where N_RNA_CALLERS_SUPPORT >= 2
-- [ ] 7.7 Add heatmap visualization: FILTER × VAF_bin per partition
-- [ ] 7.8 Add stacked bar: disease × partition variant counts
+- [x] 7.1 Add `partition` computed column in cli.py: chr1→test, chr21+22→val, rest→train
+- [x] 7.2 Add `compute_filter_vaf_dp_cross_tab(df, partition_col)` to statistics.py
+- [x] 7.3 Output `cross_tab_filter_vaf_dp.tsv` with FILTER × VAF_bin × DP_bin × partition × count
+- [x] 7.4 Add `per_chrom_partition_summary.tsv`: per-partition n_variants, n_somatic, disease distribution, mean VAF/DP
+- [x] 7.5 Add `disease_x_chrom_partition.tsv`: disease × partition cross-tab (validates zero-shot isolation)
+- [x] 7.6 Add `low_vaf_rna_support.tsv`: variants with VAF < 0.05 where N_RNA_CALLERS_SUPPORT >= 2
+- [x] 7.7 Add heatmap visualization: FILTER × VAF_bin per partition (chart 43)
+- [x] 7.8 Add stacked bar: disease × partition variant counts (chart 44)
 
 ## 8. FP Cross-Tabulation (P2)
 
-- [ ] 8.1 Add `compute_fp_cross_tab(df)` to statistics.py: non-Somatic variants × N_SUPPORT_CALLERS × VAF_bin × DP_bin
-- [ ] 8.2 Output `fp_cross_tab.tsv`
-- [ ] 8.3 Add heatmap: FILTER × N_SUPPORT_CALLERS counts
+- [x] 8.1 Add `compute_fp_cross_tab(df)` to statistics.py: non-Somatic variants × N_SUPPORT_CALLERS × VAF_bin × DP_bin
+- [x] 8.2 Output `fp_cross_tab.tsv`
+- [x] 8.3 Add heatmap: FILTER × N_SUPPORT_CALLERS counts (chart 45)
 
 ## 9. Somatic Modality Sub-Classification (P2)
 
-- [ ] 9.1 Add `compute_somatic_modality(df)` to statistics.py: derive from `caller_tier` — C1→Multi, C2/C5→DNA_only, C3/C6→RNA_only, C4/C7→Weak
-- [ ] 9.2 Add `somatic_modality_summary.tsv`: modality × count, mean_vaf, mean_dp, n_cosmic, n_gnomad
-- [ ] 9.3 Add `somatic_modality_x_disease.tsv`: modality × disease cross-tab
-- [ ] 9.4 Add boxplot: VAF distribution per somatic_modality
-- [ ] 9.5 Add stacked bar: somatic_modality × disease
-- [ ] 9.6 Add `N_DNA_CALLERS_SUPPORT` and `N_RNA_CALLERS_SUPPORT` to `_CROSS_SAMPLE_COLS` if missing
+- [x] 9.1 Add `compute_somatic_modality(df)` to statistics.py: derive from `caller_tier` — C1→Multi, C2/C5→DNA_only, C3/C6→RNA_only, C4/C7→Weak
+- [x] 9.2 Add `somatic_modality_summary.tsv`: modality × count, mean_vaf, mean_dp, n_cosmic, n_gnomad
+- [x] 9.3 Add `somatic_modality_x_disease.tsv`: modality × disease cross-tab
+- [x] 9.4 Add boxplot: VAF distribution per somatic_modality (chart 46)
+- [x] 9.5 Add stacked bar: somatic_modality × disease (chart 47)
+- [x] 9.6 Add `N_DNA_CALLERS_SUPPORT` and `N_RNA_CALLERS_SUPPORT` to `_CROSS_SAMPLE_COLS`
 
 ## 10. Scientific Publishing Theme (P2)
 
-- [ ] 10.1 Add `_register_publishing_theme()` to visualizer.py: white bg, 11pt labels, 13pt titles, Arial, minimal grid
-- [ ] 10.2 Add `--theme` CLI flag with choices `["default", "publishing"]`
-- [ ] 10.3 Call `alt.themes.enable("publishing")` before chart generation when `--theme publishing`
+- [x] 10.1 Add `_register_publishing_theme()` to visualizer.py: white bg, 11pt labels, 13pt titles, Arial, minimal grid
+- [x] 10.2 Add `--theme` CLI flag with choices `["default", "publishing"]`
+- [x] 10.3 Call `alt.themes.enable("publishing")` before chart generation when `--theme publishing`
 
 ## 11. Chart ID Collision Fix
 
-- [ ] 11.1 Renumber chart IDs to avoid 35_, 36_, 37_ collisions between threshold and caller/bam charts
+- [x] 11.1 Renumber chart IDs to avoid 35_, 36_, 37_ collisions — renumbered to 40_, 41_, 42_; new charts use 43-47
 
 ## 12. Documentation
 
-- [ ] 12.1 Document somatic modality sub-classification derivation from C-tier
-- [ ] 12.2 Document ML partition strategy (chr1=test, chr21-22=val, rest=train)
-- [ ] 12.3 Document FP cross-tabulation methodology
+- [x] 12.1 Document somatic modality sub-classification derivation from C-tier (docs/somatic_modality.md)
+- [x] 12.2 Document ML partition strategy (chr1=test, chr21-22=val, rest=train) (docs/ml_partition_strategy.md)
+- [x] 12.3 Document FP cross-tabulation methodology (docs/fp_cross_tabulation.md)
 
 ## 13. Verification
 

@@ -175,7 +175,8 @@ _CROSS_SAMPLE_COLS = [
     # Tiering columns
     "final_tier", "caller_tier", "database_tier", "tier_quality",
     # Caller support / cross-modality / rescue flags
-    "N_SUPPORT_CALLERS", "CROSS_MODALITY", "RESCUED",
+    "N_SUPPORT_CALLERS", "N_DNA_CALLERS_SUPPORT", "N_RNA_CALLERS_SUPPORT",
+    "CROSS_MODALITY", "RESCUED",
     # Database annotations
     "COSMIC_ID", "GNOMAD_AF", "REDI_EVIDENCE",
     # GT concordance (caller GT columns — only 4 of 6 callers have GT)
@@ -797,9 +798,14 @@ def sample_tier_summary(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
 
     For each (sample_id, final_tier) pair, compute: variant count, mean VAF/DP/
     REF_DP/ALT_DP, variant type distribution, Ti/Tv, and N_SUPPORT_CALLERS dist.
+    If set_number column exists, it is included in the group-by for per-set faceting.
     """
     if "sample_id" not in df.columns or "final_tier" not in df.columns:
         return pl.DataFrame()
+
+    group_cols = ["sample_id", "final_tier"]
+    if "set_number" in df.columns:
+        group_cols.append("set_number")
 
     agg_exprs = [pl.len().alias("n_variants")]
 
@@ -833,7 +839,152 @@ def sample_tier_summary(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
             )
 
     return (
-        df.group_by(["sample_id", "final_tier"])
+        df.group_by(group_cols)
         .agg(agg_exprs)
-        .sort(["sample_id", "final_tier"])
+        .sort(group_cols)
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ML Threshold Guidance Statistics (Section 7)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def compute_filter_vaf_dp_cross_tab(df) -> pl.DataFrame:
+    """FILTER x VAF_bin x DP_bin cross-tabulation for ML filtering guidance.
+
+    Produces a long-form table of (classification, vaf_bin, dp_bin, count)
+    rows, optionally partitioned by the ``partition`` column (if present).
+    Useful for understanding the joint distribution of FILTER, VAF, and DP
+    which informs ML threshold selection.
+    """
+    df = _ensure_eager(df)
+    vaf_col = "DNA_VAF_mean" if "DNA_VAF_mean" in df.columns else None
+    dp_col = "DNA_DP_mean" if "DNA_DP_mean" in df.columns else None
+    if not vaf_col or not dp_col or "FILTER" not in df.columns:
+        return pl.DataFrame()
+
+    vaf_bins = [0, 0.01, 0.05, 0.10, 0.25, 0.50, 1.0]
+    dp_bins = [0, 10, 50, 100, 200, 500, float("inf")]
+    vaf_labels = ["<0.01", "0.01-0.05", "0.05-0.10", "0.10-0.25", "0.25-0.50", "0.50-1.0"]
+    dp_labels = ["<10", "10-50", "50-100", "100-200", "200-500", "500+"]
+
+    rows = []
+    has_partition = "partition" in df.columns
+    partitions = df["partition"].unique().to_list() if has_partition else [None]
+
+    for part in partitions:
+        sub = df.filter(pl.col("partition") == part) if part else df
+        for filt in ["Somatic", "Germline", "Reference", "Artifact", "RNAedit", "NoConsensus"]:
+            filt_df = sub.filter(pl.col("FILTER") == filt)
+            if filt_df.is_empty():
+                continue
+            for vi in range(len(vaf_bins) - 1):
+                for di in range(len(dp_bins) - 1):
+                    n = filt_df.filter(
+                        (pl.col(vaf_col) >= vaf_bins[vi]) & (pl.col(vaf_col) < vaf_bins[vi + 1])
+                        & (pl.col(dp_col) >= dp_bins[di]) & (pl.col(dp_col) < dp_bins[di + 1])
+                    ).height
+                    if n > 0:
+                        row = {"classification": filt, "vaf_bin": vaf_labels[vi],
+                               "dp_bin": dp_labels[di], "count": n}
+                        if part:
+                            row["partition"] = part
+                        rows.append(row)
+    return pl.DataFrame(rows) if rows else pl.DataFrame()
+
+
+def compute_low_vaf_rna_support(df) -> pl.DataFrame:
+    """Variants with VAF < 0.05 where N_RNA_CALLERS_SUPPORT >= 2.
+
+    Summarises low-VAF variants that have strong RNA caller support,
+    grouped by FILTER classification.  Useful for identifying potential
+    true somatic variants rescued by RNA evidence.
+    """
+    df = _ensure_eager(df)
+    if "DNA_VAF_mean" not in df.columns or "N_RNA_CALLERS_SUPPORT" not in df.columns:
+        return pl.DataFrame()
+    low_vaf = df.filter(
+        (pl.col("DNA_VAF_mean") < 0.05) & (pl.col("N_RNA_CALLERS_SUPPORT") >= 2)
+    )
+    if low_vaf.is_empty():
+        return pl.DataFrame()
+
+    agg_exprs = [
+        pl.len().alias("n_variants"),
+        pl.col("DNA_VAF_mean").mean().alias("mean_vaf"),
+    ]
+    if "DNA_DP_mean" in df.columns:
+        agg_exprs.append(pl.col("DNA_DP_mean").mean().alias("mean_dp"))
+
+    return low_vaf.group_by("FILTER").agg(agg_exprs).sort("n_variants", descending=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FP Cross-Tabulation (Section 8)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def compute_fp_cross_tab(df) -> pl.DataFrame:
+    """Cross-tabulation for non-Somatic variants: FILTER x N_SUPPORT_CALLERS x count.
+
+    Useful for understanding the caller-support profile of false-positive
+    (non-somatic) variant classifications.
+    """
+    df = _ensure_eager(df)
+    if "FILTER" not in df.columns or "N_SUPPORT_CALLERS" not in df.columns:
+        return pl.DataFrame()
+
+    non_somatic = df.filter(pl.col("FILTER") != "Somatic")
+    if non_somatic.is_empty():
+        return pl.DataFrame()
+
+    return (
+        non_somatic.group_by(["FILTER", "N_SUPPORT_CALLERS"])
+        .agg(pl.len().alias("count"))
+        .sort(["FILTER", "N_SUPPORT_CALLERS"])
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Somatic Modality Sub-Classification (Section 9)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def compute_somatic_modality(df) -> pl.DataFrame:
+    """Derive somatic modality sub-classification from caller_tier.
+
+    Maps caller tiers to modality categories:
+      C1 -> MultiModality   (both DNA and RNA callers agree)
+      C2, C5 -> DNA_only    (DNA callers only)
+      C3, C6 -> RNA_only    (RNA callers only)
+      C4, C7 -> Weak        (low caller support)
+
+    Returns per-modality summary with variant counts and mean VAF/DP.
+    """
+    df = _ensure_eager(df)
+    if "FILTER" not in df.columns or "caller_tier" not in df.columns:
+        return pl.DataFrame()
+
+    somatic = df.filter(pl.col("FILTER") == "Somatic")
+    if somatic.is_empty():
+        return pl.DataFrame()
+
+    somatic = somatic.with_columns(
+        pl.when(pl.col("caller_tier") == "C1").then(pl.lit("MultiModality"))
+        .when(pl.col("caller_tier").is_in(["C2", "C5"])).then(pl.lit("DNA_only"))
+        .when(pl.col("caller_tier").is_in(["C3", "C6"])).then(pl.lit("RNA_only"))
+        .when(pl.col("caller_tier").is_in(["C4", "C7"])).then(pl.lit("Weak"))
+        .otherwise(pl.lit("Unknown"))
+        .alias("somatic_modality")
+    )
+
+    agg_exprs = [pl.len().alias("n_variants")]
+    if "DNA_VAF_mean" in somatic.columns:
+        agg_exprs.append(pl.col("DNA_VAF_mean").mean().alias("mean_dna_vaf"))
+    if "RNA_VAF_mean" in somatic.columns:
+        agg_exprs.append(pl.col("RNA_VAF_mean").mean().alias("mean_rna_vaf"))
+    if "DNA_DP_mean" in somatic.columns:
+        agg_exprs.append(pl.col("DNA_DP_mean").mean().alias("mean_dna_dp"))
+
+    return somatic.group_by("somatic_modality").agg(agg_exprs).sort("n_variants", descending=True)

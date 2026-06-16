@@ -19,6 +19,35 @@ import polars as pl
 # Disable altair's 5000-row default limit
 alt.data_transformers.disable_max_rows()
 
+
+# ── Scientific publishing theme (Section 10) ─────────────────────────────
+def _register_publishing_theme():
+    """Register a 'publishing' Altair theme with clean, journal-ready styling."""
+    def _theme():
+        return {
+            "config": {
+                "background": "white",
+                "font": "Arial",
+                "axis": {
+                    "labelFontSize": 11,
+                    "titleFontSize": 13,
+                    "titleFontWeight": "normal",
+                    "gridColor": "#e0e0e0",
+                    "gridOpacity": 0.5,
+                    "domainColor": "#333",
+                    "tickColor": "#333",
+                },
+                "header": {"labelFontSize": 12, "titleFontSize": 14},
+                "legend": {"labelFontSize": 10, "titleFontSize": 11},
+                "title": {"fontSize": 15, "fontWeight": "bold"},
+                "view": {"strokeWidth": 0},
+            }
+        }
+    alt.themes.register("publishing", _theme)
+
+
+_register_publishing_theme()
+
 # ── Color palettes ────────────────────────────────────────────────────────
 CLASSIFICATION_DOMAIN = ["Somatic", "Germline", "Reference", "Artifact", "RNAedit", "NoConsensus"]
 CLASSIFICATION_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
@@ -1104,23 +1133,35 @@ def plot_gt_concordance_per_tier(df, output_dir: str, facet_col: str = None):
 # ═══════════════════════════════════════════════════════════════════════════
 
 def plot_per_sample_distribution(sample_stats_df, output_dir: str, top_n: int = None):
-    """Chart 8: Per-sample variant count, horizontal bar chart. All samples."""
+    """Chart 8: Per-sample variant count, horizontal bar chart. All samples.
+
+    If set_number column exists, facets by set using row encoding.
+    """
     if sample_stats_df is None or (hasattr(sample_stats_df, 'is_empty') and sample_stats_df.is_empty()):
         return
     if "total_variants" not in sample_stats_df.columns or "sample_id" not in sample_stats_df.columns:
         return
-    pdf = sample_stats_df.select(["sample_id", "total_variants"]).sort(
+    select_cols = ["sample_id", "total_variants"]
+    has_set = "set_number" in sample_stats_df.columns
+    if has_set:
+        select_cols.append("set_number")
+    pdf = sample_stats_df.select(select_cols).sort(
         "total_variants", descending=True
     )
     if top_n:
         pdf = pdf.head(top_n)
+    if has_set:
+        pdf = pdf.with_columns(pl.col("set_number").cast(pl.Utf8))
     pdf = pdf.to_pandas()
     n_samples = len(pdf)
-    chart = alt.Chart(pdf).mark_bar().encode(
-        y=alt.Y("sample_id:N", title="Sample ID", sort=None),
-        x=alt.X("total_variants:Q", title="Total Variants per Sample"),
-        tooltip=["sample_id", "total_variants"],
-    ).properties(
+    enc = {
+        "y": alt.Y("sample_id:N", title="Sample ID", sort=None),
+        "x": alt.X("total_variants:Q", title="Total Variants per Sample"),
+        "tooltip": ["sample_id", "total_variants"],
+    }
+    if has_set:
+        enc["row"] = alt.Row("set_number:N", title="Set")
+    chart = alt.Chart(pdf).mark_bar().encode(**enc).properties(
         title=f"Per-Sample Variant Counts (n={n_samples})",
         height=max(300, n_samples * 12)  # dynamic height for scroll
     )
@@ -1174,17 +1215,31 @@ def plot_bam_metrics_bars(bam_stats_df, output_dir: str, top_n: int = 20):
 
 
 def plot_per_sample_tier_distribution(sample_tier_df, output_dir: str):
-    """Stacked bar chart: per-sample per-tier variant counts."""
+    """Stacked bar chart: per-sample per-tier variant counts.
+
+    If set_number column exists, facets by set using row encoding.
+    """
     if sample_tier_df is None or (hasattr(sample_tier_df, 'is_empty') and sample_tier_df.is_empty()):
         return
     if "sample_id" not in sample_tier_df.columns or "final_tier" not in sample_tier_df.columns:
         return
-    pdf = sample_tier_df.select(["sample_id", "final_tier", "n_variants"]).to_pandas()
-    chart = alt.Chart(pdf).mark_bar().encode(
-        y=alt.Y("sample_id:N", title="Sample ID", sort=None),
-        x=alt.X("n_variants:Q", title="Variants"),
-        color=alt.Color("final_tier:N", title="Tier"),
-    ).properties(title="Per-Sample Per-Tier Variant Distribution")
+    select_cols = ["sample_id", "final_tier", "n_variants"]
+    has_set = "set_number" in sample_tier_df.columns
+    if has_set:
+        select_cols.append("set_number")
+    pdf = sample_tier_df.select(select_cols)
+    if has_set:
+        pdf = pdf.with_columns(pl.col("set_number").cast(pl.Utf8))
+    pdf = pdf.to_pandas()
+    enc = {
+        "y": alt.Y("sample_id:N", title="Sample ID", sort=None),
+        "x": alt.X("n_variants:Q", title="Variants"),
+        "color": alt.Color("final_tier:N", title="Tier"),
+    }
+    if has_set:
+        enc["row"] = alt.Row("set_number:N", title="Set")
+    chart = alt.Chart(pdf).mark_bar().encode(**enc).properties(
+        title="Per-Sample Per-Tier Variant Distribution")
     _save_chart(chart, "22_sample_tier_dist", output_dir)
     return chart
 
@@ -1505,7 +1560,7 @@ def plot_mean_vaf_per_group(summary_df, output_dir: str, group_col: str):
     if not charts:
         return
     chart = alt.hconcat(*charts).properties(title=f"Mean VAF by {group_title}") if len(charts) == 2 else charts[0]
-    _save_chart(chart, "35_mean_vaf_per_group", output_dir)
+    _save_chart(chart, "40_mean_vaf_per_group", output_dir)
     return chart
 
 
@@ -1538,7 +1593,7 @@ def plot_mean_dp_per_group(summary_df, output_dir: str, group_col: str):
     if not charts:
         return
     chart = alt.hconcat(*charts).properties(title=f"Mean DP by {group_title}") if len(charts) == 2 else charts[0]
-    _save_chart(chart, "36_mean_dp_per_group", output_dir)
+    _save_chart(chart, "41_mean_dp_per_group", output_dir)
     return chart
 
 
@@ -1557,7 +1612,7 @@ def plot_n_support_callers_dist(df, output_dir: str, group_col: str = "set_numbe
         color=alt.Color(f"{group_col}:N"),
         column=alt.Column(f"{group_col}:N", title=group_title),
     ).properties(title=f"Caller Support Distribution by {group_title}")
-    _save_chart(chart, "37_n_support_callers_dist", output_dir)
+    _save_chart(chart, "42_n_support_callers_dist", output_dir)
     return chart
 
 
@@ -1643,8 +1698,125 @@ def plot_sample_overview_scatter(sample_stats_df, output_dir: str):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Dashboard assembly
+# ML Threshold Guidance Charts (Section 7)
 # ═══════════════════════════════════════════════════════════════════════════
+
+def plot_filter_vaf_dp_heatmap(cross_tab_df, output_dir: str):
+    """Chart 43: FILTER x VAF_bin x DP_bin heatmap for ML threshold guidance.
+
+    Shows the joint distribution of classification, VAF bin, and DP bin
+    as a heatmap faceted by classification.
+    """
+    if cross_tab_df is None or (hasattr(cross_tab_df, 'is_empty') and cross_tab_df.is_empty()):
+        return
+    needed = ["classification", "vaf_bin", "dp_bin", "count"]
+    if not all(c in cross_tab_df.columns for c in needed):
+        return
+    pdf = cross_tab_df.to_pandas()
+    # Order VAF and DP bins sensibly
+    vaf_order = ["<0.01", "0.01-0.05", "0.05-0.10", "0.10-0.25", "0.25-0.50", "0.50-1.0"]
+    dp_order = ["<10", "10-50", "50-100", "100-200", "200-500", "500+"]
+    chart = alt.Chart(pdf).mark_rect().encode(
+        x=alt.X("vaf_bin:N", title="VAF Bin", sort=vaf_order),
+        y=alt.Y("dp_bin:N", title="DP Bin", sort=dp_order),
+        color=alt.Color("count:Q", title="Count", scale=alt.Scale(scheme="blues", type="log")),
+        facet=alt.Facet("classification:N", columns=3, title="Classification"),
+        tooltip=["classification", "vaf_bin", "dp_bin", "count"],
+    ).properties(title="FILTER x VAF x DP Cross-Tabulation", width=200, height=180)
+    _save_chart(chart, "43_filter_vaf_dp_heatmap", output_dir)
+    return chart
+
+
+def plot_low_vaf_rna_support(low_vaf_df, output_dir: str):
+    """Chart 44: Low VAF variants with strong RNA support — stacked bar by FILTER."""
+    if low_vaf_df is None or (hasattr(low_vaf_df, 'is_empty') and low_vaf_df.is_empty()):
+        return
+    if "FILTER" not in low_vaf_df.columns or "n_variants" not in low_vaf_df.columns:
+        return
+    pdf = low_vaf_df.to_pandas()
+    chart = alt.Chart(pdf).mark_bar().encode(
+        x=alt.X("FILTER:N", title="Classification"),
+        y=alt.Y("n_variants:Q", title="Number of Variants"),
+        color=alt.Color("FILTER:N", title="Classification",
+                        scale=alt.Scale(domain=CLASSIFICATION_DOMAIN, range=CLASSIFICATION_COLORS)),
+        tooltip=["FILTER", "n_variants", "mean_vaf"],
+    ).properties(title="Low VAF (< 0.05) Variants with RNA Support (N_RNA_CALLERS >= 2)")
+    _save_chart(chart, "44_low_vaf_rna_support", output_dir)
+    return chart
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# FP Cross-Tabulation Charts (Section 8)
+# ═══════════════════════════════════════════════════════════════════════════
+
+def plot_fp_cross_tab_heatmap(fp_df, output_dir: str):
+    """Chart 45: FP cross-tabulation heatmap — FILTER x N_SUPPORT_CALLERS for non-Somatic."""
+    if fp_df is None or (hasattr(fp_df, 'is_empty') and fp_df.is_empty()):
+        return
+    needed = ["FILTER", "N_SUPPORT_CALLERS", "count"]
+    if not all(c in fp_df.columns for c in needed):
+        return
+    pdf = fp_df.to_pandas()
+    pdf["N_SUPPORT_CALLERS"] = pdf["N_SUPPORT_CALLERS"].astype(int).astype(str)
+    chart = alt.Chart(pdf).mark_rect().encode(
+        x=alt.X("N_SUPPORT_CALLERS:N", title="Number of Supporting Callers"),
+        y=alt.Y("FILTER:N", title="Classification"),
+        color=alt.Color("count:Q", title="Count", scale=alt.Scale(scheme="orangered", type="log")),
+        tooltip=["FILTER", "N_SUPPORT_CALLERS", "count"],
+    ).properties(title="FP Cross-Tabulation: Non-Somatic FILTER x Caller Support")
+    _save_chart(chart, "45_fp_cross_tab_heatmap", output_dir)
+    return chart
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Somatic Modality Sub-Classification Charts (Section 9)
+# ═══════════════════════════════════════════════════════════════════════════
+
+def plot_somatic_modality_pie(modality_df, output_dir: str):
+    """Chart 46: Somatic modality sub-classification — pie chart."""
+    if modality_df is None or (hasattr(modality_df, 'is_empty') and modality_df.is_empty()):
+        return
+    if "somatic_modality" not in modality_df.columns or "n_variants" not in modality_df.columns:
+        return
+    modality_domain = ["MultiModality", "DNA_only", "RNA_only", "Weak", "Unknown"]
+    modality_colors = ["#1f77b4", "#2ca02c", "#ff7f0e", "#d62728", "#8c564b"]
+    pdf = modality_df.to_pandas()
+    chart = alt.Chart(pdf).mark_arc(innerRadius=40).encode(
+        theta=alt.Theta("n_variants:Q"),
+        color=alt.Color("somatic_modality:N", title="Somatic Modality",
+                        scale=alt.Scale(domain=modality_domain, range=modality_colors)),
+        tooltip=["somatic_modality", "n_variants"],
+    ).properties(title="Somatic Modality Sub-Classification")
+    _save_chart(chart, "46_somatic_modality_pie", output_dir)
+    return chart
+
+
+def plot_somatic_modality_bars(modality_df, output_dir: str):
+    """Chart 47: Somatic modality — bar chart with mean VAF/DP."""
+    if modality_df is None or (hasattr(modality_df, 'is_empty') and modality_df.is_empty()):
+        return
+    if "somatic_modality" not in modality_df.columns or "n_variants" not in modality_df.columns:
+        return
+    pdf = modality_df.to_pandas()
+    # Variants bar
+    bars = alt.Chart(pdf).mark_bar().encode(
+        x=alt.X("somatic_modality:N", title="Somatic Modality"),
+        y=alt.Y("n_variants:Q", title="Number of Variants"),
+        color=alt.Color("somatic_modality:N", title="Modality"),
+        tooltip=list(pdf.columns),
+    ).properties(title="Somatic Modality Sub-Classification: Variant Counts")
+    # VAF overlay if available
+    subcharts = [bars]
+    if "mean_dna_vaf" in pdf.columns:
+        vaf_chart = alt.Chart(pdf).mark_bar().encode(
+            x=alt.X("somatic_modality:N", title="Somatic Modality"),
+            y=alt.Y("mean_dna_vaf:Q", title="Mean DNA VAF"),
+            color=alt.Color("somatic_modality:N"),
+        ).properties(title="Mean DNA VAF by Modality")
+        subcharts.append(vaf_chart)
+    chart = alt.hconcat(*subcharts) if len(subcharts) > 1 else bars
+    _save_chart(chart, "47_somatic_modality_bars", output_dir)
+    return chart
 
 def _chart_section(fig, index: int) -> str:
     """Determine dashboard section for a chart based on its title."""
@@ -1662,7 +1834,8 @@ def _chart_section(fig, index: int) -> str:
         return "bam"
     if any(kw in title for kw in ["per-sample", "sample", "cross"]):
         return "persample"
-    if any(kw in title for kw in ["threshold", "vaf sweep", "concordance vs", "effectiveness", "enrichment"]):
+    if any(kw in title for kw in ["threshold", "vaf sweep", "concordance vs", "effectiveness", "enrichment",
+                                    "cross-tabulation", "low vaf", "fp cross", "partition", "modality"]):
         return "threshold"
     return "overview"
 
