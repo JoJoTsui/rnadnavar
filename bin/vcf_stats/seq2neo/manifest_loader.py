@@ -53,11 +53,11 @@ CALLER_CONFIGS: dict[str, dict[str, str]] = {
 
 
 def load_manifest(path: str | Path) -> pl.DataFrame:
-    """Load sample manifest from CSV or Parquet."""
+    """Load sample manifest from TSV or Parquet."""
     path = Path(path)
     if path.suffix == ".parquet":
         return pl.read_parquet(path)
-    return pl.read_csv(path)
+    return pl.read_csv(path, separator="\t")
 
 
 def get_vcf_prefix(set_number: int, patient_id: str, sample_id: str) -> str:
@@ -98,14 +98,53 @@ def get_all_caller_vcf_paths(
     base_output_dir: str,
     dir_name: str,
     vcf_prefix: str,
+    manifest_row: dict[str, Any] | None = None,
 ) -> dict[str, str | None]:
     """Construct all 6 caller VCF paths for a sample.
 
+    When manifest_row is provided and contains pre-computed caller paths,
+    they are used directly (no glob). Falls back to glob discovery if the
+    manifest column is missing or empty.
+
     Returns a dict mapping caller name -> VCF path (or None if missing).
     """
-    base = os.path.join(base_output_dir, dir_name)
     paths = {}
     for caller_name, cfg in CALLER_CONFIGS.items():
+        col = f"caller_{caller_name.lower()}"
+        # Pre-computed path from manifest
+        if manifest_row and col in manifest_row and manifest_row[col]:
+            candidate = manifest_row[col]
+            if os.path.isfile(candidate):
+                paths[caller_name] = candidate
+                continue
+        # Fallback: glob discovery
+        base = os.path.join(base_output_dir, dir_name)
         subdir = cfg["subdir"].format(prefix=vcf_prefix)
         paths[caller_name] = _find_vcf_file(base, subdir, cfg["pattern"])
+    return paths
+
+
+def get_manifest_bam_paths(
+    base_output_dir: str,
+    dir_name: str,
+    manifest_row: dict[str, Any] | None = None,
+) -> dict[str, str | None]:
+    """Get BAM paths for a sample from manifest or fallback to discovery.
+
+    Manifest columns: bam_dn, bam_dt, bam_rt
+    Fallback: delegates to bam_stats._locate_bam_file
+
+    Returns dict mapping BAM type (DN/DT/RT) -> path (or None if missing).
+    """
+    from .bam_stats import _locate_bam_file
+
+    paths = {}
+    for bt in ["DN", "DT", "RT"]:
+        col = f"bam_{bt.lower()}"
+        if manifest_row and col in manifest_row and manifest_row[col]:
+            candidate = manifest_row[col]
+            if os.path.isfile(candidate):
+                paths[bt] = candidate
+                continue
+        paths[bt] = _locate_bam_file(base_output_dir, dir_name, bt)
     return paths

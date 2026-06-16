@@ -683,6 +683,61 @@ def compute_vaf_threshold_sweep(df) -> pl.DataFrame:
     return pl.DataFrame(rows)
 
 
+def compute_dp_threshold_sweep(df) -> pl.DataFrame:
+    """DP threshold sweep: retention % vs depth threshold per caller.
+
+    For each caller and DP metric (total DP, REF_DP, ALT_DP), counts how many
+    variants are retained at each depth threshold. Returns a long-form DataFrame
+    with columns: caller, metric, threshold, n_retained, n_total, pct_retained.
+
+    Thresholds:
+      Total DP: [1, 2, 5, 10, 20, 50, 100, 200]
+      REF/ALT DP: [0, 1, 2, 5, 10, 20, 50]
+
+    This answers: "If I require DP >= X, what fraction of variants survive?"
+    """
+    df = _ensure_eager(df)
+    callers = ["DNA_mutect2", "DNA_deepsomatic", "DNA_strelka",
+               "RNA_mutect2", "RNA_deepsomatic", "RNA_strelka"]
+    dp_thresholds = [1, 2, 5, 10, 20, 50, 100, 200]
+    refalt_thresholds = [0, 1, 2, 5, 10, 20, 50]
+    rows = []
+
+    # Per-caller total DP sweep
+    for caller in callers:
+        dp_col = f"{caller}_DP"
+        if dp_col not in df.columns:
+            continue
+        total = df[dp_col].drop_nulls().len()
+        if total == 0:
+            continue
+        for thr in dp_thresholds:
+            n = df.filter(pl.col(dp_col) >= thr).height
+            rows.append({"caller": caller, "metric": "DP", "threshold": thr,
+                         "n_retained": n, "n_total": total,
+                         "pct_retained": round(n / total * 100, 2)})
+
+    # BAM pileup DP sweeps (REF_DP, ALT_DP for DT and RT)
+    for bt in ["DT", "RT"]:
+        for suffix, metric_name in [("DP", "BAM_DP"), ("REF_DP", "BAM_REF_DP"), ("ALT_DP", "BAM_ALT_DP")]:
+            col = f"BAM_{bt}_{suffix}"
+            if col not in df.columns:
+                continue
+            total = df[col].drop_nulls().len()
+            if total == 0:
+                continue
+            thresholds = dp_thresholds if suffix == "DP" else refalt_thresholds
+            for thr in thresholds:
+                n = df.filter(pl.col(col) >= thr).height
+                rows.append({"caller": f"BAM_{bt}", "metric": metric_name, "threshold": thr,
+                             "n_retained": n, "n_total": total,
+                             "pct_retained": round(n / total * 100, 2)})
+
+    if not rows:
+        return pl.DataFrame()
+    return pl.DataFrame(rows)
+
+
 def compute_filter_effectiveness_matrix(df) -> pl.DataFrame:
     """Filter effectiveness matrix: FILTER × Classification.
 

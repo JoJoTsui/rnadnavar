@@ -23,8 +23,18 @@ from pathlib import Path
 SET_TO_BASE_DIR = {
     1: "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output",
     2: "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output",
-    3: "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output",
-    4: "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output",
+    3: "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1",
+    4: "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1",
+}
+
+# Samples with truncated/incomplete BAM files — temporarily excluded from manifest.
+# Data team needs to regenerate/re-transfer these before re-enabling.
+EXCLUDED_SAMPLES = {
+    "PRJNA298376_4077",
+    "PRJNA298376_4110",
+    "PRJNA298376_4200",
+    "PRJNA298376_4220",
+    "PRJNA298376_4264",
 }
 
 # Rescue VCF filename pattern (filled with vcf_prefix)
@@ -36,6 +46,41 @@ RESCUE_VCF_TEMPLATE = (
 
 # Non-sample directory names to skip
 SKIP_DIRS = {"COO8801.shared", ".ipynb_checkpoints"}
+
+# ── Caller normalized VCF path config (mirrors manifest_loader.CALLER_CONFIGS) ─
+CALLER_CONFIGS = {
+    "DNA_mutect2": {
+        "subdir": "normalized/mutect2/{prefix}DT_vs_{prefix}DN",
+        "pattern": "*.mutect2.*.dec.norm.vcf.gz",
+    },
+    "RNA_mutect2": {
+        "subdir": "vcf_realignment/normalized/mutect2/{prefix}RT_realign_vs_{prefix}DN",
+        "pattern": "*.mutect2.*.dec.norm.vcf.gz",
+    },
+    "DNA_deepsomatic": {
+        "subdir": "normalized/deepsomatic/{prefix}DT_vs_{prefix}DN",
+        "pattern": "*.deepsomatic.*.dec.norm.vcf.gz",
+    },
+    "RNA_deepsomatic": {
+        "subdir": "vcf_realignment/normalized/deepsomatic/{prefix}RT_realign_vs_{prefix}DN",
+        "pattern": "*.deepsomatic.*.dec.norm.vcf.gz",
+    },
+    "DNA_strelka": {
+        "subdir": "normalized/strelka/{prefix}DT_vs_{prefix}DN",
+        "pattern": "*.strelka.*.dec.norm.vcf.gz",
+    },
+    "RNA_strelka": {
+        "subdir": "vcf_realignment/normalized/strelka/{prefix}RT_realign_vs_{prefix}DN",
+        "pattern": "*.strelka.*.dec.norm.vcf.gz",
+    },
+}
+
+# BAM type config (mirrors bam_stats.BAM_TYPES)
+BAM_TYPES = {
+    "DN": {"suffix": "DN", "label": "DNA Normal"},
+    "DT": {"suffix": "DT", "label": "DNA Tumor"},
+    "RT": {"suffix": "RT", "label": "RNA Tumor"},
+}
 
 
 def load_merged_json(path: str) -> list[dict]:
@@ -53,14 +98,55 @@ def load_merged_json(path: str) -> list[dict]:
     return samples
 
 
+def _locate_bam_file(base_dir: str, dir_name: str, bam_type: str) -> str | None:
+    """Locate BAM file for a given BAM type (DN, DT, or RT)."""
+    import glob
+
+    suffix = BAM_TYPES[bam_type]["suffix"]
+
+    if bam_type in ("DN", "DT"):
+        search_paths = [
+            os.path.join(base_dir, dir_name, "preprocessing", "mapped", f"*{suffix}", "*.sorted.bam"),
+            os.path.join(base_dir, dir_name, "preprocessing", "mapped", f"*{suffix}", "*.bam"),
+        ]
+    else:  # RT
+        search_paths = [
+            os.path.join(base_dir, dir_name, "preprocessing", "mapped", f"*{suffix}", "*.bam"),
+            os.path.join(base_dir, dir_name, "vcf_realignment", "preprocessing", "mapped", f"*{suffix}", "*.bam"),
+        ]
+
+    for pattern in search_paths:
+        files = glob.glob(pattern)
+        if files:
+            return files[0]
+    return None
+
+
+def _locate_caller_vcf(base_dir: str, dir_name: str, vcf_prefix: str,
+                       caller_name: str, cfg: dict) -> str | None:
+    """Locate a single caller normalized VCF file. Returns path or None."""
+    import glob
+
+    subdir = cfg["subdir"].format(prefix=vcf_prefix)
+    search_path = os.path.join(base_dir, dir_name, subdir, cfg["pattern"])
+    files = glob.glob(search_path)
+    if files:
+        return files[0]
+    return None
+
+
 def build_manifest(samples: list[dict]) -> list[dict]:
     """Build manifest rows for every eligible sample."""
     rows = []
     n_complete = 0
     n_incomplete = 0
 
+    n_excluded = 0
     for s in samples:
         sample_id = f"{s['_project_id']}_{s['patient_id']}"
+        if sample_id in EXCLUDED_SAMPLES:
+            n_excluded += 1
+            continue
         set_number = s["partition_set"]
         patient_id = str(s["patient_id"])
         base_dir = SET_TO_BASE_DIR[set_number]
@@ -80,14 +166,31 @@ def build_manifest(samples: list[dict]) -> list[dict]:
         )
         rescue_vcf_filename = RESCUE_VCF_TEMPLATE.format(vcf_prefix=vcf_prefix)
         rescue_vcf_path = os.path.join(rescue_dir, rescue_vcf_filename)
-        is_complete = os.path.isfile(rescue_vcf_path)
+
+        # BAM paths — locate all three BAM types per sample
+        bam_paths = {}
+        for bt in ["DN", "DT", "RT"]:
+            bam_path = _locate_bam_file(base_dir, dir_name, bt)
+            bam_paths[f"bam_{bt.lower()}"] = bam_path or ""
+
+        # Caller normalized VCF paths — locate all 6 callers
+        caller_paths = {}
+        for caller_name, cfg in CALLER_CONFIGS.items():
+            vcf_path = _locate_caller_vcf(base_dir, dir_name, vcf_prefix, caller_name, cfg)
+            caller_paths[f"caller_{caller_name.lower()}"] = vcf_path or ""
+
+        # Completeness: rescue VCF + at least one BAM + at least one caller VCF
+        has_rescue = os.path.isfile(rescue_vcf_path)
+        has_bam = any(v for v in bam_paths.values())
+        has_caller = any(v for v in caller_paths.values())
+        is_complete = has_rescue and has_bam and has_caller
 
         if is_complete:
             n_complete += 1
         else:
             n_incomplete += 1
 
-        rows.append({
+        row = {
             "sample_id": sample_id,
             "project_id": s["_project_id"],
             "patient_id": patient_id,
@@ -101,9 +204,12 @@ def build_manifest(samples: list[dict]) -> list[dict]:
             "vcf_prefix": vcf_prefix,
             "rescue_vcf_path": rescue_vcf_path,
             "is_complete": is_complete,
-        })
+        }
+        row.update(bam_paths)
+        row.update(caller_paths)
+        rows.append(row)
 
-    print(f"Manifest: {len(rows)} samples ({n_complete} complete, {n_incomplete} incomplete)")
+    print(f"Manifest: {len(rows)} samples ({n_complete} complete, {n_incomplete} incomplete, {n_excluded} excluded)")
     return rows
 
 
@@ -136,17 +242,17 @@ def validate_coverage(samples: list[dict], manifest: list[dict]) -> bool:
     return ok
 
 
-def write_csv(rows: list[dict], path: str):
-    """Write manifest as CSV."""
+def write_tsv(rows: list[dict], path: str):
+    """Write manifest as TSV (tab-separated)."""
     if not rows:
         print("No rows to write.")
         return
     fieldnames = list(rows[0].keys())
     with open(path, "w", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=fieldnames)
+        writer = csv.DictWriter(fh, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
         writer.writerows(rows)
-    print(f"CSV written: {path}")
+    print(f"TSV written: {path}")
 
 
 def write_parquet(rows: list[dict], path: str):
@@ -219,7 +325,7 @@ def main():
     )
     parser.add_argument(
         "--no-parquet", action="store_true",
-        help="Skip Parquet output (CSV only)",
+        help="Skip Parquet output (TSV only)",
     )
     args = parser.parse_args()
 
@@ -230,8 +336,8 @@ def main():
     validate_coverage(samples, rows)
     print_summary(rows)
 
-    csv_path = f"{args.output_prefix}.csv"
-    write_csv(rows, csv_path)
+    tsv_path = f"{args.output_prefix}.tsv"
+    write_tsv(rows, tsv_path)
 
     if not args.no_parquet:
         parquet_path = f"{args.output_prefix}.parquet"

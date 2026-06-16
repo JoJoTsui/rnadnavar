@@ -12,6 +12,46 @@ from typing import Any
 
 import polars as pl
 
+# Standard BGZF EOF marker: an empty gzip block (28 bytes) that terminates
+# every valid BGZF-compressed file (BAM, VCF.gz, etc.). Files truncated during
+# transfer or storage lack this marker.
+_BGZF_EOF_MARKER = bytes([
+    0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0xff, 0x06, 0x00, 0x42, 0x43, 0x02, 0x00,
+    0x1b, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+])
+
+
+def _check_bam_eof(bam_path: str) -> tuple[bool, str]:
+    """Check whether a BAM file has a valid BGZF EOF marker.
+
+    Reads the last 28 bytes of the file and compares against the standard
+    BGZF empty-block footer. This is an O(1) check — no parsing required.
+
+    Returns:
+        (is_valid, reason) — True if EOF is valid, False with explanation if not.
+    """
+    if not bam_path or not os.path.isfile(bam_path):
+        return False, f"file not found: {bam_path}"
+    try:
+        file_size = os.path.getsize(bam_path)
+        if file_size < 28:
+            return False, f"file too small to be valid BAM ({file_size} bytes): {bam_path}"
+        with open(bam_path, "rb") as f:
+            f.seek(-28, os.SEEK_END)
+            tail = f.read(28)
+        if tail == _BGZF_EOF_MARKER:
+            return True, ""
+        # Also accepts BGZF EOF blocks where the deflate stored-block header
+        # uses ISIZE=0x00000000 instead of 0x0003 — the first 16 bytes
+        # (gzip header + BGZF extra subfield) are identical in both variants.
+        if tail[:16] == _BGZF_EOF_MARKER[:16]:
+            return True, ""
+        return False, f"no valid BGZF EOF marker (file may be truncated): {bam_path}"
+    except OSError as e:
+        return False, f"cannot read BAM file: {bam_path}: {e}"
+
 
 def read_and_merge_bed(bed_path: str, gap: int = 100_000) -> tuple[int, list[tuple[str, int, int]], list[tuple[str, int, int]]]:
     """Read BED file, merge adjacent intervals, return raw/merged totals + regions.

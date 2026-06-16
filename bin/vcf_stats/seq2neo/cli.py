@@ -76,6 +76,7 @@ from .statistics import (
     compute_all_per_variant,
     compute_caller_wise_summary,
     compute_filter_effectiveness_matrix,
+    compute_dp_threshold_sweep,
     compute_vaf_threshold_sweep,
     compute_wise_summary,
     dataset_summary,
@@ -92,6 +93,7 @@ from .visualizer import (
     plot_bam_coverage_violin,
     plot_bam_metrics_bars,
     plot_caller_overlap,
+    plot_bam_dp_distribution,
     plot_caller_tier_heatmap,
     plot_dp_distribution,
     plot_mean_vaf_per_group,
@@ -114,6 +116,7 @@ from .visualizer import (
     plot_chromosome_density,
     plot_dna_vs_rna_per_caller,
     plot_filter_distribution,
+    plot_per_tier_dp_boxplot,
     plot_per_tier_vaf_boxplot,
     plot_tier_quality_distribution,
     plot_tiered_variant_types,
@@ -121,6 +124,7 @@ from .visualizer import (
     plot_redi_evidence,
     plot_vaf_distribution,
     plot_vaf_boxplot_per_tier,
+    plot_dp_threshold_sweep,
     plot_vaf_threshold_sweep,
     plot_caller_concordance_vs_vaf,
     plot_filter_effectiveness_heatmap,
@@ -252,7 +256,11 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         # Streaming join: parse + join one caller at a time.
         df = rescue_slim.clone()
         for caller_name, cfg in CALLER_CONFIGS.items():
-            name, cols = _parse_one_caller(caller_name, cfg, base, vcf_prefix, target_positions)
+            # Pre-computed path from manifest (avoids per-caller glob at runtime)
+            caller_vcf_col = f"caller_{caller_name.lower()}"
+            caller_vcf_path = row.get(caller_vcf_col) or None
+            name, cols = _parse_one_caller(caller_name, cfg, base, vcf_prefix,
+                                           target_positions, vcf_path=caller_vcf_path)
             if cols:
                 df = _streaming_join_one(df, cols, caller_name)
                 del cols
@@ -288,7 +296,7 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         # Uses combined multi-BAM Rust function for efficiency (all BAMs in
         # one FFI call, shared position grouping, binary search inner loop).
         if not no_pileup:
-            from .bam_stats import _locate_bam_file
+            from .manifest_loader import get_manifest_bam_paths
 
             # Build positions list, optionally excluding NoConsensus variants
             cols_4 = ["CHROM", "POS", "REF", "ALT"]
@@ -306,12 +314,38 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
             n_pos = len(positions)
             print(f"  [{sample_id}] BAM pileup: {n_pos} positions ({pileup_mode} mode)")
 
-            # Collect available BAM paths
-            bam_paths = {}
-            for bt in ["DN", "DT", "RT"]:
-                bam_path = _locate_bam_file(base_dir, dir_name, bt)
-                if bam_path:
-                    bam_paths[bt] = bam_path
+            # Collect available BAM paths (manifest-first, fallback to glob)
+            bam_paths = {
+                bt: bp for bt, bp in get_manifest_bam_paths(
+                    base_dir, dir_name, manifest_row=row).items()
+                if bp
+            }
+
+            if bam_paths:
+                # Pre-processing BAM integrity check — validate BGZF EOF marker
+                # before hours of pileup computation. All-truncated samples skip
+                # pileup entirely; partially truncated samples proceed with warnings.
+                from .bam_stats import _check_bam_eof as check_bam_eof
+                bam_ok = {}
+                bam_bad = []
+                for bt, bp in bam_paths.items():
+                    ok, msg = check_bam_eof(bp)
+                    bam_ok[bt] = ok
+                    if not ok:
+                        bam_bad.append((bt, msg))
+                if bam_bad:
+                    all_bad = len(bam_bad) == len(bam_paths)
+                    for bt, msg in bam_bad:
+                        if all_bad:
+                            print(f"  [{sample_id}] ERROR: {msg}")
+                        else:
+                            print(f"  [{sample_id}] WARNING: {msg}")
+                    if all_bad:
+                        print(f"  [{sample_id}] All BAMs truncated — skipping pileup")
+                        bam_paths = {}
+                    else:
+                        # Keep only valid BAMs
+                        bam_paths = {bt: bp for bt, bp in bam_paths.items() if bam_ok[bt]}
 
             if bam_paths:
                 try:
@@ -422,7 +456,7 @@ def main():
     warnings.filterwarnings('ignore', message='resource_tracker')
 
     parser = argparse.ArgumentParser(description="Seq2neo variant statistics")
-    parser.add_argument("--manifest", required=True, help="Path to sample manifest CSV/Parquet")
+    parser.add_argument("--manifest", required=True, help="Path to sample manifest TSV/Parquet")
     parser.add_argument("--output-dir", required=True, help="Output directory for statistics")
     parser.add_argument("--threads", type=int, default=6,
                         help="Threads for within-sample caller parsing (1-6, default: 6).")
@@ -454,6 +488,16 @@ def main():
                         help="Generate specific wise summaries and charts (space-separated). "
                              "Choices: set, disease, sample, tier, caller, chromosome, threshold. "
                              "Default: all wises.")
+    parser.add_argument("--exclude-disease", nargs="*", default=None, metavar="DISEASE",
+                        help="Exclude specific diseases (space-separated) from filtered parquet output. "
+                             "Used for zero-shot experiments — variants from these diseases are "
+                             "written to a separate variant_details_filtered/ directory.")
+    parser.add_argument("--min-vaf", type=float, default=None,
+                        help="Minimum VAF threshold for filtered parquet output. Variants below this "
+                             "threshold in BOTH modalities are excluded from variant_details_filtered/.")
+    parser.add_argument("--min-dp", type=int, default=None,
+                        help="Minimum DP threshold for filtered parquet output. Variants below this "
+                             "threshold in BOTH modalities are excluded from variant_details_filtered/.")
     parser.add_argument("--verbose", action="store_true",
                         help="Show per-caller progress messages")
     parser.add_argument("--process-mode", choices=["thread", "spawn"], default=None,
@@ -855,6 +899,15 @@ def main():
         except Exception as e:
             print(f"  WARNING: filter effectiveness matrix failed: {e}")
 
+        try:
+            dp_sweep_df = compute_dp_threshold_sweep(combined_df)
+            if not dp_sweep_df.is_empty():
+                write_tsv(dp_sweep_df, str(threshold_dir / "dp_threshold_sweep.tsv"))
+                print(f"  DP threshold sweep: {threshold_dir / 'dp_threshold_sweep.tsv'}")
+                figs.append(plot_dp_threshold_sweep(dp_sweep_df, str(output_dir)))
+        except Exception as e:
+            print(f"  WARNING: DP threshold sweep failed: {e}")
+
     gc.collect()
     _malloc_trim()
     _mem("after aggregation cleanup")
@@ -957,6 +1010,7 @@ def main():
             (plot_tiered_caller_overlap, {}),
             (plot_tiered_variant_types, {}),
             (plot_per_tier_vaf_boxplot, {}),
+            (plot_per_tier_dp_boxplot, {}),
             (plot_database_enrichment_by_tier, {}),
             (plot_caller_concordance_vs_vaf, {"color_col": "final_tier"}),
         ],
@@ -1004,6 +1058,7 @@ def main():
         figs.append(plot_bam_metrics_bars(bam_stats_df, str(output_dir)))
     if not args.no_pileup:
         figs.append(plot_bam_coverage_violin(combined_df, str(output_dir)))
+        figs.append(plot_bam_dp_distribution(combined_df, str(output_dir)))
 
     # Per-sample charts (use sample_stats_df, not combined_df)
     if all_stats:
@@ -1020,6 +1075,65 @@ def main():
 
     # Master dashboard
     generate_dashboard(figs, str(output_dir))
+
+    # ── Data Leakage Exclusions: write filtered parquet for downstream ML ──
+    has_filters = (
+        args.exclude_disease
+        or (args.min_vaf is not None and args.min_vaf > 0)
+        or (args.min_dp is not None and args.min_dp > 0)
+    )
+    if has_filters:
+        filtered_dir = output_dir / "variant_details_filtered"
+        filtered_dir.mkdir(parents=True, exist_ok=True)
+        print(f"\nGenerating filtered parquet files for downstream ML...")
+        import glob as _glob2
+        total_excluded = 0
+        for parquet_path in sorted(_glob2.glob(str(variant_dir / "*_variants.parquet"))):
+            sid = os.path.basename(parquet_path).replace("_variants.parquet", "")
+            df = pl.read_parquet(parquet_path)
+            n_before = len(df)
+
+            # Filter by disease exclusion (sample-level)
+            if args.exclude_disease:
+                disease_col = None
+                for c in ["disease", "disease_normalized"]:
+                    if c in df.columns:
+                        disease_col = c
+                        break
+                if disease_col:
+                    exclude_list = list(args.exclude_disease)
+                    df = df.filter(~pl.col(disease_col).is_in(exclude_list))
+
+            # Filter by VAF threshold (keep variant if EITHER modality passes)
+            # Spec: exclude if BOTH modalities below threshold
+            if args.min_vaf and args.min_vaf > 0:
+                vaf_mask = pl.lit(False)
+                if "DNA_VAF_mean" in df.columns:
+                    vaf_mask = vaf_mask | (pl.col("DNA_VAF_mean") >= args.min_vaf)
+                if "RNA_VAF_mean" in df.columns:
+                    vaf_mask = vaf_mask | (pl.col("RNA_VAF_mean") >= args.min_vaf)
+                df = df.filter(vaf_mask)
+
+            # Filter by DP threshold (keep variant if EITHER modality passes)
+            # Spec: exclude if BOTH modalities below threshold
+            if args.min_dp and args.min_dp > 0:
+                dp_mask = pl.lit(False)
+                if "DNA_DP_mean" in df.columns:
+                    dp_mask = dp_mask | (pl.col("DNA_DP_mean") >= args.min_dp)
+                if "RNA_DP_mean" in df.columns:
+                    dp_mask = dp_mask | (pl.col("RNA_DP_mean") >= args.min_dp)
+                df = df.filter(dp_mask)
+
+            n_after = len(df)
+            n_excluded = n_before - n_after
+            total_excluded += n_excluded
+            if n_after > 0:
+                df.write_parquet(str(filtered_dir / f"{sid}_variants.parquet"))
+            if n_excluded > 0:
+                print(f"  [{sid}] {n_excluded}/{n_before} variants excluded by filters")
+            del df
+        print(f"  Total excluded: {total_excluded} variants across all samples")
+        print(f"  Filtered parquet: {filtered_dir}/")
 
     print(f"\nAll outputs written to: {output_dir}")
     print("Done.")

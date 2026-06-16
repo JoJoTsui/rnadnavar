@@ -3536,3 +3536,57 @@ class TestTSV:
         df.write_csv(str(csv_path))
         csv_back = pl.read_csv(str(csv_path))
         assert csv_back["sample_id"][0] == "s1"
+
+
+class TestBamValidationColumns:
+    """Verify BAM validation uses correct column naming (BAM_{bt}_{metric})."""
+
+    def test_has_bam_data_true_when_pileup_columns_exist(self):
+        """has_bam_data=True when BAM_DT_DP and BAM_RT_DP columns are present."""
+        from vcf_stats.seq2neo.bam_validation import validate_bam_vs_caller
+        df = pl.DataFrame({
+            "BAM_DT_DP": [10, 20],
+            "BAM_DT_ALT_DP": [3, 8],
+            "BAM_DT_REF_DP": [7, 12],
+            "BAM_RT_DP": [15, 25],
+            "BAM_RT_ALT_DP": [5, 10],
+            "BAM_RT_REF_DP": [10, 15],
+        })
+        result = validate_bam_vs_caller(df, "test_sample")
+        assert result["has_bam_data"] is True
+        assert "DT" in result["bam_types"]
+        assert "RT" in result["bam_types"]
+
+    def test_has_bam_data_false_without_pileup(self):
+        """has_bam_data=False when no BAM pileup columns exist."""
+        from vcf_stats.seq2neo.bam_validation import validate_bam_vs_caller
+        df = pl.DataFrame({"some_col": [1]})
+        result = validate_bam_vs_caller(df, "test_sample")
+        assert result["has_bam_data"] is False
+
+    def test_column_naming_matches_pileup_output(self):
+        """BAM validation uses BAM_{bt}_{metric} not BAM_{metric}_{bt}."""
+        from vcf_stats.seq2neo.bam_validation import validate_bam_vs_caller
+        # Simulate the exact column names from pileup rename:
+        # rename = {c: f"BAM_{bt}_{c}" for c in pileup_df.columns if c not in join_key}
+        df = pl.DataFrame({
+            "BAM_DT_DP": [10],
+            "BAM_DT_ALT_DP": [3],
+            "BAM_DT_REF_DP": [7],
+            "BAM_RT_DP": [20],
+            "BAM_RT_ALT_DP": [8],
+            "BAM_RT_REF_DP": [12],
+        })
+        result = validate_bam_vs_caller(df, "test_sample")
+        assert result["has_bam_data"] is True
+        assert len(result["bam_types"].split(",")) == 2  # DT + RT, no DN in this test
+
+    def test_strand_column_naming(self):
+        """bam_type_has_strand uses correct BAM_{bt}_F1R2_alt naming."""
+        from vcf_stats.seq2neo.bam_validation import bam_type_has_strand
+        df = pl.DataFrame({
+            "BAM_DT_F1R2_alt": [1],
+            "BAM_DT_F2R1_alt": [0],
+        })
+        assert bam_type_has_strand(df, "DT") is True
+        assert bam_type_has_strand(df, "RT") is False

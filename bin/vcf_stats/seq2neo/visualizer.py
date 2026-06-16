@@ -13,6 +13,7 @@ LazyFrame without first calling .collect().
 from pathlib import Path
 
 import altair as alt
+import pandas as pd
 import polars as pl
 
 # Disable altair's 5000-row default limit
@@ -580,22 +581,35 @@ def plot_vaf_distribution(df, output_dir: str, color_col: str = None):
     pdf = _sample_if_large(melted, max_rows=50000).to_pandas()
     pdf["caller"] = pdf["caller"].str.replace("_VAF", "")
 
+    # Clamp VAF to [0, 1] for visualization (Strelka VAF uses tier-1 depth
+    # denominator and can exceed 1.0 — correct by design, clamped for display).
+    vaf_clamp = pdf["VAF"].clip(0.0, 1.0)
+    pdf["VAF_display"] = vaf_clamp
+
+    y_scale = alt.Y("VAF_display:Q", title="Variant Allele Frequency (capped at 1.0)",
+                    scale=alt.Scale(domain=[0, 1]))
     enc = {"x": alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
-           "y": alt.Y("VAF:Q", title="Variant Allele Frequency")}
+           "y": y_scale}
     if color_col and color_col in pdf.columns:
         enc["color"] = alt.Color(f"{color_col}:N")
         enc["column"] = alt.Column(f"{color_col}:N")
 
+    # Horizontal reference lines at key VAF thresholds
+    ref_line_data = pd.DataFrame({"y": [0.005, 0.01, 0.05, 0.10]})
+    ref_rules = alt.Chart(ref_line_data).mark_rule(
+        strokeDash=[2, 2], opacity=0.4, strokeWidth=1
+    ).encode(y=alt.Y("y:Q"))
+
     is_faceted = "column" in enc
     if not is_faceted:
         violin = alt.Chart(pdf).transform_density(
-            "VAF", groupby=["caller"]
+            "VAF_display", groupby=["caller"]
         ).mark_area(opacity=0.3).encode(
             x=alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
-            y=alt.Y("VAF:Q", title="Variant Allele Frequency"),
-            color=alt.Color("caller:N"))
+            y=y_scale,
+            color=alt.Color("caller:N", scale=alt.Scale(scheme="category10")))
         box = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc)
-        chart = (violin + box).properties(title="VAF Distribution per Caller")
+        chart = (violin + box + ref_rules).properties(title="VAF Distribution per Caller")
     else:
         chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc).properties(
             title="VAF Distribution per Caller")
@@ -676,9 +690,13 @@ def plot_vaf_boxplot_per_tier(df, output_dir: str, facet_col: str = None):
     if facet_col and facet_col in pdf.columns:
         pdf[facet_col] = pdf[facet_col].astype(str)
         col_enc = alt.Column(f"{facet_col}:N", title=facet_col.replace("_", " ").title())
+    pdf["VAF_display"] = pdf["VAF"].clip(0.0, 1.0)
+    y_scale = alt.Y("VAF_display:Q", title="Variant Allele Frequency (capped at 1.0)",
+                    scale=alt.Scale(domain=[0, 1]))
     base_enc = {"x": alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
-                "color": alt.Color("caller:N"), "column": col_enc,
-                "y": alt.Y("VAF:Q", title="Variant Allele Frequency")}
+                "color": alt.Color("caller:N", scale=alt.Scale(scheme="category10")),
+                "column": col_enc,
+                "y": y_scale}
     chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**base_enc).properties(
         title="VAF Distribution per Caller × Caller Tier")
     _save_chart(chart, "14_vaf_violin_per_tier", output_dir)
@@ -753,10 +771,12 @@ def plot_per_tier_vaf_boxplot(df, output_dir: str):
         return
     pdf = df.select(["final_tier", "DNA_VAF_mean", "RNA_VAF_mean"]).drop_nulls(subset=["DNA_VAF_mean"])
     pdf = _sample_if_large(pdf, max_rows=50000).to_pandas()
+    pdf["VAF_display"] = pdf["DNA_VAF_mean"].clip(0.0, 1.0)
     chart = alt.Chart(pdf).mark_boxplot().encode(
         x=alt.X("final_tier:N", title="Tier"),
-        y=alt.Y("DNA_VAF_mean:Q", title="DNA Mean VAF"),
-        color=alt.Color("final_tier:N"),
+        y=alt.Y("VAF_display:Q", title="DNA Mean VAF (capped at 1.0)",
+                scale=alt.Scale(domain=[0, 1])),
+        color=alt.Color("final_tier:N", scale=alt.Scale(scheme="category10")),
     ).properties(title="DNA VAF Distribution per Tier")
     _save_chart(chart, "25_per_tier_vaf", output_dir)
     return chart
@@ -1108,24 +1128,29 @@ def plot_validation_heatmap(report, output_dir: str):
 
 
 def plot_bam_metrics_bars(bam_stats_df, output_dir: str, top_n: int = 20):
-    """BAM metrics: grouped bar chart of per-sample reads for DN/DT/RT (top-N samples)."""
+    """BAM metrics: grouped bar chart of per-sample reads for DN/DT/RT, faceted by set."""
     if bam_stats_df is None or (hasattr(bam_stats_df, 'is_empty') and bam_stats_df.is_empty()):
         return
     needed = ["sample_id", "bam_type", "total_reads"]
     if not all(c in bam_stats_df.columns for c in needed):
         return
-    top_ids = bam_stats_df.group_by("sample_id").agg(
-        pl.col("total_reads").max().alias("max_reads")
-    ).sort("max_reads", descending=True).head(top_n)["sample_id"].to_list()
-    pdf = bam_stats_df.filter(pl.col("sample_id").is_in(top_ids)).select(
-        ["sample_id", "bam_type", "total_reads", "mapped_reads"]
-    ).to_pandas()
-    chart = alt.Chart(pdf).mark_bar().encode(
-        x=alt.X("sample_id:N", title="Sample", axis=alt.Axis(labelAngle=-45)),
-        y=alt.Y("total_reads:Q", title="Total Reads"),
-        color=alt.Color("bam_type:N", title="BAM Type"),
-        xOffset="bam_type:N",
-    ).properties(title=f"Per-Sample BAM Read Counts — DN/DT/RT (Top {top_n})")
+    # Show all samples, faceted by set_number if available
+    select_cols = ["sample_id", "bam_type", "total_reads", "mapped_reads"]
+    has_set = "set_number" in bam_stats_df.columns
+    if has_set:
+        select_cols.append("set_number")
+    pdf = bam_stats_df.select(select_cols).to_pandas()
+    enc = {
+        "x": alt.X("sample_id:N", title="Sample", axis=alt.Axis(labelAngle=-45, labelLimit=120)),
+        "y": alt.Y("total_reads:Q", title="Total Reads"),
+        "color": alt.Color("bam_type:N", title="BAM Type"),
+        "xOffset": "bam_type:N",
+    }
+    if has_set:
+        pdf["set_number"] = pdf["set_number"].astype(str)
+        enc["row"] = alt.Row("set_number:N", title="Set")
+    chart = alt.Chart(pdf).mark_bar().encode(**enc).properties(
+        title="Per-Sample BAM Read Counts — DN/DT/RT")
     _save_chart(chart, "20_bam_metrics", output_dir)
     return chart
 
@@ -1150,8 +1175,8 @@ def plot_bam_coverage_violin(df, output_dir: str, color_col: str = None):
     """BAM pileup coverage depth distribution across variant positions.
 
     Shows per-position DP (total, REF, ALT) for each BAM type (DN/DT/RT)
-    as violin plots. Requires BAM pileup data (--no-pileup skips this).
-    Data is sampled to 10K rows per BAM type to keep memory bounded.
+    as violin plots. Handles partial BAM type availability (e.g., DT+RT
+    present but DN absent). Data is sampled to 10K rows to keep memory bounded.
     """
     dp_cols = []
     for bt in ["DN", "DT", "RT"]:
@@ -1160,7 +1185,7 @@ def plot_bam_coverage_violin(df, output_dir: str, color_col: str = None):
             if col in df.columns:
                 dp_cols.append(col)
 
-    if len(dp_cols) < 2:
+    if len(dp_cols) < 1:
         return
 
     select_cols = dp_cols[:]
@@ -1170,7 +1195,15 @@ def plot_bam_coverage_violin(df, output_dir: str, color_col: str = None):
         index=[color_col] if color_col and color_col in df.columns else [],
         variable_name="metric", value_name="depth"
     ).drop_nulls()
-    sampled = _sample_if_large(melted, max_rows=10000).to_pandas()
+    sampled = _sample_if_large(melted, max_rows=10000)
+
+    if sampled is None or (hasattr(sampled, 'is_empty') and sampled.is_empty()):
+        return
+    if hasattr(sampled, 'height') and sampled.height == 0:
+        return
+    sampled = sampled.to_pandas()
+    if len(sampled) == 0:
+        return
 
     enc = {"x": alt.X("depth:Q", title="Depth at Variant Position"),
            "y": alt.Y("density:Q", title="Density"),
@@ -1235,6 +1268,31 @@ def plot_vaf_threshold_sweep(sweep_df, output_dir: str):
         color=alt.Color("caller:N", title="Caller"),
     ).properties(title="VAF Threshold Sweep: Retention % vs Threshold per Caller")
     _save_chart(chart, "31_vaf_threshold_sweep", output_dir)
+    return chart
+
+
+def plot_dp_threshold_sweep(sweep_df, output_dir: str):
+    """Chart 35: DP threshold sweep — multi-line retention% vs threshold per caller/metric.
+
+    Args:
+        sweep_df: Output of compute_dp_threshold_sweep() — long-form DataFrame
+                  with caller, metric, threshold, pct_retained columns.
+    """
+    if sweep_df is None or (hasattr(sweep_df, 'is_empty') and sweep_df.is_empty()):
+        return
+    needed = ["caller", "metric", "threshold", "pct_retained"]
+    if not all(c in sweep_df.columns for c in needed):
+        return
+    if hasattr(sweep_df, 'is_empty') and sweep_df.is_empty():
+        return
+    pdf = sweep_df.to_pandas()
+    chart = alt.Chart(pdf).mark_line(point=True).encode(
+        x=alt.X("threshold:Q", title="Depth Threshold"),
+        y=alt.Y("pct_retained:Q", title="% Variants Retained"),
+        color=alt.Color("caller:N", title="Caller", scale=alt.Scale(scheme="category10")),
+        column=alt.Column("metric:N", title="DP Metric"),
+    ).properties(title="DP Threshold Sweep: Retention % vs Threshold per Caller")
+    _save_chart(chart, "35_dp_threshold_sweep", output_dir)
     return chart
 
 
@@ -1311,6 +1369,11 @@ def plot_database_enrichment_by_tier(df, output_dir: str):
         tier_n = row[1]  # n_total
         if tier_n == 0:
             continue
+        # Skip D=0 tiers: D=0 means "no database evidence" by design.
+        # Including them inflates the chart with zero-value bars that
+        # confuse readers into thinking data is missing.
+        if tier.endswith("D0"):
+            continue
         r = {"tier": tier, "n_total": tier_n}
         idx = 2
         if "COSMIC_ID" in df.columns:
@@ -1337,9 +1400,11 @@ def plot_database_enrichment_by_tier(df, output_dir: str):
         charts.append(c)
 
     if len(charts) == 2:
-        chart = alt.hconcat(*charts).properties(title="Database Annotation Enrichment by Tier")
+        chart = alt.hconcat(*charts).properties(
+            title="Database Annotation Enrichment by Tier (D=0 tiers excluded — no DB evidence by design)")
     elif charts:
-        chart = charts[0]
+        chart = charts[0].properties(
+            title=f"Database Annotation Enrichment by Tier (D=0 tiers excluded)")
     else:
         return
     _save_chart(chart, "34_database_enrichment_by_tier", output_dir)
@@ -1590,6 +1655,79 @@ def _extract_body_content(html: str) -> str:
     if body_start and body_end != -1:
         return html[body_start.end():body_end].strip()
     return html
+
+
+def plot_bam_dp_distribution(df, output_dir: str, color_col: str = None):
+    """Chart 36: BAM pileup DP distribution — violin + box per BAM type and metric.
+
+    Shows per-position DP (total, REF, ALT) for DT and RT BAM types
+    as box+violin overlay. Data is sampled to 10K rows.
+    """
+    dp_cols = []
+    for bt in ["DT", "RT"]:
+        for suffix, label in [("DP", "BAM DP"), ("REF_DP", "BAM REF DP"), ("ALT_DP", "BAM ALT DP")]:
+            col = f"BAM_{bt}_{suffix}"
+            if col in df.columns:
+                dp_cols.append((col, f"{bt} {label}"))
+
+    if not dp_cols:
+        return
+
+    cols, labels = zip(*dp_cols)
+    select_cols = list(cols)
+    melted = df.select(select_cols).unpivot(
+        variable_name="metric", value_name="depth"
+    ).drop_nulls()
+    # Map column names to readable labels
+    label_map = dict(dp_cols)
+    melted = melted.with_columns(
+        pl.col("metric").replace_strict(label_map, default=pl.col("metric"))
+    )
+    sampled = _sample_if_large(melted, max_rows=10000)
+
+    if sampled is None or (hasattr(sampled, 'is_empty') and sampled.is_empty()):
+        return
+    if hasattr(sampled, 'height') and sampled.height == 0:
+        return
+    sampled = sampled.to_pandas()
+    if len(sampled) == 0:
+        return
+
+    enc = {"x": alt.X("metric:N", title="BAM Metric", axis=alt.Axis(labelAngle=-45)),
+           "y": alt.Y("depth:Q", title="Depth at Variant Position")}
+    if color_col and color_col in sampled.columns:
+        enc["color"] = alt.Color(f"{color_col}:N")
+        enc["column"] = alt.Column(f"{color_col}:N")
+    is_faceted = "column" in enc
+    if not is_faceted:
+        violin = alt.Chart(sampled).transform_density(
+            "depth", groupby=["metric"]
+        ).mark_area(opacity=0.3).encode(
+            x=alt.X("metric:N", title="BAM Metric", axis=alt.Axis(labelAngle=-45)),
+            y=alt.Y("depth:Q", title="Depth at Variant Position"),
+            color=alt.Color("metric:N", scale=alt.Scale(scheme="category10")))
+        box = alt.Chart(sampled).mark_boxplot(size=30).encode(**enc)
+        chart = (violin + box).properties(title="BAM Pileup DP Distribution per BAM Type")
+    else:
+        chart = alt.Chart(sampled).mark_boxplot(size=30).encode(**enc).properties(
+            title="BAM Pileup DP Distribution per BAM Type")
+    _save_chart(chart, "36_bam_dp_distribution", output_dir)
+    return chart
+
+
+def plot_per_tier_dp_boxplot(df, output_dir: str):
+    """Chart 37: Per-tier DNA DP boxplot (mirrors plot_per_tier_vaf_boxplot)."""
+    if "DNA_DP_mean" not in df.columns or "final_tier" not in df.columns:
+        return
+    pdf = df.select(["final_tier", "DNA_DP_mean"]).drop_nulls(subset=["DNA_DP_mean"])
+    pdf = _sample_if_large(pdf, max_rows=50000).to_pandas()
+    chart = alt.Chart(pdf).mark_boxplot().encode(
+        x=alt.X("final_tier:N", title="Tier"),
+        y=alt.Y("DNA_DP_mean:Q", title="DNA Mean DP"),
+        color=alt.Color("final_tier:N", scale=alt.Scale(scheme="category10")),
+    ).properties(title="DNA DP Distribution per Tier")
+    _save_chart(chart, "37_per_tier_dp", output_dir)
+    return chart
 
 
 def generate_dashboard(figs: list, output_dir: str):

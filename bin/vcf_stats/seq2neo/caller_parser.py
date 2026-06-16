@@ -251,14 +251,21 @@ def _parse_one_caller(
     base: str,
     vcf_prefix: str,
     target_positions: set[tuple],
+    vcf_path: str | None = None,
 ) -> tuple[str, dict]:
     """Parse a single caller VCF. Returns (caller_name, lookup_dict).
 
     Uses Rust stats_core.parse_caller_vcf when available (faster, GIL-released).
     Falls back to cyvcf2 when Rust is unavailable.
+
+    Args:
+        vcf_path: Pre-resolved VCF path from manifest. When provided, skips glob.
     """
-    subdir = cfg["subdir"].format(prefix=vcf_prefix)
-    vcf_path = _find_vcf_file(base, subdir, cfg["pattern"])
+    if vcf_path and os.path.isfile(vcf_path):
+        pass  # Use manifest-provided path
+    else:
+        subdir = cfg["subdir"].format(prefix=vcf_prefix)
+        vcf_path = _find_vcf_file(base, subdir, cfg["pattern"])
 
     if vcf_path is None:
         print(f"    [{caller_name}] VCF not found, skipping")

@@ -31,7 +31,7 @@ def validate_bam_vs_caller(
     # Detect available BAM types
     bam_types = []
     for bt in ["DN", "DT", "RT"]:
-        if f"BAM_DP_{bt}" in df.columns:
+        if f"BAM_{bt}_DP" in df.columns:
             bam_types.append(bt)
 
     if not bam_types:
@@ -46,13 +46,13 @@ def validate_bam_vs_caller(
 
         # Match BAM type to caller: DNA callers → DT, RNA callers → RT
         if caller.startswith("DNA"):
-            bam_dp_col = "BAM_DP_DT"
-            bam_alt_col = "BAM_ALT_DT"
-            bam_ref_col = "BAM_REF_DT"
+            bam_dp_col = "BAM_DT_DP"
+            bam_alt_col = "BAM_DT_ALT_DP"
+            bam_ref_col = "BAM_DT_REF_DP"
         else:
-            bam_dp_col = "BAM_DP_RT"
-            bam_alt_col = "BAM_ALT_RT"
-            bam_ref_col = "BAM_REF_RT"
+            bam_dp_col = "BAM_RT_DP"
+            bam_alt_col = "BAM_RT_ALT_DP"
+            bam_ref_col = "BAM_RT_REF_DP"
 
         if bam_dp_col not in df.columns:
             continue
@@ -96,17 +96,17 @@ def validate_bam_vs_caller(
         # Strand bias comparison (Mutect2 only — has SB in FORMAT)
         if "mutect2" in caller.lower():
             sb_col = f"{caller}_SB"
-            if sb_col in df.columns and bam_type_has_strand(df, bam_alt_col):
+            bam_type_strand = "DT" if caller.startswith("DNA") else "RT"
+            if sb_col in df.columns and bam_type_has_strand(df, bam_type_strand):
                 # Simple check: BAM has F1R2_alt/F2R1_alt, caller has SB
                 results[f"{caller}_has_sb_bam"] = True
 
     return results
 
 
-def bam_type_has_strand(df: pl.DataFrame, alt_col: str) -> bool:
-    """Check if BAM strand columns exist for the given alt column prefix."""
-    prefix = alt_col.replace("BAM_ALT_", "")
-    f1r2_col = f"BAM_F1R2_alt_{prefix}"
+def bam_type_has_strand(df: pl.DataFrame, bam_type: str) -> bool:
+    """Check if BAM strand columns exist for the given BAM type (DT/RT)."""
+    f1r2_col = f"BAM_{bam_type}_F1R2_alt"
     return f1r2_col in df.columns
 
 
