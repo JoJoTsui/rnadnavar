@@ -701,6 +701,8 @@ def compute_dp_threshold_sweep(df) -> pl.DataFrame:
                "RNA_mutect2", "RNA_deepsomatic", "RNA_strelka"]
     dp_thresholds = [1, 2, 5, 10, 20, 50, 100, 200]
     refalt_thresholds = [0, 1, 2, 5, 10, 20, 50]
+    classifications = ["Somatic", "Germline", "Reference", "Artifact", "RNAedit", "NoConsensus"]
+    has_filter = "FILTER" in df.columns
     rows = []
 
     # Per-caller total DP sweep
@@ -716,6 +718,18 @@ def compute_dp_threshold_sweep(df) -> pl.DataFrame:
             rows.append({"caller": caller, "metric": "DP", "threshold": thr,
                          "n_retained": n, "n_total": total,
                          "pct_retained": round(n / total * 100, 2)})
+
+            # Per-classification breakdown (if FILTER column present)
+            if has_filter:
+                for cat in classifications:
+                    cat_total = df.filter(pl.col("FILTER") == cat)[dp_col].drop_nulls().len()
+                    if cat_total == 0:
+                        continue
+                    n_cat = df.filter((pl.col("FILTER") == cat) & (pl.col(dp_col) >= thr)).height
+                    rows.append({"caller": caller, "metric": "DP", "threshold": thr,
+                                 "classification": cat,
+                                 "n_retained": n_cat, "n_total": cat_total,
+                                 "pct_retained": round(n_cat / cat_total * 100, 2) if cat_total > 0 else 0})
 
     # BAM pileup DP sweeps (REF_DP, ALT_DP for DT and RT)
     for bt in ["DT", "RT"]:

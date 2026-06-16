@@ -106,6 +106,16 @@ def _sort_chromosomes(df: pl.DataFrame, chrom_col: str = "CHROM") -> pl.DataFram
         ["_sort_idx", chrom_col]
     ).drop("_sort_idx")
 
+
+def _chrom_sort_list(df: pl.DataFrame, col: str = "CHROM") -> list[str]:
+    """Return the sorted chromosome list for passing to altair's sort= parameter.
+
+    Call after _sort_chromosomes() to extract the ordered list of chromosome names.
+    Altair's :N nominal type ignores DataFrame row order by default — the sort=
+    parameter is the ONLY way to control axis order for nominal axes.
+    """
+    return _sort_chromosomes(df, col)[col].to_list()
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Chromosome natural sort order
 # ═══════════════════════════════════════════════════════════════════════════
@@ -271,11 +281,12 @@ def plot_vc_distribution(df, output_dir: str, group_col: str = "set_number"):
     )
     if group_col == "CHROM":
         counts = _sort_chromosomes(counts, group_col)
+    chrom_order = counts[group_col].to_list() if group_col == "CHROM" else None
     counts = counts.to_pandas()
     counts[group_col] = counts[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
     chart = alt.Chart(counts).mark_bar().encode(
-        x=alt.X(f"{group_col}:N", title=group_title),
+        x=alt.X(f"{group_col}:N", title=group_title, sort=chrom_order),
         y=alt.Y("count:Q", title="Number of Variants"),
         color=alt.Color(
             "FILTER:N", title="Variant Classification",
@@ -322,11 +333,12 @@ def plot_variant_type_distribution(df, output_dir: str, group_col: str = "set_nu
     pdf = _maybe_collect(pdf)
     if group_col == "CHROM":
         pdf = _sort_chromosomes(pdf, group_col)
+    chrom_order = pdf[group_col].to_list() if group_col == "CHROM" else None
     pdf = pdf.to_pandas()
     pdf[group_col] = pdf[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
     bars = alt.Chart(pdf).mark_bar().encode(
-        x=alt.X(f"{group_col}:N", title=group_title),
+        x=alt.X(f"{group_col}:N", title=group_title, sort=chrom_order),
         y=alt.Y("count:Q", title="Number of Variants"),
         color=alt.Color("variant_type:N", title="Variant Type"),
     )
@@ -350,11 +362,12 @@ def plot_ti_tv_ratio(df, output_dir: str, group_col: str = "set_number"):
     ratio = _maybe_collect(ratio)
     if group_col == "CHROM":
         ratio = _sort_chromosomes(ratio, group_col)
+    chrom_order = ratio[group_col].to_list() if group_col == "CHROM" else None
     ratio = ratio.to_pandas()
     ratio[group_col] = ratio[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
     bars = alt.Chart(ratio).mark_bar().encode(
-        x=alt.X(f"{group_col}:N", title=group_title),
+        x=alt.X(f"{group_col}:N", title=group_title, sort=chrom_order),
         y=alt.Y("ratio:Q", title="Ti/Tv Ratio"),
     )
     text = alt.Chart(ratio).mark_text(dy=-8).encode(
@@ -384,12 +397,13 @@ def plot_cross_modality(df, output_dir: str, group_col: str = "set_number"):
         pdf = _maybe_collect(pdf)
         if group_col == "CHROM":
             pdf = _sort_chromosomes(pdf, group_col)
+        chrom_order = pdf[group_col].to_list() if group_col == "CHROM" else None
         pdf = pdf.to_pandas()
         pdf[group_col] = pdf[group_col].astype(str)
         group_title = group_col.replace("_", " ").title()
 
         bars = alt.Chart(pdf).mark_bar().encode(
-            x=alt.X(f"{group_col}:N", title=group_title),
+            x=alt.X(f"{group_col}:N", title=group_title, sort=chrom_order),
             y=alt.Y("count:Q", title="Count"),
             color=alt.Color(f"{col}:N"),
         )
@@ -420,11 +434,12 @@ def plot_filter_distribution(df, output_dir: str, group_col: str = "set_number")
     counts = _maybe_collect(counts)
     if group_col == "CHROM":
         counts = _sort_chromosomes(counts, group_col)
+    chrom_order = counts[group_col].to_list() if group_col == "CHROM" else None
     counts = counts.to_pandas()
     counts[group_col] = counts[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
     bars = alt.Chart(counts).mark_bar().encode(
-        x=alt.X(f"{group_col}:N", title=group_title),
+        x=alt.X(f"{group_col}:N", title=group_title, sort=chrom_order),
         y=alt.Y("count:Q", title="Number of Variants"),
         color=alt.Color("FILTER:N", title="FILTER"),
     )
@@ -462,11 +477,12 @@ def plot_redi_evidence(df, output_dir: str, group_col: str = "set_number"):
     counts = _maybe_collect(counts)
     if group_col == "CHROM":
         counts = _sort_chromosomes(counts, group_col)
+    chrom_order = counts[group_col].to_list() if group_col == "CHROM" else None
     counts = counts.sort([group_col, "count"], descending=[False, True]).to_pandas()
     counts[group_col] = counts[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
     chart = alt.Chart(counts).mark_bar().encode(
-        x=alt.X(f"{group_col}:N", title=group_title),
+        x=alt.X(f"{group_col}:N", title=group_title, sort=chrom_order),
         y=alt.Y("count:Q", title="Number of Variants"),
         color=alt.Color("REDI_EVIDENCE:N", title="REDIportal Evidence Level"),
     ).properties(title=f"REDIportal RNA Editing Evidence by {group_title}")
@@ -602,6 +618,7 @@ def plot_vaf_distribution(df, output_dir: str, color_col: str = None):
 
     is_faceted = "column" in enc
     if not is_faceted:
+        enc["color"] = alt.Color("caller:N", scale=alt.Scale(scheme="category10"))
         violin = alt.Chart(pdf).transform_density(
             "VAF_display", groupby=["caller"]
         ).mark_area(opacity=0.3).encode(
@@ -657,12 +674,12 @@ def plot_dna_vs_rna_dp(df, output_dir: str, group_col: str = "set_number"):
     if group_col in pdf.columns:
         pdf[group_col] = pdf[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
-    enc = {"x": alt.X("DNA_DP_mean:Q", title="DNA Mean Depth"),
-           "y": alt.Y("RNA_DP_mean:Q", title="RNA Mean Depth")}
+    enc = {"x": alt.X("DNA_DP_mean:Q", title="DNA Mean Depth (capped at 2000)", scale=alt.Scale(domain=[0, 2000])),
+           "y": alt.Y("RNA_DP_mean:Q", title="RNA Mean Depth (capped at 2000)", scale=alt.Scale(domain=[0, 2000]))}
     if group_col in pdf.columns:
         enc["color"] = alt.Color(f"{group_col}:N", title=group_title)
     chart = alt.Chart(pdf).mark_circle(opacity=0.4, size=20).encode(**enc).properties(
-        title=f"DNA vs RNA Mean Depth")
+        title=f"DNA vs RNA Mean Depth (capped at 2000)")
     _save_chart(chart, "05_dna_vs_rna_dp", output_dir)
     return chart
 
@@ -728,9 +745,9 @@ def plot_dp_boxplot_per_tier(df, output_dir: str, facet_col: str = None):
         col_enc = alt.Column(f"{facet_col}:N", title=facet_col.replace("_", " ").title())
     base_enc = {"x": alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
                 "color": alt.Color("caller:N"), "column": col_enc,
-                "y": alt.Y("DP:Q", title="Read Depth")}
+                "y": alt.Y("DP:Q", title="Read Depth (capped at 2000)", scale=alt.Scale(domain=[0, 2000]))}
     chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**base_enc).properties(
-        title="DP Distribution per Caller × Caller Tier")
+        title="DP Distribution per Caller × Caller Tier (capped at 2000)")
     _save_chart(chart, "15_dp_per_tier", output_dir)
     return chart
 
@@ -752,15 +769,15 @@ def plot_ref_alt_dp_scatter(df, output_dir: str, group_col: str = "set_number"):
         pdf = df.select(cols).drop_nulls()
         pdf = _sample_if_large(pdf, max_rows=5000).to_pandas()
         group_title = group_col.replace("_", " ").title()
-        enc = {"x": alt.X(f"{x_col}:Q", title=f"DNA Mean {label}"),
-               "y": alt.Y(f"{y_col}:Q", title=f"RNA Mean {label}")}
+        enc = {"x": alt.X(f"{x_col}:Q", title=f"DNA Mean {label} (capped at 2000)", scale=alt.Scale(domain=[0, 2000])),
+               "y": alt.Y(f"{y_col}:Q", title=f"RNA Mean {label} (capped at 2000)", scale=alt.Scale(domain=[0, 2000]))}
         if group_col in pdf.columns:
             pdf[group_col] = pdf[group_col].astype(str)
             enc["color"] = alt.Color(f"{group_col}:N", title=group_title)
         c = alt.Chart(pdf).mark_circle(opacity=0.4, size=20).encode(**enc).properties(
-            title=f"DNA vs RNA Mean {label}")
+            title=f"DNA vs RNA Mean {label} (capped at 2000)")
         subcharts.append(c)
-    chart = alt.hconcat(*subcharts).properties(title="DNA vs RNA REF_DP and ALT_DP")
+    chart = alt.hconcat(*subcharts).properties(title="DNA vs RNA REF_DP and ALT_DP (capped at 2000)")
     _save_chart(chart, "17_ref_alt_dp_scatter", output_dir)
     return chart
 
@@ -865,6 +882,7 @@ def plot_cosmic_gnomad_annotation(df, output_dir: str, group_col: str = "set_num
         pdf_pl = pl.DataFrame(rows)
         if group_col == "CHROM":
             pdf_pl = _sort_chromosomes(pdf_pl, "group")
+        chrom_order = pdf_pl["group"].to_list() if group_col == "CHROM" else None
         pdf = pdf_pl.to_pandas()
         group_title = group_col.replace("_", " ").title()
 
@@ -873,7 +891,7 @@ def plot_cosmic_gnomad_annotation(df, output_dir: str, group_col: str = "set_num
             if col not in pdf.columns:
                 continue
             c = alt.Chart(pdf).mark_bar().encode(
-                x=alt.X("group:N", title=group_title),
+                x=alt.X("group:N", title=group_title, sort=chrom_order),
                 y=alt.Y(f"{col}:Q", title=f"% with {db} Annotation"),
                 color=alt.value(color),
             ).properties(title=f"{db} Annotation by {group_title}")
@@ -1195,6 +1213,7 @@ def plot_bam_coverage_violin(df, output_dir: str, color_col: str = None):
         index=[color_col] if color_col and color_col in df.columns else [],
         variable_name="metric", value_name="depth"
     ).drop_nulls()
+    melted = melted.filter(pl.col("depth") <= 2000)
     sampled = _sample_if_large(melted, max_rows=10000)
 
     if sampled is None or (hasattr(sampled, 'is_empty') and sampled.is_empty()):
@@ -1213,7 +1232,7 @@ def plot_bam_coverage_violin(df, output_dir: str, color_col: str = None):
     chart = alt.Chart(sampled).transform_density(
         "depth", groupby=["metric"]
     ).mark_area(opacity=0.5).encode(**enc).properties(
-        title="BAM Pileup Depth Distribution at Variant Positions (sampled)")
+        title="BAM Pileup Depth Distribution at Variant Positions (depth capped at 2000, sampled)")
     _save_chart(chart, "21_bam_coverage_violin", output_dir)
     return chart
 
@@ -1436,22 +1455,23 @@ def plot_dp_distribution(df, output_dir: str, color_col: str = None):
     pdf = _sample_if_large(melted, max_rows=50000).to_pandas()
     pdf["caller"] = pdf["caller"].str.replace("_DP", "")
     enc = {"x": alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
-           "y": alt.Y("DP:Q", title="Read Depth")}
+           "y": alt.Y("DP:Q", title="Read Depth (capped at 2000)", scale=alt.Scale(domain=[0, 2000]))}
     if color_col and color_col in pdf.columns:
         enc["color"] = alt.Color(f"{color_col}:N")
         enc["column"] = alt.Column(f"{color_col}:N")
     is_faceted = "column" in enc
     if not is_faceted:
+        enc["color"] = alt.Color("caller:N")
         violin = alt.Chart(pdf).transform_density("DP", groupby=["caller"]
             ).mark_area(opacity=0.3).encode(
                 x=alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
-                y=alt.Y("DP:Q", title="Read Depth"),
+                y=alt.Y("DP:Q", title="Read Depth (capped at 2000)", scale=alt.Scale(domain=[0, 2000])),
                 color=alt.Color("caller:N"))
         box = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc)
-        chart = (violin + box).properties(title="DP Distribution per Caller")
+        chart = (violin + box).properties(title="DP Distribution per Caller (capped at 2000)")
     else:
         chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc).properties(
-            title="DP Distribution per Caller")
+            title="DP Distribution per Caller (capped at 2000)")
     _save_chart(chart, "12_dp_distribution", output_dir)
     return chart
 
@@ -1694,23 +1714,19 @@ def plot_bam_dp_distribution(df, output_dir: str, color_col: str = None):
         return
 
     enc = {"x": alt.X("metric:N", title="BAM Metric", axis=alt.Axis(labelAngle=-45)),
-           "y": alt.Y("depth:Q", title="Depth at Variant Position")}
+           "y": alt.Y("depth:Q", title="Depth at Variant Position", scale=alt.Scale(type="symlog"))}
     if color_col and color_col in sampled.columns:
         enc["color"] = alt.Color(f"{color_col}:N")
         enc["column"] = alt.Column(f"{color_col}:N")
     is_faceted = "column" in enc
     if not is_faceted:
-        violin = alt.Chart(sampled).transform_density(
-            "depth", groupby=["metric"]
-        ).mark_area(opacity=0.3).encode(
-            x=alt.X("metric:N", title="BAM Metric", axis=alt.Axis(labelAngle=-45)),
-            y=alt.Y("depth:Q", title="Depth at Variant Position"),
-            color=alt.Color("metric:N", scale=alt.Scale(scheme="category10")))
+        # Boxplot-only approach with symlog scale (violin + log produces distorted density)
+        enc["color"] = alt.Color("metric:N", scale=alt.Scale(scheme="category10"))
         box = alt.Chart(sampled).mark_boxplot(size=30).encode(**enc)
-        chart = (violin + box).properties(title="BAM Pileup DP Distribution per BAM Type")
+        chart = box.properties(title="BAM Pileup DP Distribution per BAM Type (symlog scale)")
     else:
         chart = alt.Chart(sampled).mark_boxplot(size=30).encode(**enc).properties(
-            title="BAM Pileup DP Distribution per BAM Type")
+            title="BAM Pileup DP Distribution per BAM Type (symlog scale)")
     _save_chart(chart, "36_bam_dp_distribution", output_dir)
     return chart
 
@@ -1723,9 +1739,9 @@ def plot_per_tier_dp_boxplot(df, output_dir: str):
     pdf = _sample_if_large(pdf, max_rows=50000).to_pandas()
     chart = alt.Chart(pdf).mark_boxplot().encode(
         x=alt.X("final_tier:N", title="Tier"),
-        y=alt.Y("DNA_DP_mean:Q", title="DNA Mean DP"),
+        y=alt.Y("DNA_DP_mean:Q", title="DNA Mean DP (capped at 2000)", scale=alt.Scale(domain=[0, 2000])),
         color=alt.Color("final_tier:N", scale=alt.Scale(scheme="category10")),
-    ).properties(title="DNA DP Distribution per Tier")
+    ).properties(title="DNA DP Distribution per Tier (capped at 2000)")
     _save_chart(chart, "37_per_tier_dp", output_dir)
     return chart
 

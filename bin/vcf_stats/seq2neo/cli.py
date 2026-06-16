@@ -89,6 +89,7 @@ from .statistics import (
     write_tsv,
 )
 from .visualizer import (
+    _sort_chromosomes,
     generate_dashboard,
     plot_bam_coverage_violin,
     plot_bam_metrics_bars,
@@ -861,6 +862,8 @@ def main():
             try:
                 wise_df = compute_wise_summary(combined_df, group_cols)
                 if not wise_df.is_empty():
+                    if wise_name == "chromosome":
+                        wise_df = _sort_chromosomes(wise_df, "CHROM")
                     write_tsv(wise_df, str(wise_dir / f"{wise_name}_summary.tsv"))
             except Exception as e:
                 print(f"  WARNING: {wise_name}-wise summary failed: {e}")
