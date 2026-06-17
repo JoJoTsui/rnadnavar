@@ -1313,8 +1313,9 @@ def main():
             (plot_cross_modality, {"group_col": "FILTER"}),
             (plot_redi_evidence, {"group_col": "FILTER"}),
             (plot_cosmic_gnomad_annotation, {"group_col": "FILTER"}),
-            (plot_vaf_distribution, {"color_col": "FILTER"}),
-            (plot_caller_concordance_vs_vaf, {"color_col": "FILTER"}),
+            # NOTE: plot_vaf_distribution and plot_caller_concordance_vs_vaf excluded —
+            # they use color_col which triggers .facet() on mark_boxplot (composite mark),
+            # which Altair cannot facet ("data must be specified at the top level").
             (plot_caller_agreement_matrix, {}),
             (plot_tier_quality_distribution, {}),
         ],

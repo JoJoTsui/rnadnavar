@@ -418,9 +418,11 @@ def plot_vc_distribution(df, output_dir: str, group_col: str = "set_number"):
     """Chart 1: Variant counts by VC classification, stacked bar per set."""
     if not _has_column(df, "FILTER"):
         return
+    # Deduplicate group_by columns (handles variant-category-wise where group_col="FILTER")
+    group_cols = list(dict.fromkeys([group_col, "FILTER"]))
     counts = _maybe_collect(
-        df.group_by([group_col, "FILTER"]).agg(pl.len().alias("count"))
-        .sort([group_col, "FILTER"])
+        df.group_by(group_cols).agg(pl.len().alias("count"))
+        .sort(group_cols)
     )
     if group_col == "CHROM":
         counts = _sort_chromosomes(counts, group_col)
