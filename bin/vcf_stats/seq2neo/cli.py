@@ -79,6 +79,12 @@ from .statistics import (
     compute_filter_vaf_dp_cross_tab,
     compute_fp_cross_tab,
     compute_low_vaf_rna_support,
+    compute_rescue_breakdown,
+    compute_rescue_by_caller_support,
+    compute_rescue_by_filter,
+    compute_rescue_by_tier,
+    compute_rescue_cross_tab,
+    compute_rescue_vaf_dp,
     compute_somatic_modality,
     compute_dp_threshold_sweep,
     compute_vaf_threshold_sweep,
@@ -87,6 +93,7 @@ from .statistics import (
     disease_summary,
     flag_filter_breakdown,
     gt_concordance,
+    sample_rescue_summary,
     sample_summary,
     sample_tier_summary,
     set_summary,
@@ -139,10 +146,106 @@ from .visualizer import (
     plot_caller_concordance_vs_vaf,
     plot_filter_effectiveness_heatmap,
     plot_database_enrichment_by_tier,
+    plot_rescue_breakdown,
+    plot_rescue_by_filter,
+    plot_rescue_by_tier,
+    plot_rescue_caller_support,
+    plot_rescue_cross_tab_heatmap,
+    plot_rescue_dp_boxplot,
+    plot_rescue_rate_trend,
+    plot_rescue_sample_distribution,
+    plot_rescue_vaf_boxplot,
     plot_validation_heatmap,
     plot_variant_type_distribution,
     plot_vc_distribution,
 )
+
+
+_STRELKA_CALLERS = ["DNA_strelka", "RNA_strelka"]
+_DNA_CALLERS = ["DNA_deepsomatic", "DNA_mutect2", "DNA_strelka"]
+_RNA_CALLERS = ["RNA_deepsomatic", "RNA_mutect2", "RNA_strelka"]
+
+
+def _repair_strelka_columns(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """Detect and repair the Strelka TAR/TIR inversion in pre-existing parquet.
+
+    Old parquet files have AD_ALT == TAR (ref counts) instead of TIR (alt counts).
+    This function detects the inversion by sampling and applies lazy transforms
+    to fix AD_ALT, AD_REF, VAF, and all derived mean columns.
+    """
+    cols = lf.collect_schema().names()
+    # Check if raw TAR/TIR columns exist (needed for repair)
+    tar_col = "DNA_strelka_TAR"
+    tir_col = "DNA_strelka_TIR"
+    ad_alt_col = "DNA_strelka_AD_ALT"
+    if tar_col not in cols or tir_col not in cols or ad_alt_col not in cols:
+        print("  Strelka repair: raw TAR/TIR columns not in parquet — skipping")
+        return lf
+
+    # Detect inversion: sample rows where both TAR and AD_ALT are non-null
+    sample = (
+        lf.filter(pl.col(tar_col).is_not_null() & pl.col(ad_alt_col).is_not_null())
+        .select([tar_col, tir_col, ad_alt_col])
+        .head(200)
+        .collect()
+    )
+    if sample.is_empty():
+        print("  Strelka repair: no non-null TAR/AD_ALT rows — skipping")
+        return lf
+
+    n_match_tar = (sample[ad_alt_col] == sample[tar_col]).sum()
+    n_match_tir = (sample[ad_alt_col] == sample[tir_col]).sum()
+
+    if n_match_tir > n_match_tar:
+        print(f"  Strelka repair: AD_ALT already == TIR ({n_match_tir}/{sample.height}) — no repair needed")
+        return lf
+
+    print(f"  Strelka repair: DETECTED inversion — AD_ALT == TAR for {n_match_tar}/{sample.height} rows")
+    print("  Repairing: AD_ALT ← TIR, AD_REF ← TAR, recomputing VAF and means...")
+
+    # Apply repair for each Strelka caller
+    repair_exprs = []
+    for caller in _STRELKA_CALLERS:
+        tar = f"{caller}_TAR"
+        tir = f"{caller}_TIR"
+        dp = f"{caller}_DP"
+        ad_alt = f"{caller}_AD_ALT"
+        ad_ref = f"{caller}_AD_REF"
+        vaf = f"{caller}_VAF"
+
+        if tir in cols:
+            repair_exprs.append(pl.col(tir).alias(ad_alt))
+        if tar in cols:
+            repair_exprs.append(pl.col(tar).alias(ad_ref))
+        if tir in cols and dp in cols:
+            repair_exprs.append(
+                pl.when(pl.col(dp).is_not_null() & (pl.col(dp) > 0))
+                .then((pl.col(tir).cast(pl.Float64) / pl.col(dp).cast(pl.Float64)).clip(0.0, 1.0))
+                .otherwise(None)
+                .alias(vaf)
+            )
+
+    if repair_exprs:
+        lf = lf.with_columns(repair_exprs)
+
+    # Recompute mean columns across all callers (not just Strelka)
+    mean_exprs = []
+    for prefix, callers in [("DNA", _DNA_CALLERS), ("RNA", _RNA_CALLERS)]:
+        vaf_cols = [f"{c}_VAF" for c in callers if f"{c}_VAF" in cols]
+        alt_cols = [f"{c}_AD_ALT" for c in callers if f"{c}_AD_ALT" in cols]
+        ref_cols = [f"{c}_AD_REF" for c in callers if f"{c}_AD_REF" in cols]
+        if vaf_cols:
+            mean_exprs.append(pl.mean_horizontal(vaf_cols).alias(f"{prefix}_VAF_mean"))
+        if alt_cols:
+            mean_exprs.append(pl.mean_horizontal(alt_cols).alias(f"{prefix}_ALT_DP_mean"))
+        if ref_cols:
+            mean_exprs.append(pl.mean_horizontal(ref_cols).alias(f"{prefix}_REF_DP_mean"))
+
+    if mean_exprs:
+        lf = lf.with_columns(mean_exprs)
+
+    print("  Strelka repair: complete")
+    return lf
 
 
 def _streaming_join_one(df: pl.DataFrame, col_data: dict, caller_name: str) -> pl.DataFrame:
@@ -178,7 +281,7 @@ def _streaming_join_one(df: pl.DataFrame, col_data: dict, caller_name: str) -> p
     del caller_df, series_list
 
     if is_strelka:
-        for suf, src in [("AD_REF", "TOR"), ("AD_ALT", "TAR")]:
+        for suf, src in [("AD_REF", "TAR"), ("AD_ALT", "TIR")]:
             src_col = f"{caller_name}_{src}"
             tgt_col = f"{caller_name}_{suf}"
             if src_col in df.columns:
@@ -751,6 +854,11 @@ def main():
     # ── Lazy scan across all per-sample parquet files ──────────────────────
     combined_df = pl.scan_parquet(str(variant_dir / "*_variants.parquet"))
 
+    # ── Repair Strelka TAR/TIR inversion in old parquet files ────────────
+    # Old parquet has AD_ALT == TAR (ref counts) instead of TIR (alt counts).
+    # Auto-detects and skips if already correct.
+    combined_df = _repair_strelka_columns(combined_df)
+
     # ── Add ML train/val/test partition column (Section 7.1) ──────────────
     # Partition by chromosome: chr1 → test, chr21/chr22 → val, rest → train.
     # This is a deterministic, reproducible split that avoids data leakage
@@ -1002,6 +1110,62 @@ def main():
         except Exception as e:
             print(f"  WARNING: Somatic modality sub-classification failed: {e}")
 
+    # ── Rescue Analytics (Section 10) ─────────────────────────────────────────
+    try:
+        rescue_dir = output_dir / "stats" / "rescue"
+        rescue_dir.mkdir(parents=True, exist_ok=True)
+        rescue_plot_dir = output_dir / "plots" / "rescue"
+        rescue_plot_dir.mkdir(parents=True, exist_ok=True)
+
+        # 48: Rescue breakdown by set
+        breakdown_df = compute_rescue_breakdown(combined_df)
+        if not breakdown_df.is_empty():
+            write_tsv(breakdown_df, str(rescue_dir / "rescue_breakdown.tsv"))
+            figs.append(plot_rescue_breakdown(breakdown_df, str(rescue_plot_dir)))
+            figs.append(plot_rescue_rate_trend(breakdown_df, str(rescue_plot_dir)))
+            print(f"  Rescue breakdown: {rescue_dir / 'rescue_breakdown.tsv'}")
+
+        # 49: Rescue by FILTER
+        rescue_filter_df = compute_rescue_by_filter(combined_df)
+        if not rescue_filter_df.is_empty():
+            write_tsv(rescue_filter_df, str(rescue_dir / "rescue_by_filter.tsv"))
+            figs.append(plot_rescue_by_filter(rescue_filter_df, str(rescue_plot_dir)))
+
+        # 50: Rescue cross-tab (RESCUED × FILTER × set)
+        rescue_ct_df = compute_rescue_cross_tab(combined_df)
+        if not rescue_ct_df.is_empty():
+            write_tsv(rescue_ct_df, str(rescue_dir / "rescue_cross_tab.tsv"))
+            figs.append(plot_rescue_cross_tab_heatmap(rescue_ct_df, str(rescue_plot_dir)))
+
+        # 51-52: Rescue VAF/DP distributions
+        rescue_vaf_dp = compute_rescue_vaf_dp(combined_df)
+        if not rescue_vaf_dp.is_empty():
+            write_tsv(rescue_vaf_dp, str(rescue_dir / "rescue_vaf_dp.tsv"))
+        figs.append(plot_rescue_vaf_boxplot(combined_df, str(rescue_plot_dir)))
+        figs.append(plot_rescue_dp_boxplot(combined_df, str(rescue_plot_dir)))
+
+        # 53: Per-sample rescue distribution
+        sample_rescue_df = sample_rescue_summary(combined_df)
+        if not sample_rescue_df.is_empty():
+            write_tsv(sample_rescue_df, str(rescue_dir / "sample_rescue_summary.tsv"))
+            figs.append(plot_rescue_sample_distribution(sample_rescue_df, str(rescue_plot_dir)))
+
+        # 54: Rescue by tier
+        rescue_tier_df = compute_rescue_by_tier(combined_df)
+        if not rescue_tier_df.is_empty():
+            write_tsv(rescue_tier_df, str(rescue_dir / "rescue_by_tier.tsv"))
+            figs.append(plot_rescue_by_tier(rescue_tier_df, str(rescue_plot_dir)))
+
+        # 56: Rescue by caller support
+        rescue_caller_df = compute_rescue_by_caller_support(combined_df)
+        if not rescue_caller_df.is_empty():
+            write_tsv(rescue_caller_df, str(rescue_dir / "rescue_by_caller_support.tsv"))
+            figs.append(plot_rescue_caller_support(rescue_caller_df, str(rescue_plot_dir)))
+
+        print(f"  Rescue analytics: {rescue_dir}/ ({len(list(rescue_dir.glob('*.tsv')))} TSVs)")
+    except Exception as e:
+        print(f"  WARNING: Rescue analytics failed: {e}")
+
     gc.collect()
     _malloc_trim()
     _mem("after aggregation cleanup")
@@ -1116,6 +1280,7 @@ def main():
         ],
         "caller": [
             (plot_vaf_distribution, {}),
+            (plot_dp_distribution, {}),
             (plot_caller_agreement_matrix, {}),
             (plot_dna_vs_rna_per_caller, {}),
         ],

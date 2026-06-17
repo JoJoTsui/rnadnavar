@@ -655,10 +655,25 @@ def plot_vaf_distribution(df, output_dir: str, color_col: str = None):
             y=y_scale,
             color=alt.Color("caller:N", scale=alt.Scale(scheme="category10")))
         box = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc)
-        chart = (violin + box + ref_rules).properties(title="VAF Distribution per Caller")
+        chart = (violin + box + ref_rules).properties(
+            title="VAF Distribution per Caller",
+            width=alt.Step(60))
     else:
-        chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc).properties(
-            title="VAF Distribution per Caller")
+        # Faceted: build violin+box layers, then facet
+        facet_col_name = color_col
+        base_enc = {"x": alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
+                    "y": y_scale,
+                    "color": alt.Color("caller:N", scale=alt.Scale(scheme="category10"))}
+        violin = alt.Chart(pdf).transform_density(
+            "VAF_display", groupby=["caller", facet_col_name] if facet_col_name else ["caller"]
+        ).mark_area(opacity=0.3).encode(**base_enc)
+        box = alt.Chart(pdf).mark_boxplot(size=30).encode(**base_enc)
+        chart = (violin + box + ref_rules).properties(
+            title="VAF Distribution per Caller",
+            width=alt.Step(60)
+        ).facet(
+            column=alt.Column(f"{facet_col_name}:N")
+        )
     _save_chart(chart, "03_vaf_distribution", output_dir)
     return chart
 
@@ -702,13 +717,17 @@ def plot_dna_vs_rna_dp(df, output_dir: str, group_col: str = "set_number"):
     pdf = _sample_if_large(pdf, max_rows=5000).to_pandas()
     if group_col in pdf.columns:
         pdf[group_col] = pdf[group_col].astype(str)
+    n_over = int((pdf["DNA_DP_mean"] > 2000).sum() + (pdf["RNA_DP_mean"] > 2000).sum())
+    pdf["DNA_DP_mean"] = pdf["DNA_DP_mean"].clip(0, 2000)
+    pdf["RNA_DP_mean"] = pdf["RNA_DP_mean"].clip(0, 2000)
     group_title = group_col.replace("_", " ").title()
+    subtitle = f"{n_over} values > 2000 clipped" if n_over else ""
     enc = {"x": alt.X("DNA_DP_mean:Q", title="DNA Mean Depth (capped at 2000)", scale=alt.Scale(domain=[0, 2000])),
            "y": alt.Y("RNA_DP_mean:Q", title="RNA Mean Depth (capped at 2000)", scale=alt.Scale(domain=[0, 2000]))}
     if group_col in pdf.columns:
         enc["color"] = alt.Color(f"{group_col}:N", title=group_title)
     chart = alt.Chart(pdf).mark_circle(opacity=0.4, size=20).encode(**enc).properties(
-        title=f"DNA vs RNA Mean Depth (capped at 2000)")
+        title=alt.Title("DNA vs RNA Mean Depth (capped at 2000)", subtitle=subtitle))
     _save_chart(chart, "05_dna_vs_rna_dp", output_dir)
     return chart
 
@@ -767,16 +786,19 @@ def plot_dp_boxplot_per_tier(df, output_dir: str, facet_col: str = None):
         index=index_cols, variable_name="caller", value_name="DP"
     ).drop_nulls()
     pdf = _sample_if_large(melted, max_rows=50000).to_pandas()
+    n_over = int((pdf["DP"] > 2000).sum())
+    pdf["DP"] = pdf["DP"].clip(0, 2000)
     pdf["caller"] = pdf["caller"].str.replace("_DP", "")
     col_enc = alt.Column("caller_tier:N", title="Caller Tier")
     if facet_col and facet_col in pdf.columns:
         pdf[facet_col] = pdf[facet_col].astype(str)
         col_enc = alt.Column(f"{facet_col}:N", title=facet_col.replace("_", " ").title())
+    subtitle = f"{n_over} values > 2000 clipped" if n_over else ""
     base_enc = {"x": alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
                 "color": alt.Color("caller:N"), "column": col_enc,
                 "y": alt.Y("DP:Q", title="Read Depth (capped at 2000)", scale=alt.Scale(domain=[0, 2000]))}
     chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**base_enc).properties(
-        title="DP Distribution per Caller × Caller Tier (capped at 2000)")
+        title=alt.Title("DP Distribution per Caller × Caller Tier (capped at 2000)", subtitle=subtitle))
     _save_chart(chart, "15_dp_per_tier", output_dir)
     return chart
 
@@ -797,14 +819,18 @@ def plot_ref_alt_dp_scatter(df, output_dir: str, group_col: str = "set_number"):
             cols.append(group_col)
         pdf = df.select(cols).drop_nulls()
         pdf = _sample_if_large(pdf, max_rows=5000).to_pandas()
+        n_over = int((pdf[x_col] > 2000).sum() + (pdf[y_col] > 2000).sum())
+        pdf[x_col] = pdf[x_col].clip(0, 2000)
+        pdf[y_col] = pdf[y_col].clip(0, 2000)
         group_title = group_col.replace("_", " ").title()
+        subtitle = f"{n_over} values > 2000 clipped" if n_over else ""
         enc = {"x": alt.X(f"{x_col}:Q", title=f"DNA Mean {label} (capped at 2000)", scale=alt.Scale(domain=[0, 2000])),
                "y": alt.Y(f"{y_col}:Q", title=f"RNA Mean {label} (capped at 2000)", scale=alt.Scale(domain=[0, 2000]))}
         if group_col in pdf.columns:
             pdf[group_col] = pdf[group_col].astype(str)
             enc["color"] = alt.Color(f"{group_col}:N", title=group_title)
         c = alt.Chart(pdf).mark_circle(opacity=0.4, size=20).encode(**enc).properties(
-            title=f"DNA vs RNA Mean {label} (capped at 2000)")
+            title=alt.Title(f"DNA vs RNA Mean {label} (capped at 2000)", subtitle=subtitle))
         subcharts.append(c)
     chart = alt.hconcat(*subcharts).properties(title="DNA vs RNA REF_DP and ALT_DP (capped at 2000)")
     _save_chart(chart, "17_ref_alt_dp_scatter", output_dir)
@@ -1155,16 +1181,20 @@ def plot_per_sample_distribution(sample_stats_df, output_dir: str, top_n: int = 
     pdf = pdf.to_pandas()
     n_samples = len(pdf)
     enc = {
-        "y": alt.Y("sample_id:N", title="Sample ID", sort=None),
-        "x": alt.X("total_variants:Q", title="Total Variants per Sample"),
+        "x": alt.X("sample_id:N", title="Sample ID", sort=None,
+                    axis=alt.Axis(labelAngle=-45, labelLimit=100)),
+        "y": alt.Y("total_variants:Q", title="Total Variants per Sample"),
         "tooltip": ["sample_id", "total_variants"],
     }
-    if has_set:
-        enc["row"] = alt.Row("set_number:N", title="Set")
     chart = alt.Chart(pdf).mark_bar().encode(**enc).properties(
         title=f"Per-Sample Variant Counts (n={n_samples})",
-        height=max(300, n_samples * 12)  # dynamic height for scroll
+        height=300,
     )
+    if has_set:
+        chart = chart.facet(
+            facet=alt.Facet("set_number:N", title="Set"),
+            columns=2,
+        ).resolve_scale(y="shared")
     _save_chart(chart, "08_per_sample_distribution", output_dir)
     return chart
 
@@ -1207,9 +1237,14 @@ def plot_bam_metrics_bars(bam_stats_df, output_dir: str, top_n: int = 20):
     }
     if has_set:
         pdf["set_number"] = pdf["set_number"].astype(str)
-        enc["row"] = alt.Row("set_number:N", title="Set")
     chart = alt.Chart(pdf).mark_bar().encode(**enc).properties(
-        title="Per-Sample BAM Read Counts — DN/DT/RT")
+        title="Per-Sample BAM Read Counts — DN/DT/RT",
+        width=350)
+    if has_set:
+        chart = chart.facet(
+            facet=alt.Facet("set_number:N", title="Set"),
+            columns=2,
+        ).resolve_scale(y="shared")
     _save_chart(chart, "20_bam_metrics", output_dir)
     return chart
 
@@ -1236,10 +1271,14 @@ def plot_per_sample_tier_distribution(sample_tier_df, output_dir: str):
         "x": alt.X("n_variants:Q", title="Variants"),
         "color": alt.Color("final_tier:N", title="Tier"),
     }
-    if has_set:
-        enc["row"] = alt.Row("set_number:N", title="Set")
     chart = alt.Chart(pdf).mark_bar().encode(**enc).properties(
-        title="Per-Sample Per-Tier Variant Distribution")
+        title="Per-Sample Per-Tier Variant Distribution",
+        height=300)
+    if has_set:
+        chart = chart.facet(
+            facet=alt.Facet("set_number:N", title="Set"),
+            columns=2,
+        ).resolve_scale(x="shared")
     _save_chart(chart, "22_sample_tier_dist", output_dir)
     return chart
 
@@ -1359,7 +1398,13 @@ def plot_dp_threshold_sweep(sweep_df, output_dir: str):
         return
     if hasattr(sweep_df, 'is_empty') and sweep_df.is_empty():
         return
-    pdf = sweep_df.to_pandas()
+    # Filter to overall (non-classification) rows — mirrors plot_vaf_threshold_sweep
+    pdf = sweep_df.filter(pl.col("classification").is_null() if "classification" in sweep_df.columns else pl.lit(True))
+    if isinstance(pdf, pl.LazyFrame):
+        pdf = pdf.collect()
+    if pdf.is_empty():
+        return
+    pdf = pdf.to_pandas()
     chart = alt.Chart(pdf).mark_line(point=True).encode(
         x=alt.X("threshold:Q", title="Depth Threshold"),
         y=alt.Y("pct_retained:Q", title="% Variants Retained"),
@@ -1387,8 +1432,14 @@ def plot_caller_concordance_vs_vaf(df, output_dir: str, color_col: str = None):
            "y": alt.Y("DNA_VAF_mean:Q", title="DNA Mean VAF"),
            "color": alt.Color("N_SUPPORT_CALLERS:N")}
     if color_col and color_col in pdf.columns:
-        enc["column"] = alt.Column(f"{color_col}:N")
-    chart = alt.Chart(pdf).mark_boxplot().encode(**enc).properties(title="Caller Concordance vs VAF")
+        pass  # faceting applied after chart construction
+    chart = alt.Chart(pdf).mark_boxplot().encode(**enc).properties(
+        title="Caller Concordance vs VAF", width=200)
+    if color_col and color_col in pdf.columns:
+        chart = chart.facet(
+            facet=alt.Facet(f"{color_col}:N"),
+            columns=3,
+        )
     _save_chart(chart, "32_caller_concordance_vs_vaf", output_dir)
     return chart
 
@@ -1508,6 +1559,8 @@ def plot_dp_distribution(df, output_dir: str, color_col: str = None):
         variable_name="caller", value_name="DP"
     ).drop_nulls()
     pdf = _sample_if_large(melted, max_rows=50000).to_pandas()
+    n_over = int((pdf["DP"] > 2000).sum())
+    pdf["DP"] = pdf["DP"].clip(0, 2000)
     pdf["caller"] = pdf["caller"].str.replace("_DP", "")
     enc = {"x": alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
            "y": alt.Y("DP:Q", title="Read Depth (capped at 2000)", scale=alt.Scale(domain=[0, 2000]))}
@@ -1716,13 +1769,29 @@ def plot_filter_vaf_dp_heatmap(cross_tab_df, output_dir: str):
     # Order VAF and DP bins sensibly
     vaf_order = ["<0.01", "0.01-0.05", "0.05-0.10", "0.10-0.25", "0.25-0.50", "0.50-1.0"]
     dp_order = ["<10", "10-50", "50-100", "100-200", "200-500", "500+"]
-    chart = alt.Chart(pdf).mark_rect().encode(
+    base = alt.Chart(pdf)
+    rect = base.mark_rect().encode(
         x=alt.X("vaf_bin:N", title="VAF Bin", sort=vaf_order),
         y=alt.Y("dp_bin:N", title="DP Bin", sort=dp_order),
         color=alt.Color("count:Q", title="Count", scale=alt.Scale(scheme="blues", type="log")),
-        facet=alt.Facet("classification:N", columns=3, title="Classification"),
         tooltip=["classification", "vaf_bin", "dp_bin", "count"],
-    ).properties(title="FILTER x VAF x DP Cross-Tabulation", width=200, height=180)
+    )
+    median_count = max(float(pdf["count"].median()), 1)
+    text = base.mark_text(baseline="middle", fontSize=8).encode(
+        x=alt.X("vaf_bin:N", sort=vaf_order),
+        y=alt.Y("dp_bin:N", sort=dp_order),
+        text=alt.Text("count:Q", format=",d"),
+        color=alt.condition(
+            f"datum.count > {median_count}",
+            alt.value("white"),
+            alt.value("black"),
+        ),
+    )
+    chart = (rect + text).properties(
+        title="FILTER x VAF x DP Cross-Tabulation", width=200, height=180
+    ).facet(
+        facet=alt.Facet("classification:N", columns=3, title="Classification"),
+    )
     _save_chart(chart, "43_filter_vaf_dp_heatmap", output_dir)
     return chart
 
@@ -1758,12 +1827,25 @@ def plot_fp_cross_tab_heatmap(fp_df, output_dir: str):
         return
     pdf = fp_df.to_pandas()
     pdf["N_SUPPORT_CALLERS"] = pdf["N_SUPPORT_CALLERS"].astype(int).astype(str)
-    chart = alt.Chart(pdf).mark_rect().encode(
+    base = alt.Chart(pdf)
+    rect = base.mark_rect().encode(
         x=alt.X("N_SUPPORT_CALLERS:N", title="Number of Supporting Callers"),
         y=alt.Y("FILTER:N", title="Classification"),
         color=alt.Color("count:Q", title="Count", scale=alt.Scale(scheme="orangered", type="log")),
         tooltip=["FILTER", "N_SUPPORT_CALLERS", "count"],
-    ).properties(title="FP Cross-Tabulation: Non-Somatic FILTER x Caller Support")
+    )
+    median_count = max(float(pdf["count"].median()), 1)
+    text = base.mark_text(baseline="middle", fontSize=9).encode(
+        x=alt.X("N_SUPPORT_CALLERS:N"),
+        y=alt.Y("FILTER:N"),
+        text=alt.Text("count:Q", format=",d"),
+        color=alt.condition(
+            f"datum.count > {median_count}",
+            alt.value("white"),
+            alt.value("black"),
+        ),
+    )
+    chart = (rect + text).properties(title="FP Cross-Tabulation: Non-Somatic FILTER x Caller Support")
     _save_chart(chart, "45_fp_cross_tab_heatmap", output_dir)
     return chart
 
@@ -1781,12 +1863,20 @@ def plot_somatic_modality_pie(modality_df, output_dir: str):
     modality_domain = ["MultiModality", "DNA_only", "RNA_only", "Weak", "Unknown"]
     modality_colors = ["#1f77b4", "#2ca02c", "#ff7f0e", "#d62728", "#8c564b"]
     pdf = modality_df.to_pandas()
-    chart = alt.Chart(pdf).mark_arc(innerRadius=40).encode(
-        theta=alt.Theta("n_variants:Q"),
+    total = pdf["n_variants"].sum()
+    pdf["pct"] = (pdf["n_variants"] / total * 100).round(1)
+    pdf["label"] = pdf.apply(lambda r: f"{r['n_variants']:,}\n({r['pct']}%)", axis=1)
+    arc = alt.Chart(pdf).mark_arc(innerRadius=40).encode(
+        theta=alt.Theta("n_variants:Q", stack=True),
         color=alt.Color("somatic_modality:N", title="Somatic Modality",
                         scale=alt.Scale(domain=modality_domain, range=modality_colors)),
-        tooltip=["somatic_modality", "n_variants"],
-    ).properties(title="Somatic Modality Sub-Classification")
+        tooltip=["somatic_modality", "n_variants", "pct"],
+    )
+    text = alt.Chart(pdf).mark_text(size=10, radiusOffset=20, radius=90).encode(
+        theta=alt.Theta("n_variants:Q", stack=True),
+        text="label:N",
+    )
+    chart = (arc + text).properties(title="Somatic Modality Sub-Classification")
     _save_chart(chart, "46_somatic_modality_pie", output_dir)
     return chart
 
@@ -1835,7 +1925,8 @@ def _chart_section(fig, index: int) -> str:
     if any(kw in title for kw in ["per-sample", "sample", "cross"]):
         return "persample"
     if any(kw in title for kw in ["threshold", "vaf sweep", "concordance vs", "effectiveness", "enrichment",
-                                    "cross-tabulation", "low vaf", "fp cross", "partition", "modality"]):
+                                    "cross-tabulation", "low vaf", "fp cross", "partition", "modality",
+                                    "rescue", "rescued"]):
         return "threshold"
     return "overview"
 
@@ -1910,12 +2001,232 @@ def plot_per_tier_dp_boxplot(df, output_dir: str):
         return
     pdf = df.select(["final_tier", "DNA_DP_mean"]).drop_nulls(subset=["DNA_DP_mean"])
     pdf = _sample_if_large(pdf, max_rows=50000).to_pandas()
+    n_over = int((pdf["DNA_DP_mean"] > 2000).sum())
+    pdf["DNA_DP_mean"] = pdf["DNA_DP_mean"].clip(0, 2000)
     chart = alt.Chart(pdf).mark_boxplot().encode(
         x=alt.X("final_tier:N", title="Tier"),
         y=alt.Y("DNA_DP_mean:Q", title="DNA Mean DP (capped at 2000)", scale=alt.Scale(domain=[0, 2000])),
         color=alt.Color("final_tier:N", scale=alt.Scale(scheme="category10")),
-    ).properties(title="DNA DP Distribution per Tier (capped at 2000)")
+    ).properties(title=alt.Title("DNA DP Distribution per Tier (capped at 2000)",
+                                 subtitle=f"{n_over} values > 2000 clipped" if n_over else ""))
     _save_chart(chart, "37_per_tier_dp", output_dir)
+    return chart
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Rescue Analytics Charts (Section 10)
+# ═══════════════════════════════════════════════════════════════════════════
+
+_RESCUE_COLORS = {"YES": "#2ca02c", "NO": "#d62728"}
+
+
+def plot_rescue_breakdown(breakdown_df, output_dir: str):
+    """Chart 48: Per-set rescued vs non-rescued counts with % labels."""
+    if breakdown_df is None or (hasattr(breakdown_df, 'is_empty') and breakdown_df.is_empty()):
+        return
+    pdf = breakdown_df.to_pandas()
+    group_col = [c for c in pdf.columns if c not in ("RESCUED", "count", "total", "pct")][0] if len(pdf.columns) > 4 else None
+    x_enc = alt.X(f"{group_col}:N", title=group_col.replace("_", " ").title()) if group_col else alt.X("RESCUED:N")
+    chart = alt.Chart(pdf).mark_bar().encode(
+        x=x_enc,
+        y=alt.Y("count:Q", title="Variant Count", stack="zero"),
+        color=alt.Color("RESCUED:N", title="Rescued",
+                        scale=alt.Scale(domain=["YES", "NO"], range=["#2ca02c", "#d62728"])),
+        tooltip=list(pdf.columns),
+    )
+    text = alt.Chart(pdf).mark_text(dy=-8, fontSize=9).encode(
+        x=x_enc,
+        y=alt.Y("count:Q", stack="zero"),
+        text=alt.Text("pct:Q", format=".1f"),
+        color=alt.value("black"),
+    )
+    chart = (chart + text).properties(title="Rescue Breakdown: Rescued vs Non-Rescued")
+    _save_chart(chart, "48_rescue_breakdown", output_dir)
+    return chart
+
+
+def plot_rescue_by_filter(rescue_filter_df, output_dir: str):
+    """Chart 49: Rescued/non-rescued counts per FILTER category."""
+    if rescue_filter_df is None or (hasattr(rescue_filter_df, 'is_empty') and rescue_filter_df.is_empty()):
+        return
+    pdf = rescue_filter_df.to_pandas()
+    chart = alt.Chart(pdf).mark_bar().encode(
+        x=alt.X("FILTER:N", title="Classification"),
+        y=alt.Y("count:Q", title="Variant Count"),
+        color=alt.Color("RESCUED:N", title="Rescued",
+                        scale=alt.Scale(domain=["YES", "NO"], range=["#2ca02c", "#d62728"])),
+        xOffset="RESCUED:N",
+        tooltip=["FILTER", "RESCUED", "count", "pct"],
+    ).properties(title="Rescue Status by Classification (FILTER)")
+    _save_chart(chart, "49_rescue_by_filter", output_dir)
+    return chart
+
+
+def plot_rescue_cross_tab_heatmap(cross_tab_df, output_dir: str):
+    """Chart 50: RESCUED × FILTER × set_number heatmap with text labels."""
+    if cross_tab_df is None or (hasattr(cross_tab_df, 'is_empty') and cross_tab_df.is_empty()):
+        return
+    pdf = cross_tab_df.to_pandas()
+    has_set = "set_number" in pdf.columns
+    y_col = "FILTER"
+    base = alt.Chart(pdf)
+    rect = base.mark_rect().encode(
+        x=alt.X("RESCUED:N", title="Rescued"),
+        y=alt.Y(f"{y_col}:N", title="Classification"),
+        color=alt.Color("count:Q", title="Count", scale=alt.Scale(scheme="blues", type="log")),
+        tooltip=list(pdf.columns),
+    )
+    median_count = max(float(pdf["count"].median()), 1)
+    text = base.mark_text(baseline="middle", fontSize=9).encode(
+        x=alt.X("RESCUED:N"),
+        y=alt.Y(f"{y_col}:N"),
+        text=alt.Text("count:Q", format=",d"),
+        color=alt.condition(f"datum.count > {median_count}", alt.value("white"), alt.value("black")),
+    )
+    chart = (rect + text).properties(title="Rescue Cross-Tabulation", width=150, height=200)
+    if has_set:
+        chart = chart.facet(facet=alt.Facet("set_number:N", title="Set"), columns=2)
+    _save_chart(chart, "50_rescue_cross_tab_heatmap", output_dir)
+    return chart
+
+
+def plot_rescue_vaf_boxplot(df, output_dir: str):
+    """Chart 51: DNA/RNA VAF distributions for rescued vs non-rescued."""
+    if df is None or (hasattr(df, 'is_empty') and df.is_empty()):
+        return
+    if "RESCUED" not in df.columns:
+        return
+    vaf_cols = [c for c in ["DNA_VAF_mean", "RNA_VAF_mean"] if c in df.columns]
+    if not vaf_cols:
+        return
+    select_cols = vaf_cols + ["RESCUED"]
+    pdf = df.select(select_cols).drop_nulls()
+    pdf = _sample_if_large(pdf, max_rows=50000)
+    # Normalize RESCUED
+    pdf = pdf.with_columns(
+        pl.when(pl.col("RESCUED") == "YES").then(pl.lit("YES"))
+        .otherwise(pl.lit("NO")).alias("RESCUED")
+    ).to_pandas()
+    melted = pdf.melt(id_vars=["RESCUED"], var_name="modality", value_name="VAF")
+    melted["modality"] = melted["modality"].str.replace("_VAF_mean", "")
+    melted["VAF"] = melted["VAF"].clip(0, 1)
+    chart = alt.Chart(melted).mark_boxplot(size=40).encode(
+        x=alt.X("RESCUED:N", title="Rescued"),
+        y=alt.Y("VAF:Q", title="Mean VAF", scale=alt.Scale(domain=[0, 1])),
+        color=alt.Color("RESCUED:N", scale=alt.Scale(domain=["YES", "NO"], range=["#2ca02c", "#d62728"])),
+        column=alt.Column("modality:N", title="Modality"),
+    ).properties(title="VAF Distribution: Rescued vs Non-Rescued", width=200)
+    _save_chart(chart, "51_rescue_vaf_boxplot", output_dir)
+    return chart
+
+
+def plot_rescue_dp_boxplot(df, output_dir: str):
+    """Chart 52: DNA/RNA DP distributions for rescued vs non-rescued."""
+    if df is None or (hasattr(df, 'is_empty') and df.is_empty()):
+        return
+    if "RESCUED" not in df.columns:
+        return
+    dp_cols = [c for c in ["DNA_DP_mean", "RNA_DP_mean"] if c in df.columns]
+    if not dp_cols:
+        return
+    select_cols = dp_cols + ["RESCUED"]
+    pdf = df.select(select_cols).drop_nulls()
+    pdf = _sample_if_large(pdf, max_rows=50000)
+    pdf = pdf.with_columns(
+        pl.when(pl.col("RESCUED") == "YES").then(pl.lit("YES"))
+        .otherwise(pl.lit("NO")).alias("RESCUED")
+    ).to_pandas()
+    melted = pdf.melt(id_vars=["RESCUED"], var_name="modality", value_name="DP")
+    melted["modality"] = melted["modality"].str.replace("_DP_mean", "")
+    melted["DP"] = melted["DP"].clip(0, 2000)
+    chart = alt.Chart(melted).mark_boxplot(size=40).encode(
+        x=alt.X("RESCUED:N", title="Rescued"),
+        y=alt.Y("DP:Q", title="Mean DP (capped 2000)", scale=alt.Scale(domain=[0, 2000])),
+        color=alt.Color("RESCUED:N", scale=alt.Scale(domain=["YES", "NO"], range=["#2ca02c", "#d62728"])),
+        column=alt.Column("modality:N", title="Modality"),
+    ).properties(title="DP Distribution: Rescued vs Non-Rescued", width=200)
+    _save_chart(chart, "52_rescue_dp_boxplot", output_dir)
+    return chart
+
+
+def plot_rescue_sample_distribution(sample_rescue_df, output_dir: str):
+    """Chart 53: Per-sample rescue counts, faceted by set using 2×2 grid."""
+    if sample_rescue_df is None or (hasattr(sample_rescue_df, 'is_empty') and sample_rescue_df.is_empty()):
+        return
+    # Aggregate to sample × RESCUED level (drop FILTER detail)
+    group_cols = ["sample_id", "RESCUED"]
+    has_set = "set_number" in sample_rescue_df.columns
+    if has_set:
+        group_cols.append("set_number")
+    pdf = sample_rescue_df.group_by(group_cols).agg(pl.col("count").sum()).to_pandas()
+    chart = alt.Chart(pdf).mark_bar().encode(
+        x=alt.X("sample_id:N", title="Sample", sort=None,
+                 axis=alt.Axis(labelAngle=-45, labelLimit=100)),
+        y=alt.Y("count:Q", title="Variant Count", stack="zero"),
+        color=alt.Color("RESCUED:N", title="Rescued",
+                        scale=alt.Scale(domain=["YES", "NO"], range=["#2ca02c", "#d62728"])),
+        tooltip=["sample_id", "RESCUED", "count"],
+    ).properties(title="Per-Sample Rescue Counts", height=300)
+    if has_set:
+        pdf["set_number"] = pdf["set_number"].astype(str)
+        chart = chart.facet(
+            facet=alt.Facet("set_number:N", title="Set"),
+            columns=2,
+        ).resolve_scale(y="shared")
+    _save_chart(chart, "53_rescue_sample_distribution", output_dir)
+    return chart
+
+
+def plot_rescue_by_tier(rescue_tier_df, output_dir: str):
+    """Chart 54: Rescue rate per CxDy tier, stacked bar."""
+    if rescue_tier_df is None or (hasattr(rescue_tier_df, 'is_empty') and rescue_tier_df.is_empty()):
+        return
+    pdf = rescue_tier_df.to_pandas()
+    chart = alt.Chart(pdf).mark_bar().encode(
+        x=alt.X("final_tier:N", title="Caller Tier"),
+        y=alt.Y("count:Q", title="Variant Count", stack="zero"),
+        color=alt.Color("RESCUED:N", title="Rescued",
+                        scale=alt.Scale(domain=["YES", "NO"], range=["#2ca02c", "#d62728"])),
+        tooltip=["final_tier", "RESCUED", "count", "pct"],
+    ).properties(title="Rescue Status by Caller Tier")
+    _save_chart(chart, "54_rescue_by_tier", output_dir)
+    return chart
+
+
+def plot_rescue_rate_trend(breakdown_df, output_dir: str):
+    """Chart 55: Rescue proportion (%) across sets, line chart."""
+    if breakdown_df is None or (hasattr(breakdown_df, 'is_empty') and breakdown_df.is_empty()):
+        return
+    pdf = breakdown_df.to_pandas()
+    if "set_number" not in pdf.columns:
+        return
+    rescued_only = pdf[pdf["RESCUED"] == "YES"].copy()
+    if rescued_only.empty:
+        return
+    chart = alt.Chart(rescued_only).mark_line(point=True, strokeWidth=2).encode(
+        x=alt.X("set_number:N", title="Set"),
+        y=alt.Y("pct:Q", title="Rescue Rate (%)"),
+        tooltip=["set_number", "count", "total", "pct"],
+    ).properties(title="Rescue Rate Trend Across Sets")
+    _save_chart(chart, "55_rescue_rate_trend", output_dir)
+    return chart
+
+
+def plot_rescue_caller_support(caller_support_df, output_dir: str):
+    """Chart 56: N_SUPPORT_CALLERS distribution by rescue status."""
+    if caller_support_df is None or (hasattr(caller_support_df, 'is_empty') and caller_support_df.is_empty()):
+        return
+    pdf = caller_support_df.to_pandas()
+    pdf["N_SUPPORT_CALLERS"] = pdf["N_SUPPORT_CALLERS"].astype(int).astype(str)
+    chart = alt.Chart(pdf).mark_bar().encode(
+        x=alt.X("N_SUPPORT_CALLERS:N", title="Number of Supporting Callers"),
+        y=alt.Y("count:Q", title="Variant Count"),
+        color=alt.Color("RESCUED:N", title="Rescued",
+                        scale=alt.Scale(domain=["YES", "NO"], range=["#2ca02c", "#d62728"])),
+        xOffset="RESCUED:N",
+        tooltip=["N_SUPPORT_CALLERS", "RESCUED", "count"],
+    ).properties(title="Caller Support Distribution: Rescued vs Non-Rescued")
+    _save_chart(chart, "56_rescue_caller_support", output_dir)
     return chart
 
 

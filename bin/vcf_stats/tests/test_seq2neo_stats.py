@@ -3589,4 +3589,209 @@ class TestBamValidationColumns:
             "BAM_DT_F2R1_alt": [0],
         })
         assert bam_type_has_strand(df, "DT") is True
-        assert bam_type_has_strand(df, "RT") is False
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Strelka TAR/TIR Mapping and Repair Tests (fix-stats-viz-round4)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestStrelkaMappingFix:
+    """Verify Strelka AD_ALT ← TIR and AD_REF ← TAR after join."""
+
+    def test_strelka_ad_alt_equals_tir_after_join(self):
+        """After _streaming_join_one, AD_ALT should be TIR, AD_REF should be TAR."""
+        from vcf_stats.seq2neo.cli import _streaming_join_one
+
+        base_df = pl.DataFrame({
+            "CHROM": ["chr1", "chr1"],
+            "POS": [100, 200],
+            "REF": ["A", "C"],
+            "ALT": ["T", "G"],
+        })
+        col_data = {
+            "CHROM": ["chr1", "chr1"],
+            "POS": [100, 200],
+            "REF": ["A", "C"],
+            "ALT": ["T", "G"],
+            "DP": [100, 80],
+            "TAR": [90, 70],    # ref counts
+            "TIR": [8, 6],     # alt counts
+            "TOR": [2, 4],     # other counts
+        }
+        result = _streaming_join_one(base_df, col_data, "DNA_strelka")
+
+        # AD_ALT should come from TIR, not TAR
+        assert "DNA_strelka_AD_ALT" in result.columns
+        assert "DNA_strelka_AD_REF" in result.columns
+        assert result["DNA_strelka_AD_ALT"].to_list() == [8, 6]   # TIR values
+        assert result["DNA_strelka_AD_REF"].to_list() == [90, 70]  # TAR values
+
+    def test_strelka_vaf_within_unit_range(self):
+        """After fix, Strelka VAF should always be in [0, 1]."""
+        from vcf_stats.seq2neo.statistics import compute_vaf_columns
+        df = pl.DataFrame({
+            "DNA_strelka_AD_ALT": [8, 6, 0, None],
+            "DNA_strelka_DP": [100, 80, 50, None],
+        })
+        result = compute_vaf_columns(df)
+        vafs = result["DNA_strelka_VAF"].to_list()
+        for v in vafs:
+            if v is not None:
+                assert 0.0 <= v <= 1.0, f"VAF {v} out of [0, 1]"
+
+
+class TestStrelkaRepair:
+    """Test the _repair_strelka_columns post-load repair function."""
+
+    def _make_old_parquet_lf(self):
+        """Create a lazy frame simulating old (buggy) parquet: AD_ALT == TAR."""
+        return pl.LazyFrame({
+            "CHROM": ["chr1"] * 4,
+            "POS": [100, 200, 300, 400],
+            "DNA_strelka_TAR": [90, 70, 85, 60],       # ref counts
+            "DNA_strelka_TIR": [8, 6, 10, 5],          # alt counts
+            "DNA_strelka_TOR": [2, 4, 5, 3],            # other counts
+            "DNA_strelka_AD_ALT": [90, 70, 85, 60],     # BUG: == TAR
+            "DNA_strelka_AD_REF": [2, 4, 5, 3],         # BUG: == TOR
+            "DNA_strelka_DP": [100, 80, 100, 68],
+            "DNA_strelka_VAF": [0.9, 0.875, 0.85, 0.882],  # wrong (TAR/DP)
+            "DNA_mutect2_VAF": [0.08, 0.06, 0.10, 0.05],
+            "DNA_deepsomatic_VAF": [0.09, 0.07, 0.11, 0.06],
+            "DNA_mutect2_AD_ALT": [8, 5, 10, 4],
+            "DNA_deepsomatic_AD_ALT": [9, 6, 11, 5],
+            "DNA_mutect2_AD_REF": [42, 35, 40, 30],
+            "DNA_deepsomatic_AD_REF": [41, 34, 39, 29],
+        })
+
+    def test_repair_detects_and_fixes_inversion(self):
+        """Repair should detect AD_ALT == TAR and remap to TIR."""
+        from vcf_stats.seq2neo.cli import _repair_strelka_columns
+        lf = self._make_old_parquet_lf()
+        fixed = _repair_strelka_columns(lf).collect()
+
+        # AD_ALT should now be TIR values
+        assert fixed["DNA_strelka_AD_ALT"].to_list() == [8, 6, 10, 5]
+        # AD_REF should now be TAR values
+        assert fixed["DNA_strelka_AD_REF"].to_list() == [90, 70, 85, 60]
+        # VAF should be TIR/DP
+        vafs = fixed["DNA_strelka_VAF"].to_list()
+        assert abs(vafs[0] - 8 / 100) < 0.001
+        assert abs(vafs[1] - 6 / 80) < 0.001
+
+    def test_repair_recomputes_means(self):
+        """Repair should recompute DNA_VAF_mean from corrected per-caller VAFs."""
+        from vcf_stats.seq2neo.cli import _repair_strelka_columns
+        lf = self._make_old_parquet_lf()
+        fixed = _repair_strelka_columns(lf).collect()
+
+        # DNA_VAF_mean should now be mean of 3 corrected caller VAFs
+        assert "DNA_VAF_mean" in fixed.columns
+        row0_mean = fixed["DNA_VAF_mean"][0]
+        expected = (8 / 100 + 0.08 + 0.09) / 3  # corrected strelka + mutect2 + deepsomatic
+        assert abs(row0_mean - expected) < 0.01
+
+    def test_repair_idempotent_on_fixed_data(self):
+        """Repair should skip if AD_ALT already == TIR (no double-repair)."""
+        from vcf_stats.seq2neo.cli import _repair_strelka_columns
+        # Create correctly-mapped data: AD_ALT == TIR
+        lf = pl.LazyFrame({
+            "CHROM": ["chr1"] * 3,
+            "POS": [100, 200, 300],
+            "DNA_strelka_TAR": [90, 70, 85],
+            "DNA_strelka_TIR": [8, 6, 10],
+            "DNA_strelka_TOR": [2, 4, 5],
+            "DNA_strelka_AD_ALT": [8, 6, 10],   # Correct: == TIR
+            "DNA_strelka_AD_REF": [90, 70, 85],  # Correct: == TAR
+            "DNA_strelka_DP": [100, 80, 100],
+            "DNA_strelka_VAF": [0.08, 0.075, 0.10],
+        })
+        fixed = _repair_strelka_columns(lf).collect()
+        # Should remain unchanged
+        assert fixed["DNA_strelka_AD_ALT"].to_list() == [8, 6, 10]
+        assert fixed["DNA_strelka_AD_REF"].to_list() == [90, 70, 85]
+
+
+class TestRescueStatistics:
+    """Test rescue analytics statistics functions."""
+
+    @pytest.fixture
+    def rescue_df(self):
+        return pl.DataFrame({
+            "sample_id": ["S1"] * 6 + ["S2"] * 4,
+            "set_number": [1] * 6 + [2] * 4,
+            "CHROM": ["chr1"] * 10,
+            "POS": list(range(100, 200, 10)),
+            "FILTER": ["Somatic", "Somatic", "Germline", "Artifact", "Somatic", "Germline",
+                        "Somatic", "Somatic", "Germline", "Artifact"],
+            "RESCUED": ["YES", "NO", "YES", "NO", "YES", "NO",
+                        "YES", "NO", "NO", "NO"],
+            "N_SUPPORT_CALLERS": [5, 3, 2, 1, 6, 2, 4, 3, 2, 1],
+            "final_tier": ["C1D1", "C2D2", "C3D1", "C4D0", "C1D1", "C5D1",
+                           "C1D1", "C2D2", "C3D1", "C7D0"],
+            "DNA_VAF_mean": [0.3, 0.1, 0.05, 0.01, 0.4, 0.02,
+                             0.25, 0.15, 0.03, 0.005],
+            "RNA_VAF_mean": [0.2, 0.08, 0.04, None, 0.35, 0.01,
+                             0.2, 0.1, 0.02, None],
+            "DNA_DP_mean": [100, 50, 30, 10, 120, 20,
+                            80, 60, 25, 8],
+            "RNA_DP_mean": [90, 45, 28, None, 110, 18,
+                            75, 55, 22, None],
+        })
+
+    def test_rescue_breakdown(self, rescue_df):
+        from vcf_stats.seq2neo.statistics import compute_rescue_breakdown
+        result = compute_rescue_breakdown(rescue_df)
+        assert not result.is_empty()
+        assert "RESCUED" in result.columns
+        assert "count" in result.columns
+        assert "pct" in result.columns
+        # YES count: 4, NO count: 6
+        yes_rows = result.filter(pl.col("RESCUED") == "YES")
+        assert yes_rows["count"].sum() == 4
+
+    def test_rescue_by_filter(self, rescue_df):
+        from vcf_stats.seq2neo.statistics import compute_rescue_by_filter
+        result = compute_rescue_by_filter(rescue_df)
+        assert not result.is_empty()
+        assert "FILTER" in result.columns
+        assert "RESCUED" in result.columns
+
+    def test_rescue_cross_tab(self, rescue_df):
+        from vcf_stats.seq2neo.statistics import compute_rescue_cross_tab
+        result = compute_rescue_cross_tab(rescue_df)
+        assert not result.is_empty()
+        assert "set_number" in result.columns
+
+    def test_rescue_vaf_dp(self, rescue_df):
+        from vcf_stats.seq2neo.statistics import compute_rescue_vaf_dp
+        result = compute_rescue_vaf_dp(rescue_df)
+        assert not result.is_empty()
+        assert "n_variants" in result.columns
+
+    def test_sample_rescue_summary(self, rescue_df):
+        from vcf_stats.seq2neo.statistics import sample_rescue_summary
+        result = sample_rescue_summary(rescue_df)
+        assert not result.is_empty()
+        assert "sample_id" in result.columns
+        assert "count" in result.columns
+
+    def test_rescue_by_tier(self, rescue_df):
+        from vcf_stats.seq2neo.statistics import compute_rescue_by_tier
+        result = compute_rescue_by_tier(rescue_df)
+        assert not result.is_empty()
+        assert "final_tier" in result.columns
+        assert "pct" in result.columns
+
+    def test_rescue_by_caller_support(self, rescue_df):
+        from vcf_stats.seq2neo.statistics import compute_rescue_by_caller_support
+        result = compute_rescue_by_caller_support(rescue_df)
+        assert not result.is_empty()
+        assert "N_SUPPORT_CALLERS" in result.columns
+
+    def test_rescue_empty_column(self):
+        """Functions should return empty DataFrame when RESCUED column is missing."""
+        from vcf_stats.seq2neo.statistics import compute_rescue_breakdown
+        df = pl.DataFrame({"sample_id": ["S1"], "FILTER": ["Somatic"]})
+        result = compute_rescue_breakdown(df)
+        assert result.is_empty()

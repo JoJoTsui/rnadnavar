@@ -242,10 +242,12 @@ CALLER_VAF_DENOMINATOR = {
 def compute_vaf_columns(df: pl.DataFrame) -> pl.DataFrame:
     """Compute per-caller VAF = AD_ALT / DP.
 
-    For Strelka callers, AD_ALT comes from TAR[0] and AD_REF from TOR[0],
+    For Strelka callers, AD_ALT comes from TIR[0] and AD_REF from TAR[0],
     and DP is tier-1 filtered depth (see CALLER_VAF_DENOMINATOR above).
     For Mutect2/DeepSomatic, AD_ALT comes from AD[1] and DP is total depth.
     VAF is set to NaN when DP == 0 or DP is null.
+    Values are defensively clipped to [0, 1] to guard against edge cases
+    (e.g., rounding, multiallelic sites).
     """
     for caller in ALL_CALLERS:
         ad_col = f"{caller}_AD_ALT"
@@ -259,6 +261,7 @@ def compute_vaf_columns(df: pl.DataFrame) -> pl.DataFrame:
             pl.when(pl.col(dp_col).is_not_null() & (pl.col(dp_col) > 0))
             .then(pl.col(ad_col).cast(pl.Float64) / pl.col(dp_col).cast(pl.Float64))
             .otherwise(None)
+            .clip(0.0, 1.0)
             .alias(vaf_col)
         )
     return df
@@ -990,3 +993,125 @@ def compute_somatic_modality(df) -> pl.DataFrame:
         agg_exprs.append(pl.col("DNA_DP_mean").mean().alias("mean_dna_dp"))
 
     return somatic.group_by("somatic_modality").agg(agg_exprs).sort("n_variants", descending=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Rescue Analytics (Section 9)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def _rescue_flag(df: pl.DataFrame) -> pl.DataFrame:
+    """Normalize RESCUED column to YES/NO (fill nulls with NO)."""
+    if "RESCUED" not in df.columns:
+        return df.with_columns(pl.lit("NO").alias("RESCUED"))
+    return df.with_columns(
+        pl.when(pl.col("RESCUED") == "YES").then(pl.lit("YES"))
+        .otherwise(pl.lit("NO"))
+        .alias("RESCUED")
+    )
+
+
+def compute_rescue_breakdown(df, group_col: str = "set_number") -> pl.DataFrame:
+    """Per-group rescued vs non-rescued counts and proportions."""
+    df = _ensure_eager(df)
+    if "RESCUED" not in df.columns:
+        return pl.DataFrame()
+    df = _rescue_flag(df)
+    group_cols = [group_col, "RESCUED"] if group_col in df.columns else ["RESCUED"]
+    result = df.group_by(group_cols).agg(pl.len().alias("count"))
+    # Add proportion within each group
+    if group_col in df.columns:
+        totals = result.group_by(group_col).agg(pl.col("count").sum().alias("total"))
+        result = result.join(totals, on=group_col, how="left")
+    else:
+        total = result["count"].sum()
+        result = result.with_columns(pl.lit(total).alias("total"))
+    result = result.with_columns(
+        (pl.col("count") / pl.col("total") * 100).round(2).alias("pct")
+    )
+    return result.sort(group_cols if group_col in df.columns else ["RESCUED"])
+
+
+def compute_rescue_by_filter(df) -> pl.DataFrame:
+    """RESCUED × FILTER cross-tabulation with counts and proportions."""
+    df = _ensure_eager(df)
+    if "RESCUED" not in df.columns or "FILTER" not in df.columns:
+        return pl.DataFrame()
+    df = _rescue_flag(df)
+    result = df.group_by(["FILTER", "RESCUED"]).agg(pl.len().alias("count"))
+    totals = result.group_by("FILTER").agg(pl.col("count").sum().alias("total_per_filter"))
+    result = result.join(totals, on="FILTER", how="left")
+    result = result.with_columns(
+        (pl.col("count") / pl.col("total_per_filter") * 100).round(2).alias("pct")
+    )
+    return result.sort(["FILTER", "RESCUED"])
+
+
+def compute_rescue_cross_tab(df) -> pl.DataFrame:
+    """Three-way cross-tabulation: RESCUED × FILTER × set_number."""
+    df = _ensure_eager(df)
+    if "RESCUED" not in df.columns or "FILTER" not in df.columns:
+        return pl.DataFrame()
+    df = _rescue_flag(df)
+    group_cols = ["RESCUED", "FILTER"]
+    if "set_number" in df.columns:
+        group_cols.append("set_number")
+    return df.group_by(group_cols).agg(pl.len().alias("count")).sort(group_cols)
+
+
+def compute_rescue_vaf_dp(df) -> pl.DataFrame:
+    """VAF/DP distribution statistics by rescue status (mean, median, Q1, Q3)."""
+    df = _ensure_eager(df)
+    if "RESCUED" not in df.columns:
+        return pl.DataFrame()
+    df = _rescue_flag(df)
+    agg_exprs = [pl.len().alias("n_variants")]
+    for col in ["DNA_VAF_mean", "RNA_VAF_mean", "DNA_DP_mean", "RNA_DP_mean"]:
+        if col in df.columns:
+            agg_exprs.extend([
+                pl.col(col).mean().alias(f"{col}_mean"),
+                pl.col(col).median().alias(f"{col}_median"),
+                pl.col(col).quantile(0.25).alias(f"{col}_q1"),
+                pl.col(col).quantile(0.75).alias(f"{col}_q3"),
+            ])
+    return df.group_by("RESCUED").agg(agg_exprs).sort("RESCUED")
+
+
+def sample_rescue_summary(df) -> pl.DataFrame:
+    """Per-sample rescued/non-rescued counts with FILTER breakdown."""
+    df = _ensure_eager(df)
+    if "RESCUED" not in df.columns or "sample_id" not in df.columns:
+        return pl.DataFrame()
+    df = _rescue_flag(df)
+    group_cols = ["sample_id", "RESCUED"]
+    if "set_number" in df.columns:
+        group_cols.append("set_number")
+    if "FILTER" in df.columns:
+        group_cols.append("FILTER")
+    return df.group_by(group_cols).agg(pl.len().alias("count")).sort(group_cols)
+
+
+def compute_rescue_by_tier(df) -> pl.DataFrame:
+    """Rescue count and rate per final_tier (CxDy)."""
+    df = _ensure_eager(df)
+    if "RESCUED" not in df.columns or "final_tier" not in df.columns:
+        return pl.DataFrame()
+    df = _rescue_flag(df)
+    result = df.group_by(["final_tier", "RESCUED"]).agg(pl.len().alias("count"))
+    totals = result.group_by("final_tier").agg(pl.col("count").sum().alias("total"))
+    result = result.join(totals, on="final_tier", how="left")
+    result = result.with_columns(
+        (pl.col("count") / pl.col("total") * 100).round(2).alias("pct")
+    )
+    return result.sort(["final_tier", "RESCUED"])
+
+
+def compute_rescue_by_caller_support(df) -> pl.DataFrame:
+    """N_SUPPORT_CALLERS distribution by rescue status."""
+    df = _ensure_eager(df)
+    if "RESCUED" not in df.columns or "N_SUPPORT_CALLERS" not in df.columns:
+        return pl.DataFrame()
+    df = _rescue_flag(df)
+    return df.group_by(["N_SUPPORT_CALLERS", "RESCUED"]).agg(
+        pl.len().alias("count")
+    ).sort(["N_SUPPORT_CALLERS", "RESCUED"])

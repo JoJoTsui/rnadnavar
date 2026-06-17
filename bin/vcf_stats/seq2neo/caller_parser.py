@@ -444,7 +444,7 @@ def join_caller_columns(
 
         # Ensure Strelka has AD_REF/AD_ALT columns
         if is_strelka:
-            for suf, src in [("AD_REF", "TOR"), ("AD_ALT", "TAR")]:
+            for suf, src in [("AD_REF", "TAR"), ("AD_ALT", "TIR")]:
                 src_col = f"{caller_name}_{src}"
                 tgt_col = f"{caller_name}_{suf}"
                 if src_col in df.columns:
