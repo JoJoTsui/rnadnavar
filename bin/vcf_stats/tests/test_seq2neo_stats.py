@@ -3880,3 +3880,49 @@ class TestGlobalColorConstants:
                     "somatic_modality", "bam_type", "modality", "agreement_level"]
         for entity in expected:
             assert entity in _COLOR_REGISTRY, f"{entity} missing from _COLOR_REGISTRY"
+
+
+class TestFacetColumnsPlacement:
+    """Ensure 'columns=' is never passed inside alt.Facet() — it must be on .facet() method.
+
+    This catches the bug where alt.Facet("field:N", columns=3) raises:
+      'Facet has no parameter named columns'
+    The correct pattern is: .facet(facet=alt.Facet("field:N"), columns=3)
+    """
+
+    def test_no_columns_inside_alt_facet_constructor(self):
+        """Scan visualizer.py source — alt.Facet(...) must never contain columns=."""
+        import re
+        from vcf_stats.seq2neo import visualizer
+        source_path = Path(visualizer.__file__)
+        source = source_path.read_text()
+
+        # Find all alt.Facet(...) calls and extract their contents
+        # Pattern: alt.Facet( ... ) — match balanced parens (simple single-level)
+        facet_calls = re.findall(r'alt\.Facet\(([^)]+)\)', source)
+        violations = []
+        for i, call_content in enumerate(facet_calls):
+            if 'columns=' in call_content or 'columns =' in call_content:
+                # Find the line number for context
+                pos = source.find(f'alt.Facet({call_content})')
+                line_no = source[:pos].count('\n') + 1 if pos >= 0 else '?'
+                violations.append(f"Line {line_no}: alt.Facet({call_content.strip()})")
+
+        assert not violations, (
+            f"Found 'columns=' inside alt.Facet() constructor ({len(violations)} violation(s)).\n"
+            f"'columns=' must be on the .facet() method call, not inside alt.Facet().\n"
+            + "\n".join(violations)
+        )
+
+    def test_facet_method_columns_usage_is_valid(self):
+        """Verify that .facet(..., columns=N) calls exist and use integer values."""
+        import re
+        from vcf_stats.seq2neo import visualizer
+        source_path = Path(visualizer.__file__)
+        source = source_path.read_text()
+
+        # Find .facet( blocks (may span multiple lines) containing columns=N
+        facet_method_calls = re.findall(r'\.facet\(.*?columns\s*=\s*(\d+)', source, re.DOTALL)
+        assert len(facet_method_calls) > 0, "Expected at least one .facet(..., columns=N) call"
+        for val in facet_method_calls:
+            assert int(val) >= 1, f"columns={val} should be >= 1"
