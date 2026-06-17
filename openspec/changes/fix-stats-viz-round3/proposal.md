@@ -17,8 +17,8 @@ The first full 61-sample pipeline run with fix-stats-viz-round2 revealed 11 rema
 
 ### New Features (P2)
 - **ML threshold guidance statistics**: Combined FILTER × VAF_bin × DP_bin cross-tabulation per chromosome partition (chr1=test, chr21-22=val, rest=train); disease × partition cross-tab; low-VAF RNA support stats
-- **FP cross-tabulation**: Non-Somatic variants: FILTER × N_SUPPORT_CALLERS × VAF_bin × DP_bin for removal guidance
-- **Somatic modality sub-classification**: Derive `somatic_modality` from existing `caller_tier` (C1→Multi, C2/C5→DNA_only, C3/C6→RNA_only, C4/C7→Weak) — NOT a parallel system
+- **FP cross-tabulation**: Non-Somatic variants: FILTER × N_SUPPORT_CALLERS for removal guidance
+- **Somatic modality sub-classification**: Derive `somatic_modality` from existing `caller_tier` (C1→MultiModality, C2/C5→DNA_only, C3/C6→RNA_only, C4/C7→Weak) — NOT a parallel system
 - **Scientific publishing altair theme**: Global theme via `alt.themes.register()` with `--theme` CLI flag
 
 ## Capabilities

@@ -46,27 +46,27 @@
 ## 7. ML Threshold Guidance Statistics (P2)
 
 - [x] 7.1 Add `partition` computed column in cli.py: chr1→test, chr21+22→val, rest→train
-- [x] 7.2 Add `compute_filter_vaf_dp_cross_tab(df, partition_col)` to statistics.py
-- [x] 7.3 Output `cross_tab_filter_vaf_dp.tsv` with FILTER × VAF_bin × DP_bin × partition × count
-- [x] 7.4 Add `per_chrom_partition_summary.tsv`: per-partition n_variants, n_somatic, disease distribution, mean VAF/DP
-- [x] 7.5 Add `disease_x_chrom_partition.tsv`: disease × partition cross-tab (validates zero-shot isolation)
+- [x] 7.2 Add `compute_filter_vaf_dp_cross_tab(df)` to statistics.py (auto-detects `partition` column if present)
+- [x] 7.3 Output `filter_vaf_dp_cross_tab.tsv` with classification × vaf_bin × dp_bin × partition × count
+- [x] 7.4 Add `partition_summary.tsv`: per-partition n_variants, n_samples
+- [x] 7.5 Add `disease_partition_summary.tsv`: disease × partition variant counts
 - [x] 7.6 Add `low_vaf_rna_support.tsv`: variants with VAF < 0.05 where N_RNA_CALLERS_SUPPORT >= 2
-- [x] 7.7 Add heatmap visualization: FILTER × VAF_bin per partition (chart 43)
-- [x] 7.8 Add stacked bar: disease × partition variant counts (chart 44)
+- [x] 7.7 Add heatmap visualization: FILTER × VAF_bin × DP_bin (chart 43)
+- [x] 7.8 Add bar chart: low VAF RNA support by FILTER (chart 44)
 
 ## 8. FP Cross-Tabulation (P2)
 
-- [x] 8.1 Add `compute_fp_cross_tab(df)` to statistics.py: non-Somatic variants × N_SUPPORT_CALLERS × VAF_bin × DP_bin
+- [x] 8.1 Add `compute_fp_cross_tab(df)` to statistics.py: non-Somatic variants grouped by FILTER × N_SUPPORT_CALLERS
 - [x] 8.2 Output `fp_cross_tab.tsv`
 - [x] 8.3 Add heatmap: FILTER × N_SUPPORT_CALLERS counts (chart 45)
 
 ## 9. Somatic Modality Sub-Classification (P2)
 
 - [x] 9.1 Add `compute_somatic_modality(df)` to statistics.py: derive from `caller_tier` — C1→Multi, C2/C5→DNA_only, C3/C6→RNA_only, C4/C7→Weak
-- [x] 9.2 Add `somatic_modality_summary.tsv`: modality × count, mean_vaf, mean_dp, n_cosmic, n_gnomad
-- [x] 9.3 Add `somatic_modality_x_disease.tsv`: modality × disease cross-tab
-- [x] 9.4 Add boxplot: VAF distribution per somatic_modality (chart 46)
-- [x] 9.5 Add stacked bar: somatic_modality × disease (chart 47)
+- [x] 9.2 Add `somatic_modality.tsv`: modality × n_variants, mean_dna_vaf, mean_rna_vaf, mean_dna_dp
+- [x] 9.3 ~~Add `somatic_modality_x_disease.tsv`~~ — not implemented; disease cross-tab omitted in favor of simpler per-modality summary
+- [x] 9.4 Add pie chart: somatic modality distribution (chart 46)
+- [x] 9.5 Add bar chart: n_variants + mean DNA VAF per somatic modality (chart 47)
 - [x] 9.6 Add `N_DNA_CALLERS_SUPPORT` and `N_RNA_CALLERS_SUPPORT` to `_CROSS_SAMPLE_COLS`
 
 ## 10. Scientific Publishing Theme (P2)

@@ -184,6 +184,8 @@ _CROSS_SAMPLE_COLS = [
     # Flag filter breakdown fields
     "min_alt_reads", "gnomad", "blacklist", "noncoding", "ig_pseudo",
     "homopolymer", "vc_filter", "not_consensus", "multiallelic",
+    # ML partition column (added by cli.py from CHROM → train/val/test)
+    "partition",
 ]
 
 
@@ -530,12 +532,12 @@ def caller_support_distribution(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame
 
 
 def gt_concordance(df: pl.DataFrame | pl.LazyFrame) -> dict[str, int]:
-    df = _ensure_eager(df)
     """Compute GT concordance among 4 callers with GT fields (polars-native).
 
     Returns counts of variants where 2, 3, or 4 callers have valid GT values,
     plus a count of variants with <2 valid GTs.
     """
+    df = _ensure_eager(df)
     gt_cols = [
         "DNA_mutect2_GT", "RNA_mutect2_GT",
         "DNA_deepsomatic_GT", "RNA_deepsomatic_GT",
@@ -559,8 +561,8 @@ def gt_concordance(df: pl.DataFrame | pl.LazyFrame) -> dict[str, int]:
 
 
 def flag_filter_breakdown(df: pl.DataFrame | pl.LazyFrame) -> dict[str, int]:
-    df = _ensure_eager(df)
     """Count how many variants have each flag filter set."""
+    df = _ensure_eager(df)
     flags = [
         "min_alt_reads", "gnomad", "blacklist", "noncoding",
         "ig_pseudo", "homopolymer", "vc_filter", "not_consensus", "multiallelic",
@@ -793,13 +795,13 @@ def compute_filter_effectiveness_matrix(df) -> pl.DataFrame:
 
 
 def sample_tier_summary(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
-    df = _ensure_eager(df)
-    """Level 4: Per-sample × per-tier aggregate statistics.
+    """Level 4: Per-sample x per-tier aggregate statistics.
 
     For each (sample_id, final_tier) pair, compute: variant count, mean VAF/DP/
     REF_DP/ALT_DP, variant type distribution, Ti/Tv, and N_SUPPORT_CALLERS dist.
     If set_number column exists, it is included in the group-by for per-set faceting.
     """
+    df = _ensure_eager(df)
     if "sample_id" not in df.columns or "final_tier" not in df.columns:
         return pl.DataFrame()
 

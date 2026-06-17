@@ -147,7 +147,6 @@ from .visualizer import (
 
 def _streaming_join_one(df: pl.DataFrame, col_data: dict, caller_name: str) -> pl.DataFrame:
     """Join a single caller's column-oriented data and rename columns."""
-    from .caller_parser import CALLERS_STRELKA, CALLERS_WITH_GT
     join_cols = ["CHROM", "POS", "REF", "ALT"]
     int_fields = {"DP", "AD_REF", "AD_ALT", "TAR", "TIR", "TOR", "AU", "CU", "GU", "TU", "POS"}
     float_fields = {"VAF_CALLER"}
