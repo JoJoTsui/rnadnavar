@@ -49,3 +49,4 @@ notebook/SEQC2_dna_only_statistics/
 dev_docs/
 full_v0
 bin/vcf_stats/seq2neo/stats_core.so
+examples/seq2neo/stats/full_filtered/
