@@ -1908,7 +1908,8 @@ def plot_filter_vaf_dp_heatmap(cross_tab_df, output_dir: str):
     chart = (rect + text).properties(
         title="FILTER x VAF x DP Cross-Tabulation", width=200, height=180
     ).facet(
-        facet=alt.Facet("classification:N", columns=3, title="Classification"),
+        facet=alt.Facet("classification:N", title="Classification"),
+        columns=3,
     )
     _save_chart(chart, "43_filter_vaf_dp_heatmap", output_dir)
     return chart
