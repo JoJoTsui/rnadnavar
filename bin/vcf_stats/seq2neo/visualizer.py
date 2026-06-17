@@ -1686,10 +1686,11 @@ def plot_dp_distribution(df, output_dir: str, color_col: str = None):
     enc = {"x": alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
            "y": alt.Y("DP:Q", title="Read Depth (capped at 2000)", scale=alt.Scale(domain=[0, 2000]))}
     if color_col and color_col in pdf.columns:
+        # Use column encoding (NOT .facet()) — boxplot is composite mark
         enc["color"] = alt.Color(f"{color_col}:N")
+        enc["column"] = alt.Column(f"{color_col}:N")
         chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc).properties(
             title="DP Distribution per Caller (capped at 2000)")
-        chart = _apply_faceting(chart, color_col)
     else:
         enc["color"] = alt.Color("caller:N", scale=_color_scale("caller"))
         box = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc)
@@ -2098,10 +2099,11 @@ def plot_bam_dp_distribution(df, output_dir: str, color_col: str = None):
     enc = {"x": alt.X("metric:N", title="BAM Metric", axis=alt.Axis(labelAngle=-45)),
            "y": alt.Y("depth:Q", title="Depth at Variant Position (capped 2000)", scale=alt.Scale(domain=[0, 2000]))}
     if color_col and color_col in sampled.columns:
+        # Use column encoding (NOT .facet()) — boxplot is composite mark
         enc["color"] = alt.Color(f"{color_col}:N")
+        enc["column"] = alt.Column(f"{color_col}:N")
         chart = alt.Chart(sampled).mark_boxplot(size=30).encode(**enc).properties(
             title=alt.Title("BAM Pileup DP Distribution per BAM Type", subtitle=subtitle))
-        chart = _apply_faceting(chart, color_col)
     else:
         enc["color"] = alt.Color("metric:N", scale=_color_scale("metric"))
         box = alt.Chart(sampled).mark_boxplot(size=30).encode(**enc)
