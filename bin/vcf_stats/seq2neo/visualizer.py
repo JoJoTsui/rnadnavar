@@ -572,7 +572,9 @@ def plot_filter_distribution(df, output_dir: str, group_col: str = "set_number")
     if "FILTER" not in df.columns or group_col not in df.columns:
         return
     total_per_group = df.group_by(group_col).agg(pl.len().alias("total"))
-    counts = df.group_by([group_col, "FILTER"]).agg(pl.len().alias("count"))
+    # Deduplicate group_by columns (defensive — handles group_col="FILTER")
+    group_cols = list(dict.fromkeys([group_col, "FILTER"]))
+    counts = df.group_by(group_cols).agg(pl.len().alias("count"))
     counts = counts.join(total_per_group, on=group_col).with_columns(
         (pl.col("count") / pl.col("total") * 100).round(1).alias("pct")
     )
@@ -769,17 +771,17 @@ def plot_vaf_distribution(df, output_dir: str, color_col: str = None):
             title="VAF Distribution per Caller",
             width=alt.Step(60))
     else:
-        # Faceted: boxplot only (ref_rules use different data — incompatible with faceting)
+        # Faceted: boxplot with column encoding (NOT .facet() — boxplot is composite mark)
         facet_col_name = color_col
         base_enc = {"x": alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
                     "y": y_scale,
-                    "color": alt.Color("caller:N", scale=_color_scale("caller"))}
+                    "color": alt.Color("caller:N", scale=_color_scale("caller")),
+                    "column": alt.Column(f"{facet_col_name}:N")}
         box = alt.Chart(pdf).mark_boxplot(size=30).encode(**base_enc)
         chart = box.properties(
             title="VAF Distribution per Caller",
             width=alt.Step(60)
         )
-        chart = _apply_faceting(chart, facet_col_name)
     _save_chart(chart, "03_vaf_distribution", output_dir)
     return chart
 
@@ -1552,14 +1554,10 @@ def plot_caller_concordance_vs_vaf(df, output_dir: str, color_col: str = None):
            "y": alt.Y("DNA_VAF_mean:Q", title="DNA Mean VAF"),
            "color": alt.Color("N_SUPPORT_CALLERS:N")}
     if color_col and color_col in pdf.columns:
-        pass  # faceting applied after chart construction
+        # Use column encoding (NOT .facet()) — boxplot is composite mark
+        enc["column"] = alt.Column(f"{color_col}:N")
     chart = alt.Chart(pdf).mark_boxplot().encode(**enc).properties(
         title="Caller Concordance vs VAF", width=200)
-    if color_col and color_col in pdf.columns:
-        chart = chart.facet(
-            facet=alt.Facet(f"{color_col}:N"),
-            columns=3,
-        )
     _save_chart(chart, "32_caller_concordance_vs_vaf", output_dir)
     return chart
 

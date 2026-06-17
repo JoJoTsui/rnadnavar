@@ -995,7 +995,7 @@ def main():
         ("variant-category", ["FILTER"]),
     ]
 
-    if wise_names is None or "set" in wise_names or "disease" in wise_names or "sample" in wise_names or "tier" in wise_names or "chromosome" in wise_names:
+    if wise_names is None or any(w in wise_names for w in ["set", "disease", "sample", "tier", "chromosome", "variant-category"]):
         print("Generating wise summaries...")
         for wise_name, group_cols in wise_configs:
             if wise_names is not None and wise_name not in wise_names:
