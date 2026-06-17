@@ -767,18 +767,17 @@ def plot_vaf_distribution(df, output_dir: str, color_col: str = None):
             title="VAF Distribution per Caller",
             width=alt.Step(60))
     else:
-        # Faceted: boxplot layers, then facet
+        # Faceted: boxplot only (ref_rules use different data — incompatible with faceting)
         facet_col_name = color_col
         base_enc = {"x": alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
                     "y": y_scale,
                     "color": alt.Color("caller:N", scale=_color_scale("caller"))}
         box = alt.Chart(pdf).mark_boxplot(size=30).encode(**base_enc)
-        chart = (box + ref_rules).properties(
+        chart = box.properties(
             title="VAF Distribution per Caller",
             width=alt.Step(60)
-        ).facet(
-            column=alt.Column(f"{facet_col_name}:N")
         )
+        chart = _apply_faceting(chart, facet_col_name)
     _save_chart(chart, "03_vaf_distribution", output_dir)
     return chart
 
