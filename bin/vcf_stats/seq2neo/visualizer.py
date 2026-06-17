@@ -52,6 +52,40 @@ _register_publishing_theme()
 CLASSIFICATION_DOMAIN = ["Somatic", "Germline", "Reference", "Artifact", "RNAedit", "NoConsensus"]
 CLASSIFICATION_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
 
+CALLER_DOMAIN = ["DNA_mutect2", "RNA_mutect2", "DNA_deepsomatic", "RNA_deepsomatic", "DNA_strelka", "RNA_strelka"]
+CALLER_COLORS = ["#1f77b4", "#aec7e8", "#ff7f0e", "#ffbb78", "#2ca02c", "#98df8a"]
+
+RESCUE_DOMAIN = ["YES", "NO"]
+RESCUE_COLORS = ["#2ca02c", "#d62728"]
+
+VARIANT_TYPE_DOMAIN = ["SNV", "INS", "DEL", "MNV"]
+VARIANT_TYPE_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
+
+SOMATIC_MODALITY_DOMAIN = ["MultiModality", "DNA_only", "RNA_only", "Weak", "Unknown"]
+SOMATIC_MODALITY_COLORS = ["#1f77b4", "#2ca02c", "#ff7f0e", "#d62728", "#8c564b"]
+
+BAM_TYPE_DOMAIN = ["DN", "DT", "RT"]
+BAM_TYPE_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c"]
+
+MODALITY_DOMAIN = ["DNA", "RNA"]
+MODALITY_COLORS = ["#1f77b4", "#ff7f0e"]
+
+AGREEMENT_DOMAIN = ["2", "3", "4"]
+AGREEMENT_COLORS = ["#ff7f0e", "#2ca02c", "#1f77b4"]
+
+# Registry: entity name → (domain, colors). Dynamic entities use scheme fallback.
+_COLOR_REGISTRY = {
+    "caller": (CALLER_DOMAIN, CALLER_COLORS),
+    "FILTER": (CLASSIFICATION_DOMAIN, CLASSIFICATION_COLORS),
+    "RESCUED": (RESCUE_DOMAIN, RESCUE_COLORS),
+    "variant_type": (VARIANT_TYPE_DOMAIN, VARIANT_TYPE_COLORS),
+    "somatic_modality": (SOMATIC_MODALITY_DOMAIN, SOMATIC_MODALITY_COLORS),
+    "bam_type": (BAM_TYPE_DOMAIN, BAM_TYPE_COLORS),
+    "modality": (MODALITY_DOMAIN, MODALITY_COLORS),
+    "agreement_level": (AGREEMENT_DOMAIN, AGREEMENT_COLORS),
+    "agreement": (AGREEMENT_DOMAIN, AGREEMENT_COLORS),
+}
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Helpers — row counting and safe sampling on LazyFrame
@@ -156,6 +190,93 @@ _CHROMOSOME_ORDER = (
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# Unified helpers — colors, faceting, text, clipping, scales
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _color_scale(entity: str) -> alt.Scale:
+    """Return a unified alt.Scale for the given entity type.
+
+    Uses _COLOR_REGISTRY for known entities, falls back to category10 scheme.
+    """
+    if entity in _COLOR_REGISTRY:
+        domain, colors = _COLOR_REGISTRY[entity]
+        return alt.Scale(domain=domain, range=colors)
+    return alt.Scale(scheme="category10")
+
+
+def _apply_faceting(chart, group_col: str, columns: int = None):
+    """Apply the right faceting pattern based on group_col.
+
+    Rules:
+      set_number         → 2 columns, x-independent (per-set samples), y-shared
+      disease_normalized → 4 columns, y-shared
+      sample_id          → 2 columns, x-independent, y-shared
+      FILTER             → 3 columns, y-shared
+      others             → 3 columns default
+    """
+    _FACET_RULES = {
+        "set_number":         {"columns": 2, "resolve": {"x": "independent", "y": "shared"}},
+        "disease_normalized": {"columns": 4, "resolve": {"y": "shared"}},
+        "sample_id":          {"columns": 2, "resolve": {"x": "independent", "y": "shared"}},
+        "FILTER":             {"columns": 3, "resolve": {"y": "shared"}},
+    }
+    rule = _FACET_RULES.get(group_col, {"columns": 3, "resolve": {}})
+    n_cols = columns if columns is not None else rule["columns"]
+    result = chart.facet(
+        facet=alt.Facet(f"{group_col}:N"),
+        columns=n_cols,
+    )
+    resolve = rule.get("resolve", {})
+    if resolve:
+        result = result.resolve_scale(**resolve)
+    return result
+
+
+def _add_heatmap_text(base, x_enc, y_enc, text_col: str, pdf, fontSize: int = 8,
+                      fmt: str = ",d"):
+    """Add auto-colored text overlay to a heatmap chart.
+
+    Text is white on dark cells (count > median) and black on light cells.
+    """
+    median_val = max(float(pdf[text_col].median()), 1) if len(pdf) > 0 else 1
+    text = base.mark_text(baseline="middle", fontSize=fontSize).encode(
+        x=x_enc,
+        y=y_enc,
+        text=alt.Text(f"{text_col}:Q", format=fmt),
+        color=alt.condition(
+            f"datum.{text_col} > {median_val}",
+            alt.value("white"),
+            alt.value("black"),
+        ),
+    )
+    return text
+
+
+def _add_bar_labels(chart_data, x_enc, y_enc, label_col: str, fmt: str = ",d",
+                    dy: int = -8, fontSize: int = 9):
+    """Add count/percentage labels to a bar chart."""
+    text = alt.Chart(chart_data).mark_text(dy=dy, fontSize=fontSize).encode(
+        x=x_enc,
+        y=y_enc,
+        text=alt.Text(f"{label_col}:Q", format=fmt),
+        color=alt.value("black"),
+    )
+    return text
+
+
+def _clip_dp(pdf, col: str, cap: int = 2000):
+    """Clip DP values to [0, cap] and return (clipped_pdf, n_clipped)."""
+    n_over = int((pdf[col] > cap).sum())
+    pdf[col] = pdf[col].clip(0, cap)
+    return pdf, n_over
+
+
+def _count_scale():
+    """Standard scale for count axes — symlog handles zeros gracefully."""
+    return alt.Scale(type="symlog", constant=1)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # Chart factories — parameterized by wise dimension
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -208,19 +329,12 @@ def _plot_box_violin_wise(data, output_dir: str, group_col: str, value_col: str,
         value_col: Column for y-axis values.
     """
     pdf = data.to_pandas()
-    violin = alt.Chart(pdf).transform_density(
-        value_col, groupby=[group_col] if group_col in pdf.columns else None,
-    ).mark_area(opacity=0.3).encode(
-        x=alt.X(f"{group_col}:N", title=group_col.replace("_", " ").title()),
-        y=alt.Y(f"{value_col}:Q", title=value_col.replace("_", " ").title()),
-        color=alt.Color(f"{color_col or group_col}:N") if color_col else alt.value("#1f77b4"),
-    )
     box = alt.Chart(pdf).mark_boxplot(size=30).encode(
         x=alt.X(f"{group_col}:N"),
         y=alt.Y(f"{value_col}:Q"),
         color=alt.Color(f"{color_col or group_col}:N") if color_col else alt.value("#1f77b4"),
     )
-    chart = (violin + box).properties(title=title)
+    chart = box.properties(title=title)
     _save_chart(chart, chart_id, output_dir)
     return chart
 
@@ -319,7 +433,7 @@ def plot_vc_distribution(df, output_dir: str, group_col: str = "set_number"):
         y=alt.Y("count:Q", title="Number of Variants"),
         color=alt.Color(
             "FILTER:N", title="Variant Classification",
-            scale=alt.Scale(domain=CLASSIFICATION_DOMAIN, range=CLASSIFICATION_COLORS),
+            scale=_color_scale("FILTER"),
             legend=alt.Legend(orient="right", title="Variant Classification",
                               labelFontSize=11, titleFontSize=12),
         ),
@@ -369,11 +483,11 @@ def plot_variant_type_distribution(df, output_dir: str, group_col: str = "set_nu
     bars = alt.Chart(pdf).mark_bar().encode(
         x=alt.X(f"{group_col}:N", title=group_title, sort=chrom_order),
         y=alt.Y("count:Q", title="Number of Variants"),
-        color=alt.Color("variant_type:N", title="Variant Type"),
+        color=alt.Color("variant_type:N", title="Variant Type", scale=_color_scale("variant_type")),
     )
     pct_text = alt.Chart(pdf).mark_text(dy=-8, fontSize=9).encode(
         x=alt.X(f"{group_col}:N"), y=alt.Y("count:Q"),
-        text=alt.Text("pct:Q", format=".1f"), color=alt.Color("variant_type:N"),
+        text=alt.Text("pct:Q", format=".1f"), color=alt.Color("variant_type:N", scale=_color_scale("variant_type")),
     )
     chart = (bars + pct_text).properties(title=f"Variant Type Distribution by {group_title}")
     _save_chart(chart, "09_variant_type_distribution", output_dir)
@@ -474,7 +588,7 @@ def plot_filter_distribution(df, output_dir: str, group_col: str = "set_number")
     )
     pct_text = alt.Chart(counts).mark_text(dy=-8, fontSize=9).encode(
         x=alt.X(f"{group_col}:N"), y=alt.Y("count:Q"),
-        text=alt.Text("pct:Q", format=".1f"), color=alt.Color("FILTER:N"),
+        text=alt.Text("pct:Q", format=".1f"), color=alt.Color("FILTER:N", scale=_color_scale("FILTER")),
     )
     chart = (bars + pct_text).properties(title=f"FILTER Distribution by {group_title}")
     _save_chart(chart, "24_filter_distribution", output_dir)
@@ -572,7 +686,7 @@ def plot_tiered_variant_types(df, output_dir: str, facet_col: str = None):
     bars = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("variant_type:N", title="Variant Type"),
         y=alt.Y("count:Q", title="Number of Variants"),
-        color=alt.Color("variant_type:N", title="Variant Type"),
+        color=alt.Color("variant_type:N", title="Variant Type", scale=_color_scale("variant_type")),
         column=col_enc,
     )
     chart = bars.properties(title="Variant Type Distribution per Caller Tier")
@@ -647,28 +761,19 @@ def plot_vaf_distribution(df, output_dir: str, color_col: str = None):
 
     is_faceted = "column" in enc
     if not is_faceted:
-        enc["color"] = alt.Color("caller:N", scale=alt.Scale(scheme="category10"))
-        violin = alt.Chart(pdf).transform_density(
-            "VAF_display", groupby=["caller"]
-        ).mark_area(opacity=0.3).encode(
-            x=alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
-            y=y_scale,
-            color=alt.Color("caller:N", scale=alt.Scale(scheme="category10")))
+        enc["color"] = alt.Color("caller:N", scale=_color_scale("caller"))
         box = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc)
-        chart = (violin + box + ref_rules).properties(
+        chart = (box + ref_rules).properties(
             title="VAF Distribution per Caller",
             width=alt.Step(60))
     else:
-        # Faceted: build violin+box layers, then facet
+        # Faceted: boxplot layers, then facet
         facet_col_name = color_col
         base_enc = {"x": alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
                     "y": y_scale,
-                    "color": alt.Color("caller:N", scale=alt.Scale(scheme="category10"))}
-        violin = alt.Chart(pdf).transform_density(
-            "VAF_display", groupby=["caller", facet_col_name] if facet_col_name else ["caller"]
-        ).mark_area(opacity=0.3).encode(**base_enc)
+                    "color": alt.Color("caller:N", scale=_color_scale("caller"))}
         box = alt.Chart(pdf).mark_boxplot(size=30).encode(**base_enc)
-        chart = (violin + box + ref_rules).properties(
+        chart = (box + ref_rules).properties(
             title="VAF Distribution per Caller",
             width=alt.Step(60)
         ).facet(
@@ -694,7 +799,7 @@ def plot_dna_vs_rna_vaf(df, output_dir: str, color_col: str = None):
     if color_col and color_col in pdf.columns:
         actual_color = alt.Color(f"{color_col}:N", title=color_col.replace("_", " ").title())
     elif "FILTER" in pdf.columns:
-        actual_color = alt.Color("FILTER:N", scale=alt.Scale(domain=CLASSIFICATION_DOMAIN, range=CLASSIFICATION_COLORS))
+        actual_color = alt.Color("FILTER:N", scale=_color_scale("FILTER"))
     else:
         actual_color = alt.value("#1f77b4")
     chart = alt.Chart(pdf).mark_circle(opacity=0.4, size=20).encode(
@@ -759,7 +864,7 @@ def plot_vaf_boxplot_per_tier(df, output_dir: str, facet_col: str = None):
     y_scale = alt.Y("VAF_display:Q", title="Variant Allele Frequency (capped at 1.0)",
                     scale=alt.Scale(domain=[0, 1]))
     base_enc = {"x": alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
-                "color": alt.Color("caller:N", scale=alt.Scale(scheme="category10")),
+                "color": alt.Color("caller:N", scale=_color_scale("caller")),
                 "column": col_enc,
                 "y": y_scale}
     chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**base_enc).properties(
@@ -795,7 +900,7 @@ def plot_dp_boxplot_per_tier(df, output_dir: str, facet_col: str = None):
         col_enc = alt.Column(f"{facet_col}:N", title=facet_col.replace("_", " ").title())
     subtitle = f"{n_over} values > 2000 clipped" if n_over else ""
     base_enc = {"x": alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
-                "color": alt.Color("caller:N"), "column": col_enc,
+                "color": alt.Color("caller:N", scale=_color_scale("caller")), "column": col_enc,
                 "y": alt.Y("DP:Q", title="Read Depth (capped at 2000)", scale=alt.Scale(domain=[0, 2000]))}
     chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**base_enc).properties(
         title=alt.Title("DP Distribution per Caller × Caller Tier (capped at 2000)", subtitle=subtitle))
@@ -848,7 +953,7 @@ def plot_per_tier_vaf_boxplot(df, output_dir: str):
         x=alt.X("final_tier:N", title="Tier"),
         y=alt.Y("VAF_display:Q", title="DNA Mean VAF (capped at 1.0)",
                 scale=alt.Scale(domain=[0, 1])),
-        color=alt.Color("final_tier:N", scale=alt.Scale(scheme="category10")),
+        color=alt.Color("final_tier:N", scale=_color_scale("final_tier")),
     ).properties(title="DNA VAF Distribution per Tier")
     _save_chart(chart, "25_per_tier_vaf", output_dir)
     return chart
@@ -877,7 +982,7 @@ def plot_dna_vs_rna_per_caller(df, output_dir: str, color_col: str = None):
         caller_label = dna_caller.replace("DNA_", "")
         if active_color and active_color in pdf.columns:
             if active_color == "FILTER":
-                color_enc = alt.Color("FILTER:N", scale=alt.Scale(domain=CLASSIFICATION_DOMAIN, range=CLASSIFICATION_COLORS))
+                color_enc = alt.Color("FILTER:N", scale=_color_scale("FILTER"))
             else:
                 color_enc = alt.Color(f"{active_color}:N")
         else:
@@ -1232,7 +1337,7 @@ def plot_bam_metrics_bars(bam_stats_df, output_dir: str, top_n: int = 20):
     enc = {
         "x": alt.X("sample_id:N", title="Sample", axis=alt.Axis(labelAngle=-45, labelLimit=120)),
         "y": alt.Y("total_reads:Q", title="Total Reads"),
-        "color": alt.Color("bam_type:N", title="BAM Type"),
+        "color": alt.Color("bam_type:N", title="BAM Type", scale=_color_scale("bam_type")),
         "xOffset": "bam_type:N",
     }
     if has_set:
@@ -1269,7 +1374,7 @@ def plot_per_sample_tier_distribution(sample_tier_df, output_dir: str):
     enc = {
         "y": alt.Y("sample_id:N", title="Sample ID", sort=None),
         "x": alt.X("n_variants:Q", title="Variants"),
-        "color": alt.Color("final_tier:N", title="Tier"),
+        "color": alt.Color("final_tier:N", title="Tier", scale=_color_scale("final_tier")),
     }
     chart = alt.Chart(pdf).mark_bar().encode(**enc).properties(
         title="Per-Sample Per-Tier Variant Distribution",
@@ -1318,16 +1423,14 @@ def plot_bam_coverage_violin(df, output_dir: str, color_col: str = None):
     if len(sampled) == 0:
         return
 
-    enc = {"x": alt.X("depth:Q", title="Depth at Variant Position"),
-           "y": alt.Y("density:Q", title="Density"),
-           "color": alt.Color("metric:N", title="BAM Metric")}
+    enc = {"x": alt.X("metric:N", title="BAM Metric"),
+           "y": alt.Y("depth:Q", title="Depth at Variant Position"),
+           "color": alt.Color("metric:N", title="BAM Metric", scale=_color_scale("metric"))}
     if color_col and color_col in sampled.columns:
         enc["column"] = alt.Column(f"{color_col}:N")
-    chart = alt.Chart(sampled).transform_density(
-        "depth", groupby=["metric"]
-    ).mark_area(opacity=0.5).encode(**enc).properties(
+    chart = alt.Chart(sampled).mark_boxplot(size=30).encode(**enc).properties(
         title="BAM Pileup Depth Distribution at Variant Positions (depth capped at 2000, sampled)")
-    _save_chart(chart, "21_bam_coverage_violin", output_dir)
+    _save_chart(chart, "21_bam_coverage_boxplot", output_dir)
     return chart
 
 
@@ -1346,7 +1449,7 @@ def plot_per_tier_cross_sample_vaf(sample_tier_df, output_dir: str):
     chart = alt.Chart(pdf).mark_boxplot().encode(
         x=alt.X("final_tier:N", title="Tier"),
         y=alt.Y(f"{vaf_col}:Q", title=f"Mean {vaf_col}"),
-        color=alt.Color("final_tier:N"),
+        color=alt.Color("final_tier:N", scale=_color_scale("final_tier")),
     ).properties(title="Per-Tier VAF Distribution Across Samples")
     _save_chart(chart, "23_per_tier_vaf", output_dir)
     return chart
@@ -1378,7 +1481,7 @@ def plot_vaf_threshold_sweep(sweep_df, output_dir: str):
     chart = alt.Chart(pdf).mark_line(point=True).encode(
         x=alt.X("threshold:Q", title="VAF Threshold"),
         y=alt.Y("pct_retained:Q", title="% Variants Retained"),
-        color=alt.Color("caller:N", title="Caller"),
+        color=alt.Color("caller:N", title="Caller", scale=_color_scale("caller")),
     ).properties(title="VAF Threshold Sweep: Retention % vs Threshold per Caller")
     _save_chart(chart, "31_vaf_threshold_sweep", output_dir)
     return chart
@@ -1408,7 +1511,7 @@ def plot_dp_threshold_sweep(sweep_df, output_dir: str):
     chart = alt.Chart(pdf).mark_line(point=True).encode(
         x=alt.X("threshold:Q", title="Depth Threshold"),
         y=alt.Y("pct_retained:Q", title="% Variants Retained"),
-        color=alt.Color("caller:N", title="Caller", scale=alt.Scale(scheme="category10")),
+        color=alt.Color("caller:N", title="Caller", scale=_color_scale("caller")),
         column=alt.Column("metric:N", title="DP Metric"),
     ).properties(title="DP Threshold Sweep: Retention % vs Threshold per Caller")
     _save_chart(chart, "35_dp_threshold_sweep", output_dir)
@@ -1569,14 +1672,9 @@ def plot_dp_distribution(df, output_dir: str, color_col: str = None):
         enc["column"] = alt.Column(f"{color_col}:N")
     is_faceted = "column" in enc
     if not is_faceted:
-        enc["color"] = alt.Color("caller:N")
-        violin = alt.Chart(pdf).transform_density("DP", groupby=["caller"]
-            ).mark_area(opacity=0.3).encode(
-                x=alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
-                y=alt.Y("DP:Q", title="Read Depth (capped at 2000)", scale=alt.Scale(domain=[0, 2000])),
-                color=alt.Color("caller:N"))
+        enc["color"] = alt.Color("caller:N", scale=_color_scale("caller"))
         box = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc)
-        chart = (violin + box).properties(title="DP Distribution per Caller (capped at 2000)")
+        chart = box.properties(title="DP Distribution per Caller (capped at 2000)")
     else:
         chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc).properties(
             title="DP Distribution per Caller (capped at 2000)")
@@ -1807,7 +1905,7 @@ def plot_low_vaf_rna_support(low_vaf_df, output_dir: str):
         x=alt.X("FILTER:N", title="Classification"),
         y=alt.Y("n_variants:Q", title="Number of Variants"),
         color=alt.Color("FILTER:N", title="Classification",
-                        scale=alt.Scale(domain=CLASSIFICATION_DOMAIN, range=CLASSIFICATION_COLORS)),
+                        scale=_color_scale("FILTER")),
         tooltip=["FILTER", "n_variants", "mean_vaf"],
     ).properties(title="Low VAF (< 0.05) Variants with RNA Support (N_RNA_CALLERS >= 2)")
     _save_chart(chart, "44_low_vaf_rna_support", output_dir)
@@ -1835,7 +1933,7 @@ def plot_fp_cross_tab_heatmap(fp_df, output_dir: str):
         tooltip=["FILTER", "N_SUPPORT_CALLERS", "count"],
     )
     median_count = max(float(pdf["count"].median()), 1)
-    text = base.mark_text(baseline="middle", fontSize=9).encode(
+    text = base.mark_text(baseline="middle", fontSize=7).encode(
         x=alt.X("N_SUPPORT_CALLERS:N"),
         y=alt.Y("FILTER:N"),
         text=alt.Text("count:Q", format=",d"),
@@ -1845,7 +1943,7 @@ def plot_fp_cross_tab_heatmap(fp_df, output_dir: str):
             alt.value("black"),
         ),
     )
-    chart = (rect + text).properties(title="FP Cross-Tabulation: Non-Somatic FILTER x Caller Support")
+    chart = (rect + text).properties(title="Classification × Caller Support Cross-Tabulation")
     _save_chart(chart, "45_fp_cross_tab_heatmap", output_dir)
     return chart
 
@@ -1860,8 +1958,6 @@ def plot_somatic_modality_pie(modality_df, output_dir: str):
         return
     if "somatic_modality" not in modality_df.columns or "n_variants" not in modality_df.columns:
         return
-    modality_domain = ["MultiModality", "DNA_only", "RNA_only", "Weak", "Unknown"]
-    modality_colors = ["#1f77b4", "#2ca02c", "#ff7f0e", "#d62728", "#8c564b"]
     pdf = modality_df.to_pandas()
     total = pdf["n_variants"].sum()
     pdf["pct"] = (pdf["n_variants"] / total * 100).round(1)
@@ -1869,7 +1965,7 @@ def plot_somatic_modality_pie(modality_df, output_dir: str):
     arc = alt.Chart(pdf).mark_arc(innerRadius=40).encode(
         theta=alt.Theta("n_variants:Q", stack=True),
         color=alt.Color("somatic_modality:N", title="Somatic Modality",
-                        scale=alt.Scale(domain=modality_domain, range=modality_colors)),
+                        scale=_color_scale("somatic_modality")),
         tooltip=["somatic_modality", "n_variants", "pct"],
     )
     text = alt.Chart(pdf).mark_text(size=10, radiusOffset=20, radius=90).encode(
@@ -1892,7 +1988,7 @@ def plot_somatic_modality_bars(modality_df, output_dir: str):
     bars = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("somatic_modality:N", title="Somatic Modality"),
         y=alt.Y("n_variants:Q", title="Number of Variants"),
-        color=alt.Color("somatic_modality:N", title="Modality"),
+        color=alt.Color("somatic_modality:N", title="Modality", scale=_color_scale("somatic_modality")),
         tooltip=list(pdf.columns),
     ).properties(title="Somatic Modality Sub-Classification: Variant Counts")
     # VAF overlay if available
@@ -1901,7 +1997,7 @@ def plot_somatic_modality_bars(modality_df, output_dir: str):
         vaf_chart = alt.Chart(pdf).mark_bar().encode(
             x=alt.X("somatic_modality:N", title="Somatic Modality"),
             y=alt.Y("mean_dna_vaf:Q", title="Mean DNA VAF"),
-            color=alt.Color("somatic_modality:N"),
+            color=alt.Color("somatic_modality:N", scale=_color_scale("somatic_modality")),
         ).properties(title="Mean DNA VAF by Modality")
         subcharts.append(vaf_chart)
     chart = alt.hconcat(*subcharts) if len(subcharts) > 1 else bars
@@ -1976,16 +2072,18 @@ def plot_bam_dp_distribution(df, output_dir: str, color_col: str = None):
     sampled = sampled.to_pandas()
     if len(sampled) == 0:
         return
+    sampled, n_over = _clip_dp(sampled, "depth", cap=2000)
+    subtitle = f"{n_over} values > 2000 clipped" if n_over else ""
 
     enc = {"x": alt.X("metric:N", title="BAM Metric", axis=alt.Axis(labelAngle=-45)),
-           "y": alt.Y("depth:Q", title="Depth at Variant Position", scale=alt.Scale(type="symlog"))}
+           "y": alt.Y("depth:Q", title="Depth at Variant Position (capped 2000)", scale=alt.Scale(domain=[0, 2000]))}
     if color_col and color_col in sampled.columns:
         enc["color"] = alt.Color(f"{color_col}:N")
         enc["column"] = alt.Column(f"{color_col}:N")
     is_faceted = "column" in enc
     if not is_faceted:
         # Boxplot-only approach with symlog scale (violin + log produces distorted density)
-        enc["color"] = alt.Color("metric:N", scale=alt.Scale(scheme="category10"))
+        enc["color"] = alt.Color("metric:N", scale=_color_scale("metric"))
         box = alt.Chart(sampled).mark_boxplot(size=30).encode(**enc)
         chart = box.properties(title="BAM Pileup DP Distribution per BAM Type (symlog scale)")
     else:
@@ -2006,7 +2104,7 @@ def plot_per_tier_dp_boxplot(df, output_dir: str):
     chart = alt.Chart(pdf).mark_boxplot().encode(
         x=alt.X("final_tier:N", title="Tier"),
         y=alt.Y("DNA_DP_mean:Q", title="DNA Mean DP (capped at 2000)", scale=alt.Scale(domain=[0, 2000])),
-        color=alt.Color("final_tier:N", scale=alt.Scale(scheme="category10")),
+        color=alt.Color("final_tier:N", scale=_color_scale("final_tier")),
     ).properties(title=alt.Title("DNA DP Distribution per Tier (capped at 2000)",
                                  subtitle=f"{n_over} values > 2000 clipped" if n_over else ""))
     _save_chart(chart, "37_per_tier_dp", output_dir)
@@ -2016,8 +2114,6 @@ def plot_per_tier_dp_boxplot(df, output_dir: str):
 # ═══════════════════════════════════════════════════════════════════════════
 # Rescue Analytics Charts (Section 10)
 # ═══════════════════════════════════════════════════════════════════════════
-
-_RESCUE_COLORS = {"YES": "#2ca02c", "NO": "#d62728"}
 
 
 def plot_rescue_breakdown(breakdown_df, output_dir: str):
@@ -2031,7 +2127,7 @@ def plot_rescue_breakdown(breakdown_df, output_dir: str):
         x=x_enc,
         y=alt.Y("count:Q", title="Variant Count", stack="zero"),
         color=alt.Color("RESCUED:N", title="Rescued",
-                        scale=alt.Scale(domain=["YES", "NO"], range=["#2ca02c", "#d62728"])),
+                        scale=_color_scale("RESCUED")),
         tooltip=list(pdf.columns),
     )
     text = alt.Chart(pdf).mark_text(dy=-8, fontSize=9).encode(
@@ -2054,7 +2150,7 @@ def plot_rescue_by_filter(rescue_filter_df, output_dir: str):
         x=alt.X("FILTER:N", title="Classification"),
         y=alt.Y("count:Q", title="Variant Count"),
         color=alt.Color("RESCUED:N", title="Rescued",
-                        scale=alt.Scale(domain=["YES", "NO"], range=["#2ca02c", "#d62728"])),
+                        scale=_color_scale("RESCUED")),
         xOffset="RESCUED:N",
         tooltip=["FILTER", "RESCUED", "count", "pct"],
     ).properties(title="Rescue Status by Classification (FILTER)")
@@ -2077,7 +2173,7 @@ def plot_rescue_cross_tab_heatmap(cross_tab_df, output_dir: str):
         tooltip=list(pdf.columns),
     )
     median_count = max(float(pdf["count"].median()), 1)
-    text = base.mark_text(baseline="middle", fontSize=9).encode(
+    text = base.mark_text(baseline="middle", fontSize=8).encode(
         x=alt.X("RESCUED:N"),
         y=alt.Y(f"{y_col}:N"),
         text=alt.Text("count:Q", format=",d"),
@@ -2100,20 +2196,21 @@ def plot_rescue_vaf_boxplot(df, output_dir: str):
     if not vaf_cols:
         return
     select_cols = vaf_cols + ["RESCUED"]
-    pdf = df.select(select_cols).drop_nulls()
-    pdf = _sample_if_large(pdf, max_rows=50000)
-    # Normalize RESCUED
+    pdf = df.select(select_cols)
+    # Normalize RESCUED BEFORE drop_nulls — null RESCUED means non-rescued
     pdf = pdf.with_columns(
         pl.when(pl.col("RESCUED") == "YES").then(pl.lit("YES"))
         .otherwise(pl.lit("NO")).alias("RESCUED")
-    ).to_pandas()
+    )
+    pdf = pdf.drop_nulls(subset=vaf_cols)
+    pdf = _sample_if_large(pdf, max_rows=50000).to_pandas()
     melted = pdf.melt(id_vars=["RESCUED"], var_name="modality", value_name="VAF")
     melted["modality"] = melted["modality"].str.replace("_VAF_mean", "")
     melted["VAF"] = melted["VAF"].clip(0, 1)
     chart = alt.Chart(melted).mark_boxplot(size=40).encode(
         x=alt.X("RESCUED:N", title="Rescued"),
         y=alt.Y("VAF:Q", title="Mean VAF", scale=alt.Scale(domain=[0, 1])),
-        color=alt.Color("RESCUED:N", scale=alt.Scale(domain=["YES", "NO"], range=["#2ca02c", "#d62728"])),
+        color=alt.Color("RESCUED:N", scale=_color_scale("RESCUED")),
         column=alt.Column("modality:N", title="Modality"),
     ).properties(title="VAF Distribution: Rescued vs Non-Rescued", width=200)
     _save_chart(chart, "51_rescue_vaf_boxplot", output_dir)
@@ -2130,19 +2227,21 @@ def plot_rescue_dp_boxplot(df, output_dir: str):
     if not dp_cols:
         return
     select_cols = dp_cols + ["RESCUED"]
-    pdf = df.select(select_cols).drop_nulls()
-    pdf = _sample_if_large(pdf, max_rows=50000)
+    pdf = df.select(select_cols)
+    # Normalize RESCUED BEFORE drop_nulls — null RESCUED means non-rescued
     pdf = pdf.with_columns(
         pl.when(pl.col("RESCUED") == "YES").then(pl.lit("YES"))
         .otherwise(pl.lit("NO")).alias("RESCUED")
-    ).to_pandas()
+    )
+    pdf = pdf.drop_nulls(subset=dp_cols)
+    pdf = _sample_if_large(pdf, max_rows=50000).to_pandas()
     melted = pdf.melt(id_vars=["RESCUED"], var_name="modality", value_name="DP")
     melted["modality"] = melted["modality"].str.replace("_DP_mean", "")
     melted["DP"] = melted["DP"].clip(0, 2000)
     chart = alt.Chart(melted).mark_boxplot(size=40).encode(
         x=alt.X("RESCUED:N", title="Rescued"),
         y=alt.Y("DP:Q", title="Mean DP (capped 2000)", scale=alt.Scale(domain=[0, 2000])),
-        color=alt.Color("RESCUED:N", scale=alt.Scale(domain=["YES", "NO"], range=["#2ca02c", "#d62728"])),
+        color=alt.Color("RESCUED:N", scale=_color_scale("RESCUED")),
         column=alt.Column("modality:N", title="Modality"),
     ).properties(title="DP Distribution: Rescued vs Non-Rescued", width=200)
     _save_chart(chart, "52_rescue_dp_boxplot", output_dir)
@@ -2164,7 +2263,7 @@ def plot_rescue_sample_distribution(sample_rescue_df, output_dir: str):
                  axis=alt.Axis(labelAngle=-45, labelLimit=100)),
         y=alt.Y("count:Q", title="Variant Count", stack="zero"),
         color=alt.Color("RESCUED:N", title="Rescued",
-                        scale=alt.Scale(domain=["YES", "NO"], range=["#2ca02c", "#d62728"])),
+                        scale=_color_scale("RESCUED")),
         tooltip=["sample_id", "RESCUED", "count"],
     ).properties(title="Per-Sample Rescue Counts", height=300)
     if has_set:
@@ -2186,7 +2285,7 @@ def plot_rescue_by_tier(rescue_tier_df, output_dir: str):
         x=alt.X("final_tier:N", title="Caller Tier"),
         y=alt.Y("count:Q", title="Variant Count", stack="zero"),
         color=alt.Color("RESCUED:N", title="Rescued",
-                        scale=alt.Scale(domain=["YES", "NO"], range=["#2ca02c", "#d62728"])),
+                        scale=_color_scale("RESCUED")),
         tooltip=["final_tier", "RESCUED", "count", "pct"],
     ).properties(title="Rescue Status by Caller Tier")
     _save_chart(chart, "54_rescue_by_tier", output_dir)
@@ -2222,7 +2321,7 @@ def plot_rescue_caller_support(caller_support_df, output_dir: str):
         x=alt.X("N_SUPPORT_CALLERS:N", title="Number of Supporting Callers"),
         y=alt.Y("count:Q", title="Variant Count"),
         color=alt.Color("RESCUED:N", title="Rescued",
-                        scale=alt.Scale(domain=["YES", "NO"], range=["#2ca02c", "#d62728"])),
+                        scale=_color_scale("RESCUED")),
         xOffset="RESCUED:N",
         tooltip=["N_SUPPORT_CALLERS", "RESCUED", "count"],
     ).properties(title="Caller Support Distribution: Rescued vs Non-Rescued")

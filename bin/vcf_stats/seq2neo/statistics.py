@@ -931,21 +931,21 @@ def compute_low_vaf_rna_support(df) -> pl.DataFrame:
 
 
 def compute_fp_cross_tab(df) -> pl.DataFrame:
-    """Cross-tabulation for non-Somatic variants: FILTER x N_SUPPORT_CALLERS x count.
+    """Cross-tabulation: FILTER x N_SUPPORT_CALLERS x count.
 
-    Useful for understanding the caller-support profile of false-positive
-    (non-somatic) variant classifications.
+    Shows caller-support profile for all variant classifications including
+    Somatic (provides TP contrast against non-somatic FP patterns).
     """
     df = _ensure_eager(df)
     if "FILTER" not in df.columns or "N_SUPPORT_CALLERS" not in df.columns:
         return pl.DataFrame()
 
-    non_somatic = df.filter(pl.col("FILTER") != "Somatic")
-    if non_somatic.is_empty():
+    filtered = df.filter(pl.col("FILTER").is_not_null())
+    if filtered.is_empty():
         return pl.DataFrame()
 
     return (
-        non_somatic.group_by(["FILTER", "N_SUPPORT_CALLERS"])
+        filtered.group_by(["FILTER", "N_SUPPORT_CALLERS"])
         .agg(pl.len().alias("count"))
         .sort(["FILTER", "N_SUPPORT_CALLERS"])
     )

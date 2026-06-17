@@ -980,6 +980,7 @@ def main():
         ("sample", ["sample_id"]),
         ("tier", ["final_tier"]),
         ("chromosome", ["CHROM"]),
+        ("variant-category", ["FILTER"]),
     ]
 
     if wise_names is None or "set" in wise_names or "disease" in wise_names or "sample" in wise_names or "tier" in wise_names or "chromosome" in wise_names:
@@ -1208,7 +1209,7 @@ def main():
         print("  Using publishing theme for charts")
 
     # Determine which wises to generate (from --wise flag)
-    all_wise_names = ["set", "disease", "sample", "tier", "caller", "chromosome"]
+    all_wise_names = ["set", "disease", "sample", "tier", "caller", "chromosome", "variant-category"]
     if args.wise is not None:
         active_wises = [w for w in args.wise if w in all_wise_names] if args.wise else all_wise_names
     else:
@@ -1292,6 +1293,18 @@ def main():
             (plot_cross_modality, {"group_col": "CHROM"}),
             (plot_filter_distribution, {"group_col": "CHROM"}),
             (plot_cosmic_gnomad_annotation, {"group_col": "CHROM"}),
+        ],
+        "variant-category": [
+            (plot_vc_distribution, {"group_col": "FILTER"}),
+            (plot_variant_type_distribution, {"group_col": "FILTER"}),
+            (plot_ti_tv_ratio, {"group_col": "FILTER"}),
+            (plot_cross_modality, {"group_col": "FILTER"}),
+            (plot_redi_evidence, {"group_col": "FILTER"}),
+            (plot_cosmic_gnomad_annotation, {"group_col": "FILTER"}),
+            (plot_vaf_distribution, {"color_col": "FILTER"}),
+            (plot_caller_concordance_vs_vaf, {"color_col": "FILTER"}),
+            (plot_caller_agreement_matrix, {}),
+            (plot_tier_quality_distribution, {}),
         ],
     }
 
