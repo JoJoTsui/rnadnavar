@@ -458,8 +458,8 @@ def plot_caller_overlap(df, output_dir: str, group_col: str = "set_number"):
         x=alt.X("final_tier:N", title="Variant Tier (CxDy)"),
         y=alt.Y("pct:Q", title="% of Variants"),
         color=alt.Color(f"{group_col}:N", title=group_title),
-        column=alt.Column(f"{group_col}:N", title=group_title),
     ).properties(title=f"Variant Tier Distribution by {group_title}")
+    chart = _apply_faceting(chart, group_col)
     _save_chart(chart, "02_caller_overlap", output_dir)
     return chart
 
@@ -1182,8 +1182,8 @@ def plot_gt_concordance(df, output_dir: str, group_col: str = "set_number"):
             x=alt.X("agreement_level:N", title="Number of Callers Agreeing"),
             y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale()),
             color=alt.Color("agreement_level:N"),
-            column=alt.Column("group:N", title=group_title),
         ).properties(title=f"GT Concordance by {group_title}")
+        chart = _apply_faceting(chart, group_col)
     else:
         agree_counts = {2: 0, 3: 0, 4: 0}
         n_total = 0
@@ -1302,7 +1302,7 @@ def plot_per_sample_distribution(sample_stats_df, output_dir: str, top_n: int = 
         chart = chart.facet(
             facet=alt.Facet("set_number:N", title="Set"),
             columns=2,
-        ).resolve_scale(y="shared")
+        ).resolve_scale(x="independent", y="shared")
     _save_chart(chart, "08_per_sample_distribution", output_dir)
     return chart
 
@@ -1355,7 +1355,7 @@ def plot_bam_metrics_bars(bam_stats_df, output_dir: str, top_n: int = 20):
         chart = chart.facet(
             facet=alt.Facet("set_number:N", title="Set"),
             columns=2,
-        ).resolve_scale(y="shared")
+        ).resolve_scale(x="independent", y="shared")
     _save_chart(chart, "20_bam_metrics", output_dir)
     return chart
 
@@ -1389,7 +1389,7 @@ def plot_per_sample_tier_distribution(sample_tier_df, output_dir: str):
         chart = chart.facet(
             facet=alt.Facet("set_number:N", title="Set"),
             columns=2,
-        ).resolve_scale(x="shared")
+        ).resolve_scale(x="independent")
     _save_chart(chart, "22_sample_tier_dist", output_dir)
     return chart
 
@@ -1477,17 +1477,22 @@ def plot_vaf_threshold_sweep(sweep_df, output_dir: str):
     needed = ["caller", "threshold", "pct_retained"]
     if not all(c in sweep_df.columns for c in needed):
         return
-    # Filter to overall (non-classification) rows
-    pdf = sweep_df.filter(pl.col("classification").is_null() if "classification" in sweep_df.columns else pl.lit(True))
+    # Include both overall and per-classification rows
+    pdf = sweep_df
     if isinstance(pdf, pl.LazyFrame):
         pdf = pdf.collect()
     if pdf.is_empty():
         return
+    if "classification" in pdf.columns:
+        pdf = pdf.with_columns(pl.col("classification").fill_null("Overall"))
+    else:
+        pdf = pdf.with_columns(pl.lit("Overall").alias("classification"))
     pdf = pdf.to_pandas()
     chart = alt.Chart(pdf).mark_line(point=True).encode(
         x=alt.X("threshold:Q", title="VAF Threshold"),
         y=alt.Y("pct_retained:Q", title="% Variants Retained"),
         color=alt.Color("caller:N", title="Caller", scale=_color_scale("caller")),
+        row=alt.Row("classification:N", title="Classification"),
     ).properties(title="VAF Threshold Sweep: Retention % vs Threshold per Caller")
     _save_chart(chart, "31_vaf_threshold_sweep", output_dir)
     return chart
@@ -1507,18 +1512,23 @@ def plot_dp_threshold_sweep(sweep_df, output_dir: str):
         return
     if hasattr(sweep_df, 'is_empty') and sweep_df.is_empty():
         return
-    # Filter to overall (non-classification) rows — mirrors plot_vaf_threshold_sweep
-    pdf = sweep_df.filter(pl.col("classification").is_null() if "classification" in sweep_df.columns else pl.lit(True))
+    # Include both overall and per-classification rows
+    pdf = sweep_df
     if isinstance(pdf, pl.LazyFrame):
         pdf = pdf.collect()
     if pdf.is_empty():
         return
+    if "classification" in pdf.columns:
+        pdf = pdf.with_columns(pl.col("classification").fill_null("Overall"))
+    else:
+        pdf = pdf.with_columns(pl.lit("Overall").alias("classification"))
     pdf = pdf.to_pandas()
     chart = alt.Chart(pdf).mark_line(point=True).encode(
         x=alt.X("threshold:Q", title="Depth Threshold"),
         y=alt.Y("pct_retained:Q", title="% Variants Retained"),
         color=alt.Color("caller:N", title="Caller", scale=_color_scale("caller")),
         column=alt.Column("metric:N", title="DP Metric"),
+        row=alt.Row("classification:N", title="Classification"),
     ).properties(title="DP Threshold Sweep: Retention % vs Threshold per Caller")
     _save_chart(chart, "35_dp_threshold_sweep", output_dir)
     return chart
@@ -1678,15 +1688,13 @@ def plot_dp_distribution(df, output_dir: str, color_col: str = None):
            "y": alt.Y("DP:Q", title="Read Depth (capped at 2000)", scale=alt.Scale(domain=[0, 2000]))}
     if color_col and color_col in pdf.columns:
         enc["color"] = alt.Color(f"{color_col}:N")
-        enc["column"] = alt.Column(f"{color_col}:N")
-    is_faceted = "column" in enc
-    if not is_faceted:
+        chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc).properties(
+            title="DP Distribution per Caller (capped at 2000)")
+        chart = _apply_faceting(chart, color_col)
+    else:
         enc["color"] = alt.Color("caller:N", scale=_color_scale("caller"))
         box = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc)
         chart = box.properties(title="DP Distribution per Caller (capped at 2000)")
-    else:
-        chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc).properties(
-            title="DP Distribution per Caller (capped at 2000)")
     _save_chart(chart, "12_dp_distribution", output_dir)
     return chart
 
@@ -1770,8 +1778,8 @@ def plot_n_support_callers_dist(df, output_dir: str, group_col: str = "set_numbe
         x=alt.X("N_SUPPORT_CALLERS:O", title="Number of Supporting Callers"),
         y=alt.Y("count()", title="Number of Variants"),
         color=alt.Color(f"{group_col}:N"),
-        column=alt.Column(f"{group_col}:N", title=group_title),
     ).properties(title=f"Caller Support Distribution by {group_title}")
+    chart = _apply_faceting(chart, group_col)
     _save_chart(chart, "42_n_support_callers_dist", output_dir)
     return chart
 
@@ -2091,16 +2099,13 @@ def plot_bam_dp_distribution(df, output_dir: str, color_col: str = None):
            "y": alt.Y("depth:Q", title="Depth at Variant Position (capped 2000)", scale=alt.Scale(domain=[0, 2000]))}
     if color_col and color_col in sampled.columns:
         enc["color"] = alt.Color(f"{color_col}:N")
-        enc["column"] = alt.Column(f"{color_col}:N")
-    is_faceted = "column" in enc
-    if not is_faceted:
-        # Boxplot-only approach with symlog scale (violin + log produces distorted density)
+        chart = alt.Chart(sampled).mark_boxplot(size=30).encode(**enc).properties(
+            title=alt.Title("BAM Pileup DP Distribution per BAM Type", subtitle=subtitle))
+        chart = _apply_faceting(chart, color_col)
+    else:
         enc["color"] = alt.Color("metric:N", scale=_color_scale("metric"))
         box = alt.Chart(sampled).mark_boxplot(size=30).encode(**enc)
-        chart = box.properties(title="BAM Pileup DP Distribution per BAM Type (symlog scale)")
-    else:
-        chart = alt.Chart(sampled).mark_boxplot(size=30).encode(**enc).properties(
-            title="BAM Pileup DP Distribution per BAM Type (symlog scale)")
+        chart = box.properties(title=alt.Title("BAM Pileup DP Distribution per BAM Type", subtitle=subtitle))
     _save_chart(chart, "36_bam_dp_distribution", output_dir)
     return chart
 
@@ -2283,7 +2288,7 @@ def plot_rescue_sample_distribution(sample_rescue_df, output_dir: str):
         chart = chart.facet(
             facet=alt.Facet("set_number:N", title="Set"),
             columns=2,
-        ).resolve_scale(y="shared")
+        ).resolve_scale(x="independent", y="shared")
     _save_chart(chart, "53_rescue_sample_distribution", output_dir)
     return chart
 

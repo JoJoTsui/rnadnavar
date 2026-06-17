@@ -3795,3 +3795,88 @@ class TestRescueStatistics:
         df = pl.DataFrame({"sample_id": ["S1"], "FILTER": ["Somatic"]})
         result = compute_rescue_breakdown(df)
         assert result.is_empty()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Round 5: Helpers, Color Registry, Symlog, FP Somatic, Faceting
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestVisualizerHelpers:
+    """Test the unified helper functions added in round 5."""
+
+    def test_color_scale_known_entity(self):
+        """_color_scale returns explicit Scale for known entities."""
+        from vcf_stats.seq2neo.visualizer import _color_scale, CALLER_DOMAIN, CALLER_COLORS
+        scale = _color_scale("caller")
+        assert scale.domain == CALLER_DOMAIN
+        assert scale.range == CALLER_COLORS
+
+    def test_color_scale_rescue(self):
+        """_color_scale returns rescue colors for RESCUED entity."""
+        from vcf_stats.seq2neo.visualizer import _color_scale, RESCUE_DOMAIN, RESCUE_COLORS
+        scale = _color_scale("RESCUED")
+        assert scale.domain == RESCUE_DOMAIN
+        assert scale.range == RESCUE_COLORS
+
+    def test_color_scale_unknown_fallback(self):
+        """_color_scale returns category10 scheme for unknown entities."""
+        from vcf_stats.seq2neo.visualizer import _color_scale
+        scale = _color_scale("unknown_entity")
+        assert scale.scheme == "category10"
+
+    def test_count_scale_symlog(self):
+        """_count_scale returns symlog Scale."""
+        from vcf_stats.seq2neo.visualizer import _count_scale
+        scale = _count_scale()
+        assert scale.type == "symlog"
+
+    def test_clip_dp(self):
+        """_clip_dp clips values and returns count of clipped."""
+        from vcf_stats.seq2neo.visualizer import _clip_dp
+        import pandas as pd
+        pdf = pd.DataFrame({"DP": [100, 500, 2001, 3000, 50]})
+        result, n_over = _clip_dp(pdf, "DP", cap=2000)
+        assert n_over == 2
+        assert result["DP"].max() == 2000
+        assert result["DP"].min() == 50
+
+
+class TestFPCrossTabIncludesSomatic:
+    """Verify FP cross-tab now includes Somatic variants."""
+
+    def test_fp_cross_tab_includes_somatic(self):
+        from vcf_stats.seq2neo.statistics import compute_fp_cross_tab
+        df = pl.DataFrame({
+            "FILTER": ["Somatic", "Somatic", "Germline", "Artifact", "Somatic"],
+            "N_SUPPORT_CALLERS": [5, 3, 2, 1, 6],
+        })
+        result = compute_fp_cross_tab(df)
+        assert not result.is_empty()
+        filters = result["FILTER"].unique().to_list()
+        assert "Somatic" in filters, "Somatic should be included in cross-tab"
+        assert "Germline" in filters
+        assert "Artifact" in filters
+
+
+class TestGlobalColorConstants:
+    """Verify all global color constants are properly defined."""
+
+    def test_all_constants_exist(self):
+        from vcf_stats.seq2neo import visualizer as v
+        assert len(v.CALLER_DOMAIN) == 6
+        assert len(v.CALLER_COLORS) == 6
+        assert len(v.RESCUE_DOMAIN) == 2
+        assert len(v.RESCUE_COLORS) == 2
+        assert len(v.VARIANT_TYPE_DOMAIN) == 4
+        assert len(v.SOMATIC_MODALITY_DOMAIN) == 5
+        assert len(v.BAM_TYPE_DOMAIN) == 3
+        assert len(v.MODALITY_DOMAIN) == 2
+        assert len(v.AGREEMENT_DOMAIN) == 3
+
+    def test_color_registry_complete(self):
+        from vcf_stats.seq2neo.visualizer import _COLOR_REGISTRY
+        expected = ["caller", "FILTER", "RESCUED", "variant_type",
+                    "somatic_modality", "bam_type", "modality", "agreement_level"]
+        for entity in expected:
+            assert entity in _COLOR_REGISTRY, f"{entity} missing from _COLOR_REGISTRY"

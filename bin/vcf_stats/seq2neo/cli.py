@@ -729,6 +729,16 @@ def main():
             stats_csv = output_dir / "sample_summary.csv"
             if stats_csv.exists():
                 all_stats = pl.read_csv(str(stats_csv)).to_dicts()
+            else:
+                # Recompute from parquet files
+                print("  Recomputing sample_summary from parquet files...")
+                import glob as _glob_resume
+                for pq in sorted(_glob_resume.glob(str(variant_dir / "*_variants.parquet"))):
+                    sid = os.path.basename(pq).replace("_variants.parquet", "")
+                    df_tmp = pl.read_parquet(pq)
+                    all_stats.append(sample_summary(df_tmp, sid))
+                    del df_tmp
+                print(f"  Recomputed {len(all_stats)} sample summaries")
 
         # Reload BAM stats so BAM charts still render
         bam_tsv = output_dir / "bam_stats.tsv"
@@ -739,6 +749,8 @@ def main():
             bam_csv = output_dir / "bam_stats.csv"
             if bam_csv.exists():
                 bam_stats_df = pl.read_csv(str(bam_csv))
+            else:
+                print("  No bam_stats found — BAM charts will be skipped")
 
         # Skip BAM stats (they were already computed)
         args.no_bam = True
