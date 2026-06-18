@@ -264,6 +264,62 @@ def _add_bar_labels(chart_data, x_enc, y_enc, label_col: str, fmt: str = ",d",
     return text
 
 
+def _make_bar_text(pdf, x_field, count_col, stack=None, x_offset=None,
+                   x_sort=None, show_pct=False, group_col=None,
+                   dy=-8, fontSize=8, base=None):
+    """Create count text labels for a bar chart.
+
+    Args:
+        pdf:        pandas DataFrame with chart data.
+        x_field:    Column name for x-axis (nominal).
+        count_col:  Column name for count values (quantitative).
+        stack:      Stack mode ("zero") for stacked bars, None for simple.
+        x_offset:   Column name for grouped bars (xOffset).
+        x_sort:     Sort order for x-axis (list or None).
+        show_pct:   If True, show "count (pct%)" labels — requires group_col.
+        group_col:  Column to group by when computing percentages.
+        dy:         Vertical offset for text marks.
+        fontSize:   Font size for text marks.
+        base:       Optional alt.Chart(pdf) base — pass the SAME base used for
+                    bars when the layered (bars + text) chart will be .facet()'d.
+                    Altair requires all layers to share one data source for faceting.
+
+    Returns:
+        alt.Chart text layer ready to be layered with (bars + text).
+    """
+    if show_pct and group_col:
+        # Add label columns in-place (NOT .copy()) so bars and text share
+        # the same DataFrame reference — required for .facet() on layered charts.
+        total = pdf.groupby(group_col)[count_col].transform("sum")
+        pct = (pdf[count_col] / total * 100).round(0).astype(int)
+
+        def _si(v):
+            if v >= 1e6:
+                return f"{v / 1e6:.1f}M"
+            if v >= 1e3:
+                return f"{v / 1e3:.0f}K"
+            return str(int(v))
+
+        pdf["_lbl"] = pdf[count_col].apply(_si) + " (" + pct.astype(str) + "%)"
+        text_enc = {"text": "_lbl:N"}
+    else:
+        text_enc = {"text": alt.Text(f"{count_col}:Q", format="~s")}
+
+    enc = {"x": alt.X(f"{x_field}:N", sort=x_sort)}
+    if stack:
+        enc["y"] = alt.Y(f"{count_col}:Q", stack=stack)
+    else:
+        enc["y"] = alt.Y(f"{count_col}:Q")
+    if x_offset:
+        enc["xOffset"] = f"{x_offset}:N"
+    enc.update(text_enc)
+
+    chart_source = base if base is not None else alt.Chart(pdf)
+    return chart_source.mark_text(
+        dy=dy, fontSize=fontSize, color="black",
+    ).encode(**enc)
+
+
 def _clip_dp(pdf, col: str, cap: int = 2000):
     """Clip DP values to [0, cap] and return (clipped_pdf, n_clipped)."""
     n_over = int((pdf[col] > cap).sum())
@@ -272,8 +328,15 @@ def _clip_dp(pdf, col: str, cap: int = 2000):
 
 
 def _count_scale():
-    """Standard scale for count axes — symlog handles zeros gracefully."""
-    return alt.Scale(type="symlog", constant=1)
+    """Linear scale for count axes — raw values, no log transform."""
+    return alt.Scale()
+
+
+def _count_axis(**kwargs):
+    """SI-formatted axis labels for count data (1K, 10K, 100K, 1M, etc.)."""
+    defaults = dict(format="~s")
+    defaults.update(kwargs)
+    return alt.Axis(**defaults)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -329,7 +392,7 @@ def _plot_box_violin_wise(data, output_dir: str, group_col: str, value_col: str,
         value_col: Column for y-axis values.
     """
     pdf = data.to_pandas()
-    box = alt.Chart(pdf).mark_boxplot(size=30).encode(
+    box = alt.Chart(pdf).mark_boxplot().encode(
         x=alt.X(f"{group_col}:N"),
         y=alt.Y(f"{value_col}:Q"),
         color=alt.Color(f"{color_col or group_col}:N") if color_col else alt.value("#1f77b4"),
@@ -414,12 +477,14 @@ def _save_chart(chart: alt.Chart, name: str, output_dir: str):
 # Memory: < 1 MB per chart (result is tens to hundreds of rows).
 # ═══════════════════════════════════════════════════════════════════════════
 
-def plot_vc_distribution(df, output_dir: str, group_col: str = "set_number"):
+def plot_vc_distribution(df, output_dir: str, group_col: str = "set_number", facet_col: str = None):
     """Chart 1: Variant counts by VC classification, stacked bar per set."""
     if not _has_column(df, "FILTER"):
         return
     # Deduplicate group_by columns (handles variant-category-wise where group_col="FILTER")
     group_cols = list(dict.fromkeys([group_col, "FILTER"]))
+    if facet_col and facet_col in df.columns and facet_col not in group_cols:
+        group_cols.insert(0, facet_col)
     counts = _maybe_collect(
         df.group_by(group_cols).agg(pl.len().alias("count"))
         .sort(group_cols)
@@ -430,16 +495,23 @@ def plot_vc_distribution(df, output_dir: str, group_col: str = "set_number"):
     counts = counts.to_pandas()
     counts[group_col] = counts[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
-    chart = alt.Chart(counts).mark_bar().encode(
+    base = alt.Chart(counts)
+    bars = base.mark_bar().encode(
         x=alt.X(f"{group_col}:N", title=group_title, sort=chrom_order),
-        y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale()),
+        y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale(), axis=_count_axis()),
         color=alt.Color(
             "FILTER:N", title="Variant Classification",
             scale=_color_scale("FILTER"),
             legend=alt.Legend(orient="right", title="Variant Classification",
                               labelFontSize=11, titleFontSize=12),
         ),
-    ).properties(title=f"Variant Classification Distribution by {group_title}")
+    )
+    text = _make_bar_text(counts, x_field=group_col, count_col="count",
+                          stack="zero", show_pct=True, group_col=group_col,
+                          x_sort=chrom_order, base=base)
+    chart = (bars + text).properties(title=f"Variant Classification Distribution by {group_title}")
+    if facet_col:
+        chart = chart.facet(facet=alt.Facet(f"{facet_col}:N"), columns=2).resolve_scale(x="independent")
     _save_chart(chart, "01_vc_distribution", output_dir)
     return chart
 
@@ -466,13 +538,14 @@ def plot_caller_overlap(df, output_dir: str, group_col: str = "set_number"):
     return chart
 
 
-def plot_variant_type_distribution(df, output_dir: str, group_col: str = "set_number"):
+def plot_variant_type_distribution(df, output_dir: str, group_col: str = "set_number", facet_col: str = None):
     """Chart 9: Variant type distribution (SNV/INS/DEL/MNV), stacked bar per group."""
     if "variant_type" not in df.columns or group_col not in df.columns:
         return
-    total_per_group = df.group_by(group_col).agg(pl.len().alias("total"))
-    pdf = df.group_by([group_col, "variant_type"]).agg(pl.len().alias("count"))
-    pdf = pdf.join(total_per_group, on=group_col).with_columns(
+    facet_groups = [facet_col] if facet_col and facet_col in df.columns else []
+    total_per_group = df.group_by([*facet_groups, group_col]).agg(pl.len().alias("total"))
+    pdf = df.group_by([*facet_groups, group_col, "variant_type"]).agg(pl.len().alias("count"))
+    pdf = pdf.join(total_per_group, on=[*facet_groups, group_col]).with_columns(
         (pl.col("count") / pl.col("total") * 100).round(1).alias("pct")
     )
     pdf = _maybe_collect(pdf)
@@ -482,27 +555,30 @@ def plot_variant_type_distribution(df, output_dir: str, group_col: str = "set_nu
     pdf = pdf.to_pandas()
     pdf[group_col] = pdf[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
-    bars = alt.Chart(pdf).mark_bar().encode(
+    base = alt.Chart(pdf)
+    bars = base.mark_bar().encode(
         x=alt.X(f"{group_col}:N", title=group_title, sort=chrom_order),
-        y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale()),
+        y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale(), axis=_count_axis()),
         color=alt.Color("variant_type:N", title="Variant Type", scale=_color_scale("variant_type")),
     )
-    pct_text = alt.Chart(pdf).mark_text(dy=-8, fontSize=9).encode(
-        x=alt.X(f"{group_col}:N"), y=alt.Y("count:Q"),
-        text=alt.Text("pct:Q", format=".1f"), color=alt.Color("variant_type:N", scale=_color_scale("variant_type")),
-    )
-    chart = (bars + pct_text).properties(title=f"Variant Type Distribution by {group_title}")
+    text = _make_bar_text(pdf, x_field=group_col, count_col="count",
+                          stack="zero", show_pct=True, group_col=group_col,
+                          x_sort=chrom_order, base=base)
+    chart = (bars + text).properties(title=f"Variant Type Distribution by {group_title}")
+    if facet_col:
+        chart = chart.facet(facet=alt.Facet(f"{facet_col}:N"), columns=2).resolve_scale(x="independent")
     _save_chart(chart, "09_variant_type_distribution", output_dir)
     return chart
 
 
-def plot_ti_tv_ratio(df, output_dir: str, group_col: str = "set_number"):
+def plot_ti_tv_ratio(df, output_dir: str, group_col: str = "set_number", facet_col: str = None):
     """Chart 10: Ti/Tv ratio bar chart per group."""
     if "ti_tv" not in df.columns or group_col not in df.columns:
         return
-    ti = df.filter(pl.col("ti_tv") == True).group_by(group_col).agg(pl.len().alias("ti"))
-    tv = df.filter(pl.col("ti_tv") == False).group_by(group_col).agg(pl.len().alias("tv"))
-    ratio = ti.join(tv, on=group_col).with_columns(
+    facet_groups = [facet_col] if facet_col and facet_col in df.columns else []
+    ti = df.filter(pl.col("ti_tv") == True).group_by([*facet_groups, group_col]).agg(pl.len().alias("ti"))
+    tv = df.filter(pl.col("ti_tv") == False).group_by([*facet_groups, group_col]).agg(pl.len().alias("tv"))
+    ratio = ti.join(tv, on=[*facet_groups, group_col]).with_columns(
         (pl.col("ti") / pl.col("tv")).alias("ratio"))
     ratio = _maybe_collect(ratio)
     if group_col == "CHROM":
@@ -511,32 +587,36 @@ def plot_ti_tv_ratio(df, output_dir: str, group_col: str = "set_number"):
     ratio = ratio.to_pandas()
     ratio[group_col] = ratio[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
-    bars = alt.Chart(ratio).mark_bar().encode(
+    base = alt.Chart(ratio)
+    bars = base.mark_bar().encode(
         x=alt.X(f"{group_col}:N", title=group_title, sort=chrom_order),
         y=alt.Y("ratio:Q", title="Ti/Tv Ratio"),
     )
-    text = alt.Chart(ratio).mark_text(dy=-8).encode(
+    text = base.mark_text(dy=-8).encode(
         x=alt.X(f"{group_col}:N"), y=alt.Y("ratio:Q"),
         text=alt.Text("ratio:Q", format=".2f"),
     )
     chart = (bars + text).properties(title=f"Ti/Tv Ratio by {group_title}")
+    if facet_col:
+        chart = chart.facet(facet=alt.Facet(f"{facet_col}:N"), columns=2).resolve_scale(x="independent")
     _save_chart(chart, "10_ti_tv_ratio", output_dir)
     return chart
 
 
-def plot_cross_modality(df, output_dir: str, group_col: str = "set_number"):
+def plot_cross_modality(df, output_dir: str, group_col: str = "set_number", facet_col: str = None):
     """Chart 11: Cross-modality & rescue analysis with percentages."""
     cols_needed = ["CROSS_MODALITY", "RESCUED"]
     if not all(c in df.columns for c in cols_needed) or group_col not in df.columns:
         return
 
-    total_per_group = df.group_by(group_col).agg(pl.len().alias("total"))
+    facet_groups = [facet_col] if facet_col and facet_col in df.columns else []
+    total_per_group = df.group_by([*facet_groups, group_col]).agg(pl.len().alias("total"))
 
     subcharts = []
     for col in ["CROSS_MODALITY", "RESCUED"]:
-        pdf = df.group_by([group_col, col]).agg(
+        pdf = df.group_by([*facet_groups, group_col, col]).agg(
             pl.len().alias("count")
-        ).join(total_per_group, on=group_col).with_columns(
+        ).join(total_per_group, on=[*facet_groups, group_col]).with_columns(
             (pl.col("count") / pl.col("total") * 100).round(1).alias("pct")
         )
         pdf = _maybe_collect(pdf)
@@ -547,19 +627,20 @@ def plot_cross_modality(df, output_dir: str, group_col: str = "set_number"):
         pdf[group_col] = pdf[group_col].astype(str)
         group_title = group_col.replace("_", " ").title()
 
-        bars = alt.Chart(pdf).mark_bar().encode(
+        base = alt.Chart(pdf)
+        bars = base.mark_bar().encode(
             x=alt.X(f"{group_col}:N", title=group_title, sort=chrom_order),
-            y=alt.Y("count:Q", title="Count", scale=_count_scale()),
+            y=alt.Y("count:Q", title="Count", scale=_count_scale(), axis=_count_axis()),
             color=alt.Color(f"{col}:N"),
         )
-        text = alt.Chart(pdf).mark_text(dy=-8, fontSize=10).encode(
-            x=alt.X(f"{group_col}:N"), y=alt.Y("count:Q"),
-            text=alt.Text("pct:N", format=".1f"),
-            color=alt.Color(f"{col}:N"),
-        ).transform_filter(alt.datum["count"] > 0)
+        text = _make_bar_text(pdf, x_field=group_col, count_col="count",
+                              stack="zero", show_pct=True, group_col=group_col,
+                              x_sort=chrom_order, base=base)
         c = (bars + text).properties(
             title=f"{'Cross-Modality' if col == 'CROSS_MODALITY' else 'Rescued Variants'}"
         )
+        if facet_col:
+            c = c.facet(facet=alt.Facet(f"{facet_col}:N"), columns=2).resolve_scale(x="independent")
         subcharts.append(c)
 
     chart = alt.hconcat(*subcharts).properties(title="Cross-Modality and Rescue Analysis (%)")
@@ -587,14 +668,13 @@ def plot_filter_distribution(df, output_dir: str, group_col: str = "set_number")
     group_title = group_col.replace("_", " ").title()
     bars = alt.Chart(counts).mark_bar().encode(
         x=alt.X(f"{group_col}:N", title=group_title, sort=chrom_order),
-        y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale()),
+        y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale(), axis=_count_axis()),
         color=alt.Color("FILTER:N", title="FILTER"),
     )
-    pct_text = alt.Chart(counts).mark_text(dy=-8, fontSize=9).encode(
-        x=alt.X(f"{group_col}:N"), y=alt.Y("count:Q"),
-        text=alt.Text("pct:Q", format=".1f"), color=alt.Color("FILTER:N", scale=_color_scale("FILTER")),
-    )
-    chart = (bars + pct_text).properties(title=f"FILTER Distribution by {group_title}")
+    text = _make_bar_text(counts, x_field=group_col, count_col="count",
+                          stack="zero", show_pct=True, group_col=group_col,
+                          x_sort=chrom_order)
+    chart = (bars + text).properties(title=f"FILTER Distribution by {group_title}")
     _save_chart(chart, "24_filter_distribution", output_dir)
     return chart
 
@@ -607,11 +687,15 @@ def plot_chromosome_density(df, output_dir: str):
     counts = _maybe_collect(counts)
     counts = _sort_chromosomes(counts, "CHROM")
 
-    chart = alt.Chart(counts.to_pandas()).mark_bar().encode(
-        x=alt.X("CHROM:N", title="Chromosome", sort=counts["CHROM"].to_list()),
-        y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale()),
+    chrom_order = counts["CHROM"].to_list()
+    pdf = counts.to_pandas()
+    bars = alt.Chart(pdf).mark_bar().encode(
+        x=alt.X("CHROM:N", title="Chromosome", sort=chrom_order),
+        y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale(), axis=_count_axis()),
         tooltip=["CHROM", "count"],
-    ).properties(title="Variant Density per Chromosome")
+    )
+    text = _make_bar_text(pdf, x_field="CHROM", count_col="count", x_sort=chrom_order)
+    chart = (bars + text).properties(title="Variant Density per Chromosome")
     _save_chart(chart, "30_chromosome_density", output_dir)
     return chart
 
@@ -628,11 +712,15 @@ def plot_redi_evidence(df, output_dir: str, group_col: str = "set_number"):
     counts = counts.sort([group_col, "count"], descending=[False, True]).to_pandas()
     counts[group_col] = counts[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
-    chart = alt.Chart(counts).mark_bar().encode(
+    bars = alt.Chart(counts).mark_bar().encode(
         x=alt.X(f"{group_col}:N", title=group_title, sort=chrom_order),
-        y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale()),
+        y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale(), axis=_count_axis()),
         color=alt.Color("REDI_EVIDENCE:N", title="REDIportal Evidence Level"),
-    ).properties(title=f"REDIportal RNA Editing Evidence by {group_title}")
+    )
+    text = _make_bar_text(counts, x_field=group_col, count_col="count",
+                          stack="zero", show_pct=True, group_col=group_col,
+                          x_sort=chrom_order)
+    chart = (bars + text).properties(title=f"REDIportal RNA Editing Evidence by {group_title}")
     _save_chart(chart, "29_redi_evidence", output_dir)
     return chart
 
@@ -689,11 +777,13 @@ def plot_tiered_variant_types(df, output_dir: str, facet_col: str = None):
         col_enc = alt.Column(f"{facet_col}:N", title=facet_col.replace("_", " ").title())
     bars = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("variant_type:N", title="Variant Type"),
-        y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale()),
+        y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale(), axis=_count_axis()),
         color=alt.Color("variant_type:N", title="Variant Type", scale=_color_scale("variant_type")),
         column=col_enc,
     )
-    chart = bars.properties(title="Variant Type Distribution per Caller Tier")
+    text = _make_bar_text(pdf, x_field="variant_type", count_col="count")
+    text = text.encode(column=col_enc)
+    chart = (bars + text).properties(title="Variant Type Distribution per Caller Tier")
     _save_chart(chart, "19_variant_types_per_tier", output_dir)
     return chart
 
@@ -766,7 +856,7 @@ def plot_vaf_distribution(df, output_dir: str, color_col: str = None):
     is_faceted = "column" in enc
     if not is_faceted:
         enc["color"] = alt.Color("caller:N", scale=_color_scale("caller"))
-        box = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc)
+        box = alt.Chart(pdf).mark_boxplot().encode(**enc)
         chart = (box + ref_rules).properties(
             title="VAF Distribution per Caller",
             width=alt.Step(60))
@@ -777,7 +867,7 @@ def plot_vaf_distribution(df, output_dir: str, color_col: str = None):
                     "y": y_scale,
                     "color": alt.Color("caller:N", scale=_color_scale("caller")),
                     "column": alt.Column(f"{facet_col_name}:N")}
-        box = alt.Chart(pdf).mark_boxplot(size=30).encode(**base_enc)
+        box = alt.Chart(pdf).mark_boxplot().encode(**base_enc)
         chart = box.properties(
             title="VAF Distribution per Caller",
             width=alt.Step(60)
@@ -870,7 +960,7 @@ def plot_vaf_boxplot_per_tier(df, output_dir: str, facet_col: str = None):
                 "color": alt.Color("caller:N", scale=_color_scale("caller")),
                 "column": col_enc,
                 "y": y_scale}
-    chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**base_enc).properties(
+    chart = alt.Chart(pdf).mark_boxplot().encode(**base_enc).properties(
         title="VAF Distribution per Caller × Caller Tier")
     _save_chart(chart, "14_vaf_violin_per_tier", output_dir)
     return chart
@@ -905,7 +995,7 @@ def plot_dp_boxplot_per_tier(df, output_dir: str, facet_col: str = None):
     base_enc = {"x": alt.X("caller:N", title="Caller", axis=alt.Axis(labelAngle=-45)),
                 "color": alt.Color("caller:N", scale=_color_scale("caller")), "column": col_enc,
                 "y": alt.Y("DP:Q", title="Read Depth (capped at 2000)", scale=alt.Scale(domain=[0, 2000]))}
-    chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**base_enc).properties(
+    chart = alt.Chart(pdf).mark_boxplot().encode(**base_enc).properties(
         title=alt.Title("DP Distribution per Caller × Caller Tier (capped at 2000)", subtitle=subtitle))
     _save_chart(chart, "15_dp_per_tier", output_dir)
     return chart
@@ -1008,7 +1098,7 @@ def plot_dna_vs_rna_per_caller(df, output_dir: str, color_col: str = None):
 # Memory: < 1 KB per chart (just integer counts).
 # ═══════════════════════════════════════════════════════════════════════════
 
-def plot_cosmic_gnomad_annotation(df, output_dir: str, group_col: str = "set_number"):
+def plot_cosmic_gnomad_annotation(df, output_dir: str, group_col: str = "set_number", facet_col: str = None):
     """Chart 7: COSMIC/gnomAD annotation coverage as side-by-side pies, per group."""
     has_cosmic_col = "COSMIC_ID" in df.columns
     has_gnomad_col = "GNOMAD_AF" in df.columns
@@ -1016,6 +1106,7 @@ def plot_cosmic_gnomad_annotation(df, output_dir: str, group_col: str = "set_num
         return
 
     has_groups = group_col in df.columns
+    facet_groups = [facet_col] if facet_col and facet_col in df.columns else []
 
     if has_groups:
         # Per-group annotation bars (single group_by scan, not per-group _count_rows)
@@ -1024,21 +1115,19 @@ def plot_cosmic_gnomad_annotation(df, output_dir: str, group_col: str = "set_num
             agg_exprs.append(pl.col("COSMIC_ID").is_not_null().sum().alias("n_cosmic"))
         if has_gnomad_col:
             agg_exprs.append(pl.col("GNOMAD_AF").is_not_null().sum().alias("n_gnomad"))
-        counts_df = _maybe_collect(df.group_by(group_col).agg(agg_exprs))
+        counts_df = _maybe_collect(df.group_by([*facet_groups, group_col]).agg(agg_exprs))
         if counts_df.is_empty():
             return
         rows = []
-        for row in counts_df.iter_rows():
-            g = row[0]
-            g_n = row[1]  # n_total
-            r = {"group": str(g), "n_total": g_n}
-            idx = 2
+        for rd in counts_df.iter_rows(named=True):
+            g_n = rd["n_total"]
+            r = {"group": str(rd[group_col]), "n_total": g_n}
+            if facet_col:
+                r[facet_col] = str(rd[facet_col])
             if has_cosmic_col:
-                r["cosmic_pct"] = round(row[idx] / g_n * 100, 2) if g_n > 0 else 0
-                idx += 1
+                r["cosmic_pct"] = round(rd["n_cosmic"] / g_n * 100, 2) if g_n > 0 else 0
             if has_gnomad_col:
-                r["gnomad_pct"] = round(row[idx] / g_n * 100, 2) if g_n > 0 else 0
-                idx += 1
+                r["gnomad_pct"] = round(rd["n_gnomad"] / g_n * 100, 2) if g_n > 0 else 0
             rows.append(r)
         if not rows:
             return
@@ -1058,6 +1147,8 @@ def plot_cosmic_gnomad_annotation(df, output_dir: str, group_col: str = "set_num
                 y=alt.Y(f"{col}:Q", title=f"% with {db} Annotation"),
                 color=alt.value(color),
             ).properties(title=f"{db} Annotation by {group_title}")
+            if facet_col:
+                c = c.facet(facet=alt.Facet(f"{facet_col}:N"), columns=2).resolve_scale(x="independent")
             subcharts.append(c)
         chart = alt.hconcat(*subcharts) if len(subcharts) == 2 else subcharts[0]
         chart = chart.properties(title=f"COSMIC and gnomAD Annotation by {group_title}")
@@ -1163,6 +1254,8 @@ def plot_gt_concordance(df, output_dir: str, group_col: str = "set_number"):
     pdf = _maybe_collect(df.select(cols_to_get))
 
     if has_groups:
+        # Fill null group values to prevent "undefined" facet titles
+        pdf = pdf.with_columns(pl.col(group_col).cast(pl.Utf8).fill_null("Unknown"))
         # Per-group concordance
         rows = []
         for group_val in pdf[group_col].unique().to_list():
@@ -1181,11 +1274,14 @@ def plot_gt_concordance(df, output_dir: str, group_col: str = "set_number"):
             return
         counts_df = pl.DataFrame(rows).to_pandas()
         group_title = group_col.replace("_", " ").title()
-        chart = alt.Chart(counts_df).mark_bar().encode(
+        base = alt.Chart(counts_df)
+        bars = base.mark_bar().encode(
             x=alt.X("agreement_level:N", title="Number of Callers Agreeing"),
-            y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale()),
+            y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale(), axis=_count_axis()),
             color=alt.Color("agreement_level:N"),
-        ).properties(title=f"GT Concordance by {group_title}")
+        )
+        text = _make_bar_text(counts_df, x_field="agreement_level", count_col="count", base=base)
+        chart = (bars + text).properties(title=f"GT Concordance by {group_title}")
         chart = _apply_faceting(chart, group_col)
     else:
         agree_counts = {2: 0, 3: 0, 4: 0}
@@ -1203,10 +1299,12 @@ def plot_gt_concordance(df, output_dir: str, group_col: str = "set_number"):
             "agreement_level": ["2", "3", "4"],
             "count": [agree_counts[2], agree_counts[3], agree_counts[4]],
         }).to_pandas()
-        chart = alt.Chart(counts_df).mark_bar().encode(
+        bars = alt.Chart(counts_df).mark_bar().encode(
             x=alt.X("agreement_level:N", title="Number of Callers Agreeing on GT"),
-            y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale()),
-        ).properties(title=f"GT Concordance Among 4 Callers (n={n_total} with ≥2 agreement)")
+            y=alt.Y("count:Q", title="Number of Variants", scale=_count_scale(), axis=_count_axis()),
+        )
+        text = _make_bar_text(counts_df, x_field="agreement_level", count_col="count")
+        chart = (bars + text).properties(title=f"GT Concordance Among 4 Callers (n={n_total} with ≥2 agreement)")
     _save_chart(chart, "06_gt_concordance", output_dir)
     return chart
 
@@ -1253,12 +1351,15 @@ def plot_gt_concordance_per_tier(df, output_dir: str, facet_col: str = None):
     if facet_col and facet_col in result.columns:
         result[facet_col] = result[facet_col].astype(str)
         col_enc = alt.Column(f"{facet_col}:N", title=facet_col.replace("_", " ").title())
-    chart = alt.Chart(result).mark_bar().encode(
+    bars = alt.Chart(result).mark_bar().encode(
         x=alt.X("agreement:N", title="Number of Callers Agreeing"),
-        y=alt.Y("count:Q", title="Count", scale=_count_scale()),
+        y=alt.Y("count:Q", title="Count", scale=_count_scale(), axis=_count_axis()),
         color=alt.Color("agreement:N"),
         column=col_enc,
-    ).properties(title="GT Concordance per Caller Tier")
+    )
+    text = _make_bar_text(result, x_field="agreement", count_col="count")
+    text = text.encode(column=col_enc)
+    chart = (bars + text).properties(title="GT Concordance per Caller Tier")
     _save_chart(chart, "16_gt_concordance_per_tier", output_dir)
     return chart
 
@@ -1294,10 +1395,13 @@ def plot_per_sample_distribution(sample_stats_df, output_dir: str, top_n: int = 
     enc = {
         "x": alt.X("sample_id:N", title="Sample ID", sort=None,
                     axis=alt.Axis(labelAngle=-45, labelLimit=100)),
-        "y": alt.Y("total_variants:Q", title="Total Variants per Sample", scale=_count_scale()),
+        "y": alt.Y("total_variants:Q", title="Total Variants per Sample", scale=_count_scale(), axis=_count_axis()),
         "tooltip": ["sample_id", "total_variants"],
     }
-    chart = alt.Chart(pdf).mark_bar().encode(**enc).properties(
+    base = alt.Chart(pdf)
+    bars = base.mark_bar().encode(**enc)
+    text = _make_bar_text(pdf, x_field="sample_id", count_col="total_variants", base=base)
+    chart = (bars + text).properties(
         title=f"Per-Sample Variant Counts (n={n_samples})",
         height=300,
     )
@@ -1311,21 +1415,37 @@ def plot_per_sample_distribution(sample_stats_df, output_dir: str, top_n: int = 
 
 
 def plot_validation_heatmap(report, output_dir: str):
-    """Chart 13: Rescue VCF validation heatmap (mismatch % per metric × sample)."""
+    """Chart 13: Rescue VCF validation heatmap (mismatch % per sample × metric).
+
+    Transposed layout: samples on x-axis, metrics on y-axis.
+    Faceted by set_number when available.
+    """
     if report is None or (hasattr(report, 'is_empty') and report.is_empty()):
         return
-    pivot = report.to_pandas().pivot(
+    pdf = report.to_pandas()
+    has_set = "set_number" in pdf.columns
+    # Build a sample→set lookup before pivoting (pivot drops extra columns)
+    set_lookup = pdf[["sample_id", "set_number"]].drop_duplicates() if has_set else None
+    pivot = pdf.pivot(
         index="sample_id", columns="metric", values="mismatch_pct"
     ).reset_index().melt(id_vars="sample_id", var_name="metric", value_name="mismatch_pct")
+    # Re-join set_number after melt
+    if set_lookup is not None:
+        pivot = pivot.merge(set_lookup, on="sample_id", how="left")
     base = alt.Chart(pivot)
     rect = base.mark_rect().encode(
-        x=alt.X("metric:N", title="Validation Metric"),
-        y=alt.Y("sample_id:N", title="Sample"),
+        x=alt.X("sample_id:N", title="Sample", axis=alt.Axis(labelAngle=-45)),
+        y=alt.Y("metric:N", title="Validation Metric"),
         color=alt.Color("mismatch_pct:Q", title="Mismatch %",
                         scale=alt.Scale(scheme="redyellowgreen", reverse=True)),
     )
-    text = _add_heatmap_text(base, alt.X("metric:N"), alt.Y("sample_id:N"), "mismatch_pct", pivot, fontSize=7, fmt=".1f")
-    chart = (rect + text).properties(title="Rescue VCF Validation: Mismatch % by Metric × Sample")
+    text = _add_heatmap_text(base, alt.X("sample_id:N"), alt.Y("metric:N"),
+                             "mismatch_pct", pivot, fontSize=7, fmt=".1f")
+    chart = (rect + text).properties(title="Rescue VCF Validation: Mismatch % by Sample × Metric")
+    if has_set:
+        chart = chart.facet(
+            facet=alt.Facet("set_number:N", title="Set"), columns=2,
+        ).resolve_scale(x="independent")
     _save_chart(chart, "13_validation_heatmap", output_dir)
     return chart
 
@@ -1381,13 +1501,18 @@ def plot_per_sample_tier_distribution(sample_tier_df, output_dir: str):
         pdf = pdf.with_columns(pl.col("set_number").cast(pl.Utf8))
     pdf = pdf.to_pandas()
     enc = {
-        "y": alt.Y("sample_id:N", title="Sample ID", sort=None),
-        "x": alt.X("n_variants:Q", title="Variants"),
+        "x": alt.X("sample_id:N", title="Sample ID", sort=None,
+                    axis=alt.Axis(labelAngle=-45)),
+        "y": alt.Y("n_variants:Q", title="Variants", scale=_count_scale(), axis=_count_axis()),
         "color": alt.Color("final_tier:N", title="Tier", scale=_color_scale("final_tier")),
     }
-    chart = alt.Chart(pdf).mark_bar().encode(**enc).properties(
-        title="Per-Sample Per-Tier Variant Distribution",
-        height=300)
+    base = alt.Chart(pdf)
+    bars = base.mark_bar().encode(**enc)
+    text = _make_bar_text(pdf, x_field="sample_id", count_col="n_variants",
+                          stack="zero", show_pct=True, group_col="sample_id",
+                          base=base)
+    chart = (bars + text).properties(
+        title="Per-Sample Per-Tier Variant Distribution")
     if has_set:
         chart = chart.facet(
             facet=alt.Facet("set_number:N", title="Set"),
@@ -1434,10 +1559,10 @@ def plot_bam_coverage_violin(df, output_dir: str, color_col: str = None):
 
     enc = {"x": alt.X("metric:N", title="BAM Metric"),
            "y": alt.Y("depth:Q", title="Depth at Variant Position"),
-           "color": alt.Color("metric:N", title="BAM Metric", scale=_color_scale("metric"))}
+           "color": alt.Color("metric:N", title="BAM Metric", scale=_color_scale("metric"), legend=None)}
     if color_col and color_col in sampled.columns:
         enc["column"] = alt.Column(f"{color_col}:N")
-    chart = alt.Chart(sampled).mark_boxplot(size=30).encode(**enc).properties(
+    chart = alt.Chart(sampled).mark_boxplot().encode(**enc).properties(
         title="BAM Pileup Depth Distribution at Variant Positions (depth capped at 2000, sampled)")
     _save_chart(chart, "21_bam_coverage_boxplot", output_dir)
     return chart
@@ -1495,8 +1620,13 @@ def plot_vaf_threshold_sweep(sweep_df, output_dir: str):
         x=alt.X("threshold:Q", title="VAF Threshold"),
         y=alt.Y("pct_retained:Q", title="% Variants Retained"),
         color=alt.Color("caller:N", title="Caller", scale=_color_scale("caller")),
-        row=alt.Row("classification:N", title="Classification"),
-    ).properties(title="VAF Threshold Sweep: Retention % vs Threshold per Caller")
+    ).properties(
+        title="VAF Threshold Sweep: Retention % vs Threshold per Caller",
+        width=250, height=200,
+    ).facet(
+        facet=alt.Facet("classification:N", title="Classification"),
+        columns=3,
+    )
     _save_chart(chart, "31_vaf_threshold_sweep", output_dir)
     return chart
 
@@ -1526,13 +1656,19 @@ def plot_dp_threshold_sweep(sweep_df, output_dir: str):
     else:
         pdf = pdf.with_columns(pl.lit("Overall").alias("classification"))
     pdf = pdf.to_pandas()
+    # Create combined facet label for grid layout (metric × classification)
+    pdf["panel"] = pdf["metric"] + " — " + pdf["classification"]
     chart = alt.Chart(pdf).mark_line(point=True).encode(
         x=alt.X("threshold:Q", title="Depth Threshold"),
         y=alt.Y("pct_retained:Q", title="% Variants Retained"),
         color=alt.Color("caller:N", title="Caller", scale=_color_scale("caller")),
-        column=alt.Column("metric:N", title="DP Metric"),
-        row=alt.Row("classification:N", title="Classification"),
-    ).properties(title="DP Threshold Sweep: Retention % vs Threshold per Caller")
+    ).properties(
+        title="DP Threshold Sweep: Retention % vs Threshold per Caller",
+        width=220, height=180,
+    ).facet(
+        facet=alt.Facet("panel:N", title="DP Metric — Classification"),
+        columns=3,
+    )
     _save_chart(chart, "35_dp_threshold_sweep", output_dir)
     return chart
 
@@ -1689,11 +1825,11 @@ def plot_dp_distribution(df, output_dir: str, color_col: str = None):
         # Use column encoding (NOT .facet()) — boxplot is composite mark
         enc["color"] = alt.Color(f"{color_col}:N")
         enc["column"] = alt.Column(f"{color_col}:N")
-        chart = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc).properties(
+        chart = alt.Chart(pdf).mark_boxplot().encode(**enc).properties(
             title="DP Distribution per Caller (capped at 2000)")
     else:
         enc["color"] = alt.Color("caller:N", scale=_color_scale("caller"))
-        box = alt.Chart(pdf).mark_boxplot(size=30).encode(**enc)
+        box = alt.Chart(pdf).mark_boxplot().encode(**enc)
         chart = box.properties(title="DP Distribution per Caller (capped at 2000)")
     _save_chart(chart, "12_dp_distribution", output_dir)
     return chart
@@ -1883,6 +2019,11 @@ def plot_filter_vaf_dp_heatmap(cross_tab_df, output_dir: str):
     needed = ["classification", "vaf_bin", "dp_bin", "count"]
     if not all(c in cross_tab_df.columns for c in needed):
         return
+    # Collapse partition dimension (train/val/test) if present — prevents
+    # 3 overlapping text labels per cell.
+    agg_cols = ["classification", "vaf_bin", "dp_bin"]
+    if any(c not in agg_cols for c in cross_tab_df.columns if c != "count"):
+        cross_tab_df = cross_tab_df.group_by(agg_cols).agg(pl.col("count").sum())
     pdf = cross_tab_df.to_pandas()
     # Order VAF and DP bins sensibly
     vaf_order = ["<0.01", "0.01-0.05", "0.05-0.10", "0.10-0.25", "0.25-0.50", "0.50-1.0"]
@@ -1922,13 +2063,15 @@ def plot_low_vaf_rna_support(low_vaf_df, output_dir: str):
     if "FILTER" not in low_vaf_df.columns or "n_variants" not in low_vaf_df.columns:
         return
     pdf = low_vaf_df.to_pandas()
-    chart = alt.Chart(pdf).mark_bar().encode(
+    bars = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("FILTER:N", title="Classification"),
-        y=alt.Y("n_variants:Q", title="Number of Variants", scale=_count_scale()),
+        y=alt.Y("n_variants:Q", title="Number of Variants", scale=_count_scale(), axis=_count_axis()),
         color=alt.Color("FILTER:N", title="Classification",
                         scale=_color_scale("FILTER")),
         tooltip=["FILTER", "n_variants", "mean_vaf"],
-    ).properties(title="Low VAF (< 0.05) Variants with RNA Support (N_RNA_CALLERS >= 2)")
+    )
+    text = _make_bar_text(pdf, x_field="FILTER", count_col="n_variants")
+    chart = (bars + text).properties(title="Low VAF (< 0.05) Variants with RNA Support (N_RNA_CALLERS >= 2)")
     _save_chart(chart, "44_low_vaf_rna_support", output_dir)
     return chart
 
@@ -1954,17 +2097,18 @@ def plot_fp_cross_tab_heatmap(fp_df, output_dir: str):
         tooltip=["FILTER", "N_SUPPORT_CALLERS", "count"],
     )
     median_count = max(float(pdf["count"].median()), 1)
-    text = base.mark_text(baseline="middle", fontSize=7).encode(
+    text = base.mark_text(baseline="middle", fontSize=8).encode(
         x=alt.X("N_SUPPORT_CALLERS:N"),
         y=alt.Y("FILTER:N"),
-        text=alt.Text("count:Q", format=",d"),
+        text=alt.Text("count:Q", format=".2s"),
         color=alt.condition(
             f"datum.count > {median_count}",
             alt.value("white"),
             alt.value("black"),
         ),
     )
-    chart = (rect + text).properties(title="Classification × Caller Support Cross-Tabulation")
+    chart = (rect + text).properties(title="Classification × Caller Support Cross-Tabulation",
+                                     width=210, height=210)
     _save_chart(chart, "45_fp_cross_tab_heatmap", output_dir)
     return chart
 
@@ -1980,13 +2124,21 @@ def plot_somatic_modality_pie(modality_df, output_dir: str):
     if "somatic_modality" not in modality_df.columns or "n_variants" not in modality_df.columns:
         return
     pdf = modality_df.to_pandas()
+    # Filter out zero-count categories to avoid phantom legend entries
+    pdf = pdf[pdf["n_variants"] > 0].copy()
+    if pdf.empty:
+        return
     total = pdf["n_variants"].sum()
     pdf["pct"] = (pdf["n_variants"] / total * 100).round(1)
     pdf["label"] = pdf.apply(lambda r: f"{r['n_variants']:,}\n({r['pct']}%)", axis=1)
+    # Build color scale from only present categories
+    present = pdf["somatic_modality"].tolist()
+    domain = [d for d in SOMATIC_MODALITY_DOMAIN if d in present]
+    colors = [SOMATIC_MODALITY_COLORS[SOMATIC_MODALITY_DOMAIN.index(d)] for d in domain]
     arc = alt.Chart(pdf).mark_arc(innerRadius=40).encode(
         theta=alt.Theta("n_variants:Q", stack=True),
         color=alt.Color("somatic_modality:N", title="Somatic Modality",
-                        scale=_color_scale("somatic_modality")),
+                        scale=alt.Scale(domain=domain, range=colors)),
         tooltip=["somatic_modality", "n_variants", "pct"],
     )
     text = alt.Chart(pdf).mark_text(size=10, radiusOffset=20, radius=90).encode(
@@ -2008,12 +2160,14 @@ def plot_somatic_modality_bars(modality_df, output_dir: str):
     # Variants bar
     bars = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("somatic_modality:N", title="Somatic Modality"),
-        y=alt.Y("n_variants:Q", title="Number of Variants", scale=_count_scale()),
+        y=alt.Y("n_variants:Q", title="Number of Variants", scale=_count_scale(), axis=_count_axis()),
         color=alt.Color("somatic_modality:N", title="Modality", scale=_color_scale("somatic_modality")),
         tooltip=list(pdf.columns),
-    ).properties(title="Somatic Modality Sub-Classification: Variant Counts")
+    )
+    text = _make_bar_text(pdf, x_field="somatic_modality", count_col="n_variants")
+    bars_with_text = (bars + text).properties(title="Somatic Modality Sub-Classification: Variant Counts")
     # VAF overlay if available
-    subcharts = [bars]
+    subcharts = [bars_with_text]
     if "mean_dna_vaf" in pdf.columns:
         vaf_chart = alt.Chart(pdf).mark_bar().encode(
             x=alt.X("somatic_modality:N", title="Somatic Modality"),
@@ -2021,7 +2175,7 @@ def plot_somatic_modality_bars(modality_df, output_dir: str):
             color=alt.Color("somatic_modality:N", scale=_color_scale("somatic_modality")),
         ).properties(title="Mean DNA VAF by Modality")
         subcharts.append(vaf_chart)
-    chart = alt.hconcat(*subcharts) if len(subcharts) > 1 else bars
+    chart = alt.hconcat(*subcharts) if len(subcharts) > 1 else bars_with_text
     _save_chart(chart, "47_somatic_modality_bars", output_dir)
     return chart
 
@@ -2102,11 +2256,11 @@ def plot_bam_dp_distribution(df, output_dir: str, color_col: str = None):
         # Use column encoding (NOT .facet()) — boxplot is composite mark
         enc["color"] = alt.Color(f"{color_col}:N")
         enc["column"] = alt.Column(f"{color_col}:N")
-        chart = alt.Chart(sampled).mark_boxplot(size=30).encode(**enc).properties(
+        chart = alt.Chart(sampled).mark_boxplot().encode(**enc).properties(
             title=alt.Title("BAM Pileup DP Distribution per BAM Type", subtitle=subtitle))
     else:
-        enc["color"] = alt.Color("metric:N", scale=_color_scale("metric"))
-        box = alt.Chart(sampled).mark_boxplot(size=30).encode(**enc)
+        enc["color"] = alt.Color("metric:N", scale=_color_scale("metric"), legend=None)
+        box = alt.Chart(sampled).mark_boxplot().encode(**enc)
         chart = box.properties(title=alt.Title("BAM Pileup DP Distribution per BAM Type", subtitle=subtitle))
     _save_chart(chart, "36_bam_dp_distribution", output_dir)
     return chart
@@ -2142,20 +2296,17 @@ def plot_rescue_breakdown(breakdown_df, output_dir: str):
     pdf = breakdown_df.to_pandas()
     group_col = [c for c in pdf.columns if c not in ("RESCUED", "count", "total", "pct")][0] if len(pdf.columns) > 4 else None
     x_enc = alt.X(f"{group_col}:N", title=group_col.replace("_", " ").title()) if group_col else alt.X("RESCUED:N")
-    chart = alt.Chart(pdf).mark_bar().encode(
+    x_field = group_col if group_col else "RESCUED"
+    bars = alt.Chart(pdf).mark_bar().encode(
         x=x_enc,
-        y=alt.Y("count:Q", title="Variant Count", scale=_count_scale(), stack="zero"),
+        y=alt.Y("count:Q", title="Variant Count", scale=_count_scale(), axis=_count_axis(), stack="zero"),
         color=alt.Color("RESCUED:N", title="Rescued",
                         scale=_color_scale("RESCUED")),
         tooltip=list(pdf.columns),
     )
-    text = alt.Chart(pdf).mark_text(dy=-8, fontSize=9).encode(
-        x=x_enc,
-        y=alt.Y("count:Q", stack="zero"),
-        text=alt.Text("pct:Q", format=".1f"),
-        color=alt.value("black"),
-    )
-    chart = (chart + text).properties(title="Rescue Breakdown: Rescued vs Non-Rescued")
+    text = _make_bar_text(pdf, x_field=x_field, count_col="count",
+                          stack="zero", show_pct=True, group_col=x_field)
+    chart = (bars + text).properties(title="Rescue Breakdown: Rescued vs Non-Rescued")
     _save_chart(chart, "48_rescue_breakdown", output_dir)
     return chart
 
@@ -2165,14 +2316,17 @@ def plot_rescue_by_filter(rescue_filter_df, output_dir: str):
     if rescue_filter_df is None or (hasattr(rescue_filter_df, 'is_empty') and rescue_filter_df.is_empty()):
         return
     pdf = rescue_filter_df.to_pandas()
-    chart = alt.Chart(pdf).mark_bar().encode(
+    bars = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("FILTER:N", title="Classification"),
-        y=alt.Y("count:Q", title="Variant Count", scale=_count_scale()),
+        y=alt.Y("count:Q", title="Variant Count", scale=_count_scale(), axis=_count_axis()),
         color=alt.Color("RESCUED:N", title="Rescued",
                         scale=_color_scale("RESCUED")),
         xOffset="RESCUED:N",
         tooltip=["FILTER", "RESCUED", "count", "pct"],
-    ).properties(title="Rescue Status by Classification (FILTER)")
+    )
+    text = _make_bar_text(pdf, x_field="FILTER", count_col="count",
+                          x_offset="RESCUED", show_pct=True, group_col="FILTER")
+    chart = (bars + text).properties(title="Rescue Status by Classification (FILTER)")
     _save_chart(chart, "49_rescue_by_filter", output_dir)
     return chart
 
@@ -2277,14 +2431,19 @@ def plot_rescue_sample_distribution(sample_rescue_df, output_dir: str):
     if has_set:
         group_cols.append("set_number")
     pdf = sample_rescue_df.group_by(group_cols).agg(pl.col("count").sum()).to_pandas()
-    chart = alt.Chart(pdf).mark_bar().encode(
+    base = alt.Chart(pdf)
+    bars = base.mark_bar().encode(
         x=alt.X("sample_id:N", title="Sample", sort=None,
                  axis=alt.Axis(labelAngle=-45, labelLimit=100)),
-        y=alt.Y("count:Q", title="Variant Count", scale=_count_scale(), stack="zero"),
+        y=alt.Y("count:Q", title="Variant Count", scale=_count_scale(), axis=_count_axis(), stack="zero"),
         color=alt.Color("RESCUED:N", title="Rescued",
                         scale=_color_scale("RESCUED")),
         tooltip=["sample_id", "RESCUED", "count"],
-    ).properties(title="Per-Sample Rescue Counts", height=300)
+    )
+    text = _make_bar_text(pdf, x_field="sample_id", count_col="count",
+                          stack="zero", show_pct=True, group_col="sample_id",
+                          base=base)
+    chart = (bars + text).properties(title="Per-Sample Rescue Counts", height=300)
     if has_set:
         pdf["set_number"] = pdf["set_number"].astype(str)
         chart = chart.facet(
@@ -2302,17 +2461,13 @@ def plot_rescue_by_tier(rescue_tier_df, output_dir: str):
     pdf = rescue_tier_df.to_pandas()
     bars = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("final_tier:N", title="Caller Tier"),
-        y=alt.Y("count:Q", title="Variant Count", scale=_count_scale(), stack="zero"),
+        y=alt.Y("count:Q", title="Variant Count", scale=_count_scale(), axis=_count_axis(), stack="zero"),
         color=alt.Color("RESCUED:N", title="Rescued",
                         scale=_color_scale("RESCUED")),
         tooltip=["final_tier", "RESCUED", "count", "pct"],
     )
-    text = alt.Chart(pdf).mark_text(dy=-8, fontSize=8).encode(
-        x=alt.X("final_tier:N"),
-        y=alt.Y("count:Q", stack="zero"),
-        text=alt.Text("pct:Q", format=".1f"),
-        color=alt.value("black"),
-    )
+    text = _make_bar_text(pdf, x_field="final_tier", count_col="count",
+                          stack="zero", show_pct=True, group_col="final_tier")
     chart = (bars + text).properties(title="Rescue Status by Caller Tier")
     _save_chart(chart, "54_rescue_by_tier", output_dir)
     return chart
@@ -2345,19 +2500,15 @@ def plot_rescue_caller_support(caller_support_df, output_dir: str):
     pdf["N_SUPPORT_CALLERS"] = pdf["N_SUPPORT_CALLERS"].astype(int).astype(str)
     bars = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("N_SUPPORT_CALLERS:N", title="Number of Supporting Callers"),
-        y=alt.Y("count:Q", title="Variant Count", scale=_count_scale()),
+        y=alt.Y("count:Q", title="Variant Count", scale=_count_scale(), axis=_count_axis()),
         color=alt.Color("RESCUED:N", title="Rescued",
                         scale=_color_scale("RESCUED")),
         xOffset="RESCUED:N",
         tooltip=["N_SUPPORT_CALLERS", "RESCUED", "count"],
     )
-    text = alt.Chart(pdf).mark_text(dy=-8, fontSize=8).encode(
-        x=alt.X("N_SUPPORT_CALLERS:N"),
-        y=alt.Y("count:Q"),
-        text=alt.Text("count:Q", format=",d"),
-        xOffset="RESCUED:N",
-        color=alt.value("black"),
-    )
+    text = _make_bar_text(pdf, x_field="N_SUPPORT_CALLERS", count_col="count",
+                          x_offset="RESCUED", show_pct=True,
+                          group_col="N_SUPPORT_CALLERS")
     chart = (bars + text).properties(title="Caller Support Distribution: Rescued vs Non-Rescued")
     _save_chart(chart, "56_rescue_caller_support", output_dir)
     return chart

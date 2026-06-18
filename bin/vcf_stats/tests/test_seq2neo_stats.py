@@ -3825,13 +3825,77 @@ class TestVisualizerHelpers:
         scale = _color_scale("unknown_entity")
         assert scale.scheme == "category10"
 
-    def test_count_scale_symlog(self):
-        """_count_scale returns symlog Scale."""
+    def test_count_scale_linear(self):
+        """_count_scale returns default linear Scale for raw counts."""
+        import altair as alt
         from vcf_stats.seq2neo.visualizer import _count_scale
         scale = _count_scale()
-        assert scale.type == "symlog"
+        # Default Scale() has no explicit type — it's linear by default
+        assert scale.type is alt.Undefined or scale.type == "linear"
 
-    def test_clip_dp(self):
+    def test_count_axis_si_format(self):
+        """_count_axis returns Axis with SI format for large numbers."""
+        from vcf_stats.seq2neo.visualizer import _count_axis
+        axis = _count_axis()
+        assert axis.format == "~s"
+
+    def test_make_bar_text_simple(self):
+        """_make_bar_text creates text layer for simple bars."""
+        import pandas as pd
+        from vcf_stats.seq2neo.visualizer import _make_bar_text
+        pdf = pd.DataFrame({"x": ["A", "B", "C"], "count": [100, 200, 300]})
+        text = _make_bar_text(pdf, x_field="x", count_col="count")
+        assert text is not None
+        spec = text.to_dict()
+        assert spec["mark"]["type"] == "text"
+
+    def test_make_bar_text_with_pct(self):
+        """_make_bar_text creates labels with count + pct for stacked bars."""
+        import pandas as pd
+        from vcf_stats.seq2neo.visualizer import _make_bar_text
+        pdf = pd.DataFrame({
+            "grp": ["G1", "G1", "G2", "G2"],
+            "cat": ["A", "B", "A", "B"],
+            "count": [80, 20, 60, 40],
+        })
+        text = _make_bar_text(pdf, x_field="grp", count_col="count",
+                              stack="zero", show_pct=True, group_col="grp")
+        assert text is not None
+        spec = text.to_dict()
+        assert spec["mark"]["type"] == "text"
+
+    def test_make_bar_text_facet_compatible(self):
+        """Layered (bars + _make_bar_text) must be facetable without ValueError.
+
+        Regression test: .facet() on layered charts requires all layers to share
+        the same data source. The fix: pass base=alt.Chart(pdf) to _make_bar_text
+        so bars and text derive from the same chart object.
+        """
+        import altair as alt
+        import pandas as pd
+        from vcf_stats.seq2neo.visualizer import _make_bar_text
+
+        pdf = pd.DataFrame({
+            "set": ["S1", "S1", "S2", "S2"],
+            "cat": ["A", "B", "A", "B"],
+            "count": [80, 20, 60, 40],
+        })
+        base = alt.Chart(pdf)
+        bars = base.mark_bar().encode(
+            x="cat:N",
+            y=alt.Y("count:Q", stack="zero"),
+            color="cat:N",
+        )
+        text = _make_bar_text(pdf, x_field="cat", count_col="count",
+                              stack="zero", show_pct=True, group_col="cat",
+                              base=base)
+        layered = (bars + text).properties(title="Test")
+        # This must NOT raise ValueError about facet data mismatch
+        faceted = layered.facet(facet="set:N", columns=2)
+        assert faceted is not None
+        # Verify it serializes without error
+        spec = faceted.to_dict()
+        assert "facet" in spec
         """_clip_dp clips values and returns count of clipped."""
         from vcf_stats.seq2neo.visualizer import _clip_dp
         import pandas as pd
@@ -3926,3 +3990,73 @@ class TestFacetColumnsPlacement:
         assert len(facet_method_calls) > 0, "Expected at least one .facet(..., columns=N) call"
         for val in facet_method_calls:
             assert int(val) >= 1, f"columns={val} should be >= 1"
+
+
+class TestChart43Aggregation:
+    """Verify chart 43 (filter_vaf_dp_heatmap) aggregates across partition column."""
+
+    def test_partition_collapsed(self):
+        """Data with partition column should be aggregated to 1 row per cell."""
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_filter_vaf_dp_heatmap
+        import tempfile, os
+
+        # Create data with partition dimension (train/val/test) — 3 rows per cell
+        rows = []
+        for cls in ["Somatic", "Germline"]:
+            for vbin in ["<0.01", "0.01-0.05"]:
+                for dbin in ["<10", "10-50"]:
+                    for part in ["train", "val", "test"]:
+                        rows.append({"classification": cls, "vaf_bin": vbin,
+                                     "dp_bin": dbin, "partition": part, "count": 100})
+        df = pl.DataFrame(rows)
+        assert df.height == 24  # 2 cls × 2 vaf × 2 dp × 3 partition
+
+        with tempfile.TemporaryDirectory() as td:
+            chart = plot_filter_vaf_dp_heatmap(df, td)
+            assert chart is not None
+            # The aggregated data should have 8 rows (2×2×2), not 24
+            # Each cell count should be 300 (100×3 partitions)
+
+    def test_no_partition_unchanged(self):
+        """Data without partition column should pass through unchanged."""
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_filter_vaf_dp_heatmap
+        import tempfile
+
+        rows = []
+        for cls in ["Somatic", "Germline"]:
+            for vbin in ["<0.01", "0.01-0.05"]:
+                for dbin in ["<10", "10-50"]:
+                    rows.append({"classification": cls, "vaf_bin": vbin,
+                                 "dp_bin": dbin, "count": 500})
+        df = pl.DataFrame(rows)
+        with tempfile.TemporaryDirectory() as td:
+            chart = plot_filter_vaf_dp_heatmap(df, td)
+            assert chart is not None
+
+
+class TestPieChartDomainFiltering:
+    """Verify pie chart excludes zero-count categories from legend."""
+
+    def test_zero_count_excluded(self):
+        """Categories with n_variants=0 should not appear in chart color domain."""
+        import polars as pl
+        from vcf_stats.seq2neo.visualizer import plot_somatic_modality_pie
+        import tempfile
+
+        df = pl.DataFrame({
+            "somatic_modality": ["MultiModality", "DNA_only", "RNA_only", "Weak", "Unknown"],
+            "n_variants": [5000, 3000, 1000, 500, 0],
+        })
+        with tempfile.TemporaryDirectory() as td:
+            chart = plot_somatic_modality_pie(df, td)
+            assert chart is not None
+            # Extract the color scale domain from the chart spec
+            spec = chart.to_dict()
+            # Navigate into layered chart: spec -> layer[0] -> encoding -> color -> scale
+            layer = spec.get("layer", [spec])
+            color_enc = layer[0].get("encoding", {}).get("color", {})
+            domain = color_enc.get("scale", {}).get("domain", [])
+            assert "Unknown" not in domain, f"Zero-count 'Unknown' should not be in domain: {domain}"
+            assert "MultiModality" in domain

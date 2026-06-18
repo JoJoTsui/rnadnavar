@@ -1189,13 +1189,23 @@ def main():
         import glob as _glob
         report_rows = []
         bam_rows = []
+        sid_to_set = {}
         for parquet_path in sorted(_glob.glob(str(variant_dir / "*_variants.parquet"))):
             sid = os.path.basename(parquet_path).replace("_variants.parquet", "")
             df = pl.read_parquet(parquet_path)
             report_rows.extend(validate_sample(df, sid, args.tolerance))
             bam_rows.append(validate_bam_one(df, sid))
+            if "set_number" in df.columns:
+                sn = df["set_number"].drop_nulls().unique()
+                if len(sn) > 0:
+                    sid_to_set[sid] = str(sn[0])
             del df
         report = pl.DataFrame(report_rows) if report_rows else pl.DataFrame()
+        # Join set_number to validation report for heatmap faceting
+        if not report.is_empty() and sid_to_set:
+            set_df = pl.DataFrame({"sample_id": list(sid_to_set.keys()),
+                                   "set_number": list(sid_to_set.values())})
+            report = report.join(set_df, on="sample_id", how="left")
         if not report.is_empty():
             write_tsv(report, str(output_dir / "rescue_validation_report.tsv"))
             summary = validation_summary(report)
@@ -1267,11 +1277,11 @@ def main():
             (plot_caller_concordance_vs_vaf, {"color_col": "disease_normalized"}),
         ],
         "sample": [
-            (plot_vc_distribution, {"group_col": "sample_id"}),
-            (plot_ti_tv_ratio, {"group_col": "sample_id"}),
-            (plot_cross_modality, {"group_col": "sample_id"}),
-            (plot_cosmic_gnomad_annotation, {"group_col": "sample_id"}),
-            (plot_variant_type_distribution, {"group_col": "sample_id"}),
+            (plot_vc_distribution, {"group_col": "sample_id", "facet_col": "set_number"}),
+            (plot_ti_tv_ratio, {"group_col": "sample_id", "facet_col": "set_number"}),
+            (plot_cross_modality, {"group_col": "sample_id", "facet_col": "set_number"}),
+            (plot_cosmic_gnomad_annotation, {"group_col": "sample_id", "facet_col": "set_number"}),
+            (plot_variant_type_distribution, {"group_col": "sample_id", "facet_col": "set_number"}),
         ],
         "tier": [
             (plot_vc_distribution, {"group_col": "final_tier"}),
