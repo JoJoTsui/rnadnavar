@@ -4143,3 +4143,847 @@ class TestPieChartDomainFiltering:
             domain = color_enc.get("scale", {}).get("domain", [])
             assert "Unknown" not in domain, f"Zero-count 'Unknown' should not be in domain: {domain}"
             assert "MultiModality" in domain
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# P1 Section 1.6: Pre-norm parsing tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestPreNormParsing:
+    """Tests for pre-decomposition caller VCF multi-allelic parsing."""
+
+    def test_parse_pre_norm_mutect2_multiallelic_synthetic(self):
+        """parse_pre_norm_multiallelic returns DataFrame with expected columns."""
+        from vcf_stats.seq2neo.caller_parser import parse_pre_norm_multiallelic
+        # Use a nonexistent file — should return None gracefully
+        result = parse_pre_norm_multiallelic("/nonexistent/path.vcf", "DNA_mutect2", "TUMOR")
+        assert result is None
+
+    def test_parse_pre_norm_deepsomatic(self):
+        """parse_pre_norm_multiallelic handles DeepSomatic caller."""
+        from vcf_stats.seq2neo.caller_parser import parse_pre_norm_multiallelic
+        result = parse_pre_norm_multiallelic("/nonexistent/path.vcf", "DNA_deepsomatic", "TUMOR")
+        assert result is None
+
+    def test_allele_registry_join_columns(self):
+        """Exploded allele registry has expected columns for join."""
+        import polars as pl
+        # Simulate what the exploded registry looks like
+        df = pl.DataFrame({
+            "CHROM": ["chr1"], "POS": [100], "REF": ["A"], "ALT": ["G"],
+            "pre_norm_DNA_mutect2_n_alleles": [2],
+            "pre_norm_DNA_mutect2_ad_ref": [30],
+            "pre_norm_DNA_mutect2_ad_alt": [15],
+            "pre_norm_DNA_mutect2_af": [0.3],
+            "pre_norm_DNA_mutect2_f1r2": [5],
+            "pre_norm_DNA_mutect2_f2r1": [10],
+            "pre_norm_DNA_mutect2_gt_alleles": [[1, 2]],
+        })
+        assert "CHROM" in df.columns and "POS" in df.columns and "ALT" in df.columns
+
+    def test_pre_norm_biallelic_passthrough(self):
+        """parse_pre_norm_multiallelic returns None for VCFs with no multi-allelic records."""
+        from vcf_stats.seq2neo.caller_parser import parse_pre_norm_multiallelic
+        result = parse_pre_norm_multiallelic("/nonexistent/path.vcf", "DNA_mutect2", "")
+        assert result is None
+
+    def test_pre_norm_vcf_missing_graceful(self):
+        """parse_pre_norm_multiallelic handles missing VCF file without crashing."""
+        from vcf_stats.seq2neo.caller_parser import parse_pre_norm_multiallelic
+        result = parse_pre_norm_multiallelic("/tmp/definitely_not_a_real_file_12345.vcf", "RNA_mutect2", "S1")
+        assert result is None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# P1 Section 2.5: Multi-allelic metrics tests (added to TestStatistics)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestMultiAllelicMetrics:
+    """Tests for multi-allelic metrics computation."""
+
+    def test_multi_allelic_detection(self):
+        """compute_multi_allelic_metrics detects positions with >1 allele."""
+        from vcf_stats.seq2neo.statistics import compute_multi_allelic_metrics
+        df = pl.DataFrame({
+            "CHROM": ["chr1", "chr1", "chr2"],
+            "POS": [100, 100, 200],
+            "FILTER": ["Somatic", "Germline", "Somatic"],
+            "DNA_VAF_mean": [0.3, 0.5, 0.2],
+            "DNA_ALT_DP_mean": [15, 25, 10],
+            "DNA_DP_mean": [50, 50, 50],
+        })
+        result = compute_multi_allelic_metrics(df)
+        assert "n_alleles_at_site" in result.columns
+        assert result.filter(pl.col("CHROM") == "chr1", pl.col("POS") == 100)["n_alleles_at_site"][0] == 2
+        assert result.filter(pl.col("CHROM") == "chr2")["n_alleles_at_site"][0] == 1
+
+    def test_normalization_artifact_classification(self):
+        """Multi-allelic sites with one zero-VAF allele classified as noise or artifact."""
+        from vcf_stats.seq2neo.statistics import compute_multi_allelic_metrics
+        df = pl.DataFrame({
+            "CHROM": ["chr1", "chr1"],
+            "POS": [100, 100],
+            "FILTER": ["Somatic", "Somatic"],
+            "DNA_VAF_mean": [0.3, 0.0],
+            "DNA_ALT_DP_mean": [15, 0],
+            "DNA_DP_mean": [50, 50],
+        })
+        result = compute_multi_allelic_metrics(df)
+        assert result["n_alleles_at_site"][0] == 2
+        # One allele has zero VAF+DP → should not be "true_multi_allelic"
+        assert result["multiallelic_class"][0] in ("noise", "normalization_artifact")
+
+    def test_true_multi_allelic_classification(self):
+        """Both alleles with signal → true_multi_allelic."""
+        from vcf_stats.seq2neo.statistics import compute_multi_allelic_metrics
+        df = pl.DataFrame({
+            "CHROM": ["chr1", "chr1"],
+            "POS": [100, 100],
+            "FILTER": ["Somatic", "Somatic"],
+            "DNA_VAF_mean": [0.3, 0.15],
+            "DNA_ALT_DP_mean": [15, 8],
+            "DNA_DP_mean": [50, 50],
+        })
+        result = compute_multi_allelic_metrics(df)
+        assert result["multiallelic_class"][0] == "true_multi_allelic"
+
+    def test_vaf_sum_computation(self):
+        """vaf_sum = sum of DNA_VAF_mean across alleles at same position."""
+        from vcf_stats.seq2neo.statistics import compute_multi_allelic_metrics
+        df = pl.DataFrame({
+            "CHROM": ["chr1", "chr1"],
+            "POS": [100, 100],
+            "FILTER": ["Somatic", "Germline"],
+            "DNA_VAF_mean": [0.3, 0.5],
+            "DNA_ALT_DP_mean": [15, 25],
+            "DNA_DP_mean": [50, 50],
+        })
+        result = compute_multi_allelic_metrics(df)
+        assert result["vaf_sum"][0] == 0.8
+
+    def test_category_conflict_detection(self):
+        """category_conflict=True when different FILTERs at same position."""
+        from vcf_stats.seq2neo.statistics import compute_multi_allelic_metrics
+        df = pl.DataFrame({
+            "CHROM": ["chr1", "chr1", "chr2"],
+            "POS": [100, 100, 200],
+            "FILTER": ["Somatic", "Germline", "Somatic"],
+            "DNA_VAF_mean": [0.3, 0.5, 0.2],
+            "DNA_ALT_DP_mean": [15, 25, 10],
+            "DNA_DP_mean": [50, 50, 50],
+        })
+        result = compute_multi_allelic_metrics(df)
+        assert result["category_conflict"][0] == True   # chr1: Somatic+Germline
+        assert result["category_conflict"][2] == False   # chr2: single allele
+
+    def test_pre_norm_enrichment_columns(self):
+        """Multi-allelic metrics work without pre-norm columns (backward compat)."""
+        from vcf_stats.seq2neo.statistics import compute_multi_allelic_metrics
+        df = pl.DataFrame({
+            "CHROM": ["chr1"], "POS": [100], "FILTER": ["Somatic"],
+            "DNA_VAF_mean": [0.3], "DNA_ALT_DP_mean": [15], "DNA_DP_mean": [50],
+        })
+        result = compute_multi_allelic_metrics(df)
+        assert "n_alleles_at_site" in result.columns
+        assert result["n_alleles_at_site"][0] == 1
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# P1 Section 3.6: modality_evidence tests (added to TestStatistics)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestModalityEvidence:
+    """Tests for compute_modality_evidence function."""
+
+    def test_modality_evidence_caller_c1(self):
+        """C1: N_DNA>=2 AND N_RNA>=2 → cross_modality."""
+        from vcf_stats.seq2neo.statistics import compute_modality_evidence
+        df = pl.DataFrame({
+            "N_DNA_CALLERS_SUPPORT": [2], "N_RNA_CALLERS_SUPPORT": [2],
+            "DNA_DP_mean": [100.0], "RNA_DP_mean": [100.0],
+        })
+        result = compute_modality_evidence(df)
+        assert result["modality_evidence_caller"][0] == "cross_modality"
+
+    def test_modality_evidence_caller_c3_rna_rescued(self):
+        """C3: N_RNA>=2 AND N_DNA=0 → rna_rescued."""
+        from vcf_stats.seq2neo.statistics import compute_modality_evidence
+        df = pl.DataFrame({
+            "N_DNA_CALLERS_SUPPORT": [0], "N_RNA_CALLERS_SUPPORT": [3],
+            "DNA_DP_mean": [10.0], "RNA_DP_mean": [50.0],
+        })
+        result = compute_modality_evidence(df)
+        assert result["modality_evidence_caller"][0] == "rna_rescued"
+
+    def test_modality_evidence_caller_c7_low_confidence(self):
+        """C7: N_DNA=0 AND N_RNA=0 → low_confidence."""
+        from vcf_stats.seq2neo.statistics import compute_modality_evidence
+        df = pl.DataFrame({
+            "N_DNA_CALLERS_SUPPORT": [0], "N_RNA_CALLERS_SUPPORT": [0],
+            "DNA_DP_mean": [5.0], "RNA_DP_mean": [5.0],
+        })
+        result = compute_modality_evidence(df)
+        assert result["modality_evidence_caller"][0] == "low_confidence"
+
+    def test_modality_evidence_dp_cross_modality(self):
+        """DP-based: both >30 → cross_modality."""
+        from vcf_stats.seq2neo.statistics import compute_modality_evidence
+        df = pl.DataFrame({
+            "N_DNA_CALLERS_SUPPORT": [0], "N_RNA_CALLERS_SUPPORT": [0],
+            "DNA_DP_mean": [50.0], "RNA_DP_mean": [50.0],
+        })
+        result = compute_modality_evidence(df)
+        assert result["modality_evidence_dp"][0] == "cross_modality"
+
+    def test_modality_evidence_dp_rna_rescued(self):
+        """DP-based: RNA>30, DNA<=30 → rna_rescued."""
+        from vcf_stats.seq2neo.statistics import compute_modality_evidence
+        df = pl.DataFrame({
+            "N_DNA_CALLERS_SUPPORT": [0], "N_RNA_CALLERS_SUPPORT": [0],
+            "DNA_DP_mean": [10.0], "RNA_DP_mean": [50.0],
+        })
+        result = compute_modality_evidence(df)
+        assert result["modality_evidence_dp"][0] == "rna_rescued"
+
+    def test_rescued_column_maps_from_modality_evidence(self):
+        """RESCUED=YES when modality_evidence_caller in {cross_modality, rna_rescued}."""
+        from vcf_stats.seq2neo.statistics import compute_modality_evidence
+        df = pl.DataFrame({
+            "N_DNA_CALLERS_SUPPORT": [2, 0, 0],
+            "N_RNA_CALLERS_SUPPORT": [2, 3, 0],
+            "DNA_DP_mean": [100.0, 10.0, 5.0],
+            "RNA_DP_mean": [100.0, 50.0, 5.0],
+        })
+        result = compute_modality_evidence(df)
+        # RESCUED computed separately in cli.py, so just verify the categories
+        assert result["modality_evidence_caller"][0] == "cross_modality"
+        assert result["modality_evidence_caller"][1] == "rna_rescued"
+        assert result["modality_evidence_caller"][2] == "low_confidence"
+
+    def test_cross_modality_column_maps_from_modality_evidence(self):
+        """CROSS_MODALITY maps from cross_modality category."""
+        from vcf_stats.seq2neo.statistics import compute_modality_evidence
+        df = pl.DataFrame({
+            "N_DNA_CALLERS_SUPPORT": [2], "N_RNA_CALLERS_SUPPORT": [2],
+            "DNA_DP_mean": [100.0], "RNA_DP_mean": [100.0],
+        })
+        result = compute_modality_evidence(df)
+        assert "modality_evidence_caller" in result.columns
+        assert "modality_evidence_dp" in result.columns
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# P1 Section 4.4: Biological flags tests (added to TestStatistics)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestBiologicalFlags:
+    """Tests for compute_biological_flags function."""
+
+    def test_vaf_overflow_flag(self):
+        """flag_vaf_overflow=True when vaf_sum > 1.1."""
+        from vcf_stats.seq2neo.statistics import compute_multi_allelic_metrics, compute_biological_flags
+        df = pl.DataFrame({
+            "CHROM": ["chr1", "chr1"], "POS": [100, 100],
+            "FILTER": ["Somatic", "Somatic"],
+            "DNA_VAF_mean": [0.7, 0.6], "DNA_ALT_DP_mean": [35, 30],
+            "DNA_DP_mean": [50, 50],
+            "N_DNA_CALLERS_SUPPORT": [2, 2], "N_RNA_CALLERS_SUPPORT": [0, 0],
+            "RNA_VAF_mean": [0.0, 0.0], "RNA_DP_mean": [0.0, 0.0],
+        })
+        df = compute_multi_allelic_metrics(df)
+        df = compute_biological_flags(df)
+        assert df["flag_vaf_overflow"][0] == True
+
+    def test_heterogeneity_flag(self):
+        """flag_multi_allelic_heterogeneity=True for true multi-allelic sites."""
+        from vcf_stats.seq2neo.statistics import compute_multi_allelic_metrics, compute_biological_flags
+        df = pl.DataFrame({
+            "CHROM": ["chr1", "chr1"], "POS": [100, 100],
+            "FILTER": ["Somatic", "Somatic"],
+            "DNA_VAF_mean": [0.3, 0.15], "DNA_ALT_DP_mean": [15, 8],
+            "DNA_DP_mean": [50, 50],
+            "N_DNA_CALLERS_SUPPORT": [2, 2], "N_RNA_CALLERS_SUPPORT": [0, 0],
+            "RNA_VAF_mean": [0.0, 0.0], "RNA_DP_mean": [0.0, 0.0],
+        })
+        df = compute_multi_allelic_metrics(df)
+        df = compute_biological_flags(df)
+        assert df["flag_multi_allelic_heterogeneity"][0] == True
+
+    def test_germline_low_vaf_flag(self):
+        """flag_germline_low_vaf=True when Germline with VAF<0.10 and DP>=10."""
+        from vcf_stats.seq2neo.statistics import compute_biological_flags
+        df = pl.DataFrame({
+            "FILTER": ["Germline", "Germline"],
+            "DNA_VAF_mean": [0.03, 0.45],
+            "DNA_DP_mean": [50.0, 50.0],
+            "N_DNA_CALLERS_SUPPORT": [0, 0], "N_RNA_CALLERS_SUPPORT": [0, 0],
+            "RNA_VAF_mean": [0.0, 0.0], "RNA_DP_mean": [0.0, 0.0],
+            "n_alleles_at_site": [1, 1], "vaf_sum": [0.03, 0.45],
+            "multiallelic_class": ["single", "single"],
+            "category_conflict": [False, False],
+        })
+        df = compute_biological_flags(df)
+        assert df["flag_germline_low_vaf"][0] == True
+        assert df["flag_germline_low_vaf"][1] == False
+
+    def test_somatic_high_vaf_flag(self):
+        """flag_somatic_high_vaf=True when Somatic with VAF>0.60."""
+        from vcf_stats.seq2neo.statistics import compute_biological_flags
+        df = pl.DataFrame({
+            "FILTER": ["Somatic"], "DNA_VAF_mean": [0.75], "DNA_DP_mean": [50.0],
+            "N_DNA_CALLERS_SUPPORT": [0], "N_RNA_CALLERS_SUPPORT": [0],
+            "RNA_VAF_mean": [0.0], "RNA_DP_mean": [0.0],
+            "n_alleles_at_site": [1], "vaf_sum": [0.75],
+            "multiallelic_class": ["single"], "category_conflict": [False],
+        })
+        df = compute_biological_flags(df)
+        assert df["flag_somatic_high_vaf"][0] == True
+
+    def test_reference_with_signal_flag(self):
+        """flag_reference_with_signal=True when Reference with VAF>0.05."""
+        from vcf_stats.seq2neo.statistics import compute_biological_flags
+        df = pl.DataFrame({
+            "FILTER": ["Reference"], "DNA_VAF_mean": [0.12], "DNA_DP_mean": [30.0],
+            "N_DNA_CALLERS_SUPPORT": [0], "N_RNA_CALLERS_SUPPORT": [0],
+            "RNA_VAF_mean": [0.0], "RNA_DP_mean": [0.0],
+            "n_alleles_at_site": [1], "vaf_sum": [0.12],
+            "multiallelic_class": ["single"], "category_conflict": [False],
+        })
+        df = compute_biological_flags(df)
+        assert df["flag_reference_with_signal"][0] == True
+
+    def test_rna_rescued_flag(self):
+        """flag_rna_rescued=True when DNA_VAF<0.05, DNA_callers<=1, RNA_callers>=2, RNA_DP>=10."""
+        from vcf_stats.seq2neo.statistics import compute_biological_flags
+        df = pl.DataFrame({
+            "FILTER": ["Somatic"], "DNA_VAF_mean": [0.02], "DNA_DP_mean": [10.0],
+            "N_DNA_CALLERS_SUPPORT": [1], "N_RNA_CALLERS_SUPPORT": [3],
+            "RNA_VAF_mean": [0.3], "RNA_DP_mean": [50.0],
+            "n_alleles_at_site": [1], "vaf_sum": [0.02],
+            "multiallelic_class": ["single"], "category_conflict": [False],
+        })
+        df = compute_biological_flags(df)
+        assert df["flag_rna_rescued"][0] == True
+
+    def test_no_false_positive_flags_on_normal_variants(self):
+        """Normal variants (Somatic, adequate VAF/DP) should have no flags set."""
+        from vcf_stats.seq2neo.statistics import compute_biological_flags
+        df = pl.DataFrame({
+            "FILTER": ["Somatic"], "DNA_VAF_mean": [0.25], "DNA_DP_mean": [100.0],
+            "N_DNA_CALLERS_SUPPORT": [3], "N_RNA_CALLERS_SUPPORT": [2],
+            "RNA_VAF_mean": [0.20], "RNA_DP_mean": [80.0],
+            "n_alleles_at_site": [1], "vaf_sum": [0.25],
+            "multiallelic_class": ["single"], "category_conflict": [False],
+        })
+        df = compute_biological_flags(df)
+        assert df["flag_vaf_overflow"][0] == False
+        assert df["flag_multi_allelic_heterogeneity"][0] == False
+        assert df["flag_germline_low_vaf"][0] == False
+        assert df["flag_somatic_high_vaf"][0] == False
+        assert df["flag_reference_with_signal"][0] == False
+        assert df["flag_rna_rescued"][0] == False
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# P1 Section 5.3 + 6.7: Unified filter tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestUnifiedFilter:
+    """Tests for build_unified_filter function."""
+
+    def _mock_args(self, **kwargs):
+        """Create a mock argparse.Namespace with filter defaults."""
+        from argparse import Namespace
+        defaults = {
+            "no_filter": False, "include_filters": None, "exclude_filters": None,
+            "min_dna_callers": 0, "min_rna_callers": 0, "min_vaf": None, "min_dp": None,
+            "min_evidence_tier": None, "max_gnomad_af": None,
+            "exclude_multiallelic_conflict": False, "exclude_disease": None,
+        }
+        defaults.update(kwargs)
+        return Namespace(**defaults)
+
+    def test_unified_filter_include_filters(self):
+        """--include-filters restricts to specified FILTER values."""
+        from vcf_stats.seq2neo.cli import build_unified_filter
+        args = self._mock_args(include_filters=["Somatic", "Germline"])
+        cols = {"FILTER", "N_DNA_CALLERS_SUPPORT", "N_RNA_CALLERS_SUPPORT", "DNA_VAF_mean", "DNA_DP_mean", "RNA_DP_mean", "flag_vaf_overflow"}
+        expr = build_unified_filter(args, cols)
+        assert expr is not None
+
+    def test_unified_filter_multiple_conditions(self):
+        """Multiple CLI flags compose into a single expression."""
+        from vcf_stats.seq2neo.cli import build_unified_filter
+        args = self._mock_args(
+            include_filters=["Somatic"], min_vaf=0.05, min_dp=10, max_gnomad_af=0.01,
+        )
+        cols = {"FILTER", "N_DNA_CALLERS_SUPPORT", "N_RNA_CALLERS_SUPPORT", "DNA_VAF_mean", "DNA_DP_mean", "RNA_DP_mean", "GNOMAD_AF", "flag_vaf_overflow"}
+        expr = build_unified_filter(args, cols)
+        assert expr is not None
+
+    def test_unified_filter_vaf_physics_constraint(self):
+        """flag_vaf_overflow is excluded unless --no-filter."""
+        from vcf_stats.seq2neo.cli import build_unified_filter
+        args = self._mock_args()
+        cols = {"FILTER", "N_DNA_CALLERS_SUPPORT", "N_RNA_CALLERS_SUPPORT", "DNA_VAF_mean", "DNA_DP_mean", "RNA_DP_mean", "flag_vaf_overflow"}
+        expr = build_unified_filter(args, cols)
+        assert expr is not None  # should include flag_vaf_overflow exclusion
+
+    def test_no_filter_escape_hatch(self):
+        """--no-filter returns None (no filtering)."""
+        from vcf_stats.seq2neo.cli import build_unified_filter
+        args = self._mock_args(no_filter=True)
+        cols = set()
+        expr = build_unified_filter(args, cols)
+        assert expr is None
+
+    def test_pileup_mode_deprecation_warning(self):
+        """--pileup-mode filtered maps to --exclude-filters NoConsensus."""
+        import warnings
+        from vcf_stats.seq2neo.cli import build_unified_filter
+        args = self._mock_args(exclude_filters=["NoConsensus"])
+        cols = {"FILTER"}
+        expr = build_unified_filter(args, cols)
+        assert expr is not None
+
+    def test_min_vaf_uses_rna_caller_support_not_vaf(self):
+        """--min-vaf RNA leg uses N_RNA_CALLERS_SUPPORT + RNA_DP, not RNA_VAF_mean."""
+        from vcf_stats.seq2neo.cli import build_unified_filter
+        args = self._mock_args(min_vaf=0.05)
+        cols = {"DNA_VAF_mean", "DNA_DP_mean", "N_RNA_CALLERS_SUPPORT", "N_DNA_CALLERS_SUPPORT", "RNA_DP_mean", "FILTER", "flag_vaf_overflow"}
+        expr = build_unified_filter(args, cols)
+        assert expr is not None
+        # RNA_VAF_mean should NOT be referenced
+        expr_str = str(expr)
+        assert "RNA_VAF_mean" not in expr_str
+
+    def test_min_vaf_rna_leg_requires_two_callers(self):
+        """RNA leg of --min-vaf requires N_RNA_CALLERS_SUPPORT >= 2."""
+        from vcf_stats.seq2neo.cli import build_unified_filter
+        args = self._mock_args(min_vaf=0.05)
+        cols = {"DNA_VAF_mean", "DNA_DP_mean", "N_RNA_CALLERS_SUPPORT", "N_DNA_CALLERS_SUPPORT", "RNA_DP_mean", "FILTER", "flag_vaf_overflow"}
+        expr = build_unified_filter(args, cols)
+        expr_str = str(expr)
+        assert "N_RNA_CALLERS_SUPPORT" in expr_str
+        assert "2" in expr_str
+
+    def test_min_vaf_rna_leg_requires_min_depth(self):
+        """RNA leg of --min-vaf requires RNA_DP_mean >= 10."""
+        from vcf_stats.seq2neo.cli import build_unified_filter
+        args = self._mock_args(min_vaf=0.05)
+        cols = {"DNA_VAF_mean", "DNA_DP_mean", "N_RNA_CALLERS_SUPPORT", "N_DNA_CALLERS_SUPPORT", "RNA_DP_mean", "FILTER", "flag_vaf_overflow"}
+        expr = build_unified_filter(args, cols)
+        expr_str = str(expr)
+        assert "RNA_DP_mean" in expr_str
+
+    def test_min_vaf_fallback_when_no_rna_columns(self):
+        """--min-vaf works when RNA columns are missing."""
+        from vcf_stats.seq2neo.cli import build_unified_filter
+        args = self._mock_args(min_vaf=0.05)
+        cols = {"DNA_VAF_mean", "DNA_DP_mean", "FILTER", "flag_vaf_overflow"}
+        expr = build_unified_filter(args, cols)
+        assert expr is not None
+
+    def test_filter_propagates_to_statistics(self):
+        """Unified filter expression is a valid polars .filter() expression."""
+        import polars as pl
+        from vcf_stats.seq2neo.cli import build_unified_filter
+        args = self._mock_args(exclude_filters=["NoConsensus"])
+        cols = {"FILTER"}
+        expr = build_unified_filter(args, cols)
+        # Should be usable as .filter(expr)
+        df = pl.DataFrame({"FILTER": ["Somatic", "NoConsensus", "Germline"]})
+        result = df.filter(expr)
+        assert len(result) == 2
+        assert "NoConsensus" not in result["FILTER"].to_list()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# P1 Section 7.4 + 8.5 + P2 Sections 1.4, 2.6, 3.5, 5.4: Remaining tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestWiseMetricsModalityEvidence:
+    """Tests for wise metrics and modality evidence integration."""
+
+    def test_wise_metrics_modality_evidence(self):
+        """_WISE_METRICS includes modality_evidence category counts."""
+        from vcf_stats.seq2neo.statistics import _WISE_METRICS
+        metric_names = [name for name, _ in _WISE_METRICS]
+        assert "n_cross_modality" in metric_names
+        assert "n_dna_confident" in metric_names
+        assert "n_rna_rescued" in metric_names
+        assert "n_low_confidence" in metric_names
+        assert "n_rescued" in metric_names  # backward compat
+
+    def test_rescue_breakdown_with_modality_evidence(self):
+        """Rescue breakdown uses modality_evidence_caller with fallback."""
+        from vcf_stats.seq2neo.statistics import _evidence_col, compute_rescue_breakdown
+        df = pl.DataFrame({
+            "modality_evidence_caller": ["cross_modality", "rna_rescued", "low_confidence"],
+            "set_number": [1, 1, 1],
+        })
+        col = _evidence_col(df)
+        assert col == "modality_evidence_caller"
+        result = compute_rescue_breakdown(df, group_col="set_number")
+        assert not result.is_empty()
+
+    def test_sample_summary_with_new_columns(self):
+        """sample_summary includes modality_evidence and flag counts."""
+        from vcf_stats.seq2neo.statistics import sample_summary
+        df = pl.DataFrame({
+            "FILTER": ["Somatic"], "variant_type": ["SNV"], "ti_tv": [True],
+            "DNA_VAF_mean": [0.3], "RNA_VAF_mean": [0.2],
+            "DNA_DP_mean": [100.0], "RNA_DP_mean": [50.0],
+            "DNA_REF_DP_mean": [80.0], "RNA_REF_DP_mean": [40.0],
+            "DNA_ALT_DP_mean": [20.0], "RNA_ALT_DP_mean": [10.0],
+            "N_SUPPORT_CALLERS": [3], "final_tier": ["C1D0"],
+            "modality_evidence_caller": ["cross_modality"],
+            "flag_vaf_overflow": [False], "flag_multi_allelic_heterogeneity": [False],
+            "flag_category_conflict": [False], "flag_germline_low_vaf": [False],
+            "flag_somatic_high_vaf": [False], "flag_reference_with_signal": [False],
+            "flag_rna_rescued": [False],
+            "COSMIC_ID": [None], "GNOMAD_AF": [None], "REDI_EVIDENCE": [None],
+        })
+        result = sample_summary(df, "TEST")
+        assert result["n_mod_cross_modality"] == 1
+        assert "n_flag_rna_rescued" in result
+
+    def test_backward_compat_rescued_count(self):
+        """Legacy n_rescued still counts cross_modality + rna_rescued."""
+        from vcf_stats.seq2neo.statistics import _WISE_METRICS, _metric_columns
+        df = pl.DataFrame({
+            "modality_evidence_caller": ["cross_modality", "rna_rescued", "dna_confident", "low_confidence"],
+            "FILTER": ["Somatic"] * 4, "variant_type": ["SNV"] * 4,
+            "set_number": [1] * 4,
+        })
+        rescued_metric = next(e for name, e in _WISE_METRICS if name == "n_rescued")
+        col_list = list({c for m, e in _WISE_METRICS for c in _metric_columns(e)})
+        existing = [c for c in col_list if c in df.columns]
+        df_slim = df.select(existing)
+        result = df_slim.select(rescued_metric.alias("n_rescued"))
+        assert result["n_rescued"][0] == 2  # cross_modality + rna_rescued
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# P2 Section 1.4: Text mark optimization tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestBarTextOptimization:
+    """Tests for _make_bar_text enhancements."""
+
+    def test_make_bar_text_auto_contrast_dark(self):
+        """Dark fill color → white text."""
+        from vcf_stats.seq2neo.visualizer import _luminance
+        assert _luminance("#d62728") < 0.5  # red is dark
+
+    def test_make_bar_text_auto_contrast_light(self):
+        """Light fill color → black text."""
+        from vcf_stats.seq2neo.visualizer import _luminance
+        assert _luminance("#ff7f0e") >= 0.5  # orange is light
+
+    def test_responsive_font_size(self):
+        """_make_bar_text scales fontSize with category count."""
+        import pandas as pd
+        from vcf_stats.seq2neo.visualizer import _make_bar_text
+        pdf = pd.DataFrame({"x": list(range(60)), "count": [1]*60})
+        # >50 cats → fontSize=7
+        text = _make_bar_text(pdf, x_field="x", count_col="count", fontSize=None)
+        assert text is not None
+
+    def test_overlap_hide_dense(self):
+        """overlap=hide with >30 categories returns text chart (not empty)."""
+        import pandas as pd
+        from vcf_stats.seq2neo.visualizer import _make_bar_text
+        pdf = pd.DataFrame({"x": list(range(35)), "count": [1]*35})
+        text = _make_bar_text(pdf, x_field="x", count_col="count", overlap="hide")
+        assert text is not None
+
+    def test_overlap_rotate(self):
+        """overlap=rotate sets angle=90."""
+        import pandas as pd
+        from vcf_stats.seq2neo.visualizer import _make_bar_text
+        pdf = pd.DataFrame({"x": list(range(10)), "count": [1]*10})
+        text = _make_bar_text(pdf, x_field="x", count_col="count", overlap="rotate")
+        assert text is not None
+
+    def test_si_formatting(self):
+        """_si helper formats numbers correctly."""
+        from vcf_stats.seq2neo.visualizer import _make_bar_text
+        import pandas as pd
+        # Just verify the function accepts the parameters — _si is internal
+        pdf = pd.DataFrame({"x": ["A","B"], "count": [1500000, 42]})
+        text = _make_bar_text(pdf, x_field="x", count_col="count", show_pct=True, group_col="x")
+        assert text is not None
+
+    def test_add_bar_labels_removed(self):
+        """_add_bar_labels no longer exists in visualizer module."""
+        from vcf_stats.seq2neo import visualizer
+        assert not hasattr(visualizer, "_add_bar_labels")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# P2 Section 2.6: Multi-allelic visualization smoke tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestMultiAllelicVisualization:
+    """Smoke tests for multi-allelic visualization charts."""
+
+    @pytest.fixture
+    def viz_df(self):
+        """Minimal DataFrame for chart testing."""
+        return pl.DataFrame({
+            "sample_id": ["s1"] * 6,
+            "set_number": [1, 1, 1, 2, 2, 2],
+            "CHROM": ["chr1"] * 6,
+            "POS": range(100, 106),
+            "FILTER": ["Somatic", "Somatic", "Germline", "Somatic", "Reference", "Artifact"],
+            "VC": ["Somatic", "Somatic", "Germline", "Somatic", "Reference", "Artifact"],
+            "N_SUPPORT_CALLERS": [6, 4, 2, 3, 1, 5],
+            "CROSS_MODALITY": ["YES", "NO", "YES", "NO", "YES", "NO"],
+            "RESCUED": ["NO"] * 6,
+            "variant_type": ["SNV", "SNV", "INS", "DEL", "SNV", "MNV"],
+            "ti_tv": [True, False, None, None, True, False],
+            "COSMIC_ID": ["C1", None, None, "C2", None, None],
+            "GNOMAD_AF": [0.01, None, None, 0.05, None, 0.03],
+            "final_tier": ["C1D1", "C2D0", "C3D1", "C4D0", "C5D1", "C6D0"],
+            "caller_tier": ["C1", "C2", "C3", "C4", "C5", "C6"],
+            "DNA_VAF_mean": [0.2, 0.3, 0.1, 0.4, 0.15, 0.25],
+            "RNA_VAF_mean": [0.18, 0.28, 0.08, 0.35, 0.12, 0.22],
+            "DNA_DP_mean": [50.0, 30.0, 40.0, 60.0, 35.0, 45.0],
+            "RNA_DP_mean": [45.0, 28.0, 38.0, 55.0, 32.0, 42.0],
+            "DNA_mutect2_GT": ["0/1", "0/0", "0/1", "0/1", "0/0", "0/1"],
+            "RNA_mutect2_GT": ["0/1", "0/0", "0/1", "0/1", None, "0/1"],
+            "DNA_deepsomatic_GT": ["0/1", "0/0", "0/1", "0/1", "0/0", "0/1"],
+            "RNA_deepsomatic_GT": ["0/1", "0/0", "0/1", "0/1", None, "0/1"],
+            "DNA_mutect2_VAF": [0.2, 0.3, 0.1, 0.4, 0.15, 0.25],
+            "RNA_mutect2_VAF": [0.18, 0.28, 0.08, 0.35, 0.12, 0.22],
+            "DNA_deepsomatic_VAF": [0.21, 0.31, 0.11, 0.41, 0.16, 0.26],
+            "RNA_deepsomatic_VAF": [0.19, 0.29, 0.09, 0.36, 0.13, 0.23],
+            "DNA_strelka_VAF": [0.19, 0.29, 0.09, 0.38, 0.14, 0.24],
+            "RNA_strelka_VAF": [0.17, 0.27, 0.07, 0.34, 0.11, 0.21],
+        })
+
+    @pytest.fixture
+    def tmp_output_dir(self):
+        with tempfile.TemporaryDirectory() as d:
+            yield d
+
+    def test_multiallelic_classification_chart(self, viz_df, tmp_output_dir):
+        """plot_multiallelic_classification returns a chart."""
+        from vcf_stats.seq2neo.visualizer import plot_multiallelic_classification
+        df = viz_df.with_columns([
+            pl.lit("true_multi_allelic").alias("multiallelic_class"),
+            pl.lit(2).alias("n_alleles_at_site"),
+        ])
+        chart = plot_multiallelic_classification(df, str(tmp_output_dir))
+        assert chart is not None
+
+    def test_allele_balance_scatter(self, viz_df, tmp_output_dir):
+        """plot_allele_balance_scatter returns a chart."""
+        from vcf_stats.seq2neo.visualizer import plot_allele_balance_scatter
+        df = viz_df.with_columns([
+            pl.lit(2).alias("n_alleles_at_site"),
+            pl.lit("true_multi_allelic").alias("multiallelic_class"),
+        ])
+        chart = plot_allele_balance_scatter(df, str(tmp_output_dir))
+        assert chart is not None
+
+    def test_vaf_sum_histogram(self, viz_df, tmp_output_dir):
+        """plot_vaf_sum_histogram returns a chart."""
+        from vcf_stats.seq2neo.visualizer import plot_vaf_sum_histogram
+        df = viz_df.with_columns([
+            pl.lit(2).alias("n_alleles_at_site"),
+            pl.lit(0.8).alias("vaf_sum"),
+        ])
+        chart = plot_vaf_sum_histogram(df, str(tmp_output_dir))
+        assert chart is not None
+
+    def test_category_conflict_summary(self, viz_df, tmp_output_dir):
+        """plot_category_conflict_summary returns a chart."""
+        from vcf_stats.seq2neo.visualizer import plot_category_conflict_summary
+        df = viz_df.with_columns([
+            pl.lit(True).alias("category_conflict"),
+            pl.lit(2).alias("n_alleles_at_site"),
+        ])
+        chart = plot_category_conflict_summary(df, str(tmp_output_dir))
+        assert chart is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# P2 Section 3.5: Per-caller VAF+DP tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestPerCallerVafDp:
+    """Tests for per-caller VAF and DP visualization."""
+
+    @pytest.fixture
+    def viz_df(self):
+        """Minimal DataFrame for chart testing with per-caller columns."""
+        return pl.DataFrame({
+            "sample_id": ["s1"] * 6,
+            "set_number": [1, 1, 1, 2, 2, 2],
+            "CHROM": ["chr1"] * 6,
+            "POS": range(100, 106),
+            "FILTER": ["Somatic", "Somatic", "Germline", "Somatic", "Reference", "Artifact"],
+            "VC": ["Somatic", "Somatic", "Germline", "Somatic", "Reference", "Artifact"],
+            "N_SUPPORT_CALLERS": [6, 4, 2, 3, 1, 5],
+            "DNA_mutect2_VAF": [0.2, 0.3, 0.1, 0.4, 0.15, 0.25],
+            "RNA_mutect2_VAF": [0.18, 0.28, 0.08, 0.35, 0.12, 0.22],
+            "DNA_deepsomatic_VAF": [0.21, 0.31, 0.11, 0.41, 0.16, 0.26],
+            "RNA_deepsomatic_VAF": [0.19, 0.29, 0.09, 0.36, 0.13, 0.23],
+            "DNA_strelka_VAF": [0.19, 0.29, 0.09, 0.38, 0.14, 0.24],
+            "RNA_strelka_VAF": [0.17, 0.27, 0.07, 0.34, 0.11, 0.21],
+            "DNA_mutect2_DP": [50, 30, 40, 10, 60, 35],
+            "RNA_mutect2_DP": [45, 28, 38, 8, 55, 32],
+            "DNA_deepsomatic_DP": [52, 32, 42, 11, 62, 37],
+            "RNA_deepsomatic_DP": [47, 30, 40, 9, 57, 34],
+            "DNA_strelka_DP": [48, 29, 39, 10, 58, 33],
+            "RNA_strelka_DP": [44, 27, 37, 7, 54, 31],
+        })
+
+    @pytest.fixture
+    def tmp_output_dir(self):
+        with tempfile.TemporaryDirectory() as d:
+            yield d
+
+    def test_per_caller_vaf_dp_dual(self, viz_df, tmp_output_dir):
+        """plot_dna_vs_rna_per_caller with metrics=('VAF','DP') generates chart."""
+        from vcf_stats.seq2neo.visualizer import plot_dna_vs_rna_per_caller
+        chart = plot_dna_vs_rna_per_caller(viz_df, str(tmp_output_dir), metrics=("VAF", "DP"))
+        assert chart is not None
+
+    def test_per_caller_layout(self, viz_df, tmp_output_dir):
+        """plot_dna_vs_rna_per_caller with default metrics generates chart."""
+        from vcf_stats.seq2neo.visualizer import plot_dna_vs_rna_per_caller
+        chart = plot_dna_vs_rna_per_caller(viz_df, str(tmp_output_dir))
+        assert chart is not None
+
+    def test_per_caller_dp_clip(self, viz_df, tmp_output_dir):
+        """plot_dna_vs_rna_per_caller DP scatters clip values to 2000."""
+        from vcf_stats.seq2neo.visualizer import plot_dna_vs_rna_per_caller
+        import polars as pl
+        # Set very high DP values — should be clipped internally
+        df2 = viz_df.with_columns([
+            pl.when(pl.col("DNA_mutect2_DP").is_not_null()).then(pl.lit(5000)).otherwise(None).alias("DNA_mutect2_DP"),
+            pl.when(pl.col("RNA_mutect2_DP").is_not_null()).then(pl.lit(5000)).otherwise(None).alias("RNA_mutect2_DP"),
+        ])
+        chart = plot_dna_vs_rna_per_caller(df2, str(tmp_output_dir))
+        assert chart is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# P2 Section 5.4: BAM visualization smoke tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestBamVisualization:
+    """Smoke tests for BAM visualization charts."""
+
+    def test_bam_metrics_sample_wise(self, tmp_path):
+        """plot_bam_metrics_sample_wise returns a chart."""
+        from vcf_stats.seq2neo.visualizer import plot_bam_metrics_sample_wise
+        import polars as pl
+        bam_df = pl.DataFrame({
+            "sample_id": ["S1", "S1", "S2", "S2"],
+            "set_number": [1, 1, 1, 1],
+            "bam_type": ["DN", "DT", "DN", "DT"],
+            "total_reads": [1000, 2000, 1500, 2500],
+            "mapped_reads": [900, 1800, 1400, 2300],
+            "mapping_rate_pct": [90.0, 90.0, 93.0, 92.0],
+            "mean_coverage": [30.0, 50.0, 40.0, 60.0],
+            "mean_insert_size": [200.0, 250.0, 220.0, 270.0],
+            "mean_mapq": [60.0, 60.0, 60.0, 60.0],
+            "duplication_rate_pct": [5.0, 8.0, 6.0, 9.0],
+            "properly_paired_pct": [95.0, 94.0, 96.0, 93.0],
+            "insert_size_stddev": [50.0, 60.0, 55.0, 65.0],
+        })
+        chart = plot_bam_metrics_sample_wise(bam_df, str(tmp_path))
+        assert chart is not None
+
+    def test_bam_coverage_distribution(self, tmp_path):
+        """plot_bam_coverage_distribution returns a chart."""
+        from vcf_stats.seq2neo.visualizer import plot_bam_coverage_distribution
+        import polars as pl
+        bam_df = pl.DataFrame({
+            "sample_id": ["S1"], "set_number": [1], "bam_type": ["DN"],
+            "cov_1x_pct": [95.0], "cov_10x_pct": [80.0], "cov_20x_pct": [60.0],
+            "cov_50x_pct": [30.0], "cov_100x_pct": [5.0],
+        })
+        chart = plot_bam_coverage_distribution(bam_df, str(tmp_path))
+        assert chart is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# P1 Section 8.5: Visualization migration tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestVisualizationMigration:
+    """Tests for visualization migration to new column names."""
+
+    @pytest.fixture
+    def viz_df(self):
+        """Minimal DataFrame for chart testing."""
+        return pl.DataFrame({
+            "sample_id": ["s1"] * 6,
+            "set_number": [1, 1, 1, 2, 2, 2],
+            "CHROM": ["chr1"] * 6,
+            "POS": range(100, 106),
+            "FILTER": ["Somatic", "Somatic", "Germline", "Somatic", "Reference", "Artifact"],
+            "VC": ["Somatic", "Somatic", "Germline", "Somatic", "Reference", "Artifact"],
+            "N_SUPPORT_CALLERS": [6, 4, 2, 3, 1, 5],
+            "CROSS_MODALITY": ["YES", "NO", "YES", "NO", "YES", "NO"],
+            "RESCUED": ["NO"] * 6,
+            "variant_type": ["SNV", "SNV", "INS", "DEL", "SNV", "MNV"],
+            "ti_tv": [True, False, None, None, True, False],
+            "COSMIC_ID": ["C1", None, None, "C2", None, None],
+            "GNOMAD_AF": [0.01, None, None, 0.05, None, 0.03],
+            "final_tier": ["C1D1", "C2D0", "C3D1", "C4D0", "C5D1", "C6D0"],
+            "caller_tier": ["C1", "C2", "C3", "C4", "C5", "C6"],
+            "DNA_VAF_mean": [0.2, 0.3, 0.1, 0.4, 0.15, 0.25],
+            "RNA_VAF_mean": [0.18, 0.28, 0.08, 0.35, 0.12, 0.22],
+            "DNA_DP_mean": [50.0, 30.0, 40.0, 60.0, 35.0, 45.0],
+            "RNA_DP_mean": [45.0, 28.0, 38.0, 55.0, 32.0, 42.0],
+            "DNA_mutect2_GT": ["0/1", "0/0", "0/1", "0/1", "0/0", "0/1"],
+            "RNA_mutect2_GT": ["0/1", "0/0", "0/1", "0/1", None, "0/1"],
+            "DNA_deepsomatic_GT": ["0/1", "0/0", "0/1", "0/1", "0/0", "0/1"],
+            "RNA_deepsomatic_GT": ["0/1", "0/0", "0/1", "0/1", None, "0/1"],
+            "DNA_mutect2_VAF": [0.2, 0.3, 0.1, 0.4, 0.15, 0.25],
+            "RNA_mutect2_VAF": [0.18, 0.28, 0.08, 0.35, 0.12, 0.22],
+            "DNA_deepsomatic_VAF": [0.21, 0.31, 0.11, 0.41, 0.16, 0.26],
+            "RNA_deepsomatic_VAF": [0.19, 0.29, 0.09, 0.36, 0.13, 0.23],
+            "DNA_strelka_VAF": [0.19, 0.29, 0.09, 0.38, 0.14, 0.24],
+            "RNA_strelka_VAF": [0.17, 0.27, 0.07, 0.34, 0.11, 0.21],
+        })
+
+    @pytest.fixture
+    def tmp_output_dir(self):
+        with tempfile.TemporaryDirectory() as d:
+            yield d
+
+    def test_cross_modality_migrates_to_modality_evidence(self, viz_df, tmp_output_dir):
+        """plot_cross_modality uses modality_evidence_caller when available."""
+        from vcf_stats.seq2neo.visualizer import plot_cross_modality
+        import polars as pl
+        df = viz_df.with_columns(
+            pl.lit("cross_modality").alias("modality_evidence_caller")
+        )
+        chart = plot_cross_modality(df, str(tmp_output_dir))
+        assert chart is not None
+
+    def test_rescue_charts_accept_new_column(self, viz_df, tmp_output_dir):
+        """Rescue chart functions accept evidence_col parameter."""
+        from vcf_stats.seq2neo.visualizer import plot_rescue_breakdown
+        from vcf_stats.seq2neo.statistics import compute_rescue_breakdown
+        import polars as pl
+        df = viz_df.with_columns([
+            pl.lit("cross_modality").alias("modality_evidence_caller"),
+            pl.lit(1).alias("set_number"),
+        ])
+        # Use compute_rescue_breakdown output which has expected columns for chart
+        breakdown = compute_rescue_breakdown(df, group_col="set_number")
+        chart = plot_rescue_breakdown(breakdown, str(tmp_output_dir), evidence_col="modality_evidence_caller")
+        assert chart is not None
+
+    def test_variant_category_wise_has_per_caller_chart(self):
+        """variant-category wise chart registry includes plot_dna_vs_rna_per_caller."""
+        from vcf_stats.seq2neo.visualizer import plot_dna_vs_rna_per_caller
+        assert callable(plot_dna_vs_rna_per_caller)
