@@ -18,24 +18,32 @@ CALLER_CONFIGS: dict[str, dict[str, str]] = {
         "pattern": "*.mutect2.*.dec.norm.vcf.gz",
         "sample_suffix": "DT",
         "format_fields": "GT,AD,AF,DP",
+        "pre_norm_subdir": "variant_calling/mutect2/{prefix}DT_vs_{prefix}DN",
+        "pre_norm_pattern": "*.mutect2.vcf.gz",
     },
     "RNA_mutect2": {
         "subdir": "vcf_realignment/normalized/mutect2/{prefix}RT_realign_vs_{prefix}DN",
         "pattern": "*.mutect2.*.dec.norm.vcf.gz",
         "sample_suffix": "RT",
         "format_fields": "GT,AD,AF,DP",
+        "pre_norm_subdir": "variant_calling/mutect2/{prefix}RT_vs_{prefix}DN",
+        "pre_norm_pattern": "*.mutect2.vcf.gz",
     },
     "DNA_deepsomatic": {
         "subdir": "normalized/deepsomatic/{prefix}DT_vs_{prefix}DN",
         "pattern": "*.deepsomatic.*.dec.norm.vcf.gz",
         "sample_suffix": "DT",
         "format_fields": "GT,AD,VAF,DP",
+        "pre_norm_subdir": "variant_calling/deepsomatic/{prefix}DT_vs_{prefix}DN",
+        "pre_norm_pattern": "*.deepsomatic.vcf.gz",
     },
     "RNA_deepsomatic": {
         "subdir": "vcf_realignment/normalized/deepsomatic/{prefix}RT_realign_vs_{prefix}DN",
         "pattern": "*.deepsomatic.*.dec.norm.vcf.gz",
         "sample_suffix": "RT",
         "format_fields": "GT,AD,VAF,DP",
+        "pre_norm_subdir": "variant_calling/deepsomatic/{prefix}RT_vs_{prefix}DN",
+        "pre_norm_pattern": "*.deepsomatic.vcf.gz",
     },
     "DNA_strelka": {
         "subdir": "normalized/strelka/{prefix}DT_vs_{prefix}DN",
@@ -148,3 +156,40 @@ def get_manifest_bam_paths(
                 continue
         paths[bt] = _locate_bam_file(base_output_dir, dir_name, bt)
     return paths
+
+
+def get_pre_norm_vcf_path(
+    base_dir: str,
+    dir_name: str,
+    vcf_prefix: str,
+    caller_name: str,
+) -> str | None:
+    """Find the pre-normalization VCF path for a caller.
+
+    Returns the un-normalized VCF for Mutect2 and DeepSomatic (useful for
+    multi-allelic analysis). Returns None for Strelka or when the VCF is
+    not found.
+
+    Args:
+        base_dir: Base output directory.
+        dir_name: Sample directory name.
+        vcf_prefix: VCF prefix for the sample.
+        caller_name: Caller key from CALLER_CONFIGS.
+
+    Returns:
+        VCF path string, or None if not found or caller is Strelka.
+    """
+    cfg = CALLER_CONFIGS.get(caller_name)
+    if cfg is None:
+        return None
+    if "strelka" in caller_name.lower():
+        return None
+
+    pre_subdir = cfg.get("pre_norm_subdir")
+    pre_pattern = cfg.get("pre_norm_pattern")
+    if not pre_subdir or not pre_pattern:
+        return None
+
+    base = os.path.join(base_dir, dir_name)
+    subdir = pre_subdir.format(prefix=vcf_prefix)
+    return _find_vcf_file(base, subdir, pre_pattern)

@@ -6,6 +6,7 @@ pysam. Parallelizes across samples via ThreadPoolExecutor.
 """
 
 import os
+import statistics
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
@@ -183,6 +184,179 @@ def _locate_bam_file(base_dir: str, dir_name: str, bam_type: str) -> str | None:
     return None
 
 
+# ---------------------------------------------------------------------------
+# Section 4: Expanded BAM Alignment Stats
+# ---------------------------------------------------------------------------
+
+
+def _compute_duplication_rate(bam_path: str, max_reads: int = 10_000_000) -> float | None:
+    """Compute duplication rate as percentage of reads with the duplicate flag (0x400).
+
+    Args:
+        bam_path: Path to the BAM file.
+        max_reads: Maximum number of reads to scan (default: 10,000,000).
+
+    Returns:
+        Percentage (0-100) of reads marked as duplicate, or None on failure.
+    """
+    try:
+        import pysam
+        bam = pysam.AlignmentFile(bam_path, "rb")
+        dup = 0
+        total = 0
+        for read in bam.fetch():
+            total += 1
+            if read.flag & 0x400:
+                dup += 1
+            if total >= max_reads:
+                break
+        bam.close()
+        if total == 0:
+            return None
+        return round(100 * dup / total, 2)
+    except Exception as e:
+        print(f"  [BAM STATS] Error computing duplication_rate for {bam_path}: {e}")
+        return None
+
+
+def _compute_properly_paired_pct(bam_path: str, max_reads: int = 10_000_000) -> float | None:
+    """Compute percentage of mapped reads that are properly paired.
+
+    A read is considered properly paired if:
+      - flag has 0x1 (paired) and 0x2 (proper pair) set
+      - flag has 0x4 (unmapped) and 0x8 (mate unmapped) NOT set
+
+    Denominator is total mapped reads (0x4 not set).
+
+    Args:
+        bam_path: Path to the BAM file.
+        max_reads: Maximum number of reads to scan (default: 10,000,000).
+
+    Returns:
+        Percentage (0-100) of mapped reads that are properly paired, or None on failure.
+    """
+    try:
+        import pysam
+        bam = pysam.AlignmentFile(bam_path, "rb")
+        proper = 0
+        mapped = 0
+        n = 0
+        for read in bam.fetch():
+            n += 1
+            if read.flag & 0x4:  # unmapped
+                if n >= max_reads:
+                    break
+                continue
+            mapped += 1
+            if ((read.flag & 0x1) and (read.flag & 0x2)
+                and not (read.flag & 0x4) and not (read.flag & 0x8)):
+                proper += 1
+            if n >= max_reads:
+                break
+        bam.close()
+        if mapped == 0:
+            return None
+        return round(100 * proper / mapped, 2)
+    except Exception as e:
+        print(f"  [BAM STATS] Error computing properly_paired_pct for {bam_path}: {e}")
+        return None
+
+
+def _compute_insert_size_stddev(bam_path: str, max_reads: int = 10_000_000) -> float | None:
+    """Compute standard deviation of insert sizes for properly paired reads.
+
+    Only includes properly paired reads with positive insert size < 10000
+    to exclude outliers. Uses statistics.stdev().
+
+    Args:
+        bam_path: Path to the BAM file.
+        max_reads: Maximum number of reads to scan (default: 10,000,000).
+
+    Returns:
+        Standard deviation of insert sizes (rounded to 1 decimal), or None on failure.
+    """
+    try:
+        import pysam
+        bam = pysam.AlignmentFile(bam_path, "rb")
+        insert_sizes = []
+        n = 0
+        for read in bam.fetch():
+            n += 1
+            if (read.is_proper_pair and not read.is_supplementary
+                and not read.is_secondary
+                and read.template_length and read.template_length > 0
+                and read.template_length < 10000):
+                insert_sizes.append(read.template_length)
+            if n >= max_reads:
+                break
+        bam.close()
+        if len(insert_sizes) < 2:
+            return None
+        return round(statistics.stdev(insert_sizes), 1)
+    except Exception as e:
+        print(f"  [BAM STATS] Error computing insert_size_stddev for {bam_path}: {e}")
+        return None
+
+
+def _compute_coverage_bins(bed_regions: list[tuple[str, int, int]] | None,
+                           bam_path: str,
+                           max_pileup_rows: int = 1_000_000) -> dict[str, float | None] | None:
+    """Compute fraction of BED bases covered at various depth thresholds.
+
+    For each BED region, counts bases with pileup depth >= each threshold.
+    Returns fraction of total BED bases at 1x, 10x, 20x, 50x, 100x.
+
+    Args:
+        bed_regions: List of (chrom, start, end) tuples defining target regions.
+        bam_path: Path to the BAM file.
+        max_pileup_rows: Maximum pileup columns to process (default: 1,000,000).
+
+    Returns:
+        Dict with keys cov_1x_pct, cov_10x_pct, cov_20x_pct, cov_50x_pct, cov_100x_pct,
+        or None if no bed_regions provided.
+    """
+    if not bed_regions:
+        return None
+    try:
+        import pysam
+        bam = pysam.AlignmentFile(bam_path, "rb")
+        thresholds = [1, 10, 20, 50, 100]
+        covered_bases = {t: 0 for t in thresholds}
+        total_bed_bases = 0
+        n_pileup = 0
+
+        for chrom, start, end in bed_regions:
+            total_bed_bases += end - start
+            for pileup_column in bam.pileup(chrom, start, end, truncate=True,
+                                             min_base_quality=0,
+                                             stepper="all"):
+                depth = pileup_column.nsegments
+                for t in thresholds:
+                    if depth >= t:
+                        covered_bases[t] += 1
+                n_pileup += 1
+                if n_pileup >= max_pileup_rows:
+                    break
+            if n_pileup >= max_pileup_rows:
+                break
+
+        bam.close()
+
+        if total_bed_bases == 0:
+            return None
+
+        return {
+            "cov_1x_pct": round(100 * covered_bases[1] / total_bed_bases, 2),
+            "cov_10x_pct": round(100 * covered_bases[10] / total_bed_bases, 2),
+            "cov_20x_pct": round(100 * covered_bases[20] / total_bed_bases, 2),
+            "cov_50x_pct": round(100 * covered_bases[50] / total_bed_bases, 2),
+            "cov_100x_pct": round(100 * covered_bases[100] / total_bed_bases, 2),
+        }
+    except Exception as e:
+        print(f"  [BAM STATS] Error computing coverage bins for {bam_path}: {e}")
+        return None
+
+
 def _compute_bam_stats_pysam(bam_path: str, bed_total: int = 0,
                              bed_regions: list[tuple[str, int, int]] | None = None) -> dict[str, Any] | None:
     """Compute BAM statistics using pysam (Python fallback)."""
@@ -250,7 +424,7 @@ def _compute_bam_stats_pysam(bam_path: str, bed_total: int = 0,
         coverage_bases = on_target_bases if bed_regions else total_length
         mean_coverage = coverage_bases / ref_lengths if coverage_bases > 0 else 0
 
-        return {
+        result = {
             "total_reads": total_reads,
             "mapped_reads": mapped_reads,
             "mapping_rate_pct": round(mapping_rate, 2),
@@ -258,6 +432,23 @@ def _compute_bam_stats_pysam(bam_path: str, bed_total: int = 0,
             "mean_insert_size": round(mean_insert, 1),
             "mean_mapq": round(mean_mapq, 1),
         }
+
+        # Section 4: New expanded metrics
+        result["duplication_rate_pct"] = _compute_duplication_rate(bam_path)
+        result["properly_paired_pct"] = _compute_properly_paired_pct(bam_path)
+        result["insert_size_stddev"] = _compute_insert_size_stddev(bam_path)
+
+        cov_bins = _compute_coverage_bins(bed_regions, bam_path)
+        if cov_bins:
+            result.update(cov_bins)
+        else:
+            result["cov_1x_pct"] = None
+            result["cov_10x_pct"] = None
+            result["cov_20x_pct"] = None
+            result["cov_50x_pct"] = None
+            result["cov_100x_pct"] = None
+
+        return result
     except Exception as e:
         print(f"  [BAM STATS] Error reading {bam_path}: {e}")
         return None
@@ -309,11 +500,17 @@ def compute_bam_stats(bam_path: str, bed_total: int = 0,
                      are counted toward coverage. Default None = whole-genome.
 
     Returns dict with: total_reads, mapped_reads, mapping_rate_pct,
-    mean_coverage, mean_insert_size, mean_mapq. Returns None if BAM is unreadable.
+    mean_coverage, mean_insert_size, mean_mapq, plus new expanded metrics:
+    duplication_rate_pct, properly_paired_pct, insert_size_stddev,
+    cov_1x_pct, cov_10x_pct, cov_20x_pct, cov_50x_pct, cov_100x_pct.
+    Returns None if BAM is unreadable.
     """
     if not bam_path or not os.path.isfile(bam_path):
         return None
 
+    # NOTE: When adding new BAM metrics, implement in stats_core/src/bam.rs
+    # BEFORE adding pysam fallback. The pysam path is ~100x slower for
+    # full-BAM scans (iterates every read via Python/C-htslib overhead).
     if HAS_RUST_BAM:
         has_bed = bool(bed_regions)
         if has_bed:
@@ -330,6 +527,31 @@ def compute_bam_stats(bam_path: str, bed_total: int = 0,
                     result["mean_coverage"] = round(
                         result["mean_coverage"] * (bam_ref / bed_total), 4
                     )
+
+            # Expanded metrics from Rust backend (computed in single-pass scan)
+            result["duplication_rate_pct"] = result.get("duplication_rate_pct")
+            result["properly_paired_pct"] = result.get("properly_paired_pct")
+            result["insert_size_stddev"] = result.get("insert_size_stddev")
+
+            # Coverage bins via dedicated Rust function
+            try:
+                import stats_core
+                cov_bins = stats_core.coverage_bins(bam_path, bed_regions)
+                if cov_bins is not None:
+                    result.update(cov_bins)
+                else:
+                    result["cov_1x_pct"] = None
+                    result["cov_10x_pct"] = None
+                    result["cov_20x_pct"] = None
+                    result["cov_50x_pct"] = None
+                    result["cov_100x_pct"] = None
+            except Exception:
+                result["cov_1x_pct"] = None
+                result["cov_10x_pct"] = None
+                result["cov_20x_pct"] = None
+                result["cov_50x_pct"] = None
+                result["cov_100x_pct"] = None
+
             # Diagnostic: show path taken + coverage value
             mode = "BED" if bed_regions else "WG"
             cov = result.get("mean_coverage", "N/A")
@@ -384,11 +606,41 @@ def compute_sample_bam_stats(
                 "mean_coverage": None,
                 "mean_insert_size": None,
                 "mean_mapq": None,
+                "duplication_rate_pct": None,
+                "properly_paired_pct": None,
+                "insert_size_stddev": None,
+                "cov_1x_pct": None,
+                "cov_10x_pct": None,
+                "cov_20x_pct": None,
+                "cov_50x_pct": None,
+                "cov_100x_pct": None,
             })
 
         results.append(row)
 
     return results
+
+
+# Expected columns for backward compatibility when reloading from TSV.
+_BAM_STATS_COLUMNS = [
+    "sample_id", "set_number", "bam_type", "bam_label", "bam_path", "has_bam",
+    "total_reads", "mapped_reads", "mapping_rate_pct", "mean_coverage",
+    "mean_insert_size", "mean_mapq",
+    "duplication_rate_pct", "properly_paired_pct", "insert_size_stddev",
+    "cov_1x_pct", "cov_10x_pct", "cov_20x_pct", "cov_50x_pct", "cov_100x_pct",
+]
+
+
+def ensure_bam_stats_columns(df: pl.DataFrame) -> pl.DataFrame:
+    """Ensure all expected bam_stats columns exist, null-filling missing ones.
+
+    Provides backward compatibility when reloading bam_stats TSV from --resume
+    that was written by an older version lacking the expanded metrics.
+    """
+    for col in _BAM_STATS_COLUMNS:
+        if col not in df.columns:
+            df = df.with_columns(pl.lit(None).alias(col))
+    return df
 
 
 def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8, bed_total: int = 0,
@@ -458,10 +710,15 @@ def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8, bed_t
             print(f"  [{row['sample_id']}] BAM stats: {', '.join(ok_flags)}")
 
     if not all_rows:
-        return pl.DataFrame()
+        df = pl.DataFrame()
+        # Ensure column schema even for empty result
+        df = ensure_bam_stats_columns(df)
+        return df
 
     # Sort by sample_id then bam_type for deterministic output ordering.
     # Without this, as_completed() produces non-deterministic row order.
     all_rows.sort(key=lambda r: (r["sample_id"], str(r["bam_type"])))
 
-    return pl.DataFrame(all_rows)
+    df = pl.DataFrame(all_rows)
+    df = ensure_bam_stats_columns(df)
+    return df

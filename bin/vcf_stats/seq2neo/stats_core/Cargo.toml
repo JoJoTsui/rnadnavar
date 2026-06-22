@@ -11,6 +11,7 @@ crate-type = ["cdylib"]
 pyo3 = { version = "0.28", features = ["extension-module"] }
 # noodles 0.111 meta-crate pulls in correct sub-crate versions
 noodles = "0.111"
+noodles-sam = "0.85"
 noodles-vcf = "0.88"
 noodles-bam = "0.90"
 noodles-bgzf = "0.36"

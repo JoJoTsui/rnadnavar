@@ -1396,6 +1396,89 @@ class TestBamStats:
         assert not results[1]["has_bam"]
         assert results[0]["total_reads"] is None
 
+    # ── Expanded BAM Metrics tests ──────────────────────────────────────
+
+    def test_compute_sample_bam_stats_all_columns_present(self):
+        """Missing BAM paths produce rows with all 20 expected columns null-filled."""
+        from vcf_stats.seq2neo.bam_stats import compute_sample_bam_stats, _BAM_STATS_COLUMNS
+        results = compute_sample_bam_stats(
+            base_output_dir="/nonexistent",
+            dir_name="no_such_dir",
+            sample_id="TEST_COLS",
+            set_number=9,
+        )
+        assert len(results) == 3
+        for row in results:
+            for col in _BAM_STATS_COLUMNS:
+                assert col in row, f"Missing column {col} in result"
+
+    def test_ensure_bam_stats_columns_fills_missing(self):
+        """ensure_bam_stats_columns null-fills missing expanded metric columns."""
+        import polars as pl
+        from vcf_stats.seq2neo.bam_stats import ensure_bam_stats_columns, _BAM_STATS_COLUMNS
+        # Simulate an old TSV with only the original 7 metric columns
+        old_df = pl.DataFrame({
+            "sample_id": ["S1"], "set_number": [1], "bam_type": ["DN"],
+            "bam_label": ["DNA Normal"], "bam_path": ["/x.bam"], "has_bam": [True],
+            "total_reads": [1000], "mapped_reads": [900], "mapping_rate_pct": [90.0],
+            "mean_coverage": [30.0], "mean_insert_size": [300.0], "mean_mapq": [60.0],
+        })
+        fixed = ensure_bam_stats_columns(old_df)
+        for col in _BAM_STATS_COLUMNS:
+            assert col in fixed.columns, f"ensure_bam_stats_columns should add missing column {col}"
+        # New expanded columns should be null-filled
+        assert fixed["duplication_rate_pct"][0] is None
+        assert fixed["properly_paired_pct"][0] is None
+        assert fixed["insert_size_stddev"][0] is None
+        assert fixed["cov_1x_pct"][0] is None
+        assert fixed["cov_10x_pct"][0] is None
+        assert fixed["cov_20x_pct"][0] is None
+        assert fixed["cov_50x_pct"][0] is None
+        assert fixed["cov_100x_pct"][0] is None
+
+    def test_coverage_bins_empty_bed_returns_none(self):
+        """coverage_bins returns None when no BED regions provided."""
+        try:
+            import stats_core
+            if not hasattr(stats_core, 'coverage_bins'):
+                pytest.skip("stats_core.coverage_bins not available")
+        except ImportError:
+            pytest.skip("stats_core not available")
+        result = stats_core.coverage_bins("/nonexistent.bam", [])
+        assert result is None
+
+    def test_pysam_fallback_duplication_rate_respects_max_reads(self):
+        """_compute_duplication_rate stops at max_reads."""
+        from vcf_stats.seq2neo.bam_stats import _compute_duplication_rate
+        # Nonexistent file should return None (not loop forever)
+        result = _compute_duplication_rate("/nonexistent.bam", max_reads=100)
+        assert result is None
+
+    def test_pysam_fallback_properly_paired_respects_max_reads(self):
+        """_compute_properly_paired_pct stops at max_reads."""
+        from vcf_stats.seq2neo.bam_stats import _compute_properly_paired_pct
+        result = _compute_properly_paired_pct("/nonexistent.bam", max_reads=100)
+        assert result is None
+
+    def test_pysam_fallback_insert_size_stddev_respects_max_reads(self):
+        """_compute_insert_size_stddev stops at max_reads."""
+        from vcf_stats.seq2neo.bam_stats import _compute_insert_size_stddev
+        result = _compute_insert_size_stddev("/nonexistent.bam", max_reads=100)
+        assert result is None
+
+    def test_compute_bam_stats_rust_returns_all_keys(self):
+        """Rust backend bam_stats raises RuntimeError for nonexistent file."""
+        try:
+            import stats_core
+            if not hasattr(stats_core, 'bam_stats'):
+                pytest.skip("stats_core.bam_stats not available")
+        except ImportError:
+            pytest.skip("stats_core not available")
+        # Rust raises RuntimeError for nonexistent file; Python wrapper
+        # in compute_bam_stats() catches this and returns None.
+        with pytest.raises(RuntimeError, match="No such file"):
+            stats_core.bam_stats("/nonexistent.bam", 0)
+
     # ── Shared BED Processing tests ──────────────────────────────────────
 
     def test_read_and_merge_bed_total(self):

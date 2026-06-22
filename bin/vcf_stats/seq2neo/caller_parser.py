@@ -462,3 +462,132 @@ def join_caller_columns(
         caller_data[caller_name] = {}
 
     return df
+
+
+def parse_pre_norm_multiallelic(
+    vcf_path: str,
+    caller_name: str,
+    sample_suffix: str,
+) -> pl.DataFrame | None:
+    """Parse multi-allelic records from a pre-normalization caller VCF.
+
+    Extracts per-allele AD, AF/VAF, F1R2/F2R1 (Mutect2 only), and GT for
+    records where ALT contains a comma (multi-allelic sites).
+
+    Args:
+        vcf_path: Path to the pre-normalization VCF file.
+        caller_name: Caller key from CALLER_CONFIGS.
+        sample_suffix: Sample suffix to match (DT, RT).
+
+    Returns:
+        DataFrame with columns: CHROM, POS, REF, ALT_original, n_original_alleles,
+        original_alts, ad_ref, ad_alts, af_list, f1r2_list, f2r1_list, gt_str, gt_alleles.
+        Returns None if the file is missing or no multi-allelic records are found.
+    """
+    import os as _os
+    from cyvcf2 import VCF as _VCF
+
+    if not _os.path.isfile(vcf_path):
+        return None
+
+    is_mutect2 = "mutect2" in caller_name.lower()
+    is_deepsomatic = "deepsomatic" in caller_name.lower()
+
+    af_field = "AF" if is_mutect2 else ("VAF" if is_deepsomatic else None)
+    if af_field is None:
+        # Not a supported caller for multi-allelic parsing
+        return None
+
+    rows: list[dict] = []
+    try:
+        reader = _VCF(vcf_path)
+        sample_idx = None
+        for i, name in enumerate(reader.samples):
+            if name.endswith(sample_suffix) or name == sample_suffix:
+                sample_idx = i
+                break
+        if sample_idx is None:
+            reader.close()
+            return None
+
+        for record in reader:
+            alts = record.ALT
+            if len(alts) <= 1:
+                continue  # Skip non-multi-allelic
+
+            alt_str = ",".join(str(a) for a in alts)
+
+            # AD array (full, all alleles)
+            ad_ref = None
+            ad_alts = None
+            if "AD" in record.FORMAT:
+                try:
+                    ad_val = record.format("AD")[sample_idx]
+                    if ad_val is not None and len(ad_val) >= 2:
+                        ad_ref = int(ad_val[0])
+                        ad_alts = [int(x) for x in ad_val[1:]]
+                except Exception:
+                    pass
+
+            # Per-allele AF/VAF
+            af_list = None
+            if af_field in record.FORMAT:
+                try:
+                    af_val = record.format(af_field)[sample_idx]
+                    if af_val is not None:
+                        af_list = [float(x) for x in af_val]
+                except Exception:
+                    pass
+
+            # F1R2 and F2R1 (Mutect2 only)
+            f1r2_list = None
+            f2r1_list = None
+            if is_mutect2:
+                for field, target in [("F1R2", "f1r2"), ("F2R1", "f2r1")]:
+                    if field in record.FORMAT:
+                        try:
+                            f_val = record.format(field)[sample_idx]
+                            if f_val is not None and len(f_val) >= 2:
+                                if target == "f1r2":
+                                    f1r2_list = [int(x) for x in f_val[1:]]
+                                else:
+                                    f2r1_list = [int(x) for x in f_val[1:]]
+                        except Exception:
+                            pass
+
+            # GT as allele indices
+            gt_str = None
+            gt_alleles = None
+            if "GT" in record.FORMAT:
+                try:
+                    gt_val = record.format("GT")[sample_idx]
+                    if gt_val is not None and len(gt_val) > 0:
+                        gt_str = "/".join(str(v) for v in gt_val)
+                        gt_alleles = [int(v) if v is not None else -1 for v in gt_val]
+                except Exception:
+                    pass
+
+            rows.append({
+                "CHROM": record.CHROM,
+                "POS": record.POS,
+                "REF": record.REF,
+                "ALT_original": alt_str,
+                "n_original_alleles": len(alts),
+                "original_alts": [str(a) for a in alts],
+                "ad_ref": ad_ref,
+                "ad_alts": ad_alts,
+                "af_list": af_list,
+                "f1r2_list": f1r2_list,
+                "f2r1_list": f2r1_list,
+                "gt_str": gt_str,
+                "gt_alleles": gt_alleles,
+            })
+
+        reader.close()
+    except Exception:
+        return None
+
+    if not rows:
+        return None
+
+    return pl.DataFrame(rows)

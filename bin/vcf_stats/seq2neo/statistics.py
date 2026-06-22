@@ -53,8 +53,11 @@ _WISE_METRICS: list[tuple[str, pl.Expr]] = [
     ("median_rna_vaf", pl.col("RNA_VAF_mean").median()),
     ("mean_dna_dp", pl.col("DNA_DP_mean").mean()),
     ("mean_rna_dp", pl.col("RNA_DP_mean").mean()),
-    ("n_cross_modality", (pl.col("CROSS_MODALITY") == "YES").cast(pl.Int64).sum()),
-    ("n_rescued", (pl.col("RESCUED") == "YES").cast(pl.Int64).sum()),
+    ("n_cross_modality", (pl.col("modality_evidence_caller") == "cross_modality").cast(pl.Int64).sum()),
+    ("n_dna_confident", (pl.col("modality_evidence_caller") == "dna_confident").cast(pl.Int64).sum()),
+    ("n_rna_rescued", (pl.col("modality_evidence_caller") == "rna_rescued").cast(pl.Int64).sum()),
+    ("n_low_confidence", (pl.col("modality_evidence_caller") == "low_confidence").cast(pl.Int64).sum()),
+    ("n_rescued", ((pl.col("modality_evidence_caller") == "cross_modality") | (pl.col("modality_evidence_caller") == "rna_rescued")).cast(pl.Int64).sum()),
     ("n_cosmic", pl.col("COSMIC_ID").is_not_null().cast(pl.Int64).sum()),
     ("n_gnomad", pl.col("GNOMAD_AF").is_not_null().cast(pl.Int64).sum()),
     ("n_ti", pl.col("ti_tv").cast(pl.Int64).sum()),
@@ -176,14 +179,20 @@ _CROSS_SAMPLE_COLS = [
     "final_tier", "caller_tier", "database_tier", "tier_quality",
     # Caller support / cross-modality / rescue flags
     "N_SUPPORT_CALLERS", "N_DNA_CALLERS_SUPPORT", "N_RNA_CALLERS_SUPPORT",
-    "CROSS_MODALITY", "RESCUED",
+    "modality_evidence_caller", "modality_evidence_dp",
+    "n_alleles_at_site", "vaf_sum", "allele_balance_ratio",
+    "category_conflict", "multiallelic_class",
+    "flag_vaf_overflow", "flag_multi_allelic_heterogeneity",
+    "flag_category_conflict", "flag_germline_low_vaf",
+    "flag_somatic_high_vaf", "flag_reference_with_signal",
+    "flag_rna_rescued",
     # Database annotations
     "COSMIC_ID", "GNOMAD_AF", "REDI_EVIDENCE",
     # GT concordance (caller GT columns — only 4 of 6 callers have GT)
     "DNA_mutect2_GT", "RNA_mutect2_GT", "DNA_deepsomatic_GT", "RNA_deepsomatic_GT",
     # Flag filter breakdown fields
     "min_alt_reads", "gnomad", "blacklist", "noncoding", "ig_pseudo",
-    "homopolymer", "vc_filter", "not_consensus", "multiallelic",
+    "homopolymer", "vc_filter", "not_consensus",
     # ML partition column (added by cli.py from CHROM → train/val/test)
     "partition",
 ]
@@ -333,10 +342,236 @@ def compute_mean_columns(df: pl.DataFrame) -> pl.DataFrame:
     return df
 
 
+def compute_modality_evidence(df: pl.DataFrame) -> pl.DataFrame:
+    """Compute modality_evidence_caller and modality_evidence_dp.
+
+    modality_evidence_caller — classifies each variant based on caller support:
+        cross_modality: both DNA ≥ 1 callers AND RNA ≥ 1 callers support
+        dna_confident:  DNA ≥ 2 callers support, RNA < 1
+        rna_rescued:    RNA ≥ 2 callers support, DNA < 1
+        low_confidence:  everything else
+
+    modality_evidence_dp — classifies based on depth evidence (>30 reads):
+        cross_modality: both DNA_DP_mean > 30 AND RNA_DP_mean > 30
+        dna_confident:  DNA_DP_mean > 30, RNA_DP_mean <= 30
+        rna_rescued:    RNA_DP_mean > 30, DNA_DP_mean <= 30
+        low_confidence:  both <= 30
+    """
+    has_dna_callers = "N_DNA_CALLERS_SUPPORT" in df.columns
+    has_rna_callers = "N_RNA_CALLERS_SUPPORT" in df.columns
+    has_dna_dp = "DNA_DP_mean" in df.columns
+    has_rna_dp = "RNA_DP_mean" in df.columns
+
+    if has_dna_callers and has_rna_callers:
+        df = df.with_columns(
+            pl.when((pl.col("N_DNA_CALLERS_SUPPORT") >= 1) & (pl.col("N_RNA_CALLERS_SUPPORT") >= 1))
+            .then(pl.lit("cross_modality"))
+            .when((pl.col("N_DNA_CALLERS_SUPPORT") >= 2) & (pl.col("N_RNA_CALLERS_SUPPORT") < 1))
+            .then(pl.lit("dna_confident"))
+            .when((pl.col("N_RNA_CALLERS_SUPPORT") >= 2) & (pl.col("N_DNA_CALLERS_SUPPORT") < 1))
+            .then(pl.lit("rna_rescued"))
+            .otherwise(pl.lit("low_confidence"))
+            .alias("modality_evidence_caller")
+        )
+
+    if has_dna_dp and has_rna_dp:
+        df = df.with_columns(
+            pl.when((pl.col("DNA_DP_mean") > 30) & (pl.col("RNA_DP_mean") > 30))
+            .then(pl.lit("cross_modality"))
+            .when((pl.col("DNA_DP_mean") > 30) & (pl.col("RNA_DP_mean") <= 30))
+            .then(pl.lit("dna_confident"))
+            .when((pl.col("RNA_DP_mean") > 30) & (pl.col("DNA_DP_mean") <= 30))
+            .then(pl.lit("rna_rescued"))
+            .otherwise(pl.lit("low_confidence"))
+            .alias("modality_evidence_dp")
+        )
+
+    return df
+
+
+def compute_multi_allelic_metrics(df: pl.DataFrame) -> pl.DataFrame:
+    """Compute per-site multi-allelic metrics.
+
+    Groups by (CHROM, POS) and computes:
+        n_alleles_at_site — number of variant rows at this position
+        vaf_sum — sum of DNA_VAF_mean across all alleles at this site
+        total_alt_dp — sum of DNA_ALT_DP_mean across all alleles
+        allele_balance_ratio — ratio of (2nd highest ALT_DP) / (max ALT_DP)
+        category_conflict — True if alleles have different FILTER values
+        multiallelic_class — classification:
+            single: only 1 allele at site
+            normalization_artifact: minor_alt_dp / max_alt_dp < 0.03
+            noise: vaf_sum < 0.15
+            true_multi_allelic: everything else
+    """
+    if "CHROM" not in df.columns or "POS" not in df.columns:
+        return df
+
+    # Compute per-position group metrics
+    group_exprs = [pl.len().alias("n_alleles_at_site")]
+    if "DNA_VAF_mean" in df.columns:
+        group_exprs.append(pl.col("DNA_VAF_mean").sum().alias("vaf_sum"))
+    if "DNA_ALT_DP_mean" in df.columns:
+        group_exprs.append(pl.col("DNA_ALT_DP_mean").sum().alias("total_alt_dp"))
+    if "FILTER" in df.columns:
+        group_exprs.append(
+            (pl.col("FILTER").n_unique() > 1).alias("category_conflict")
+        )
+
+    # Compute allele_balance_ratio = 2nd_max_alt_dp / max_alt_dp per site.
+    # Uses two-pass max aggregation to avoid polars list.get() edge cases.
+    if "DNA_ALT_DP_mean" in df.columns:
+        non_null = df.filter(pl.col("DNA_ALT_DP_mean").is_not_null())
+        # Pass 1: max ALT_DP per position
+        max_dp = non_null.group_by(["CHROM", "POS"]).agg(
+            pl.col("DNA_ALT_DP_mean").max().alias("alt_dp_max")
+        )
+        # Pass 2: 2nd max = max of values strictly below the max
+        with_max = non_null.join(max_dp, on=["CHROM", "POS"])
+        second_max = (
+            with_max
+            .filter(pl.col("DNA_ALT_DP_mean") < pl.col("alt_dp_max"))
+            .group_by(["CHROM", "POS"])
+            .agg(pl.col("DNA_ALT_DP_mean").max().alias("alt_dp_2nd_max"))
+        )
+        ranked = max_dp.join(second_max, on=["CHROM", "POS"], how="left")
+        ranked = ranked.with_columns(
+            pl.when(
+                pl.col("alt_dp_max").is_not_null()
+                & (pl.col("alt_dp_max") > 0)
+                & pl.col("alt_dp_2nd_max").is_not_null()
+            )
+            .then(pl.col("alt_dp_2nd_max") / pl.col("alt_dp_max"))
+            .otherwise(None)
+            .alias("allele_balance_ratio")
+        )
+        ranked = ranked.select(["CHROM", "POS", "allele_balance_ratio"])
+    else:
+        ranked = df.select(["CHROM", "POS"]).unique().with_columns(
+            pl.lit(None).alias("allele_balance_ratio")
+        )
+
+    # Join back group metrics
+    site_metrics = df.group_by(["CHROM", "POS"]).agg(group_exprs)
+    site_metrics = site_metrics.join(ranked, on=["CHROM", "POS"], how="left")
+
+    # Classify multi-allelic sites
+    site_metrics = site_metrics.with_columns(
+        pl.when(pl.col("n_alleles_at_site") == 1)
+        .then(pl.lit("single"))
+        .when(
+            (pl.col("n_alleles_at_site") > 1)
+            & pl.col("allele_balance_ratio").is_not_null()
+            & (pl.col("allele_balance_ratio") < 0.03)
+        )
+        .then(pl.lit("normalization_artifact"))
+        .when(
+            (pl.col("n_alleles_at_site") > 1)
+            & (pl.col("vaf_sum") < 0.15)
+        )
+        .then(pl.lit("noise"))
+        .when(pl.col("n_alleles_at_site") > 1)
+        .then(pl.lit("true_multi_allelic"))
+        .otherwise(pl.lit("single"))
+        .alias("multiallelic_class")
+    )
+
+    df = df.join(site_metrics, on=["CHROM", "POS"], how="left")
+    return df
+
+
+def compute_biological_flags(df: pl.DataFrame) -> pl.DataFrame:
+    """Add biological flag columns for quality control and filtering.
+
+    Adds the following boolean columns:
+        flag_vaf_overflow — True if vaf_sum > 1.1 across alleles at a site
+        flag_multi_allelic_heterogeneity — True if multiallelic_class is
+            "true_multi_allelic" or "normalization_artifact"
+        flag_category_conflict — True if same position has conflicting FILTER values
+        flag_germline_low_vaf — FILTER=Germline AND DNA_VAF_mean < 0.10 AND DNA_DP_mean >= 10
+        flag_somatic_high_vaf — FILTER=Somatic AND DNA_VAF_mean > 0.60
+        flag_reference_with_signal — FILTER=Reference AND DNA_VAF_mean > 0.05
+        flag_rna_rescued — DNA_VAF < 0.05 AND N_DNA_CALLERS_SUPPORT <= 1
+                           AND N_RNA_CALLERS_SUPPORT >= 2 AND RNA_DP_mean >= 10
+    """
+    # flag_vaf_overflow
+    if "vaf_sum" in df.columns:
+        df = df.with_columns(
+            (pl.col("vaf_sum") > 1.1).alias("flag_vaf_overflow")
+        )
+
+    # flag_multi_allelic_heterogeneity
+    if "multiallelic_class" in df.columns:
+        df = df.with_columns(
+            pl.col("multiallelic_class").is_in(["true_multi_allelic", "normalization_artifact"])
+            .alias("flag_multi_allelic_heterogeneity")
+        )
+
+    # flag_category_conflict
+    if "category_conflict" in df.columns:
+        df = df.with_columns(
+            pl.col("category_conflict").alias("flag_category_conflict")
+        )
+
+    # flag_germline_low_vaf
+    has_filter = "FILTER" in df.columns
+    has_vaf = "DNA_VAF_mean" in df.columns
+    has_dp = "DNA_DP_mean" in df.columns
+    if has_filter and has_vaf and has_dp:
+        df = df.with_columns(
+            ((pl.col("FILTER") == "Germline")
+             & (pl.col("DNA_VAF_mean") < 0.10)
+             & (pl.col("DNA_DP_mean") >= 10))
+            .alias("flag_germline_low_vaf")
+        )
+    elif "flag_germline_low_vaf" not in df.columns:
+        df = df.with_columns(pl.lit(False).alias("flag_germline_low_vaf"))
+
+    # flag_somatic_high_vaf
+    if has_filter and has_vaf:
+        df = df.with_columns(
+            ((pl.col("FILTER") == "Somatic")
+             & (pl.col("DNA_VAF_mean") > 0.60))
+            .alias("flag_somatic_high_vaf")
+        )
+    elif "flag_somatic_high_vaf" not in df.columns:
+        df = df.with_columns(pl.lit(False).alias("flag_somatic_high_vaf"))
+
+    # flag_reference_with_signal
+    if has_filter and has_vaf:
+        df = df.with_columns(
+            ((pl.col("FILTER") == "Reference")
+             & (pl.col("DNA_VAF_mean") > 0.05))
+            .alias("flag_reference_with_signal")
+        )
+    elif "flag_reference_with_signal" not in df.columns:
+        df = df.with_columns(pl.lit(False).alias("flag_reference_with_signal"))
+
+    # flag_rna_rescued
+    has_dna_callers = "N_DNA_CALLERS_SUPPORT" in df.columns
+    has_rna_callers = "N_RNA_CALLERS_SUPPORT" in df.columns
+    has_rna_dp = "RNA_DP_mean" in df.columns
+    if has_vaf and has_dna_callers and has_rna_callers and has_rna_dp:
+        df = df.with_columns(
+            ((pl.col("DNA_VAF_mean") < 0.05)
+             & (pl.col("N_DNA_CALLERS_SUPPORT") <= 1)
+             & (pl.col("N_RNA_CALLERS_SUPPORT") >= 2)
+             & (pl.col("RNA_DP_mean") >= 10))
+            .alias("flag_rna_rescued")
+        )
+    elif "flag_rna_rescued" not in df.columns:
+        df = df.with_columns(pl.lit(False).alias("flag_rna_rescued"))
+
+    return df
+
+
 def compute_all_per_variant(df: pl.DataFrame) -> pl.DataFrame:
-    """Run all per-variant computations: VAF + mean columns."""
+    """Run all per-variant computations: VAF + mean columns + modality + flags."""
     df = compute_vaf_columns(df)
     df = compute_mean_columns(df)
+    df = compute_modality_evidence(df)
+    df = compute_multi_allelic_metrics(df)
+    df = compute_biological_flags(df)
     return df
 
 
@@ -403,11 +638,29 @@ def sample_summary(df: pl.DataFrame, sample_id: str) -> dict[str, Any]:
         for row in tier_counts.to_dicts():
             result[f"tier_{row['final_tier']}"] = row["n"]
 
-    # Cross-modality
-    if "CROSS_MODALITY" in df.columns:
-        result["n_cross_modality"] = df.filter(pl.col("CROSS_MODALITY") == "YES").height
-    if "RESCUED" in df.columns:
-        result["n_rescued"] = df.filter(pl.col("RESCUED") == "YES").height
+    # Cross-modality — prefer modality_evidence_caller, fall back to old columns
+    if "modality_evidence_caller" in df.columns:
+        for cat in ["cross_modality", "dna_confident", "rna_rescued", "low_confidence"]:
+            result[f"n_mod_{cat}"] = df.filter(pl.col("modality_evidence_caller") == cat).height
+        result["n_rescued"] = df.filter(
+            pl.col("modality_evidence_caller").is_in(["cross_modality", "rna_rescued"])
+        ).height
+    else:
+        if "CROSS_MODALITY" in df.columns:
+            result["n_cross_modality"] = df.filter(pl.col("CROSS_MODALITY") == "YES").height
+        if "RESCUED" in df.columns:
+            result["n_rescued"] = df.filter(pl.col("RESCUED") == "YES").height
+
+    # Biological flag counts
+    bio_flags = [
+        "flag_vaf_overflow", "flag_multi_allelic_heterogeneity",
+        "flag_category_conflict", "flag_germline_low_vaf",
+        "flag_somatic_high_vaf", "flag_reference_with_signal",
+        "flag_rna_rescued",
+    ]
+    for flag in bio_flags:
+        if flag in df.columns:
+            result[f"n_{flag}"] = df.filter(pl.col(flag) == True).height
 
     # COSMIC / gnomAD
     if "COSMIC_ID" in df.columns:
@@ -568,7 +821,7 @@ def flag_filter_breakdown(df: pl.DataFrame | pl.LazyFrame) -> dict[str, int]:
     df = _ensure_eager(df)
     flags = [
         "min_alt_reads", "gnomad", "blacklist", "noncoding",
-        "ig_pseudo", "homopolymer", "vc_filter", "not_consensus", "multiallelic",
+        "ig_pseudo", "homopolymer", "vc_filter", "not_consensus",
     ]
     result = {}
     for flag in flags:
@@ -618,11 +871,29 @@ def dataset_summary(df: pl.DataFrame | pl.LazyFrame) -> dict[str, Any]:
         for c in range(1, 7):
             result[f"n_callers_{c}"] = df.filter(pl.col("N_SUPPORT_CALLERS") == c).height
 
-    # Cross-modality
-    if "CROSS_MODALITY" in df.columns:
-        result["n_cross_modality"] = df.filter(pl.col("CROSS_MODALITY") == "YES").height
-    if "RESCUED" in df.columns:
-        result["n_rescued"] = df.filter(pl.col("RESCUED") == "YES").height
+    # Cross-modality — prefer modality_evidence_caller, fall back to old columns
+    if "modality_evidence_caller" in df.columns:
+        for cat in ["cross_modality", "dna_confident", "rna_rescued", "low_confidence"]:
+            result[f"n_mod_{cat}"] = df.filter(pl.col("modality_evidence_caller") == cat).height
+        result["n_rescued"] = df.filter(
+            pl.col("modality_evidence_caller").is_in(["cross_modality", "rna_rescued"])
+        ).height
+    else:
+        if "CROSS_MODALITY" in df.columns:
+            result["n_cross_modality"] = df.filter(pl.col("CROSS_MODALITY") == "YES").height
+        if "RESCUED" in df.columns:
+            result["n_rescued"] = df.filter(pl.col("RESCUED") == "YES").height
+
+    # Biological flag counts
+    bio_flags = [
+        "flag_vaf_overflow", "flag_multi_allelic_heterogeneity",
+        "flag_category_conflict", "flag_germline_low_vaf",
+        "flag_somatic_high_vaf", "flag_reference_with_signal",
+        "flag_rna_rescued",
+    ]
+    for flag in bio_flags:
+        if flag in df.columns:
+            result[f"n_{flag}"] = df.filter(pl.col(flag) == True).height
 
     # Database annotations
     if "COSMIC_ID" in df.columns:
@@ -769,7 +1040,7 @@ def compute_filter_effectiveness_matrix(df) -> pl.DataFrame:
     """
     df = _ensure_eager(df)
     flags = ["min_alt_reads", "gnomad", "blacklist", "noncoding",
-             "ig_pseudo", "homopolymer", "vc_filter", "not_consensus", "multiallelic"]
+             "ig_pseudo", "homopolymer", "vc_filter", "not_consensus"]
 
     if "FILTER" not in df.columns:
         return pl.DataFrame()
@@ -1001,7 +1272,19 @@ def compute_somatic_modality(df) -> pl.DataFrame:
 
 
 def _rescue_flag(df: pl.DataFrame) -> pl.DataFrame:
-    """Normalize RESCUED column to YES/NO (fill nulls with NO)."""
+    """Normalize rescue status to YES/NO using modality_evidence_caller.
+
+    Prefers modality_evidence_caller column; falls back to RESCUED column
+    for compatibility with older parquet files.
+    """
+    if "modality_evidence_caller" in df.columns:
+        return df.with_columns(
+            pl.when(
+                pl.col("modality_evidence_caller").is_in(["cross_modality", "rna_rescued"])
+            ).then(pl.lit("YES"))
+            .otherwise(pl.lit("NO"))
+            .alias("RESCUED")
+        )
     if "RESCUED" not in df.columns:
         return df.with_columns(pl.lit("NO").alias("RESCUED"))
     return df.with_columns(
@@ -1011,15 +1294,25 @@ def _rescue_flag(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
+def _evidence_col(df: pl.DataFrame) -> str:
+    """Return the primary evidence grouping column name.
+
+    Prefers modality_evidence_caller for new parquet files;
+    falls back to CROSS_MODALITY/RESCUED for backward compat.
+    """
+    if "modality_evidence_caller" in df.columns:
+        return "modality_evidence_caller"
+    return "RESCUED"
+
+
 def compute_rescue_breakdown(df, group_col: str = "set_number") -> pl.DataFrame:
-    """Per-group rescued vs non-rescued counts and proportions."""
+    """Per-group modality evidence category counts and proportions."""
     df = _ensure_eager(df)
-    if "RESCUED" not in df.columns:
+    ev_col = _evidence_col(df)
+    if ev_col not in df.columns:
         return pl.DataFrame()
-    df = _rescue_flag(df)
-    group_cols = [group_col, "RESCUED"] if group_col in df.columns else ["RESCUED"]
+    group_cols = [group_col, ev_col] if group_col in df.columns else [ev_col]
     result = df.group_by(group_cols).agg(pl.len().alias("count"))
-    # Add proportion within each group
     if group_col in df.columns:
         totals = result.group_by(group_col).agg(pl.col("count").sum().alias("total"))
         result = result.join(totals, on=group_col, how="left")
@@ -1029,42 +1322,42 @@ def compute_rescue_breakdown(df, group_col: str = "set_number") -> pl.DataFrame:
     result = result.with_columns(
         (pl.col("count") / pl.col("total") * 100).round(2).alias("pct")
     )
-    return result.sort(group_cols if group_col in df.columns else ["RESCUED"])
+    return result.sort(group_cols if group_col in df.columns else [ev_col])
 
 
 def compute_rescue_by_filter(df) -> pl.DataFrame:
-    """RESCUED × FILTER cross-tabulation with counts and proportions."""
+    """Modality evidence × FILTER cross-tabulation with counts and proportions."""
     df = _ensure_eager(df)
-    if "RESCUED" not in df.columns or "FILTER" not in df.columns:
+    ev_col = _evidence_col(df)
+    if ev_col not in df.columns or "FILTER" not in df.columns:
         return pl.DataFrame()
-    df = _rescue_flag(df)
-    result = df.group_by(["FILTER", "RESCUED"]).agg(pl.len().alias("count"))
+    result = df.group_by(["FILTER", ev_col]).agg(pl.len().alias("count"))
     totals = result.group_by("FILTER").agg(pl.col("count").sum().alias("total_per_filter"))
     result = result.join(totals, on="FILTER", how="left")
     result = result.with_columns(
         (pl.col("count") / pl.col("total_per_filter") * 100).round(2).alias("pct")
     )
-    return result.sort(["FILTER", "RESCUED"])
+    return result.sort(["FILTER", ev_col])
 
 
 def compute_rescue_cross_tab(df) -> pl.DataFrame:
-    """Three-way cross-tabulation: RESCUED × FILTER × set_number."""
+    """Three-way cross-tabulation: modality evidence × FILTER × set_number."""
     df = _ensure_eager(df)
-    if "RESCUED" not in df.columns or "FILTER" not in df.columns:
+    ev_col = _evidence_col(df)
+    if ev_col not in df.columns or "FILTER" not in df.columns:
         return pl.DataFrame()
-    df = _rescue_flag(df)
-    group_cols = ["RESCUED", "FILTER"]
+    group_cols = [ev_col, "FILTER"]
     if "set_number" in df.columns:
         group_cols.append("set_number")
     return df.group_by(group_cols).agg(pl.len().alias("count")).sort(group_cols)
 
 
 def compute_rescue_vaf_dp(df) -> pl.DataFrame:
-    """VAF/DP distribution statistics by rescue status (mean, median, Q1, Q3)."""
+    """VAF/DP distribution statistics by modality evidence (mean, median, Q1, Q3)."""
     df = _ensure_eager(df)
-    if "RESCUED" not in df.columns:
+    ev_col = _evidence_col(df)
+    if ev_col not in df.columns:
         return pl.DataFrame()
-    df = _rescue_flag(df)
     agg_exprs = [pl.len().alias("n_variants")]
     for col in ["DNA_VAF_mean", "RNA_VAF_mean", "DNA_DP_mean", "RNA_DP_mean"]:
         if col in df.columns:
@@ -1074,16 +1367,16 @@ def compute_rescue_vaf_dp(df) -> pl.DataFrame:
                 pl.col(col).quantile(0.25).alias(f"{col}_q1"),
                 pl.col(col).quantile(0.75).alias(f"{col}_q3"),
             ])
-    return df.group_by("RESCUED").agg(agg_exprs).sort("RESCUED")
+    return df.group_by(ev_col).agg(agg_exprs).sort(ev_col)
 
 
 def sample_rescue_summary(df) -> pl.DataFrame:
-    """Per-sample rescued/non-rescued counts with FILTER breakdown."""
+    """Per-sample modality evidence counts with FILTER breakdown."""
     df = _ensure_eager(df)
-    if "RESCUED" not in df.columns or "sample_id" not in df.columns:
+    ev_col = _evidence_col(df)
+    if ev_col not in df.columns or "sample_id" not in df.columns:
         return pl.DataFrame()
-    df = _rescue_flag(df)
-    group_cols = ["sample_id", "RESCUED"]
+    group_cols = ["sample_id", ev_col]
     if "set_number" in df.columns:
         group_cols.append("set_number")
     if "FILTER" in df.columns:
@@ -1092,26 +1385,26 @@ def sample_rescue_summary(df) -> pl.DataFrame:
 
 
 def compute_rescue_by_tier(df) -> pl.DataFrame:
-    """Rescue count and rate per final_tier (CxDy)."""
+    """Modality evidence count and rate per final_tier (CxDy)."""
     df = _ensure_eager(df)
-    if "RESCUED" not in df.columns or "final_tier" not in df.columns:
+    ev_col = _evidence_col(df)
+    if ev_col not in df.columns or "final_tier" not in df.columns:
         return pl.DataFrame()
-    df = _rescue_flag(df)
-    result = df.group_by(["final_tier", "RESCUED"]).agg(pl.len().alias("count"))
+    result = df.group_by(["final_tier", ev_col]).agg(pl.len().alias("count"))
     totals = result.group_by("final_tier").agg(pl.col("count").sum().alias("total"))
     result = result.join(totals, on="final_tier", how="left")
     result = result.with_columns(
         (pl.col("count") / pl.col("total") * 100).round(2).alias("pct")
     )
-    return result.sort(["final_tier", "RESCUED"])
+    return result.sort(["final_tier", ev_col])
 
 
 def compute_rescue_by_caller_support(df) -> pl.DataFrame:
-    """N_SUPPORT_CALLERS distribution by rescue status."""
+    """N_SUPPORT_CALLERS distribution by modality evidence."""
     df = _ensure_eager(df)
-    if "RESCUED" not in df.columns or "N_SUPPORT_CALLERS" not in df.columns:
+    ev_col = _evidence_col(df)
+    if ev_col not in df.columns or "N_SUPPORT_CALLERS" not in df.columns:
         return pl.DataFrame()
-    df = _rescue_flag(df)
-    return df.group_by(["N_SUPPORT_CALLERS", "RESCUED"]).agg(
+    return df.group_by(["N_SUPPORT_CALLERS", ev_col]).agg(
         pl.len().alias("count")
-    ).sort(["N_SUPPORT_CALLERS", "RESCUED"])
+    ).sort(["N_SUPPORT_CALLERS", ev_col])

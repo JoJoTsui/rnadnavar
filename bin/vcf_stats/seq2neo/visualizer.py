@@ -84,6 +84,10 @@ _COLOR_REGISTRY = {
     "modality": (MODALITY_DOMAIN, MODALITY_COLORS),
     "agreement_level": (AGREEMENT_DOMAIN, AGREEMENT_COLORS),
     "agreement": (AGREEMENT_DOMAIN, AGREEMENT_COLORS),
+    "modality_evidence_caller": (
+        ["cross_modality", "dna_confident", "rna_rescued", "low_confidence"],
+        ["#2ca02c", "#1f77b4", "#ff7f0e", "#d62728"]
+    ),
 }
 
 
@@ -252,22 +256,30 @@ def _add_heatmap_text(base, x_enc, y_enc, text_col: str, pdf, fontSize: int = 8,
     return text
 
 
-def _add_bar_labels(chart_data, x_enc, y_enc, label_col: str, fmt: str = ",d",
-                    dy: int = -8, fontSize: int = 9):
-    """Add count/percentage labels to a bar chart."""
-    text = alt.Chart(chart_data).mark_text(dy=dy, fontSize=fontSize).encode(
-        x=x_enc,
-        y=y_enc,
-        text=alt.Text(f"{label_col}:Q", format=fmt),
-        color=alt.value("black"),
-    )
-    return text
+def _si(v):
+    """Format a numeric count with SI prefixes: 1M→"1.5M", 1K→"1.5K", else integer."""
+    if v >= 1e6:
+        return f"{v / 1e6:.1f}M"
+    if v >= 1e3:
+        return f"{v / 1e3:.0f}K"
+    return str(int(v))
+
+
+def _luminance(hex_color: str) -> float:
+    """Compute luminance of a hex color (0.299*R + 0.587*G + 0.521*B).
+
+    Returns a float in [0, 1]; < 0.5 is considered dark.
+    """
+    hex_color = hex_color.lstrip("#")
+    r, g, b = (int(hex_color[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+    return 0.299 * r + 0.587 * g + 0.521 * b
 
 
 def _make_bar_text(pdf, x_field, count_col, stack=None, x_offset=None,
                    x_sort=None, show_pct=False, group_col=None,
-                   dy=-8, fontSize=8, base=None):
-    """Create count text labels for a bar chart.
+                   dy=-8, fontSize=8, base=None, color_col=None,
+                   overlap="hide"):
+    """Create count text labels for a bar chart with auto-contrast and responsive sizing.
 
     Args:
         pdf:        pandas DataFrame with chart data.
@@ -278,33 +290,74 @@ def _make_bar_text(pdf, x_field, count_col, stack=None, x_offset=None,
         x_sort:     Sort order for x-axis (list or None).
         show_pct:   If True, show "count (pct%)" labels — requires group_col.
         group_col:  Column to group by when computing percentages.
-        dy:         Vertical offset for text marks.
-        fontSize:   Font size for text marks.
+        dy:         Vertical offset for text marks (overridden by overlap).
+        fontSize:   Font size for text marks (overridden by auto-scale when None/0).
         base:       Optional alt.Chart(pdf) base — pass the SAME base used for
                     bars when the layered (bars + text) chart will be .facet()'d.
                     Altair requires all layers to share one data source for faceting.
+        color_col:  Column name used for color encoding (bar fill). When provided,
+                    luminance of the fill color is used for auto-contrast text color.
+        overlap:    Label overlap handling: "hide" (default, skip when >30 cats),
+                    "rotate" (angle=90, align="left", dy=-4),
+                    "stagger" (alternate dy=-8 vs dy=-16).
 
     Returns:
         alt.Chart text layer ready to be layered with (bars + text).
     """
-    if show_pct and group_col:
-        # Add label columns in-place (NOT .copy()) so bars and text share
-        # the same DataFrame reference — required for .facet() on layered charts.
+    n_cats = pdf[x_field].nunique()
+
+    # ── Responsive fontSize based on x-axis category count ────────────────
+    if fontSize is None or fontSize <= 0 or fontSize == 8:
+        if n_cats <= 10:
+            fontSize = 10
+        elif n_cats <= 25:
+            fontSize = 9
+        elif n_cats <= 50:
+            fontSize = 8
+        else:
+            fontSize = 7
+
+    # ── Overlap: always render text, use responsive fontSize for density ───
+    # Skipping labels (empty/invisible chart) breaks both .facet() on layered
+    # charts (data source mismatch) and vl-convert PNG export (child_width
+    # signal error). Responsive fontSize (above) handles label density.
+
+    # ── Overlap: rotation or stagger overrides ────────────────────────────
+    if overlap == "rotate":
+        dy = -4
+    elif overlap == "stagger":
+        # dy will be set per-row below via alternation column
+        pass
+
+    # ── Build text label ──────────────────────────────────────────────────
+    if show_pct and group_col and group_col in pdf.columns:
         total = pdf.groupby(group_col)[count_col].transform("sum")
         pct = (pdf[count_col] / total * 100).round(0).astype(int)
-
-        def _si(v):
-            if v >= 1e6:
-                return f"{v / 1e6:.1f}M"
-            if v >= 1e3:
-                return f"{v / 1e3:.0f}K"
-            return str(int(v))
-
         pdf["_lbl"] = pdf[count_col].apply(_si) + " (" + pct.astype(str) + "%)"
         text_enc = {"text": "_lbl:N"}
     else:
-        text_enc = {"text": alt.Text(f"{count_col}:Q", format="~s")}
+        pdf["_lbl"] = pdf[count_col].apply(_si)
+        text_enc = {"text": "_lbl:N"}
 
+    # ── Auto-contrast text color from bar fill luminance ──────────────────
+    if color_col and color_col in pdf.columns:
+        # Map color_scale domains to hex values for luminance check.
+        # Use the _COLOR_REGISTRY if present for this color_col.
+        entity = color_col
+        domain, colors_range = _COLOR_REGISTRY.get(entity, (None, None))
+        if domain and colors_range:
+            color_map = dict(zip(domain, colors_range))
+            def _text_color(val):
+                hex_c = str(color_map.get(val, "#333"))
+                return "white" if _luminance(hex_c) < 0.5 else "black"
+            pdf["_text_color"] = pdf[color_col].apply(_text_color)
+        else:
+            pdf["_text_color"] = "#333"
+        text_color = alt.Color("_text_color:N", scale=None)
+    else:
+        text_color = alt.value("#333")
+
+    # ── Build encoding ────────────────────────────────────────────────────
     enc = {"x": alt.X(f"{x_field}:N", sort=x_sort)}
     if stack:
         enc["y"] = alt.Y(f"{count_col}:Q", stack=stack)
@@ -313,11 +366,21 @@ def _make_bar_text(pdf, x_field, count_col, stack=None, x_offset=None,
     if x_offset:
         enc["xOffset"] = f"{x_offset}:N"
     enc.update(text_enc)
+    enc["color"] = text_color
+
+    # ── Overlap encodings ─────────────────────────────────────────────────
+    text_kw = {"fontSize": fontSize}
+    if overlap == "rotate":
+        text_kw.update(angle=90, align="left", dy=dy)
+    elif overlap == "stagger":
+        # Alternating dy: even-indexed rows get dy=-8, odd-indexed get dy=-16
+        pdf["_dy"] = [(-8 if i % 2 == 0 else -16) for i in range(len(pdf))]
+        enc["yOffset"] = "_dy:Q"
+    else:
+        text_kw["dy"] = dy
 
     chart_source = base if base is not None else alt.Chart(pdf)
-    return chart_source.mark_text(
-        dy=dy, fontSize=fontSize, color="black",
-    ).encode(**enc)
+    return chart_source.mark_text(**text_kw).encode(**enc)
 
 
 def _clip_dp(pdf, col: str, cap: int = 2000):
@@ -604,16 +667,34 @@ def plot_ti_tv_ratio(df, output_dir: str, group_col: str = "set_number", facet_c
 
 
 def plot_cross_modality(df, output_dir: str, group_col: str = "set_number", facet_col: str = None):
-    """Chart 11: Cross-modality & rescue analysis with percentages."""
-    cols_needed = ["CROSS_MODALITY", "RESCUED"]
-    if not all(c in df.columns for c in cols_needed) or group_col not in df.columns:
+    """Chart 11: Modality evidence & cross-modality rescue analysis with percentages.
+
+    If modality_evidence_caller column is available, uses 4-category classification
+    (cross_modality, dna_confident, rna_rescued, low_confidence). Falls back to
+    RESCUED column for backward compatibility with older parquet files.
+    """
+    if group_col not in df.columns:
         return
+
+    # Determine evidence column: prefer modality_evidence_caller, fall back to RESCUED
+    evidence_col = "modality_evidence_caller"
+    if not _has_column(df, evidence_col):
+        has_cross_modality = _has_column(df, "CROSS_MODALITY")
+        has_rescued = _has_column(df, "RESCUED")
+        if not has_cross_modality and not has_rescued:
+            return
+        # Backward compat: use CROSS_MODALITY and RESCUED as before
+        cols_to_plot = [c for c in ["CROSS_MODALITY", "RESCUED"] if _has_column(df, c)]
+        title_prefix_map = {"CROSS_MODALITY": "Cross-Modality", "RESCUED": "Rescued Variants"}
+    else:
+        cols_to_plot = [evidence_col]
+        title_prefix_map = {evidence_col: "Modality Evidence"}
 
     facet_groups = [facet_col] if facet_col and facet_col in df.columns else []
     total_per_group = df.group_by([*facet_groups, group_col]).agg(pl.len().alias("total"))
 
     subcharts = []
-    for col in ["CROSS_MODALITY", "RESCUED"]:
+    for col in cols_to_plot:
         pdf = df.group_by([*facet_groups, group_col, col]).agg(
             pl.len().alias("count")
         ).join(total_per_group, on=[*facet_groups, group_col]).with_columns(
@@ -631,20 +712,21 @@ def plot_cross_modality(df, output_dir: str, group_col: str = "set_number", face
         bars = base.mark_bar().encode(
             x=alt.X(f"{group_col}:N", title=group_title, sort=chrom_order),
             y=alt.Y("count:Q", title="Count", scale=_count_scale(), axis=_count_axis()),
-            color=alt.Color(f"{col}:N"),
+            color=alt.Color(f"{col}:N", scale=_color_scale(col) if col in _COLOR_REGISTRY else alt.Scale()),
         )
         text = _make_bar_text(pdf, x_field=group_col, count_col="count",
                               stack="zero", show_pct=True, group_col=group_col,
                               x_sort=chrom_order, base=base)
         c = (bars + text).properties(
-            title=f"{'Cross-Modality' if col == 'CROSS_MODALITY' else 'Rescued Variants'}"
+            title=title_prefix_map.get(col, col.replace("_", " ").title())
         )
         if facet_col:
             c = c.facet(facet=alt.Facet(f"{facet_col}:N"), columns=2).resolve_scale(x="independent")
         subcharts.append(c)
 
-    chart = alt.hconcat(*subcharts).properties(title="Cross-Modality and Rescue Analysis (%)")
-    _save_chart(chart, "11_cross_modality", output_dir)
+    chart_title = "Modality Evidence Analysis (%)" if evidence_col in cols_to_plot else "Cross-Modality and Rescue Analysis (%)"
+    chart = alt.hconcat(*subcharts).properties(title=chart_title) if len(subcharts) > 1 else subcharts[0]
+    _save_chart(chart, "11_modality_evidence", output_dir)
     return chart
 
 
@@ -1052,43 +1134,80 @@ def plot_per_tier_vaf_boxplot(df, output_dir: str):
     return chart
 
 
-def plot_dna_vs_rna_per_caller(df, output_dir: str, color_col: str = None):
-    """DNA vs RNA per-caller VAF scatter at shared positions (sampled to 5K per pair)."""
+def plot_dna_vs_rna_per_caller(df, output_dir: str, color_col: str = None,
+                              metrics=("VAF", "DP")):
+    """DNA vs RNA per-caller VAF/DP scatter at shared positions.
+
+    Layout: vconcat(hconcat(VAF_row), hconcat(DP_row)) — 2 rows x 3 columns.
+    DP subcharts are clipped to [0, 2000]. All panels share a color scale
+    when color_col is provided. Sampled to 5K per pair.
+    """
     pairs = [("DNA_mutect2", "RNA_mutect2"), ("DNA_deepsomatic", "RNA_deepsomatic"),
              ("DNA_strelka", "RNA_strelka")]
-    subcharts = []
-    for dna_caller, rna_caller in pairs:
-        dna_vaf = f"{dna_caller}_VAF"
-        rna_vaf = f"{rna_caller}_VAF"
-        if dna_vaf not in df.columns or rna_vaf not in df.columns:
-            continue
-        cols = [dna_vaf, rna_vaf]
-        active_color = None
-        if color_col and color_col in df.columns:
-            cols.append(color_col)
-            active_color = color_col
-        elif "FILTER" in df.columns:
-            cols.append("FILTER")
-            active_color = "FILTER"
-        pdf = df.select(cols).drop_nulls(subset=[dna_vaf, rna_vaf])
-        pdf = _sample_if_large(pdf, max_rows=5000).to_pandas()
-        caller_label = dna_caller.replace("DNA_", "")
-        if active_color and active_color in pdf.columns:
-            if active_color == "FILTER":
-                color_enc = alt.Color("FILTER:N", scale=_color_scale("FILTER"))
+
+    # Build subcharts organized by row: {metric: [charts]}
+    metric_rows = {}
+    # Shared color domain for all panels (built from first pair)
+    shared_color_domain = None
+    shared_color_range = None
+
+    for metric in metrics:
+        subcharts = []
+        for dna_caller, rna_caller in pairs:
+            dna_col = f"{dna_caller}_{metric}"
+            rna_col = f"{rna_caller}_{metric}"
+            if dna_col not in df.columns or rna_col not in df.columns:
+                continue
+            cols = [dna_col, rna_col]
+            active_color = None
+            if color_col and color_col in df.columns:
+                cols.append(color_col)
+                active_color = color_col
+            elif "FILTER" in df.columns:
+                cols.append("FILTER")
+                active_color = "FILTER"
+            pdf = df.select(cols).drop_nulls(subset=[dna_col, rna_col])
+            pdf = _sample_if_large(pdf, max_rows=5000).to_pandas()
+
+            # DP: clip to [0, 2000]
+            if metric == "DP":
+                n_over = int((pdf[dna_col] > 2000).sum() + (pdf[rna_col] > 2000).sum())
+                pdf[dna_col] = pdf[dna_col].clip(0, 2000)
+                pdf[rna_col] = pdf[rna_col].clip(0, 2000)
+
+            caller_label = dna_caller.replace("DNA_", "")
+            if active_color and active_color in pdf.columns:
+                if active_color == "FILTER":
+                    color_enc = alt.Color("FILTER:N", scale=_color_scale("FILTER"),
+                                          legend=alt.Legend(title="Classification"))
+                else:
+                    color_enc = alt.Color(f"{active_color}:N",
+                                          legend=alt.Legend(title=active_color.replace("_", " ").title()))
             else:
-                color_enc = alt.Color(f"{active_color}:N")
-        else:
-            color_enc = alt.value("#1f77b4")
-        c = alt.Chart(pdf).mark_circle(opacity=0.4, size=20).encode(
-            x=alt.X(f"{dna_vaf}:Q", title=f"{caller_label} DNA VAF"),
-            y=alt.Y(f"{rna_vaf}:Q", title=f"{caller_label} RNA VAF"),
-            color=color_enc,
-        ).properties(title=f"{caller_label}: DNA vs RNA VAF")
-        subcharts.append(c)
-    if not subcharts:
+                color_enc = alt.value("#1f77b4")
+
+            x_title = f"{caller_label} DNA {metric}"
+            y_title = f"{caller_label} RNA {metric}"
+            if metric == "DP":
+                x_title += " (capped 2000)"
+                y_title += " (capped 2000)"
+
+            c = alt.Chart(pdf).mark_circle(opacity=0.4, size=20).encode(
+                x=alt.X(f"{dna_col}:Q", title=x_title),
+                y=alt.Y(f"{rna_col}:Q", title=y_title),
+                color=color_enc,
+            ).properties(title=f"{caller_label}", width=150, height=150)
+            subcharts.append(c)
+        if subcharts:
+            metric_rows[metric] = alt.hconcat(*subcharts)
+
+    if not metric_rows:
         return
-    chart = alt.hconcat(*subcharts).properties(title="DNA vs RNA Per-Caller VAF")
+
+    # vconcat rows: VAF first, DP second
+    row_charts = [metric_rows[m] for m in metrics if m in metric_rows]
+    chart = alt.vconcat(*row_charts).properties(
+        title=alt.Title("DNA vs RNA Per-Caller VAF and DP", subtitle="VAF row (top), DP row (bottom, capped 2000)"))
     _save_chart(chart, "26_dna_vs_rna_per_caller", output_dir)
     return chart
 
@@ -1400,7 +1519,8 @@ def plot_per_sample_distribution(sample_stats_df, output_dir: str, top_n: int = 
     }
     base = alt.Chart(pdf)
     bars = base.mark_bar().encode(**enc)
-    text = _make_bar_text(pdf, x_field="sample_id", count_col="total_variants", base=base)
+    text = _make_bar_text(pdf, x_field="sample_id", count_col="total_variants",
+                          base=base, overlap="hide")
     chart = (bars + text).properties(
         title=f"Per-Sample Variant Counts (n={n_samples})",
         height=300,
@@ -1510,7 +1630,7 @@ def plot_per_sample_tier_distribution(sample_tier_df, output_dir: str):
     bars = base.mark_bar().encode(**enc)
     text = _make_bar_text(pdf, x_field="sample_id", count_col="n_variants",
                           stack="zero", show_pct=True, group_col="sample_id",
-                          base=base)
+                          base=base, overlap="hide")
     chart = (bars + text).properties(
         title="Per-Sample Per-Tier Variant Distribution")
     if has_set:
@@ -2289,161 +2409,193 @@ def plot_per_tier_dp_boxplot(df, output_dir: str):
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-def plot_rescue_breakdown(breakdown_df, output_dir: str):
+def plot_rescue_breakdown(breakdown_df, output_dir: str,
+                          evidence_col: str = "modality_evidence_caller"):
     """Chart 48: Per-set rescued vs non-rescued counts with % labels."""
     if breakdown_df is None or (hasattr(breakdown_df, 'is_empty') and breakdown_df.is_empty()):
         return
+    # Fall back to RESCUED if evidence_col not in columns
+    if evidence_col not in breakdown_df.columns:
+        evidence_col = "RESCUED"
     pdf = breakdown_df.to_pandas()
-    group_col = [c for c in pdf.columns if c not in ("RESCUED", "count", "total", "pct")][0] if len(pdf.columns) > 4 else None
-    x_enc = alt.X(f"{group_col}:N", title=group_col.replace("_", " ").title()) if group_col else alt.X("RESCUED:N")
-    x_field = group_col if group_col else "RESCUED"
+    non_evidence = [c for c in pdf.columns if c not in (evidence_col, "count", "total", "pct")]
+    group_col = non_evidence[0] if non_evidence else None
+    x_enc = alt.X(f"{group_col}:N", title=group_col.replace("_", " ").title()) if group_col else alt.X(f"{evidence_col}:N")
+    x_field = group_col if group_col else evidence_col
+    evidence_title = evidence_col.replace("_", " ").title()
     bars = alt.Chart(pdf).mark_bar().encode(
         x=x_enc,
         y=alt.Y("count:Q", title="Variant Count", scale=_count_scale(), axis=_count_axis(), stack="zero"),
-        color=alt.Color("RESCUED:N", title="Rescued",
-                        scale=_color_scale("RESCUED")),
+        color=alt.Color(f"{evidence_col}:N", title=evidence_title,
+                        scale=_color_scale(evidence_col) if evidence_col in _COLOR_REGISTRY else alt.Scale()),
         tooltip=list(pdf.columns),
     )
     text = _make_bar_text(pdf, x_field=x_field, count_col="count",
                           stack="zero", show_pct=True, group_col=x_field)
-    chart = (bars + text).properties(title="Rescue Breakdown: Rescued vs Non-Rescued")
+    chart = (bars + text).properties(title=f"Rescue Breakdown by {evidence_title}")
     _save_chart(chart, "48_rescue_breakdown", output_dir)
     return chart
 
 
-def plot_rescue_by_filter(rescue_filter_df, output_dir: str):
+def plot_rescue_by_filter(rescue_filter_df, output_dir: str,
+                          evidence_col: str = "modality_evidence_caller"):
     """Chart 49: Rescued/non-rescued counts per FILTER category."""
     if rescue_filter_df is None or (hasattr(rescue_filter_df, 'is_empty') and rescue_filter_df.is_empty()):
         return
+    # Fall back to RESCUED if evidence_col not in columns
+    if evidence_col not in rescue_filter_df.columns:
+        evidence_col = "RESCUED"
     pdf = rescue_filter_df.to_pandas()
+    evidence_title = evidence_col.replace("_", " ").title()
     bars = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("FILTER:N", title="Classification"),
         y=alt.Y("count:Q", title="Variant Count", scale=_count_scale(), axis=_count_axis()),
-        color=alt.Color("RESCUED:N", title="Rescued",
-                        scale=_color_scale("RESCUED")),
-        xOffset="RESCUED:N",
-        tooltip=["FILTER", "RESCUED", "count", "pct"],
+        color=alt.Color(f"{evidence_col}:N", title=evidence_title,
+                        scale=_color_scale(evidence_col) if evidence_col in _COLOR_REGISTRY else alt.Scale()),
+        xOffset=f"{evidence_col}:N",
+        tooltip=["FILTER", evidence_col, "count", "pct"],
     )
     text = _make_bar_text(pdf, x_field="FILTER", count_col="count",
-                          x_offset="RESCUED", show_pct=True, group_col="FILTER")
-    chart = (bars + text).properties(title="Rescue Status by Classification (FILTER)")
+                          x_offset=evidence_col, show_pct=True, group_col="FILTER")
+    chart = (bars + text).properties(title=f"Rescue Status by Classification (FILTER)")
     _save_chart(chart, "49_rescue_by_filter", output_dir)
     return chart
 
 
-def plot_rescue_cross_tab_heatmap(cross_tab_df, output_dir: str):
-    """Chart 50: RESCUED × FILTER × set_number heatmap with text labels."""
+def plot_rescue_cross_tab_heatmap(cross_tab_df, output_dir: str,
+                                  evidence_col: str = "modality_evidence_caller"):
+    """Chart 50: Modality evidence × FILTER × set_number heatmap with text labels."""
     if cross_tab_df is None or (hasattr(cross_tab_df, 'is_empty') and cross_tab_df.is_empty()):
         return
+    # Fall back to RESCUED if evidence_col not in columns
+    if evidence_col not in cross_tab_df.columns:
+        evidence_col = "RESCUED"
     pdf = cross_tab_df.to_pandas()
     has_set = "set_number" in pdf.columns
     y_col = "FILTER"
+    evidence_title = evidence_col.replace("_", " ").title()
     base = alt.Chart(pdf)
     rect = base.mark_rect().encode(
-        x=alt.X("RESCUED:N", title="Rescued"),
+        x=alt.X(f"{evidence_col}:N", title=evidence_title),
         y=alt.Y(f"{y_col}:N", title="Classification"),
         color=alt.Color("count:Q", title="Count", scale=alt.Scale(scheme="blues", type="log")),
         tooltip=list(pdf.columns),
     )
     median_count = max(float(pdf["count"].median()), 1)
     text = base.mark_text(baseline="middle", fontSize=8).encode(
-        x=alt.X("RESCUED:N"),
+        x=alt.X(f"{evidence_col}:N"),
         y=alt.Y(f"{y_col}:N"),
         text=alt.Text("count:Q", format=",d"),
         color=alt.condition(f"datum.count > {median_count}", alt.value("white"), alt.value("black")),
     )
-    chart = (rect + text).properties(title="Rescue Cross-Tabulation", width=150, height=200)
+    chart = (rect + text).properties(title=f"Modality Evidence Cross-Tabulation", width=150, height=200)
     if has_set:
         chart = chart.facet(facet=alt.Facet("set_number:N", title="Set"), columns=2)
     _save_chart(chart, "50_rescue_cross_tab_heatmap", output_dir)
     return chart
 
 
-def plot_rescue_vaf_boxplot(df, output_dir: str):
-    """Chart 51: DNA/RNA VAF distributions for rescued vs non-rescued."""
+def plot_rescue_vaf_boxplot(df, output_dir: str,
+                            evidence_col: str = "modality_evidence_caller"):
+    """Chart 51: DNA/RNA VAF distributions by modality evidence category."""
     if df is None or (hasattr(df, 'is_empty') and df.is_empty()):
         return
-    if "RESCUED" not in df.columns:
-        return
-    vaf_cols = [c for c in ["DNA_VAF_mean", "RNA_VAF_mean"] if c in df.columns]
+    # Fall back to RESCUED if evidence_col not in columns
+    if not _has_column(df, evidence_col):
+        if not _has_column(df, "RESCUED"):
+            return
+        evidence_col = "RESCUED"
+    vaf_cols = [c for c in ["DNA_VAF_mean", "RNA_VAF_mean"] if _has_column(df, c)]
     if not vaf_cols:
         return
-    select_cols = vaf_cols + ["RESCUED"]
+    select_cols = vaf_cols + [evidence_col]
     pdf = df.select(select_cols)
-    # Normalize RESCUED BEFORE drop_nulls — null RESCUED means non-rescued
-    pdf = pdf.with_columns(
-        pl.when(pl.col("RESCUED") == "YES").then(pl.lit("YES"))
-        .otherwise(pl.lit("NO")).alias("RESCUED")
-    )
-    pdf = pdf.drop_nulls(subset=vaf_cols)
-    pdf = _sample_if_large(pdf, max_rows=50000).to_pandas()
-    melted = pdf.melt(id_vars=["RESCUED"], var_name="modality", value_name="VAF")
+    # Fill null evidence values
+    if isinstance(pdf, pl.LazyFrame):
+        pdf = _sample_if_large(pdf, max_rows=50000)
+    else:
+        pdf = pdf.drop_nulls(subset=vaf_cols)
+        pdf = _sample_if_large(pdf, max_rows=50000)
+    pdf = pdf.to_pandas()
+    melted = pdf.melt(id_vars=[evidence_col], var_name="modality", value_name="VAF")
     melted["modality"] = melted["modality"].str.replace("_VAF_mean", "")
     melted["VAF"] = melted["VAF"].clip(0, 1)
+    evidence_title = evidence_col.replace("_", " ").title()
+    color_scale = _color_scale(evidence_col) if evidence_col in _COLOR_REGISTRY else alt.Scale()
     chart = alt.Chart(melted).mark_boxplot(size=40).encode(
-        x=alt.X("RESCUED:N", title="Rescued"),
+        x=alt.X(f"{evidence_col}:N", title=evidence_title),
         y=alt.Y("VAF:Q", title="Mean VAF", scale=alt.Scale(domain=[0, 1])),
-        color=alt.Color("RESCUED:N", scale=_color_scale("RESCUED")),
+        color=alt.Color(f"{evidence_col}:N", scale=color_scale),
         column=alt.Column("modality:N", title="Modality"),
-    ).properties(title="VAF Distribution: Rescued vs Non-Rescued", width=200)
+    ).properties(title=f"VAF Distribution by {evidence_title}", width=200)
     _save_chart(chart, "51_rescue_vaf_boxplot", output_dir)
     return chart
 
 
-def plot_rescue_dp_boxplot(df, output_dir: str):
-    """Chart 52: DNA/RNA DP distributions for rescued vs non-rescued."""
+def plot_rescue_dp_boxplot(df, output_dir: str,
+                            evidence_col: str = "modality_evidence_caller"):
+    """Chart 52: DNA/RNA DP distributions by modality evidence category."""
     if df is None or (hasattr(df, 'is_empty') and df.is_empty()):
         return
-    if "RESCUED" not in df.columns:
-        return
-    dp_cols = [c for c in ["DNA_DP_mean", "RNA_DP_mean"] if c in df.columns]
+    # Fall back to RESCUED if evidence_col not in columns
+    if not _has_column(df, evidence_col):
+        if not _has_column(df, "RESCUED"):
+            return
+        evidence_col = "RESCUED"
+    dp_cols = [c for c in ["DNA_DP_mean", "RNA_DP_mean"] if _has_column(df, c)]
     if not dp_cols:
         return
-    select_cols = dp_cols + ["RESCUED"]
+    select_cols = dp_cols + [evidence_col]
     pdf = df.select(select_cols)
-    # Normalize RESCUED BEFORE drop_nulls — null RESCUED means non-rescued
-    pdf = pdf.with_columns(
-        pl.when(pl.col("RESCUED") == "YES").then(pl.lit("YES"))
-        .otherwise(pl.lit("NO")).alias("RESCUED")
-    )
-    pdf = pdf.drop_nulls(subset=dp_cols)
-    pdf = _sample_if_large(pdf, max_rows=50000).to_pandas()
-    melted = pdf.melt(id_vars=["RESCUED"], var_name="modality", value_name="DP")
+    if isinstance(pdf, pl.LazyFrame):
+        pdf = _sample_if_large(pdf, max_rows=50000)
+    else:
+        pdf = pdf.drop_nulls(subset=dp_cols)
+        pdf = _sample_if_large(pdf, max_rows=50000)
+    pdf = pdf.to_pandas()
+    melted = pdf.melt(id_vars=[evidence_col], var_name="modality", value_name="DP")
     melted["modality"] = melted["modality"].str.replace("_DP_mean", "")
     melted["DP"] = melted["DP"].clip(0, 2000)
+    evidence_title = evidence_col.replace("_", " ").title()
+    color_scale = _color_scale(evidence_col) if evidence_col in _COLOR_REGISTRY else alt.Scale()
     chart = alt.Chart(melted).mark_boxplot(size=40).encode(
-        x=alt.X("RESCUED:N", title="Rescued"),
+        x=alt.X(f"{evidence_col}:N", title=evidence_title),
         y=alt.Y("DP:Q", title="Mean DP (capped 2000)", scale=alt.Scale(domain=[0, 2000])),
-        color=alt.Color("RESCUED:N", scale=_color_scale("RESCUED")),
+        color=alt.Color(f"{evidence_col}:N", scale=color_scale),
         column=alt.Column("modality:N", title="Modality"),
-    ).properties(title="DP Distribution: Rescued vs Non-Rescued", width=200)
+    ).properties(title=f"DP Distribution by {evidence_title}", width=200)
     _save_chart(chart, "52_rescue_dp_boxplot", output_dir)
     return chart
 
 
-def plot_rescue_sample_distribution(sample_rescue_df, output_dir: str):
+def plot_rescue_sample_distribution(sample_rescue_df, output_dir: str,
+                                    evidence_col: str = "modality_evidence_caller"):
     """Chart 53: Per-sample rescue counts, faceted by set using 2×2 grid."""
     if sample_rescue_df is None or (hasattr(sample_rescue_df, 'is_empty') and sample_rescue_df.is_empty()):
         return
-    # Aggregate to sample × RESCUED level (drop FILTER detail)
-    group_cols = ["sample_id", "RESCUED"]
+    # Fall back to RESCUED if evidence_col not in columns
+    if evidence_col not in sample_rescue_df.columns:
+        evidence_col = "RESCUED"
+    # Aggregate to sample × evidence level (drop FILTER detail)
+    group_cols = ["sample_id", evidence_col]
     has_set = "set_number" in sample_rescue_df.columns
     if has_set:
         group_cols.append("set_number")
     pdf = sample_rescue_df.group_by(group_cols).agg(pl.col("count").sum()).to_pandas()
+    evidence_title = evidence_col.replace("_", " ").title()
     base = alt.Chart(pdf)
     bars = base.mark_bar().encode(
         x=alt.X("sample_id:N", title="Sample", sort=None,
                  axis=alt.Axis(labelAngle=-45, labelLimit=100)),
         y=alt.Y("count:Q", title="Variant Count", scale=_count_scale(), axis=_count_axis(), stack="zero"),
-        color=alt.Color("RESCUED:N", title="Rescued",
-                        scale=_color_scale("RESCUED")),
-        tooltip=["sample_id", "RESCUED", "count"],
+        color=alt.Color(f"{evidence_col}:N", title=evidence_title,
+                        scale=_color_scale(evidence_col) if evidence_col in _COLOR_REGISTRY else alt.Scale()),
+        tooltip=["sample_id", evidence_col, "count"],
     )
     text = _make_bar_text(pdf, x_field="sample_id", count_col="count",
                           stack="zero", show_pct=True, group_col="sample_id",
-                          base=base)
-    chart = (bars + text).properties(title="Per-Sample Rescue Counts", height=300)
+                          base=base, overlap="hide")
+    chart = (bars + text).properties(title=f"Per-Sample {evidence_title} Counts", height=300)
     if has_set:
         pdf["set_number"] = pdf["set_number"].astype(str)
         chart = chart.facet(
@@ -2454,33 +2606,46 @@ def plot_rescue_sample_distribution(sample_rescue_df, output_dir: str):
     return chart
 
 
-def plot_rescue_by_tier(rescue_tier_df, output_dir: str):
+def plot_rescue_by_tier(rescue_tier_df, output_dir: str,
+                        evidence_col: str = "modality_evidence_caller"):
     """Chart 54: Rescue rate per CxDy tier, stacked bar."""
     if rescue_tier_df is None or (hasattr(rescue_tier_df, 'is_empty') and rescue_tier_df.is_empty()):
         return
+    # Fall back to RESCUED if evidence_col not in columns
+    if evidence_col not in rescue_tier_df.columns:
+        evidence_col = "RESCUED"
     pdf = rescue_tier_df.to_pandas()
+    evidence_title = evidence_col.replace("_", " ").title()
     bars = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("final_tier:N", title="Caller Tier"),
         y=alt.Y("count:Q", title="Variant Count", scale=_count_scale(), axis=_count_axis(), stack="zero"),
-        color=alt.Color("RESCUED:N", title="Rescued",
-                        scale=_color_scale("RESCUED")),
-        tooltip=["final_tier", "RESCUED", "count", "pct"],
+        color=alt.Color(f"{evidence_col}:N", title=evidence_title,
+                        scale=_color_scale(evidence_col) if evidence_col in _COLOR_REGISTRY else alt.Scale()),
+        tooltip=["final_tier", evidence_col, "count", "pct"],
     )
     text = _make_bar_text(pdf, x_field="final_tier", count_col="count",
                           stack="zero", show_pct=True, group_col="final_tier")
-    chart = (bars + text).properties(title="Rescue Status by Caller Tier")
+    chart = (bars + text).properties(title=f"Modality Evidence by Caller Tier")
     _save_chart(chart, "54_rescue_by_tier", output_dir)
     return chart
 
 
-def plot_rescue_rate_trend(breakdown_df, output_dir: str):
+def plot_rescue_rate_trend(breakdown_df, output_dir: str,
+                            evidence_col: str = "modality_evidence_caller"):
     """Chart 55: Rescue proportion (%) across sets, line chart."""
     if breakdown_df is None or (hasattr(breakdown_df, 'is_empty') and breakdown_df.is_empty()):
         return
+    # Fall back to RESCUED if evidence_col not in columns
+    if evidence_col not in breakdown_df.columns:
+        evidence_col = "RESCUED"
     pdf = breakdown_df.to_pandas()
     if "set_number" not in pdf.columns:
         return
-    rescued_only = pdf[pdf["RESCUED"] == "YES"].copy()
+    evidence_title = evidence_col.replace("_", " ").title()
+    # For backward compat with RESCUED, filter to "YES"; for modality_evidence_caller,
+    # filter to "cross_modality" as the "rescued" analog
+    filter_value = "cross_modality" if evidence_col == "modality_evidence_caller" else "YES"
+    rescued_only = pdf[pdf[evidence_col] == filter_value].copy()
     if rescued_only.empty:
         return
     chart = alt.Chart(rescued_only).mark_line(point=True, strokeWidth=2).encode(
@@ -2492,25 +2657,363 @@ def plot_rescue_rate_trend(breakdown_df, output_dir: str):
     return chart
 
 
-def plot_rescue_caller_support(caller_support_df, output_dir: str):
-    """Chart 56: N_SUPPORT_CALLERS distribution by rescue status."""
+def plot_rescue_caller_support(caller_support_df, output_dir: str,
+                               evidence_col: str = "modality_evidence_caller"):
+    """Chart 56: N_SUPPORT_CALLERS distribution by modality evidence status."""
     if caller_support_df is None or (hasattr(caller_support_df, 'is_empty') and caller_support_df.is_empty()):
         return
+    # Fall back to RESCUED if evidence_col not in columns
+    if evidence_col not in caller_support_df.columns:
+        evidence_col = "RESCUED"
     pdf = caller_support_df.to_pandas()
     pdf["N_SUPPORT_CALLERS"] = pdf["N_SUPPORT_CALLERS"].astype(int).astype(str)
+    evidence_title = evidence_col.replace("_", " ").title()
     bars = alt.Chart(pdf).mark_bar().encode(
         x=alt.X("N_SUPPORT_CALLERS:N", title="Number of Supporting Callers"),
         y=alt.Y("count:Q", title="Variant Count", scale=_count_scale(), axis=_count_axis()),
-        color=alt.Color("RESCUED:N", title="Rescued",
-                        scale=_color_scale("RESCUED")),
-        xOffset="RESCUED:N",
-        tooltip=["N_SUPPORT_CALLERS", "RESCUED", "count"],
+        color=alt.Color(f"{evidence_col}:N", title=evidence_title,
+                        scale=_color_scale(evidence_col) if evidence_col in _COLOR_REGISTRY else alt.Scale()),
+        xOffset=f"{evidence_col}:N",
+        tooltip=["N_SUPPORT_CALLERS", evidence_col, "count"],
     )
     text = _make_bar_text(pdf, x_field="N_SUPPORT_CALLERS", count_col="count",
-                          x_offset="RESCUED", show_pct=True,
+                          x_offset=evidence_col, show_pct=True,
                           group_col="N_SUPPORT_CALLERS")
-    chart = (bars + text).properties(title="Caller Support Distribution: Rescued vs Non-Rescued")
+    chart = (bars + text).properties(title=f"Caller Support Distribution by {evidence_title}")
     _save_chart(chart, "56_rescue_caller_support", output_dir)
+    return chart
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Multi-Allelic Visualization Charts (Section 2)
+# ═══════════════════════════════════════════════════════════════════════════
+
+MULTIALLELIC_CLASS_DOMAIN = ["normalization_artifact", "noise", "true_multi_allelic"]
+MULTIALLELIC_CLASS_COLORS = ["#d62728", "#ff7f0e", "#2ca02c"]
+
+
+def plot_multiallelic_classification(df, output_dir: str):
+    """Multi-allelic classification: stacked bar chart by set_number/disease.
+
+    Groups by multiallelic_class and set_number (or disease_normalized),
+    filters to multiallelic_class != "single", and shows the 3 multi-allelic
+    categories as a stacked bar chart.
+    """
+    if not _has_column(df, "multiallelic_class"):
+        return
+
+    group_col = "disease_normalized" if _has_column(df, "disease_normalized") else "set_number"
+    if not _has_column(df, group_col):
+        return
+
+    counts = _maybe_collect(
+        df.filter(pl.col("multiallelic_class") != "single")
+        .group_by([group_col, "multiallelic_class"])
+        .agg(pl.len().alias("count"))
+        .sort(group_col)
+    )
+    if counts.is_empty():
+        return
+    pdf = counts.to_pandas()
+    pdf[group_col] = pdf[group_col].astype(str)
+    group_title = group_col.replace("_", " ").title()
+
+    base = alt.Chart(pdf)
+    bars = base.mark_bar().encode(
+        x=alt.X(f"{group_col}:N", title=group_title),
+        y=alt.Y("count:Q", title="Number of Multi-Allelic Variants",
+                scale=_count_scale(), axis=_count_axis()),
+        color=alt.Color("multiallelic_class:N", title="Multi-Allelic Class",
+                        scale=alt.Scale(domain=MULTIALLELIC_CLASS_DOMAIN,
+                                        range=MULTIALLELIC_CLASS_COLORS)),
+    )
+    text = _make_bar_text(pdf, x_field=group_col, count_col="count",
+                          stack="zero", show_pct=True, group_col=group_col,
+                          base=base, color_col="multiallelic_class")
+    chart = (bars + text).properties(title=f"Multi-Allelic Classification by {group_title}")
+    _save_chart(chart, "classification", output_dir)
+    return chart
+
+
+def plot_allele_balance_scatter(df, output_dir: str):
+    """Multi-allelic allele balance scatter: major_vaf vs minor_vaf.
+
+    Filters to n_alleles_at_site >= 2, computes per-site major and minor VAF,
+    colors by multiallelic_class. Adds y=x reference line. Samples to 5000 points.
+    """
+    if not _has_column(df, "n_alleles_at_site"):
+        return
+
+    vaf_cols = [c for c in df.columns if c.endswith("_VAF") and c.startswith(("DNA_", "RNA_"))]
+    if len(vaf_cols) < 2:
+        return
+
+    select_cols = ["n_alleles_at_site", "multiallelic_class"] + vaf_cols
+    color_col = "multiallelic_class" if _has_column(df, "multiallelic_class") else None
+    if color_col:
+        select_cols = list(dict.fromkeys(select_cols))  # deduplicate
+
+    pdf = df.select(select_cols).filter(pl.col("n_alleles_at_site") >= 2)
+    pdf = _sample_if_large(pdf, max_rows=5000)
+    if pdf.is_empty():
+        return
+    pdf = pdf.to_pandas()
+
+    # Compute major and minor VAF per site from per-caller VAF columns
+    vaf_existing = [c for c in vaf_cols if c in pdf.columns]
+    if not vaf_existing:
+        return
+
+    def row_vaf_stats(row):
+        vafs = [row[c] for c in vaf_existing if pd.notna(row[c])]
+        if len(vafs) >= 2:
+            return pd.Series({"major_vaf": max(vafs), "minor_vaf": min(vafs)})
+        return pd.Series({"major_vaf": float("nan"), "minor_vaf": float("nan")})
+
+    vaf_df = pdf[vaf_existing].apply(row_vaf_stats, axis=1)
+    pdf["major_vaf"] = vaf_df["major_vaf"].clip(0, 1)
+    pdf["minor_vaf"] = vaf_df["minor_vaf"].clip(0, 1)
+    pdf = pdf.dropna(subset=["major_vaf", "minor_vaf"])
+
+    if pdf.empty:
+        return
+
+    # y=x reference line
+    ref_line = alt.Chart(pd.DataFrame({"x": [0, 1], "y": [0, 1]})).mark_rule(
+        strokeDash=[4, 4], opacity=0.5, color="gray"
+    ).encode(x=alt.X("x:Q"), y=alt.Y("y:Q"))
+
+    enc = {
+        "x": alt.X("major_vaf:Q", title="Major Allele VAF", scale=alt.Scale(domain=[0, 1])),
+        "y": alt.Y("minor_vaf:Q", title="Minor Allele VAF", scale=alt.Scale(domain=[0, 1])),
+    }
+    if color_col and color_col in pdf.columns:
+        enc["color"] = alt.Color(f"{color_col}:N", title="Multi-Allelic Class",
+                                 scale=alt.Scale(domain=MULTIALLELIC_CLASS_DOMAIN,
+                                                 range=MULTIALLELIC_CLASS_COLORS))
+
+    scatter = alt.Chart(pdf).mark_circle(opacity=0.5, size=30).encode(**enc)
+    chart = (scatter + ref_line).properties(title="Multi-Allelic Allele Balance (major vs minor VAF)")
+    _save_chart(chart, "allele_balance", output_dir)
+    return chart
+
+
+def plot_vaf_sum_histogram(df, output_dir: str):
+    """Multi-allelic VAF sum histogram.
+
+    Filters to n_alleles_at_site >= 2, histograms vaf_sum with bin=20.
+    Adds vertical rule at x=1.0. Color bins: >1.0 red, <=1.0 blue.
+    """
+    if not _has_column(df, "n_alleles_at_site") or not _has_column(df, "vaf_sum"):
+        return
+
+    pdf = df.select(["n_alleles_at_site", "vaf_sum"]).filter(
+        pl.col("n_alleles_at_site") >= 2
+    ).drop_nulls(subset=["vaf_sum"])
+    pdf = _maybe_collect(pdf)
+    if pdf.is_empty():
+        return
+    pdf = pdf.to_pandas()
+
+    # Bin and color
+    pdf["vaf_bucket"] = pdf["vaf_sum"].apply(lambda x: ">1.0" if x > 1.0 else "≤1.0")
+
+    ref_rule = alt.Chart(pd.DataFrame({"x": [1.0]})).mark_rule(
+        strokeDash=[6, 4], color="red", strokeWidth=2
+    ).encode(x=alt.X("x:Q"))
+
+    hist = alt.Chart(pdf).mark_bar().encode(
+        x=alt.X("vaf_sum:Q", bin=alt.Bin(maxbins=20), title="VAF Sum Across Alleles"),
+        y=alt.Y("count()", title="Number of Sites"),
+        color=alt.Color("vaf_bucket:N", title="VAF Sum",
+                        scale=alt.Scale(domain=[">1.0", "≤1.0"],
+                                        range=["#d62728", "#1f77b4"])),
+    )
+
+    chart = (hist + ref_rule).properties(title="Multi-Allelic VAF Sum Distribution (sites with >=2 alleles)")
+    _save_chart(chart, "vaf_sum", output_dir)
+    return chart
+
+
+def plot_category_conflict_summary(df, output_dir: str):
+    """Multi-allelic category conflict summary: horizontal bar of top 10 conflict types.
+
+    Filters to category_conflict == True, groups by (CHROM, POS), collects unique
+    FILTER values as sorted string. Top 10 conflict patterns shown as horizontal bars.
+    """
+    if not _has_column(df, "category_conflict") or not _has_column(df, "FILTER"):
+        return
+
+    pdf = _maybe_collect(
+        df.filter(pl.col("category_conflict") == True)
+        .select(["CHROM", "POS", "FILTER"])
+    )
+    if pdf.is_empty():
+        return
+
+    # Group by (CHROM, POS), collect sorted unique FILTER values
+    conflicts = (
+        pdf.group_by(["CHROM", "POS"])
+        .agg(pl.col("FILTER").unique().sort().str.join("/").alias("conflict_type"))
+    )
+    # Count per conflict type
+    counts = (
+        conflicts.group_by("conflict_type")
+        .agg(pl.len().alias("count"))
+        .sort("count", descending=True)
+        .head(10)
+    )
+    if counts.is_empty():
+        return
+    counts = counts.to_pandas()
+
+    bars = alt.Chart(counts).mark_bar().encode(
+        y=alt.Y("conflict_type:N", title="Conflict Type (FILTER values at site)",
+                sort="-x"),
+        x=alt.X("count:Q", title="Number of Sites", scale=_count_scale(), axis=_count_axis()),
+    )
+    text = _make_bar_text(counts, x_field="count", count_col="count",
+                          x_sort=None, show_pct=False)
+    # For horizontal bar, swap x/y in text encoding
+    text = alt.Chart(counts).mark_text(dy=-8, fontSize=9).encode(
+        y=alt.Y("conflict_type:N", sort="-x"),
+        x=alt.X("count:Q"),
+        text=alt.Text("count:Q", format=",d"),
+        color=alt.value("#333"),
+    )
+    chart = (bars + text).properties(
+        title="Top 10 Multi-Allelic Category Conflicts (FILTER disagreement at same site)")
+    _save_chart(chart, "category_conflict", output_dir)
+    return chart
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# BAM Visualization Charts (Section 5)
+# ═══════════════════════════════════════════════════════════════════════════
+
+def plot_bam_metrics_sample_wise(bam_stats_df, output_dir: str):
+    """Faceted bar chart of BAM metrics per sample, colored by bam_type.
+
+    Takes bam_stats_df (not combined_df). Melts metrics into long form
+    and creates a faceted bar chart with one panel per metric. Samples
+    are ordered by set_number then sample_id.
+    """
+    if bam_stats_df is None or (hasattr(bam_stats_df, 'is_empty') and bam_stats_df.is_empty()):
+        return
+    if "sample_id" not in bam_stats_df.columns or "bam_type" not in bam_stats_df.columns:
+        return
+
+    # Identify metric columns (numeric, not sample_id/bam_type/set_number)
+    skip_cols = {"sample_id", "bam_type", "set_number", "disease", "disease_normalized"}
+    metric_cols = [c for c in bam_stats_df.columns if c not in skip_cols
+                   and bam_stats_df[c].dtype in (pl.Int64, pl.Float64, pl.Int32, pl.Float32)]
+
+    if not metric_cols:
+        return
+
+    # Build melted long-form DataFrame
+    id_cols = ["sample_id", "bam_type"]
+    has_set = "set_number" in bam_stats_df.columns
+    if has_set:
+        id_cols.append("set_number")
+
+    melted = bam_stats_df.select(id_cols + metric_cols).unpivot(
+        index=id_cols, variable_name="metric", value_name="value"
+    )
+
+    # Order samples by set_number then sample_id
+    if has_set:
+        melted = melted.sort(["set_number", "sample_id"])
+    else:
+        melted = melted.sort("sample_id")
+
+    pdf = melted.to_pandas()
+    pdf["sample_id"] = pdf["sample_id"].astype(str)
+    if has_set:
+        pdf["set_number"] = pdf["set_number"].astype(str)
+
+    # Faceted bar chart: one panel per metric
+    n_metrics = len(metric_cols)
+    n_cols = min(3, n_metrics)
+
+    chart = alt.Chart(pdf).mark_bar().encode(
+        x=alt.X("sample_id:N", title="Sample", sort=None,
+                axis=alt.Axis(labelAngle=-45, labelLimit=100)),
+        y=alt.Y("value:Q", title="Value"),
+        color=alt.Color("bam_type:N", title="BAM Type", scale=_color_scale("bam_type")),
+        column=alt.Column("metric:N", title="Metric"),
+    ).properties(
+        title="BAM Metrics per Sample by BAM Type",
+        width=alt.Step(12),
+    )
+    chart = chart.resolve_scale(x="independent", y="independent")
+
+    _save_chart(chart, "metrics_sample_wise", output_dir)
+    return chart
+
+
+def plot_bam_coverage_distribution(bam_stats_df, output_dir: str):
+    """Grouped bar chart of mean coverage bin percentages by bam_type and set_number.
+
+    Groups by bam_type and set_number, computes mean of coverage-related
+    percentage columns (cov_1x_pct through cov_100x_pct). Creates a grouped
+    bar chart with bars grouped by bam_type and colored by coverage bin.
+    """
+    if bam_stats_df is None or (hasattr(bam_stats_df, 'is_empty') and bam_stats_df.is_empty()):
+        return
+
+    # Find coverage percentage columns
+    cov_pct_cols = [c for c in bam_stats_df.columns
+                    if c.endswith("_pct") and "cov_" in c]
+    if not cov_pct_cols:
+        return
+
+    has_set = "set_number" in bam_stats_df.columns
+    group_cols = ["bam_type"]
+    if has_set:
+        group_cols.append("set_number")
+
+    # Group by bam_type (and set_number) and compute mean of each cov_pct column
+    agg_exprs = [pl.col(c).mean().alias(f"mean_{c}") for c in cov_pct_cols]
+    grouped = bam_stats_df.group_by(group_cols).agg(agg_exprs)
+
+    if has_set:
+        grouped = grouped.with_columns(pl.col("set_number").cast(pl.Utf8))
+
+    # Melt mean coverage columns for plotting
+    mean_cols = [f"mean_{c}" for c in cov_pct_cols]
+    melted = grouped.unpivot(
+        index=group_cols, variable_name="coverage_bin", value_name="mean_pct"
+    )
+    # Clean up bin names: strip "mean_cov_" prefix and "_pct" suffix
+    melted = melted.with_columns(
+        pl.col("coverage_bin").str.replace("mean_cov_", "").str.replace("_pct", "")
+    )
+
+    pdf = melted.to_pandas()
+    if pdf.empty:
+        return
+
+    base = alt.Chart(pdf)
+    bars = base.mark_bar().encode(
+        x=alt.X("bam_type:N", title="BAM Type",
+                axis=alt.Axis(labelAngle=0)),
+        y=alt.Y("mean_pct:Q", title="Mean % of Bases Covered"),
+        xOffset="coverage_bin:N",
+        color=alt.Color("coverage_bin:N", title="Coverage Threshold"),
+        tooltip=["bam_type", "coverage_bin", "mean_pct"],
+    )
+    chart = bars.properties(
+        title="Mean Coverage Distribution by BAM Type",
+        width=250,
+    )
+    if has_set:
+        chart = chart.facet(
+            facet=alt.Facet("set_number:N", title="Set"),
+            columns=2,
+        ).resolve_scale(x="independent", y="shared")
+
+    _save_chart(chart, "coverage_distribution", output_dir)
     return chart
 
 

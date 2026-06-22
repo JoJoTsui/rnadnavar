@@ -39,6 +39,9 @@ pub struct BamStats {
     pub mean_coverage: f64,
     pub mean_insert_size: f64,
     pub mean_mapq: f64,
+    pub duplication_rate_pct: f64,
+    pub properly_paired_pct: f64,
+    pub insert_size_stddev: f64,
 }
 
 /// Compute whole-genome BAM statistics (sample up to max_reads, 0 = no limit).
@@ -106,9 +109,12 @@ fn whole_genome_stats_impl(
     let mut mapped: u64 = 0;
     let mut mq_sum: f64 = 0.0;
     let mut insert_sum: f64 = 0.0;
+    let mut insert_sum_sq: f64 = 0.0;
     let mut insert_count: u64 = 0;
     let mut total_query_length: u64 = 0;
     let mut on_target_bases: u64 = 0;
+    let mut dup_count: u64 = 0;
+    let mut proper_pair_count: u64 = 0;
 
     // Per-chromosome BED cursor for two-pointer walk
     let mut bed_cursors: HashMap<String, usize> = HashMap::new();
@@ -118,8 +124,10 @@ fn whole_genome_stats_impl(
         total += 1;
 
         let flags = record.flags();
+        if flags.is_duplicate() { dup_count += 1; }
         if !flags.is_unmapped() {
             mapped += 1;
+            if flags.is_properly_segmented() { proper_pair_count += 1; }
             if let Some(mq) = record.mapping_quality() {
                 mq_sum += u8::from(mq) as f64;
             }
@@ -172,6 +180,7 @@ fn whole_genome_stats_impl(
                 let tlen = record.template_length();
                 if tlen > 0 {
                     insert_sum += tlen as f64;
+                    insert_sum_sq += (tlen as f64) * (tlen as f64);
                     insert_count += 1;
                 }
             }
@@ -188,6 +197,14 @@ fn whole_genome_stats_impl(
     };
     let denominator = if bed_total > 0 { bed_total } else { ref_lengths };
 
+    let duplication_rate_pct = if total > 0 { 100.0 * dup_count as f64 / total as f64 } else { 0.0 };
+    let properly_paired_pct = if mapped > 0 { 100.0 * proper_pair_count as f64 / mapped as f64 } else { 0.0 };
+    let insert_size_stddev = if insert_count > 0 {
+        let mean = insert_sum / insert_count as f64;
+        let variance = (insert_sum_sq / insert_count as f64) - (mean * mean);
+        if variance > 0.0 { variance.sqrt() } else { 0.0 }
+    } else { 0.0 };
+
     Ok(BamStats {
         total_reads: total,
         mapped_reads: mapped,
@@ -195,5 +212,100 @@ fn whole_genome_stats_impl(
         mean_coverage: if denominator > 0 { coverage_bases as f64 / denominator as f64 } else { 0.0 },
         mean_insert_size: if insert_count > 0 { insert_sum / insert_count as f64 } else { 0.0 },
         mean_mapq: if mapped > 0 { mq_sum / mapped as f64 } else { 0.0 },
+        duplication_rate_pct,
+        properly_paired_pct,
+        insert_size_stddev,
     })
+}
+
+/// Compute per-base coverage depth bins across BED regions.
+///
+/// Returns a map of "{threshold}x_pct" → percentage of on-target bases
+/// covered at that depth or higher. Thresholds: 1x, 10x, 20x, 50x, 100x.
+pub fn coverage_bins(bam_path: &Path, bed_regions: &[(String, u32, u32)]) -> Result<Option<HashMap<String, f64>>, String> {
+    use bam::bai;
+    use noodles_core::Region;
+
+    if bed_regions.is_empty() { return Ok(None); }
+
+    let mut reader = bam::io::Reader::new(std::fs::File::open(bam_path).map_err(|e| e.to_string())?);
+    let header = reader.read_header().map_err(|e| e.to_string())?;
+
+    // Load BAI index
+    let bai_path_str = format!("{}.bai", bam_path.display());
+    let bai_path = Path::new(&bai_path_str);
+    if !bai_path.exists() {
+        return Err(format!("BAI index not found: {}", bai_path.display()));
+    }
+    let index = bai::fs::read(bai_path)
+        .map_err(|e| format!("Cannot read BAI index: {}", e))?;
+
+    let mut total_bases: u64 = 0;
+    let mut bases_1x: u64 = 0; let mut bases_10x: u64 = 0;
+    let mut bases_20x: u64 = 0; let mut bases_50x: u64 = 0; let mut bases_100x: u64 = 0;
+
+    for (chrom, start, end) in bed_regions {
+        let region_len = (end - start) as u64;
+        total_bases += region_len;
+        let mut depths = vec![0u32; region_len as usize];
+
+        let pos_start = std::num::NonZero::new(*start as usize)
+            .and_then(|nz| noodles_core::Position::try_from(usize::from(nz)).ok());
+        let pos_end = std::num::NonZero::new(*end as usize)
+            .and_then(|nz| noodles_core::Position::try_from(usize::from(nz)).ok());
+        let (Some(pos_start), Some(pos_end)) = (pos_start, pos_end) else { continue; };
+        let region = Region::new(chrom.clone(), pos_start..=pos_end);
+
+        let query = reader.query(&header, &index, &region)
+            .map_err(|e| e.to_string())?;
+
+        for record_result in query.records() {
+            let record = match record_result { Ok(r) => r, Err(_) => continue };
+            let flags = record.flags();
+            if flags.is_unmapped() || flags.is_duplicate() || flags.is_secondary() || flags.is_supplementary() {
+                continue;
+            }
+            let rec_start = match record.alignment_start() {
+                Some(Ok(p)) => usize::from(p) as i64,
+                _ => continue,
+            };
+            let cigar = record.cigar();
+            let mut pos = rec_start;
+            for op_result in cigar.iter() {
+                let op = match op_result { Ok(o) => o, Err(_) => continue };
+                if op.kind().consumes_reference() {
+                    let op_len = op.len() as i64;
+                    // Only accumulate depth for alignment matches (M, =, X),
+                    // not for deletions or skipped reference regions (D, N).
+                    use noodles_sam::alignment::record::cigar::op::Kind;
+                    let is_alignment = matches!(op.kind(), Kind::Match | Kind::SequenceMatch | Kind::SequenceMismatch);
+                    if is_alignment {
+                        for offset in 0..op_len {
+                            let base_pos = pos + offset - (*start as i64);
+                            if base_pos >= 0 && (base_pos as u64) < region_len {
+                                depths[base_pos as usize] += 1;
+                            }
+                        }
+                    }
+                    pos += op_len;
+                }
+            }
+        }
+        for d in &depths {
+            if *d >= 1 { bases_1x += 1; }
+            if *d >= 10 { bases_10x += 1; }
+            if *d >= 20 { bases_20x += 1; }
+            if *d >= 50 { bases_50x += 1; }
+            if *d >= 100 { bases_100x += 1; }
+        }
+    }
+    let mut map = HashMap::new();
+    if total_bases > 0 {
+        map.insert("cov_1x_pct".to_string(), 100.0 * bases_1x as f64 / total_bases as f64);
+        map.insert("cov_10x_pct".to_string(), 100.0 * bases_10x as f64 / total_bases as f64);
+        map.insert("cov_20x_pct".to_string(), 100.0 * bases_20x as f64 / total_bases as f64);
+        map.insert("cov_50x_pct".to_string(), 100.0 * bases_50x as f64 / total_bases as f64);
+        map.insert("cov_100x_pct".to_string(), 100.0 * bases_100x as f64 / total_bases as f64);
+    }
+    Ok(Some(map))
 }

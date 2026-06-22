@@ -118,6 +118,9 @@ fn bam_stats(py: Python<'_>, path: String, max_reads: u64) -> PyResult<Bound<'_,
     d.set_item("mean_coverage", stats.mean_coverage)?;
     d.set_item("mean_insert_size", stats.mean_insert_size)?;
     d.set_item("mean_mapq", stats.mean_mapq)?;
+    d.set_item("duplication_rate_pct", stats.duplication_rate_pct)?;
+    d.set_item("properly_paired_pct", stats.properly_paired_pct)?;
+    d.set_item("insert_size_stddev", stats.insert_size_stddev)?;
     Ok(d)
 }
 
@@ -148,6 +151,9 @@ fn bam_stats_bed(
     d.set_item("mean_coverage", stats.mean_coverage)?;
     d.set_item("mean_insert_size", stats.mean_insert_size)?;
     d.set_item("mean_mapq", stats.mean_mapq)?;
+    d.set_item("duplication_rate_pct", stats.duplication_rate_pct)?;
+    d.set_item("properly_paired_pct", stats.properly_paired_pct)?;
+    d.set_item("insert_size_stddev", stats.insert_size_stddev)?;
     Ok(d)
 }
 
@@ -372,6 +378,28 @@ fn pileup_variants_multi(
     Ok(d)
 }
 
+/// Compute per-base coverage depth bins across BED regions.
+///
+/// Returns a dict mapping "cov_Nx_pct" → percentage of on-target bases with
+/// depth >= N, or None when no BED regions are provided.
+#[pyfunction]
+fn coverage_bins(py: Python<'_>, bam_path: String, bed_regions: Vec<(String, u32, u32)>) -> PyResult<Option<Bound<'_, PyDict>>> {
+    let path_buf = PathBuf::from(&bam_path);
+    let result = py.detach(|| {
+        bam::coverage_bins(&path_buf, &bed_regions)
+            .map_err(|e| e.to_string())
+    }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))?;
+
+    match result {
+        Some(map) => {
+            let dict = PyDict::new(py);
+            for (k, v) in map { dict.set_item(k, v)?; }
+            Ok(Some(dict))
+        }
+        None => Ok(None),
+    }
+}
+
 /// Convert a Vec<PileupResult> to a Python dict of column lists.
 fn pileup_results_to_pydict<'a>(py: Python<'a>, results: &[pileup::PileupResult]) -> PyResult<Bound<'a, PyDict>> {
     let d = PyDict::new(py);
@@ -426,5 +454,6 @@ fn stats_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compute_tiers, m)?)?;
     m.add_function(wrap_pyfunction!(pileup_variants, m)?)?;
     m.add_function(wrap_pyfunction!(pileup_variants_multi, m)?)?;
+    m.add_function(wrap_pyfunction!(coverage_bins, m)?)?;
     Ok(())
 }

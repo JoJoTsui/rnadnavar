@@ -65,8 +65,8 @@ def _mem(msg: str) -> None:
 
 from .bam_stats import compute_all_bam_stats, read_and_merge_bed
 from .bam_validation import validate_bam_vs_caller as validate_bam_one
-from .caller_parser import _parse_one_caller, CALLERS_STRELKA, CALLERS_WITH_GT
-from .manifest_loader import CALLER_CONFIGS, filter_complete, load_manifest
+from .caller_parser import _parse_one_caller, CALLERS_STRELKA, CALLERS_WITH_GT, parse_pre_norm_multiallelic
+from .manifest_loader import CALLER_CONFIGS, filter_complete, load_manifest, get_pre_norm_vcf_path
 from .rescue_parser import parse_rescue_vcf as _py_parse_rescue
 from .rust_vcf import parse_rescue_vcf as _rust_parse_rescue
 from .rescue_validator import validate_all_samples, validate_sample, validation_summary
@@ -102,17 +102,22 @@ from .statistics import (
 from .visualizer import (
     _sort_chromosomes,
     generate_dashboard,
+    plot_allele_balance_scatter,
+    plot_bam_coverage_distribution,
     plot_bam_coverage_violin,
     plot_bam_metrics_bars,
+    plot_bam_metrics_sample_wise,
     plot_caller_overlap,
     plot_bam_dp_distribution,
     plot_caller_tier_heatmap,
     plot_dp_distribution,
+    plot_category_conflict_summary,
     plot_filter_vaf_dp_heatmap,
     plot_fp_cross_tab_heatmap,
     plot_low_vaf_rna_support,
     plot_mean_vaf_per_group,
     plot_mean_dp_per_group,
+    plot_multiallelic_classification,
     plot_n_support_callers_dist,
     plot_sample_overview_scatter,
     plot_somatic_modality_pie,
@@ -141,6 +146,7 @@ from .visualizer import (
     plot_redi_evidence,
     plot_vaf_distribution,
     plot_vaf_boxplot_per_tier,
+    plot_vaf_sum_histogram,
     plot_dp_threshold_sweep,
     plot_vaf_threshold_sweep,
     plot_caller_concordance_vs_vaf,
@@ -164,6 +170,105 @@ from .visualizer import (
 _STRELKA_CALLERS = ["DNA_strelka", "RNA_strelka"]
 _DNA_CALLERS = ["DNA_deepsomatic", "DNA_mutect2", "DNA_strelka"]
 _RNA_CALLERS = ["RNA_deepsomatic", "RNA_mutect2", "RNA_strelka"]
+
+
+def build_unified_filter(args, combined_df_columns: set) -> pl.Expr | None:
+    """Build a unified polars filter expression from CLI flags.
+
+    Returns a polars expression that evaluates to True when a variant
+    should be KEPT, or None when no filter is configured (pass all).
+
+    The RNA leg of --min-vaf uses N_RNA_CALLERS_SUPPORT >= 2 AND
+    RNA_DP_mean >= 10 (NOT RNA_VAF_mean), because RNA VAF is
+    confounded by allele-specific expression.
+
+    Args:
+        args: Parsed argparse Namespace.
+        combined_df_columns: Set of column names in combined_df for
+            existence checks (columns are optional).
+
+    Returns:
+        polars expression combining all active filters, or None.
+    """
+    if args.no_filter:
+        return None
+
+    # Stack conditions with a FALSE baseline: no variant is kept unless
+    # at least one keep clause fires.
+    keep_expr = pl.lit(False)
+
+    # ── --include-filters ──────────────────────────────────────────────────
+    if args.include_filters:
+        include_list = list(args.include_filters)
+        keep_expr = keep_expr | pl.col("FILTER").is_in(include_list)
+    else:
+        keep_expr = pl.lit(True)  # include all FILTER values by default
+
+    # ── --exclude-filters ──────────────────────────────────────────────────
+    if args.exclude_filters:
+        exclude_list = list(args.exclude_filters)
+        keep_expr = keep_expr & ~pl.col("FILTER").is_in(exclude_list)
+
+    # ── --min-dna-callers ─────────────────────────────────────────────────
+    if args.min_dna_callers > 0:
+        keep_expr = keep_expr & (pl.col("N_DNA_CALLERS_SUPPORT") >= args.min_dna_callers)
+
+    # ── --min-rna-callers ─────────────────────────────────────────────────
+    if args.min_rna_callers > 0:
+        keep_expr = keep_expr & (pl.col("N_RNA_CALLERS_SUPPORT") >= args.min_rna_callers)
+
+    # ── --min-vaf ─────────────────────────────────────────────────────────
+    # DNA VAF >= threshold  OR  (>=2 RNA callers support AND RNA_DP_mean >= 10)
+    if args.min_vaf and args.min_vaf > 0:
+        dna_pass = pl.lit(False)
+        if "DNA_VAF_mean" in combined_df_columns:
+            dna_pass = dna_pass | (pl.col("DNA_VAF_mean") >= args.min_vaf)
+        rna_pass = pl.lit(False)
+        if "N_RNA_CALLERS_SUPPORT" in combined_df_columns and "RNA_DP_mean" in combined_df_columns:
+            rna_pass = rna_pass | (
+                (pl.col("N_RNA_CALLERS_SUPPORT") >= 2)
+                & (pl.col("RNA_DP_mean") >= 10)
+            )
+        keep_expr = keep_expr & (dna_pass | rna_pass)
+
+    # ── --min-dp ──────────────────────────────────────────────────────────
+    if args.min_dp and args.min_dp > 0:
+        dp_pass = pl.lit(False)
+        if "DNA_DP_mean" in combined_df_columns:
+            dp_pass = dp_pass | (pl.col("DNA_DP_mean") >= args.min_dp)
+        if "RNA_DP_mean" in combined_df_columns:
+            dp_pass = dp_pass | (pl.col("RNA_DP_mean") >= args.min_dp)
+        keep_expr = keep_expr & dp_pass
+
+    # ── --max-gnomad-af ───────────────────────────────────────────────────
+    if args.max_gnomad_af is not None:
+        keep_expr = keep_expr & (
+            pl.col("GNOMAD_AF").is_null()
+            | (pl.col("GNOMAD_AF") <= args.max_gnomad_af)
+        )
+
+    # ── --min-evidence-tier ───────────────────────────────────────────────
+    if args.min_evidence_tier is not None:
+        evidence_order = {
+            "cross_modality": 0,
+            "dna_confident": 1,
+            "rna_rescued": 2,
+            "low_confidence": 3,
+        }
+        min_rank = evidence_order[args.min_evidence_tier]
+        # Build an OR chain: keep if rank <= min_rank
+        tier_pass = pl.lit(False)
+        for tier_name, rank in evidence_order.items():
+            if rank <= min_rank:
+                tier_pass = tier_pass | (pl.col("modality_evidence_caller") == tier_name)
+        keep_expr = keep_expr & tier_pass
+
+    # ── --exclude-multiallelic-conflict ───────────────────────────────────
+    if args.exclude_multiallelic_conflict:
+        if "flag_vaf_overflow" in combined_df_columns:
+            keep_expr = keep_expr & ~pl.col("flag_vaf_overflow")
+
+    return keep_expr
 
 
 def _repair_strelka_columns(lf: pl.LazyFrame) -> pl.LazyFrame:
@@ -298,7 +403,8 @@ def _streaming_join_one(df: pl.DataFrame, col_data: dict, caller_name: str) -> p
 def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True,
                          large_sem=None, no_pileup: bool = False,
                          pileup_mode: str = "all",
-                         bed_regions: list | None = None) -> dict:
+                         bed_regions: list | None = None,
+                         no_pre_norm: bool = False) -> dict:
     """Process one sample: parse rescue VCF + all caller VCFs + compute stats.
 
     Returns a dict with 'sample_id', 'df', and 'stats'.
@@ -311,6 +417,7 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         no_pileup: Skip variant-wise BAM pileup (enabled by default).
         pileup_mode: "all" (default) or "filtered" (exclude NoConsensus).
         bed_regions: Optional merged BED regions for region-guided pileup (WES).
+        no_pre_norm: Skip pre-decomposition caller VCF parsing.
     """
     sample_id = row["sample_id"]
     rescue_path = row["rescue_vcf_path"]
@@ -389,12 +496,72 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
             del rescue_output
             _mem("after hstack output cols")
 
+        # ── Pre-decomposition caller VCF parsing (multi-allelic enrichment) ──
+        # Parses pre-norm Mutect2 and DeepSomatic VCFs to recover full AD arrays,
+        # per-allele AF, strand bias, and GT co-occurrence lost during vt decompose.
+        if not no_pre_norm:
+            for caller_name in ["DNA_mutect2", "RNA_mutect2", "DNA_deepsomatic", "RNA_deepsomatic"]:
+                pre_norm_path = get_pre_norm_vcf_path(base_dir, dir_name, vcf_prefix, caller_name)
+                if pre_norm_path:
+                    try:
+                        sample_suffix = CALLER_CONFIGS[caller_name].get("sample_suffix", "")
+                        allele_registry = parse_pre_norm_multiallelic(
+                            pre_norm_path, caller_name, sample_suffix,
+                        )
+                        if allele_registry is not None and not allele_registry.is_empty():
+                            # Explode the allele registry: one row per (CHROM, POS, REF, individual ALT)
+                            # for joining with the decomposed normalized records.
+                            exploded_rows = []
+                            for row in allele_registry.iter_rows(named=True):
+                                chrom, pos, ref = row["CHROM"], row["POS"], row["REF"]
+                                n_alts = row["n_original_alleles"]
+                                for i in range(n_alts):
+                                    exploded_rows.append({
+                                        "CHROM": chrom,
+                                        "POS": pos,
+                                        "REF": ref,
+                                        "ALT": row["original_alts"][i],
+                                        f"pre_norm_{caller_name}_n_alleles": n_alts,
+                                        f"pre_norm_{caller_name}_ad_ref": row["ad_ref"],
+                                        f"pre_norm_{caller_name}_ad_alt": row["ad_alts"][i] if i < len(row["ad_alts"]) else None,
+                                        f"pre_norm_{caller_name}_af": row["af_list"][i] if i < len(row["af_list"]) else None,
+                                        f"pre_norm_{caller_name}_f1r2": row["f1r2_list"][i + 1] if row["f1r2_list"] and i + 1 < len(row["f1r2_list"]) else None,
+                                        f"pre_norm_{caller_name}_f2r1": row["f2r1_list"][i + 1] if row["f2r1_list"] and i + 1 < len(row["f2r1_list"]) else None,
+                                        f"pre_norm_{caller_name}_gt_alleles": row["gt_alleles"],
+                                    })
+                            if exploded_rows:
+                                registry_df = pl.DataFrame(exploded_rows)
+                                # Only select pre-norm columns + join keys, excluding
+                                # "ALT" since it already exists in df (polars raises
+                                # "duplicate output name" on join otherwise).
+                                registry_cols = (
+                                    ["CHROM", "POS", "REF", "ALT"]
+                                    + [c for c in registry_df.columns
+                                       if c not in ("CHROM", "POS", "REF", "ALT")]
+                                )
+                                df = df.join(
+                                    registry_df.select(registry_cols),
+                                    on=["CHROM", "POS", "REF", "ALT"],
+                                    how="left",
+                                )
+                                print(f"  [{sample_id}] Pre-norm multi-allelic: {len(exploded_rows)} alleles across {len(allele_registry)} sites from {caller_name}")
+                                del registry_df, exploded_rows
+                        del allele_registry
+                    except Exception as e:
+                        print(f"  [{sample_id}] Pre-norm parsing failed for {caller_name}: {e}")
+            _mem("after pre-norm multi-allelic enrichment")
+
         # Add sample metadata
+        set_num = row.get("set_number", 0)
+        if set_num is None:
+            set_num = 0
+        disease_val = row.get("disease", "")
+        disease_norm = row.get("disease_normalized", "")
         df = df.with_columns([
             pl.lit(sample_id).alias("sample_id"),
-            pl.lit(row["set_number"]).cast(pl.Int64).alias("set_number"),
-            pl.lit(row["disease"]).alias("disease"),
-            pl.lit(row["disease_normalized"]).alias("disease_normalized"),
+            pl.lit(int(set_num)).cast(pl.Int64).alias("set_number"),
+            pl.lit(str(disease_val)).alias("disease"),
+            pl.lit(str(disease_norm)).alias("disease_normalized"),
         ])
 
         # Compute per-variant statistics (VAF, means)
@@ -403,6 +570,22 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         # Compute CxDy tiers via tiering engine
         df = compute_tiers_for_dataframe(df)
 
+        # Compute RESCUED / CROSS_MODALITY backward compat columns from
+        # modality_evidence_caller (produced by compute_tiers_for_dataframe).
+        # These are derived columns for downstream chart functions that still
+        # expect the legacy rescue VCF INFO field names.
+        if "modality_evidence_caller" in df.columns:
+            df = df.with_columns([
+                pl.when(pl.col("modality_evidence_caller") == "cross_modality")
+                .then(pl.lit("YES"))
+                .otherwise(pl.lit("NO"))
+                .alias("CROSS_MODALITY"),
+                pl.when(pl.col("modality_evidence_caller").is_in(["cross_modality", "rna_rescued"]))
+                .then(pl.lit("YES"))
+                .otherwise(pl.lit("NO"))
+                .alias("RESCUED"),
+            ])
+
         # Variant-wise BAM pileup (enabled by default, --no-pileup to skip).
         # Computes per-position DP, strand bias, BQ, MQ from alignment BAMs.
         # Uses combined multi-BAM Rust function for efficiency (all BAMs in
@@ -410,21 +593,15 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         if not no_pileup:
             from .manifest_loader import get_manifest_bam_paths
 
-            # Build positions list, optionally excluding NoConsensus variants
+            # Build positions list for all variants.
+            # Per-variant filtering is handled by the unified filter pipeline,
+            # not at the pileup level.
             cols_4 = ["CHROM", "POS", "REF", "ALT"]
-            if pileup_mode == "filtered" and "FILTER" in df.columns:
-                mask = df["FILTER"] != "NoConsensus"
-                positions = [
-                    (row[0], row[1], row[2], row[3])
-                    for row, keep in zip(df.select(cols_4).iter_rows(), mask.to_list())
-                    if keep
-                ]
-            else:
-                positions = [(row[0], row[1], row[2], row[3])
-                             for row in df.select(cols_4).iter_rows()]
+            positions = [(row[0], row[1], row[2], row[3])
+                         for row in df.select(cols_4).iter_rows()]
 
             n_pos = len(positions)
-            print(f"  [{sample_id}] BAM pileup: {n_pos} positions ({pileup_mode} mode)")
+            print(f"  [{sample_id}] BAM pileup: {n_pos} positions")
 
             # Collect available BAM paths (manifest-first, fallback to glob)
             bam_paths = {
@@ -504,8 +681,8 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
 
         # Compute sample-level summary
         stats = sample_summary(df, sample_id)
-        stats["set_number"] = row["set_number"]
-        stats["disease"] = row["disease"]
+        stats["set_number"] = row.get("set_number", 0)
+        stats["disease"] = row.get("disease", "")
 
         _mem("after stats")
         print(f"  [{sample_id}] Done: {len(df)} variants")
@@ -525,18 +702,19 @@ def _process_worker(args: tuple) -> dict:
     defined at module level so the 'fork' context can call it.
 
     Args:
-        args: (row_dict, max_workers, use_rust, variant_dir_str, no_pileup, pileup_mode, bed_regions)
+        args: (row_dict, max_workers, use_rust, variant_dir_str, no_pileup, pileup_mode, bed_regions, no_pre_norm)
 
     Returns:
         {"sample_id": str, "stats": dict} — no DataFrame (too large to pickle).
         On error: {"sample_id": str, "error": str}
     """
-    row, max_workers, use_rust, variant_dir_str, no_pileup, pileup_mode, bed_regions = args
+    row, max_workers, use_rust, variant_dir_str, no_pileup, pileup_mode, bed_regions, no_pre_norm = args
 
     try:
         result = process_single_sample(row, max_workers=max_workers, use_rust=use_rust,
                                        large_sem=None, no_pileup=no_pileup,
-                                       pileup_mode=pileup_mode, bed_regions=bed_regions)
+                                       pileup_mode=pileup_mode, bed_regions=bed_regions,
+                                       no_pre_norm=no_pre_norm)
     except BaseException:
         import traceback
         return {"sample_id": row["sample_id"], "error": traceback.format_exc()}
@@ -583,7 +761,33 @@ def main():
     parser.add_argument("--no-validate", action="store_true", help="Skip rescue VCF validation")
     parser.add_argument("--tolerance", type=float, default=0.01, help="Validation tolerance")
     parser.add_argument("--pileup-mode", choices=["all", "filtered"], default="all",
-                        help="Variant-wise BAM pileup mode: all variants (default) or exclude NoConsensus")
+                        help="Variant-wise BAM pileup mode: all variants (default) or exclude NoConsensus. "
+                             "DEPRECATED: use --exclude-filters NoConsensus instead.")
+    parser.add_argument("--include-filters", nargs="*", metavar="FILTER", default=None,
+                        help="Only keep variants whose FILTER value is in this list (e.g. Somatic Germline). "
+                             "Applied after all other filters.")
+    parser.add_argument("--exclude-filters", nargs="*", metavar="FILTER", default=None,
+                        help="Exclude variants whose FILTER value is in this list (e.g. NoConsensus Artifact). "
+                             "Applied after all other filters.")
+    parser.add_argument("--min-dna-callers", type=int, default=0,
+                        help="Minimum N_DNA_CALLERS_SUPPORT (default: 0, no filter)")
+    parser.add_argument("--min-rna-callers", type=int, default=0,
+                        help="Minimum N_RNA_CALLERS_SUPPORT (default: 0, no filter)")
+    parser.add_argument("--min-evidence-tier", choices=["cross_modality", "dna_confident", "rna_rescued",
+                        "low_confidence"], default=None,
+                        help="Minimum modality_evidence_caller tier. Variants below this tier are excluded. "
+                             "Order: cross_modality > dna_confident > rna_rescued > low_confidence")
+    parser.add_argument("--max-gnomad-af", type=float, default=None,
+                        help="Maximum gnomAD AF threshold. Variants with GNOMAD_AF above this are excluded. "
+                             "NULL GNOMAD_AF values pass through (no gnomAD entry = not excluded).")
+    parser.add_argument("--exclude-multiallelic-conflict", action="store_true",
+                        help="Exclude variants where vaf_sum > 1.1 (flag_vaf_overflow). "
+                             "These are likely multiallelic sites with conflicting allele assignments.")
+    parser.add_argument("--no-filter", action="store_true",
+                        help="Disable the entire unified filter pipeline. All variants pass through unfiltered.")
+    parser.add_argument("--no-pre-norm", action="store_true",
+                        help="Skip pre-decomposition caller VCF parsing (for environments "
+                             "where variant_calling/ VCFs are unavailable).")
     parser.add_argument("--no-bam", action="store_true", help="Skip all BAM processing")
     parser.add_argument("--resume", action="store_true", help="Skip variant processing and BAM stats — go straight to "
                         "aggregation + validation + visualizations using existing parquet files")
@@ -605,8 +809,11 @@ def main():
                              "Used for zero-shot experiments — variants from these diseases are "
                              "written to a separate variant_details_filtered/ directory.")
     parser.add_argument("--min-vaf", type=float, default=None,
-                        help="Minimum VAF threshold for filtered parquet output. Variants below this "
-                             "threshold in BOTH modalities are excluded from variant_details_filtered/.")
+                        help="Minimum VAF threshold for DNA evidence. Variants below this "
+                             "threshold are excluded UNLESS >=2 RNA callers support with "
+                             "RNA_DP>=10 (RNA caller support replaces RNA VAF which is "
+                             "confounded by allele-specific expression). Applies to ALL "
+                             "output with unified filter pipeline.")
     parser.add_argument("--min-dp", type=int, default=None,
                         help="Minimum DP threshold for filtered parquet output. Variants below this "
                              "threshold in BOTH modalities are excluded from variant_details_filtered/.")
@@ -621,6 +828,26 @@ def main():
     parser.add_argument("--theme", choices=["default", "publishing"], default="default",
                         help="Chart theme: default (Altair built-in) or publishing (clean journal-ready style)")
     args = parser.parse_args()
+
+    # ── --pileup-mode deprecation ──────────────────────────────────────────
+    if args.pileup_mode == "filtered":
+        import warnings
+        warnings.warn(
+            "--pileup-mode filtered is deprecated. Use --exclude-filters NoConsensus instead. "
+            "Mapping \"filtered\" to --exclude-filters NoConsensus.",
+            DeprecationWarning,
+        )
+        if args.exclude_filters is None:
+            args.exclude_filters = ["NoConsensus"]
+
+    # ── --exclude-disease deprecation ─────────────────────────────────────
+    # Unified filter handles this. Keep the arg for backward compat:
+    # map to --exclude-filters. The old variant_details_filtered/ section
+    # is removed (unified filter applies to all output).
+    if args.exclude_disease and not args.no_filter:
+        print("NOTE: --exclude-disease is applied via unified filter as a FILTER-based exclusion. "
+              "The old variant_details_filtered/ output directory is removed — filtered output is "
+              "now the default variant_details/ parquet files.")
 
     # Load and filter manifest
     manifest = load_manifest(args.manifest)
@@ -752,6 +979,10 @@ def main():
             else:
                 print("  No bam_stats found — BAM charts will be skipped")
 
+        if not bam_stats_df.is_empty():
+            from .bam_stats import ensure_bam_stats_columns
+            bam_stats_df = ensure_bam_stats_columns(bam_stats_df)
+
         # Skip BAM stats (they were already computed)
         args.no_bam = True
 
@@ -766,7 +997,7 @@ def main():
         ctx = mp.get_context("spawn")
 
         worker_args = [
-            (row, args.threads, use_rust, variant_dir_str, args.no_pileup, args.pileup_mode, bed_regions)
+            (row, args.threads, use_rust, variant_dir_str, args.no_pileup, args.pileup_mode, bed_regions, args.no_pre_norm)
             for row in rows
         ]
 
@@ -803,6 +1034,7 @@ def main():
                 row, max_workers=max_workers, use_rust=use_rust,
                 large_sem=_THREAD_LARGE_SEM, no_pileup=args.no_pileup,
                 pileup_mode=args.pileup_mode, bed_regions=bed_regions,
+                no_pre_norm=args.no_pre_norm,
             )
             if result["df"] is not None:
                 sid = result["sample_id"]
@@ -882,14 +1114,32 @@ def main():
         .alias("partition")
     )
 
+    # ── Unified filter pipeline ────────────────────────────────────────────
+    # Apply all CLI filters (--include-filters, --exclude-filters, --min-vaf,
+    # --min-dp, --max-gnomad-af, --min-evidence-tier, --exclude-multiallelic-conflict)
+    # at the LazyFrame level before any statistics are computed.
+    # Build the filter expression once, evaluate it, and keep only passing rows.
+    combined_df_cols = set(combined_df.collect_schema().names())
+    filter_expr = build_unified_filter(args, combined_df_cols)
+    if filter_expr is not None:
+        n_before = combined_df.select(pl.len()).collect().item()
+        combined_df = combined_df.filter(filter_expr)
+        n_after = combined_df.select(pl.len()).collect().item()
+        if n_before != n_after:
+            print(f"Unified filter: {n_before} → {n_after} variants "
+                  f"({n_before - n_after} excluded)")
+
     print(f"Variant details: {variant_dir}/ (lazy scan, {total_variants} variants across {len(rows)} samples)")
 
     # BAM statistics — collect background result or compute now
     if not args.no_bam and not args.resume:
         if bam_future is not None:
             try:
-                bam_stats_df = bam_future.result()
+                bam_stats_df = bam_future.result(timeout=3600)
                 print("BAM statistics completed (background)")
+            except TimeoutError:
+                print("WARNING: BAM stats timed out after 3600s - BAM charts will be skipped")
+                bam_stats_df = pl.DataFrame()
             except Exception as e:
                 print(f"WARNING: Background BAM stats failed: {e}")
                 bam_stats_df = pl.DataFrame()
@@ -1179,6 +1429,26 @@ def main():
     except Exception as e:
         print(f"  WARNING: Rescue analytics failed: {e}")
 
+    # ── Multi-Allelic Visualization (Section 2) ───────────────────────────────
+    try:
+        multi_allelic_dir = output_dir / "plots" / "multi_allelic"
+        multi_allelic_dir.mkdir(parents=True, exist_ok=True)
+        figs.append(plot_multiallelic_classification(combined_df, str(multi_allelic_dir)))
+        figs.append(plot_allele_balance_scatter(combined_df, str(multi_allelic_dir)))
+        figs.append(plot_vaf_sum_histogram(combined_df, str(multi_allelic_dir)))
+        figs.append(plot_category_conflict_summary(combined_df, str(multi_allelic_dir)))
+    except Exception as e:
+        print(f"  WARNING: Multi-allelic visualization failed: {e}")
+
+    # ── BAM Visualization (Section 5) ─────────────────────────────────────────
+    try:
+        bam_plot_dir = output_dir / "plots" / "bam"
+        bam_plot_dir.mkdir(parents=True, exist_ok=True)
+        figs.append(plot_bam_metrics_sample_wise(bam_stats_df, str(bam_plot_dir)))
+        figs.append(plot_bam_coverage_distribution(bam_stats_df, str(bam_plot_dir)))
+    except Exception as e:
+        print(f"  WARNING: BAM visualization failed: {e}")
+
     gc.collect()
     _malloc_trim()
     _mem("after aggregation cleanup")
@@ -1275,6 +1545,7 @@ def main():
             (plot_caller_agreement_matrix, {}),
             (plot_tier_quality_distribution, {}),
             (plot_caller_concordance_vs_vaf, {"color_col": "disease_normalized"}),
+            (plot_dna_vs_rna_per_caller, {"color_col": "disease_normalized"}),
         ],
         "sample": [
             (plot_vc_distribution, {"group_col": "sample_id", "facet_col": "set_number"}),
@@ -1323,6 +1594,7 @@ def main():
             (plot_cross_modality, {"group_col": "FILTER"}),
             (plot_redi_evidence, {"group_col": "FILTER"}),
             (plot_cosmic_gnomad_annotation, {"group_col": "FILTER"}),
+            (plot_dna_vs_rna_per_caller, {"color_col": "FILTER"}),
             # NOTE: plot_vaf_distribution and plot_caller_concordance_vs_vaf excluded —
             # they use color_col which triggers .facet() on mark_boxplot (composite mark),
             # which Altair cannot facet ("data must be specified at the top level").
@@ -1377,64 +1649,14 @@ def main():
     # Master dashboard
     generate_dashboard(figs, str(output_dir))
 
-    # ── Data Leakage Exclusions: write filtered parquet for downstream ML ──
-    has_filters = (
-        args.exclude_disease
-        or (args.min_vaf is not None and args.min_vaf > 0)
-        or (args.min_dp is not None and args.min_dp > 0)
-    )
-    if has_filters:
-        filtered_dir = output_dir / "variant_details_filtered"
-        filtered_dir.mkdir(parents=True, exist_ok=True)
-        print(f"\nGenerating filtered parquet files for downstream ML...")
-        import glob as _glob2
-        total_excluded = 0
-        for parquet_path in sorted(_glob2.glob(str(variant_dir / "*_variants.parquet"))):
-            sid = os.path.basename(parquet_path).replace("_variants.parquet", "")
-            df = pl.read_parquet(parquet_path)
-            n_before = len(df)
-
-            # Filter by disease exclusion (sample-level)
-            if args.exclude_disease:
-                disease_col = None
-                for c in ["disease", "disease_normalized"]:
-                    if c in df.columns:
-                        disease_col = c
-                        break
-                if disease_col:
-                    exclude_list = list(args.exclude_disease)
-                    df = df.filter(~pl.col(disease_col).is_in(exclude_list))
-
-            # Filter by VAF threshold (keep variant if EITHER modality passes)
-            # Spec: exclude if BOTH modalities below threshold
-            if args.min_vaf and args.min_vaf > 0:
-                vaf_mask = pl.lit(False)
-                if "DNA_VAF_mean" in df.columns:
-                    vaf_mask = vaf_mask | (pl.col("DNA_VAF_mean") >= args.min_vaf)
-                if "RNA_VAF_mean" in df.columns:
-                    vaf_mask = vaf_mask | (pl.col("RNA_VAF_mean") >= args.min_vaf)
-                df = df.filter(vaf_mask)
-
-            # Filter by DP threshold (keep variant if EITHER modality passes)
-            # Spec: exclude if BOTH modalities below threshold
-            if args.min_dp and args.min_dp > 0:
-                dp_mask = pl.lit(False)
-                if "DNA_DP_mean" in df.columns:
-                    dp_mask = dp_mask | (pl.col("DNA_DP_mean") >= args.min_dp)
-                if "RNA_DP_mean" in df.columns:
-                    dp_mask = dp_mask | (pl.col("RNA_DP_mean") >= args.min_dp)
-                df = df.filter(dp_mask)
-
-            n_after = len(df)
-            n_excluded = n_before - n_after
-            total_excluded += n_excluded
-            if n_after > 0:
-                df.write_parquet(str(filtered_dir / f"{sid}_variants.parquet"))
-            if n_excluded > 0:
-                print(f"  [{sid}] {n_excluded}/{n_before} variants excluded by filters")
-            del df
-        print(f"  Total excluded: {total_excluded} variants across all samples")
-        print(f"  Filtered parquet: {filtered_dir}/")
+    # ── variant_details_filtered/ removed ─────────────────────────────────
+    # The separate variant_details_filtered/ output directory is removed.
+    # The unified filter pipeline (build_unified_filter) applies all CLI
+    # filters (--include-filters, --exclude-filters, --min-vaf, --min-dp,
+    # --max-gnomad-af, --min-evidence-tier, --exclude-multiallelic-conflict,
+    # --exclude-disease) directly to combined_df before any statistics or
+    # charts, so ALL output (TSVs, charts, summaries) reflects the filtered
+    # view. No separate filtered parquet copy is needed.
 
     print(f"\nAll outputs written to: {output_dir}")
     print("Done.")
