@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**nf-core/rnadnavar** is a bioinformatics pipeline for RNA and DNA integrated analysis for somatic mutation detection. It uses Nextflow (DSL2/Groovy) for workflow orchestration and implements a consensus-based approach across multiple variant callers (Mutect2, Strelka2, SAGE, DeepSomatic). The pipeline is designed for cancer research and supports both single-sample and multi-sample analyses.
+**nf-core/rnadnavar** is a bioinformatics pipeline for RNA and DNA integrated analysis for somatic mutation detection. It uses Nextflow (DSL2/Groovy) for workflow orchestration and implements a consensus-based approach across multiple variant callers (Mutect2, Strelka2, DeepSomatic). The pipeline is designed for cancer research and supports both single-sample and multi-sample analyses.
+
+> **Note on utilized variant callers:** Only **Mutect2, Strelka2, and DeepSomatic** are currently utilized as variant callers. SAGE and Manta modules exist in the repo (`modules/local/sage/`, `modules/nf-core/manta/`, and corresponding subworkflows/configs), but are presently ignored by the active workflow. Set `--tools` without them for a standard run.
 
 Nextflow >= 24.10.5 is required. The nf-core template version is 3.3.2.
 
@@ -43,7 +45,7 @@ nextflow run . -profile test,docker --input assets/samplesheet.csv --outdir resu
 nextflow run . -profile docker \
   --input samplesheet.csv \
   --outdir results/ \
-  --tools sage,strelka,mutect2,vep,consensus
+  --tools strelka,mutect2,deepsomatic,vep,consensus
 
 # Resume from checkpoint
 nextflow run . -profile docker -resume
@@ -94,7 +96,7 @@ modules/
     ├── maf_filtering/             # MAF file filtering
     ├── maf_rna_filtering/         # RNA-specific MAF filtering
     ├── vcf_filtering/             # VCF-level filtering
-    ├── sage/                      # SAGE caller wrapper
+    ├── sage/                      # SAGE caller wrapper (currently unused — see note above)
     └── ...                        # Other utilities (vcf2bed, vcf2maf, vt, etc.)
 ```
 
@@ -150,10 +152,10 @@ Custom external configs are loaded from `params.custom_config_base` (default: `/
 ### Important Parameters
 
 - `--step` — Pipeline starting point: `mapping` (default), `variant_calling`, `preprocessing`
-- `--tools` — Comma-separated tools: `sage,strelka,mutect2,vep,consensus,filtering,realignment,rna_filtering`
+- `--tools` — Comma-separated tools. Utilized variant callers: `mutect2,strelka,deepsomatic`. Also valid: `vep,consensus,filtering,realignment,rna_filtering,norm,vcf2maf,preprocessing,rescue`. SAGE/Manta are recognized by config schema but currently ignored by the active workflow.
 - `--rna` / `--dna` — Enable RNA/DNA analysis (both default: true)
 - `--aligner` — `bwa-mem` (default), `bwa-mem2`, `dragmap`, or STAR for RNA
-- `--defaultvariantcallers` — `sage,strelka,mutect2` (used when `--tools` is null)
+- `--defaultvariantcallers` — `sage,strelka,mutect2` in `nextflow.config` (used when `--tools` is null), but only strelka/mutect2 are effectively driven; enable `deepsomatic` via `--tools`
 - `--rescue_snv_thr` / `--rescue_indel_thr` — Consensus thresholds (default: 2)
 - `--realignment_mode` — `vcf` (new default) or `maf` (legacy)
 - `--joint_mutect2` — Patient-wise multi-sample somatic calling
