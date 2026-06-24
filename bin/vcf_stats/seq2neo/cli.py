@@ -163,6 +163,7 @@ from .visualizer import (
     plot_validation_heatmap,
     plot_variant_type_distribution,
     plot_vc_distribution,
+    plot_hard_filter_breakdown,
 )
 
 
@@ -801,9 +802,6 @@ def main():
                              "callers assigned different biological FILTER categories.")
     parser.add_argument("--no-filter", action="store_true",
                         help="Disable the entire unified filter pipeline. All variants pass through unfiltered.")
-    parser.add_argument("--no-hard-filter", action="store_true",
-                        help="Disable Stage 0 hard exclusions (auto-drop of false variants). "
-                             "Variants will still receive soft flags and confidence tiers.")
     parser.add_argument("--min-confidence-tier", choices=["HIGH", "MEDIUM"], default=None,
                         help="Minimum confidence tier to include in output. "
                              "HIGH: only variants with confidence_tier=HIGH. "
@@ -1203,76 +1201,87 @@ def main():
             print(f"Unified filter: {n_before} → {n_after} variants "
                   f"({n_before - n_after} excluded)")
 
-    # Stage 0 hard exclusions (auto-drop false variants)
-    if not args.no_hard_filter:
-        from .statistics import build_hard_filter_expr
-        hard_expr = build_hard_filter_expr(combined_df.collect_schema().names())
-        if hard_expr is not None:
-            n_before_hard = combined_df.select(pl.len()).collect().item()
-            combined_df = combined_df.filter(~hard_expr)
-            n_after_hard = combined_df.select(pl.len()).collect().item()
-            if n_before_hard != n_after_hard:
-                print(f"Hard filter (Stage 0): {n_before_hard} → {n_after_hard} variants "
-                      f"({n_before_hard - n_after_hard} dropped)")
+    # Stage 0 hard filter FLAGS (observational — no variants dropped).
+    # Each condition adds a boolean flag column + hard_filter_flags + n_hard_flags
+    # summary columns to the lazy scan. Conditions without required columns
+    # are silently skipped.
+    from .statistics import (
+        build_hard_filter_flag_exprs,
+        build_hard_filter_summary_exprs,
+        hard_filter_breakdown,
+    )
+    from .statistics import write_tsv as _write_tsv
+    combined_df_cols = combined_df.collect_schema().names()
+
+    # Add flag columns to lazy scan
+    flag_exprs = build_hard_filter_flag_exprs(set(combined_df_cols))
+    if flag_exprs:
+        combined_df = combined_df.with_columns(flag_exprs)
+        # Add summary columns (hard_filter_flags, n_hard_flags)
+        flag_cols = [e.meta.output_name() for e in flag_exprs]
+        all_cols_with_flags = set(combined_df_cols) | set(flag_cols)
+        summary_exprs = build_hard_filter_summary_exprs(all_cols_with_flags)
+        if summary_exprs:
+            combined_df = combined_df.with_columns(summary_exprs)
+
+        # Hard filter breakdown statistics (lazy counts — tiny memory)
+        hf_breakdown = hard_filter_breakdown(combined_df)
+        if not hf_breakdown.is_empty():
+            hf_dir = output_dir / "stats" / "hard_filter"
+            hf_dir.mkdir(parents=True, exist_ok=True)
+            _write_tsv(hf_breakdown, str(hf_dir / "hard_filter_breakdown.tsv"))
+            print(f"Hard filter breakdown: {hf_dir / 'hard_filter_breakdown.tsv'}")
+            n_flagged = hf_breakdown["n_variants"].sum()
+            print(f"  {n_flagged} total flag activations across {len(hf_breakdown)} conditions")
 
     # Stage 1+2: compute soft flags and confidence tiers
-    from .statistics import compute_confidence_tier, compute_soft_flags
-    combined_df_cols = set(combined_df.collect_schema().names())
+    from .statistics import compute_confidence_tier, compute_soft_flags, _CONFIDENCE_TIER_COLS
     if "confidence_tier" not in combined_df_cols:
-        # Collect, compute confidence/soft flags, then re-scan
-        combined_eager = combined_df.collect()
-        combined_eager = compute_confidence_tier(combined_eager)
-        combined_eager = compute_soft_flags(combined_eager)
+        # Collect ONLY the columns needed for confidence tier + soft flags (~17 cols)
+        # instead of all 165, keeping memory at ~2-3 GB for 7.9M variants.
+        available_ci_cols = [c for c in _CONFIDENCE_TIER_COLS if c in combined_df_cols]
+        combined_ci = combined_df.select(available_ci_cols).collect()
+        combined_ci = compute_confidence_tier(combined_ci)
+        combined_ci = compute_soft_flags(combined_ci)
+
         # Write confidence tier summary
-        from .statistics import write_tsv as _write_tsv
-        ct_summary = combined_eager.group_by(["confidence_tier", "FILTER"]).agg(
+        ct_summary = combined_ci.group_by(["confidence_tier", "FILTER"]).agg(
             pl.len().alias("count")
         ).sort(["confidence_tier", "FILTER"])
         if not ct_summary.is_empty():
             _write_tsv(ct_summary, str(output_dir / "confidence_tier_summary.tsv"))
             print(f"Confidence tier summary: {output_dir / 'confidence_tier_summary.tsv'}")
+
         # Write confidence × FILTER cross-tabulation (spec CA-3)
         conf_dir = output_dir / "stats" / "confidence"
         conf_dir.mkdir(parents=True, exist_ok=True)
-        ct_filter = combined_eager.group_by(["confidence_tier", "FILTER"]).agg(
+        ct_filter = combined_ci.group_by(["confidence_tier", "FILTER"]).agg(
             pl.len().alias("count")
         ).sort(["confidence_tier", "FILTER"])
         if not ct_filter.is_empty():
             _write_tsv(ct_filter, str(conf_dir / "confidence_filter_breakdown.tsv"))
             print(f"Confidence × FILTER breakdown: {conf_dir / 'confidence_filter_breakdown.tsv'}")
+
         # Write confidence × tier cross-tabulation (spec VT-2)
-        if "final_tier" in combined_eager.columns:
-            ct_tier = combined_eager.group_by(["confidence_tier", "final_tier"]).agg(
+        if "final_tier" in combined_ci.columns:
+            ct_tier = combined_ci.group_by(["confidence_tier", "final_tier"]).agg(
                 pl.len().alias("count")
             ).sort(["confidence_tier", "final_tier"])
             if not ct_tier.is_empty():
                 _write_tsv(ct_tier, str(conf_dir / "confidence_tier_cross_tab.tsv"))
                 print(f"Confidence × Tier cross-tab: {conf_dir / 'confidence_tier_cross_tab.tsv'}")
-        # Re-scan and filter to current run's sample IDs (defense against
-        # cross-run contamination, same as the primary scan above).
-        combined_df = pl.scan_parquet(variant_dir / "*_variants.parquet", extra_columns="ignore")
-        combined_df = combined_df.filter(pl.col("sample_id").is_in(current_sample_ids))
-        # Re-apply filters on the new scan
-        combined_df_cols = set(combined_df.collect_schema().names())
-        new_filter = build_unified_filter(args, combined_df_cols)
-        if new_filter is not None:
-            combined_df = combined_df.filter(new_filter)
-        # Add n_recurrent_samples again
-        if all(c in combined_df_cols for c in ["CHROM", "POS", "REF", "ALT"]):
-            combined_df = combined_df.with_columns(
-                pl.len().over(["CHROM", "POS", "REF", "ALT"]).alias("n_recurrent_samples")
-            )
-        # Re-apply hard filter
-        if not args.no_hard_filter:
-            hard_expr2 = build_hard_filter_expr(combined_df.collect_schema().names())
-            if hard_expr2 is not None:
-                combined_df = combined_df.filter(~hard_expr2)
-        # Join confidence_tier and soft_flags from the eager computation
-        ct_lookup = combined_eager.select(["sample_id", "CHROM", "POS", "confidence_tier", "soft_flags"])
-        # Note: This is a best-effort approach; for production, confidence_tier should be
-        # computed at per-sample parquet write time and stored in the parquet.
-        # For now, we use the eager version for statistics.
-        combined_df = combined_eager.lazy()
+
+        # Join confidence_tier and soft_flags back to the lazy scan.
+        # This replaces the old re-scan block — the lazy scan stays live,
+        # no duplicate I/O, no full materialization.
+        ct_lookup = combined_ci.select(["sample_id", "CHROM", "POS", "confidence_tier", "soft_flags"])
+        del combined_ci  # free memory immediately
+
+        combined_df = combined_df.join(
+            ct_lookup.lazy(),
+            on=["sample_id", "CHROM", "POS"],
+            how="left",
+        )
 
     print(f"Variant details: {variant_dir}/ (lazy scan, {total_variants} variants across {len(rows)} samples)")
 
@@ -1842,6 +1851,11 @@ def main():
     # Validation heatmap (global)
     if not args.no_validate and report is not None:
         figs.append(plot_validation_heatmap(report, str(output_dir)))
+
+    # Hard filter breakdown chart
+    hf_chart = plot_hard_filter_breakdown(str(output_dir))
+    if hf_chart is not None:
+        figs.append(hf_chart)
 
     # Master dashboard
     generate_dashboard(figs, str(output_dir))

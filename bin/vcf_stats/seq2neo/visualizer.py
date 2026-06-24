@@ -3060,6 +3060,79 @@ def plot_bam_coverage_distribution(bam_stats_df, output_dir: str):
     return chart
 
 
+def plot_hard_filter_breakdown(output_dir: str, tsv_path: str | None = None):
+    """Horizontal bar chart of hard filter condition counts, colored by severity.
+
+    Reads hard_filter_breakdown.tsv from stats/hard_filter/ (or the given path)
+    and generates a horizontal bar chart with conditions sorted by count
+    descending, colored by severity level.
+
+    Args:
+        output_dir: Output directory for the chart.
+        tsv_path: Path to hard_filter_breakdown.tsv. If None, looks in
+                  <output_dir>/stats/hard_filter/hard_filter_breakdown.tsv.
+    """
+    if tsv_path is None:
+        tsv_path = str(Path(output_dir) / "stats" / "hard_filter" / "hard_filter_breakdown.tsv")
+
+    if not Path(tsv_path).exists():
+        return None
+
+    df = pl.read_csv(tsv_path, separator="\t")
+    if df.is_empty():
+        return None
+
+    # Severity color scale
+    severity_colors = {
+        "high": "#EF553B",    # Red
+        "medium": "#FFA15A",  # Orange
+        "low": "#FECB52",     # Yellow
+    }
+
+    pdf = df.to_pandas()
+    pdf = pdf.sort_values("n_variants", ascending=True)
+
+    base = alt.Chart(pdf)
+
+    bars = base.mark_bar().encode(
+        y=alt.Y("condition:N", title=None, sort=None),
+        x=alt.X("n_variants:Q", title="Number of Variants"),
+        color=alt.Color(
+            "severity:N",
+            scale=alt.Scale(
+                domain=list(severity_colors.keys()),
+                range=list(severity_colors.values()),
+            ),
+            legend=alt.Legend(title="Severity"),
+        ),
+        tooltip=[
+            alt.Tooltip("condition:N", title="Condition"),
+            alt.Tooltip("severity:N", title="Severity"),
+            alt.Tooltip("n_variants:Q", title="Count", format=","),
+            alt.Tooltip("pct_of_filtered:Q", title="% of Filtered", format=".1f"),
+            alt.Tooltip("description:N", title="Description"),
+        ],
+    )
+
+    text = base.mark_text(align="left", dx=5).encode(
+        y=alt.Y("condition:N", sort=None),
+        x=alt.X("n_variants:Q"),
+        text=alt.Text("n_variants:Q", format=","),
+        color=alt.value("#333333"),
+    )
+
+    chart = (bars + text).properties(
+        title="Hard Filter Condition Breakdown",
+        width=800,
+        height=max(200, len(df) * 30),
+    )
+
+    hf_plots_dir = Path(output_dir) / "stats" / "hard_filter" / "plots"
+    hf_plots_dir.mkdir(parents=True, exist_ok=True)
+    _save_chart(chart, "hard_filter_breakdown", str(hf_plots_dir))
+    return chart
+
+
 def generate_dashboard(figs: list, output_dir: str):
     """Combine all figures into a single dashboard HTML with 4 sections."""
     dashboard_path = Path(output_dir) / "dashboard.html"

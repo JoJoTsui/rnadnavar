@@ -201,6 +201,30 @@ _CROSS_SAMPLE_COLS = [
     "homopolymer", "vc_filter", "not_consensus",
     # ML partition column (added by cli.py from CHROM → train/val/test)
     "partition",
+    # Hard filter flag columns (8 boolean + 2 summary)
+    "flag_hard_no_support", "flag_hard_vaf_overflow", "flag_hard_noise_allele",
+    "flag_hard_no_coverage", "flag_hard_no_alt_evidence",
+    "flag_hard_germline_low_vaf", "flag_hard_somatic_loh",
+    "flag_hard_reference_signal",
+    "hard_filter_flags", "n_hard_flags",
+]
+
+# Columns needed by compute_confidence_tier and compute_soft_flags.
+# Collecting only these (instead of all 165 columns) keeps the eager
+# materialization at ~2-3 GB for 7.9M variants.
+_CONFIDENCE_TIER_COLS = [
+    # Join keys (for merging back to lazy scan)
+    "sample_id", "CHROM", "POS",
+    # Confidence tier computation
+    "FILTER", "final_tier",
+    "N_SUPPORT_CALLERS", "N_DNA_CALLERS_SUPPORT", "N_RNA_CALLERS_SUPPORT",
+    "modality_evidence_caller",
+    # Soft flag columns
+    "flag_category_conflict", "flag_multi_allelic_heterogeneity",
+    "flag_rna_rescued", "flag_germline_high_vaf", "flag_low_rna_mapq",
+    "category_conflict", "multiallelic_class",
+    # Cross-sample recurrence (used in soft flag logic)
+    "n_recurrent_samples",
 ]
 
 
@@ -1000,63 +1024,76 @@ def caller_support_distribution(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame
     )
 
 
-def build_hard_filter_expr(columns: list[str] | set[str]) -> pl.Expr | None:
-    """Build the Stage 0 hard exclusion filter expression.
+def build_hard_filter_flag_exprs(columns: set[str] | list[str]) -> list[pl.Expr]:
+    """Build hard filter flag column expressions (observational, not dropping).
 
-    Returns a boolean expression that is True for variants to DROP.
-    Returns None if no hard filter conditions can be applied.
+    Wraps hard_filter_config.build_hard_filter_flag_exprs so callers in cli.py
+    and elsewhere have a single import surface from statistics.
+
+    Returns a list of pl.Expr that evaluate to boolean flag columns.
     """
-    cols = set(columns)
-    conditions = []
+    from .hard_filter_config import build_hard_filter_flag_exprs as _builder
+    return _builder(columns)
 
-    # N_SUPPORT_CALLERS == 0 (no caller support, C7 tier)
-    if "N_SUPPORT_CALLERS" in cols:
-        conditions.append(pl.col("N_SUPPORT_CALLERS") == 0)
 
-    # flag_vaf_overflow (VAF sum > 1.1, physics violation)
-    if "flag_vaf_overflow" in cols:
-        conditions.append(pl.col("flag_vaf_overflow"))
+def build_hard_filter_summary_exprs(columns: set[str] | list[str]) -> list[pl.Expr]:
+    """Build hard filter summary column expressions.
 
-    # multiallelic_class == "noise" (one real allele + noise)
-    if "multiallelic_class" in cols:
-        conditions.append(pl.col("multiallelic_class") == "noise")
+    Returns [hard_filter_flags, n_hard_flags] expressions.
+    """
+    from .hard_filter_config import build_hard_filter_summary_exprs as _builder
+    return _builder(columns)
 
-    # No modality has coverage: DNA_DP < 5 AND RNA_DP < 5
-    if "DNA_DP_mean" in cols and "RNA_DP_mean" in cols:
-        conditions.append(
-            (pl.col("DNA_DP_mean") < 5) & (pl.col("RNA_DP_mean") < 5)
-        )
 
-    # No alt evidence: DNA_ALT_DP < 2 AND RNA_ALT_DP < 2
-    if "DNA_ALT_DP_mean" in cols and "RNA_ALT_DP_mean" in cols:
-        conditions.append(
-            (pl.col("DNA_ALT_DP_mean") < 2) & (pl.col("RNA_ALT_DP_mean") < 2)
-        )
+def hard_filter_breakdown(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
+    """Count variants matching each hard filter condition.
 
-    # Germline with low VAF (flag_germline_low_vaf)
-    if "flag_germline_low_vaf" in cols:
-        conditions.append(pl.col("flag_germline_low_vaf"))
+    Evaluates each flag_hard_* column against the input DataFrame and
+    returns a summary DataFrame with columns: condition, severity,
+    description, n_variants, pct_of_total.
 
-    # Somatic with LOH pattern (flag_somatic_loh)
-    if "flag_somatic_loh" in cols:
-        conditions.append(pl.col("flag_somatic_loh"))
+    Args:
+        df: DataFrame or LazyFrame containing hard filter flag columns.
 
-    # Reference with substantive alt signal (VAF > 0.10 AND ALT_DP >= 3)
-    if "FILTER" in cols and "DNA_VAF_mean" in cols and "DNA_ALT_DP_mean" in cols:
-        conditions.append(
-            (pl.col("FILTER") == "Reference")
-            & (pl.col("DNA_VAF_mean") > 0.10)
-            & (pl.col("DNA_ALT_DP_mean") >= 3)
-        )
+    Returns:
+        DataFrame with one row per hard filter condition, sorted by
+        n_variants descending.
+    """
+    from .hard_filter_config import HARD_FILTER_CONDITIONS
 
-    if not conditions:
-        return None
+    # Materialize if lazy — we only need flag columns + count
+    if isinstance(df, pl.LazyFrame):
+        schema_names = df.collect_schema().names()
+    else:
+        schema_names = df.columns
 
-    # Combine all conditions with OR (drop if ANY condition is true)
-    result = conditions[0]
-    for cond in conditions[1:]:
-        result = result | cond
-    return result
+    cols = set(schema_names)
+
+    if "sample_id" in cols:
+        total = df.select(pl.col("sample_id").len()).collect().item() if isinstance(df, pl.LazyFrame) else len(df)
+    else:
+        total = 1  # avoid division by zero
+
+    rows = []
+    for cond in HARD_FILTER_CONDITIONS:
+        fc = cond["flag_column"]
+        if fc in cols:
+            if isinstance(df, pl.LazyFrame):
+                n = df.select(pl.col(fc).cast(pl.Int32).sum()).collect().item()
+            else:
+                n = df[fc].cast(pl.Int32).sum()
+            rows.append({
+                "condition": cond["name"],
+                "severity": cond["severity"],
+                "description": cond["description"],
+                "n_variants": int(n),
+                "pct_of_filtered": round(n / total * 100, 2) if total > 0 else 0.0,
+            })
+
+    if not rows:
+        return pl.DataFrame()
+
+    return pl.DataFrame(rows).sort("n_variants", descending=True)
 
 
 def compute_confidence_tier(df: pl.DataFrame) -> pl.DataFrame:
