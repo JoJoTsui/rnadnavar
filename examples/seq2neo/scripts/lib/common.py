@@ -16,8 +16,11 @@ from pathlib import Path
 COLORECTAL_EXACT = {"colorectal cancer", "colorectal"}
 
 def normalize_disease(raw: str) -> str:
-    """Lowercase and strip surrounding whitespace."""
-    return raw.strip().lower()
+    """Lowercase and strip surrounding whitespace. Returns 'unknown' if empty."""
+    result = raw.strip().lower()
+    if not result:
+        return "unknown"
+    return result
 
 def is_colorectal(disease: str) -> bool:
     """True only for 'Colorectal cancer' (exact, case-insensitive). NOT colon/rectal."""

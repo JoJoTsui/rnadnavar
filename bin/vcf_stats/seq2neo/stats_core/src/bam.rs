@@ -220,6 +220,135 @@ fn whole_genome_stats_impl(
     })
 }
 
+/// Compute whole-genome coverage depth bins by iterating all reference sequences.
+///
+/// Chunks each chromosome into 1Mb windows and uses BAI-indexed queries to
+/// accumulate per-base depth, then computes the percentage of bases covered
+/// at ≥1x, ≥10x, ≥20x, ≥50x, and ≥100x thresholds.
+///
+/// Returns None if the BAI index is missing or unreadable.
+pub fn wg_coverage_bins(bam_path: &Path) -> Result<Option<HashMap<String, f64>>, String> {
+    use bam::bai;
+    use noodles_core::Region;
+
+    let mut reader = bam::io::Reader::new(
+        std::fs::File::open(bam_path).map_err(|e| e.to_string())?
+    );
+    let header = reader.read_header().map_err(|e| e.to_string())?;
+
+    let bai_path_str = format!("{}.bai", bam_path.display());
+    let bai_path = Path::new(&bai_path_str);
+    if !bai_path.exists() {
+        return Ok(None);
+    }
+    let index = bai::fs::read(bai_path)
+        .map_err(|e| format!("Cannot read BAI index: {}", e))?;
+
+    const WINDOW_SIZE: u32 = 1_000_000; // 1Mb windows
+
+    let mut total_bases: u64 = 0;
+    let mut bases_1x: u64 = 0;
+    let mut bases_10x: u64 = 0;
+    let mut bases_20x: u64 = 0;
+    let mut bases_50x: u64 = 0;
+    let mut bases_100x: u64 = 0;
+
+    let ref_seqs = header.reference_sequences();
+    for (name, rs) in ref_seqs.iter() {
+        let chrom = match std::str::from_utf8(name) {
+            Ok(s) => s.to_string(),
+            Err(_) => continue,
+        };
+        let ref_len = usize::from(rs.length()) as u32;
+        if ref_len == 0 { continue; }
+
+        let mut window_start: u32 = 0;
+        while window_start < ref_len {
+            let window_end = std::cmp::min(window_start + WINDOW_SIZE, ref_len);
+            let window_len = (window_end - window_start) as u64;
+            total_bases += window_len;
+            let mut depths = vec![0u32; window_len as usize];
+
+            let pos_start = match noodles_core::Position::try_from((window_start + 1) as usize) {
+                Ok(p) => p,
+                Err(_) => { window_start = window_end; continue; }
+            };
+            let pos_end = match noodles_core::Position::try_from(window_end as usize) {
+                Ok(p) => p,
+                Err(_) => { window_start = window_end; continue; }
+            };
+            let region = Region::new(chrom.clone(), pos_start..=pos_end);
+
+            let query = match reader.query(&header, &index, &region) {
+                Ok(q) => q,
+                Err(_) => { window_start = window_end; continue; }
+            };
+
+            for record_result in query.records() {
+                let record = match record_result {
+                    Ok(r) => r,
+                    Err(_) => continue,
+                };
+                let flags = record.flags();
+                if flags.is_unmapped() || flags.is_duplicate()
+                    || flags.is_secondary() || flags.is_supplementary()
+                {
+                    continue;
+                }
+                let rec_start = match record.alignment_start() {
+                    Some(Ok(p)) => usize::from(p) as i64,
+                    _ => continue,
+                };
+                let cigar = record.cigar();
+                let mut pos = rec_start;
+                for op_result in cigar.iter() {
+                    let op = match op_result {
+                        Ok(o) => o,
+                        Err(_) => continue,
+                    };
+                    if op.kind().consumes_reference() {
+                        let op_len = op.len() as i64;
+                        use noodles_sam::alignment::record::cigar::op::Kind;
+                        let is_alignment = matches!(
+                            op.kind(),
+                            Kind::Match | Kind::SequenceMatch | Kind::SequenceMismatch
+                        );
+                        if is_alignment {
+                            for offset in 0..op_len {
+                                let base_pos = pos + offset - ((window_start + 1) as i64);
+                                if base_pos >= 0 && (base_pos as u64) < window_len {
+                                    depths[base_pos as usize] += 1;
+                                }
+                            }
+                        }
+                        pos += op_len;
+                    }
+                }
+            }
+
+            for d in &depths {
+                if *d >= 1   { bases_1x += 1; }
+                if *d >= 10  { bases_10x += 1; }
+                if *d >= 20  { bases_20x += 1; }
+                if *d >= 50  { bases_50x += 1; }
+                if *d >= 100 { bases_100x += 1; }
+            }
+
+            window_start = window_end;
+        }
+    }
+
+    let mut map = HashMap::new();
+    if total_bases > 0 {
+        map.insert("cov_1x_pct".to_string(), 100.0 * bases_1x as f64 / total_bases as f64);
+        map.insert("cov_10x_pct".to_string(), 100.0 * bases_10x as f64 / total_bases as f64);
+        map.insert("cov_20x_pct".to_string(), 100.0 * bases_20x as f64 / total_bases as f64);
+        map.insert("cov_50x_pct".to_string(), 100.0 * bases_50x as f64 / total_bases as f64);
+        map.insert("cov_100x_pct".to_string(), 100.0 * bases_100x as f64 / total_bases as f64);
+    }
+    Ok(Some(map))
+}
+
 /// Compute per-base coverage depth bins across BED regions.
 ///
 /// Returns a map of "{threshold}x_pct" → percentage of on-target bases

@@ -267,6 +267,15 @@ def build_unified_filter(args, combined_df_columns: set) -> pl.Expr | None:
         if "flag_category_conflict" in combined_df_columns:
             keep_expr = keep_expr & ~pl.col("flag_category_conflict")
 
+    # ── --min-confidence-tier ─────────────────────────────────────────────
+    # Ordered: HIGH > MEDIUM > LOW. HIGH means HIGH only. MEDIUM means
+    # HIGH + MEDIUM (both pass). LOW means all pass (no filter).
+    if args.min_confidence_tier and "confidence_tier" in combined_df_columns:
+        if args.min_confidence_tier == "HIGH":
+            keep_expr = keep_expr & (pl.col("confidence_tier") == "HIGH")
+        elif args.min_confidence_tier == "MEDIUM":
+            keep_expr = keep_expr & pl.col("confidence_tier").is_in(["HIGH", "MEDIUM"])
+
     return keep_expr
 
 
@@ -510,22 +519,22 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
                             # Explode the allele registry: one row per (CHROM, POS, REF, individual ALT)
                             # for joining with the decomposed normalized records.
                             exploded_rows = []
-                            for row in allele_registry.iter_rows(named=True):
-                                chrom, pos, ref = row["CHROM"], row["POS"], row["REF"]
-                                n_alts = row["n_original_alleles"]
+                            for reg_row in allele_registry.iter_rows(named=True):
+                                chrom, pos, ref = reg_row["CHROM"], reg_row["POS"], reg_row["REF"]
+                                n_alts = reg_row["n_original_alleles"]
                                 for i in range(n_alts):
                                     exploded_rows.append({
                                         "CHROM": chrom,
                                         "POS": pos,
                                         "REF": ref,
-                                        "ALT": row["original_alts"][i],
+                                        "ALT": reg_row["original_alts"][i],
                                         f"pre_norm_{caller_name}_n_alleles": n_alts,
-                                        f"pre_norm_{caller_name}_ad_ref": row["ad_ref"],
-                                        f"pre_norm_{caller_name}_ad_alt": row["ad_alts"][i] if i < len(row["ad_alts"]) else None,
-                                        f"pre_norm_{caller_name}_af": row["af_list"][i] if i < len(row["af_list"]) else None,
-                                        f"pre_norm_{caller_name}_f1r2": row["f1r2_list"][i + 1] if row["f1r2_list"] and i + 1 < len(row["f1r2_list"]) else None,
-                                        f"pre_norm_{caller_name}_f2r1": row["f2r1_list"][i + 1] if row["f2r1_list"] and i + 1 < len(row["f2r1_list"]) else None,
-                                        f"pre_norm_{caller_name}_gt_alleles": row["gt_alleles"],
+                                        f"pre_norm_{caller_name}_ad_ref": reg_row["ad_ref"],
+                                        f"pre_norm_{caller_name}_ad_alt": reg_row["ad_alts"][i] if i < len(reg_row["ad_alts"]) else None,
+                                        f"pre_norm_{caller_name}_af": reg_row["af_list"][i] if i < len(reg_row["af_list"]) else None,
+                                        f"pre_norm_{caller_name}_f1r2": reg_row["f1r2_list"][i + 1] if reg_row["f1r2_list"] and i + 1 < len(reg_row["f1r2_list"]) else None,
+                                        f"pre_norm_{caller_name}_f2r1": reg_row["f2r1_list"][i + 1] if reg_row["f2r1_list"] and i + 1 < len(reg_row["f2r1_list"]) else None,
+                                        f"pre_norm_{caller_name}_gt_alleles": reg_row["gt_alleles"],
                                     })
                             if exploded_rows:
                                 registry_df = pl.DataFrame(exploded_rows)
@@ -553,8 +562,16 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
         set_num = row.get("set_number", 0)
         if set_num is None:
             set_num = 0
+        if set_num == 0:
+            print(f"  WARNING: [{sample_id}] set_number=0 — manifest may be missing partition_set")
         disease_val = row.get("disease", "")
         disease_norm = row.get("disease_normalized", "")
+        # Sentinel normalization: empty-string disease corrupts per-disease
+        # aggregation and visualization (all variants grouped under "").
+        if not disease_val or disease_val.strip() == "":
+            disease_val = "Unknown"
+        if not disease_norm or disease_norm.strip() == "":
+            disease_norm = "unknown"
         df = df.with_columns([
             pl.lit(sample_id).alias("sample_id"),
             pl.lit(int(set_num)).cast(pl.Int64).alias("set_number"),
@@ -595,8 +612,8 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
             # Per-variant filtering is handled by the unified filter pipeline,
             # not at the pileup level.
             cols_4 = ["CHROM", "POS", "REF", "ALT"]
-            positions = [(row[0], row[1], row[2], row[3])
-                         for row in df.select(cols_4).iter_rows()]
+            positions = [(pos_row[0], pos_row[1], pos_row[2], pos_row[3])
+                         for pos_row in df.select(cols_4).iter_rows()]
 
             n_pos = len(positions)
             print(f"  [{sample_id}] BAM pileup: {n_pos} positions")
@@ -787,8 +804,16 @@ def main():
     parser.add_argument("--no-hard-filter", action="store_true",
                         help="Disable Stage 0 hard exclusions (auto-drop of false variants). "
                              "Variants will still receive soft flags and confidence tiers.")
-    parser.add_argument("--confidence-tier", choices=["high", "medium", "low"], default=None,
-                        help="Filter output to only the specified confidence tier.")
+    parser.add_argument("--min-confidence-tier", choices=["HIGH", "MEDIUM"], default=None,
+                        help="Minimum confidence tier to include in output. "
+                             "HIGH: only variants with confidence_tier=HIGH. "
+                             "MEDIUM: variants with confidence_tier=HIGH or MEDIUM. "
+                             "Confidence tiers: HIGH (no soft flags, top-tier CxDy, min caller support), "
+                             "MEDIUM (no soft flags, mid-tier CxDy), LOW (any soft flag).")
+    parser.add_argument("--export-high-confidence", action="store_true",
+                        help="Export HIGH-confidence variants suitable for ML model training. "
+                             "Writes stats/confidence/high_confidence_variants.parquet with "
+                             "confidence_tier=HIGH and FILTER in {Somatic, Germline, Reference}.")
     parser.add_argument("--no-pre-norm", action="store_true",
                         help="Skip pre-decomposition caller VCF parsing (for environments "
                              "where variant_calling/ VCFs are unavailable).")
@@ -883,6 +908,10 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     rows = manifest.to_dicts()
+    # Capture filtered sample IDs for combined_df filtering downstream.
+    # This prevents cross-run contamination when variant_details/ contains
+    # parquet files from prior --set/--sample-ids runs.
+    current_sample_ids = [r["sample_id"] for r in rows]
     all_stats = []
     bam_stats_df = pl.DataFrame()
 
@@ -927,6 +956,9 @@ def main():
         print(f"Resuming from existing parquet files in {variant_dir_str}/")
         import glob as _glob
 
+        # Build current sample ID set for resume filtering
+        current_sample_ids_set = set(current_sample_ids)
+
         # Count variants, respecting active filters if any
         if args.max_samples or args.set or args.sample_ids:
             sample_ids = {r["sample_id"] for r in rows}
@@ -953,6 +985,13 @@ def main():
         stats_tsv = output_dir / "sample_summary.tsv"
         if stats_tsv.exists():
             all_stats = pl.read_csv(str(stats_tsv), separator="\t").to_dicts()
+            # Filter to current run's sample_ids when --set/--sample-ids is active.
+            # The TSV may contain rows from prior runs with different --set values.
+            if args.set or args.sample_ids:
+                n_before = len(all_stats)
+                all_stats = [s for s in all_stats if s.get("sample_id") in current_sample_ids_set]
+                if n_before != len(all_stats):
+                    print(f"  sample_summary.tsv filtered: {n_before} → {len(all_stats)} samples")
         else:
             # Fallback: check legacy CSV for backwards compatibility with old runs
             stats_csv = output_dir / "sample_summary.csv"
@@ -973,6 +1012,15 @@ def main():
         bam_tsv = output_dir / "bam_stats.tsv"
         if bam_tsv.exists():
             bam_stats_df = pl.read_csv(str(bam_tsv), separator="\t")
+            # Filter to current run's sample_ids when --set/--sample-ids is active
+            if (args.set or args.sample_ids) and not bam_stats_df.is_empty():
+                if "sample_id" in bam_stats_df.columns:
+                    n_before = len(bam_stats_df)
+                    bam_stats_df = bam_stats_df.filter(
+                        pl.col("sample_id").is_in(current_sample_ids_set)
+                    )
+                    if n_before != len(bam_stats_df):
+                        print(f"  bam_stats.tsv filtered: {n_before} → {len(bam_stats_df)} rows")
         else:
             # Fallback: check legacy CSV for backwards compatibility
             bam_csv = output_dir / "bam_stats.csv"
@@ -1102,6 +1150,19 @@ def main():
     # added to compute_biological_flags (e.g., category_conflict_resolution)
     combined_df = pl.scan_parquet(str(variant_dir / "*_variants.parquet"), extra_columns="ignore")
 
+    # ── Filter to current run's sample IDs ─────────────────────────────────
+    # variant_details/ may contain parquet files from prior --set/--sample-ids
+    # runs. Without this filter, all statistics and charts aggregate across
+    # all historical runs, producing contaminated per-set/disease/sample outputs.
+    n_before_filter = combined_df.select(pl.len()).collect().item()
+    combined_df = combined_df.filter(pl.col("sample_id").is_in(current_sample_ids))
+    n_after_filter = combined_df.select(pl.len()).collect().item()
+    if n_before_filter != n_after_filter:
+        print(f"combined_df filtered: {n_before_filter} → {n_after_filter} variants "
+              f"({n_before_filter - n_after_filter} from other runs excluded)")
+    else:
+        print(f"combined_df: {n_after_filter} variants from {len(current_sample_ids)} sample(s)")
+
     # ── Repair Strelka TAR/TIR inversion in old parquet files ────────────
     # Old parquet has AD_ALT == TAR (ref counts) instead of TIR (alt counts).
     # Auto-detects and skips if already correct.
@@ -1170,8 +1231,27 @@ def main():
         if not ct_summary.is_empty():
             _write_tsv(ct_summary, str(output_dir / "confidence_tier_summary.tsv"))
             print(f"Confidence tier summary: {output_dir / 'confidence_tier_summary.tsv'}")
-        # Replace combined_df with the enriched version
+        # Write confidence × FILTER cross-tabulation (spec CA-3)
+        conf_dir = output_dir / "stats" / "confidence"
+        conf_dir.mkdir(parents=True, exist_ok=True)
+        ct_filter = combined_eager.group_by(["confidence_tier", "FILTER"]).agg(
+            pl.len().alias("count")
+        ).sort(["confidence_tier", "FILTER"])
+        if not ct_filter.is_empty():
+            _write_tsv(ct_filter, str(conf_dir / "confidence_filter_breakdown.tsv"))
+            print(f"Confidence × FILTER breakdown: {conf_dir / 'confidence_filter_breakdown.tsv'}")
+        # Write confidence × tier cross-tabulation (spec VT-2)
+        if "final_tier" in combined_eager.columns:
+            ct_tier = combined_eager.group_by(["confidence_tier", "final_tier"]).agg(
+                pl.len().alias("count")
+            ).sort(["confidence_tier", "final_tier"])
+            if not ct_tier.is_empty():
+                _write_tsv(ct_tier, str(conf_dir / "confidence_tier_cross_tab.tsv"))
+                print(f"Confidence × Tier cross-tab: {conf_dir / 'confidence_tier_cross_tab.tsv'}")
+        # Re-scan and filter to current run's sample IDs (defense against
+        # cross-run contamination, same as the primary scan above).
         combined_df = pl.scan_parquet(variant_dir / "*_variants.parquet", extra_columns="ignore")
+        combined_df = combined_df.filter(pl.col("sample_id").is_in(current_sample_ids))
         # Re-apply filters on the new scan
         combined_df_cols = set(combined_df.collect_schema().names())
         new_filter = build_unified_filter(args, combined_df_cols)
@@ -1227,6 +1307,13 @@ def main():
         sample_stats_df = pl.DataFrame(all_stats)
         write_tsv(sample_stats_df, str(output_dir / "sample_summary.tsv"))
         print(f"Sample summary: {output_dir / 'sample_summary.tsv'}")
+
+        # Validate set_number data quality — all-zero indicates manifest
+        # may be missing partition_set assignments.
+        if "set_number" in sample_stats_df.columns:
+            unique_sets = sample_stats_df["set_number"].unique()
+            if len(unique_sets) == 1 and unique_sets[0] == 0:
+                print("WARNING: All samples have set_number=0 — manifest may be missing partition_set")
 
         # Set summary
         set_summary_df = set_summary(sample_stats_df)
@@ -1321,9 +1408,10 @@ def main():
         ("tier", ["final_tier"]),
         ("chromosome", ["CHROM"]),
         ("variant-category", ["FILTER"]),
+        ("confidence", ["confidence_tier"]),
     ]
 
-    if wise_names is None or any(w in wise_names for w in ["set", "disease", "sample", "tier", "chromosome", "variant-category"]):
+    if wise_names is None or any(w in wise_names for w in ["set", "disease", "sample", "tier", "chromosome", "variant-category", "confidence"]):
         print("Generating wise summaries...")
         for wise_name, group_cols in wise_configs:
             if wise_names is not None and wise_name not in wise_names:
@@ -1579,7 +1667,7 @@ def main():
         print("  Using publishing theme for charts")
 
     # Determine which wises to generate (from --wise flag)
-    all_wise_names = ["set", "disease", "sample", "tier", "caller", "chromosome", "variant-category"]
+    all_wise_names = ["set", "disease", "sample", "tier", "caller", "chromosome", "variant-category", "confidence"]
     if args.wise is not None:
         active_wises = [w for w in args.wise if w in all_wise_names] if args.wise else all_wise_names
     else:
@@ -1609,6 +1697,7 @@ def main():
         ],
         "disease": [
             (plot_vc_distribution, {"group_col": "disease_normalized"}),
+            (plot_caller_overlap, {"group_col": "disease_normalized"}),
             (plot_vaf_distribution, {"color_col": "disease_normalized"}),
             (plot_dna_vs_rna_vaf, {"color_col": "disease_normalized"}),
             (plot_dna_vs_rna_dp, {"group_col": "disease_normalized"}),
@@ -1679,6 +1768,16 @@ def main():
             (plot_caller_agreement_matrix, {}),
             (plot_tier_quality_distribution, {}),
         ],
+        "confidence": [
+            (plot_vc_distribution, {"group_col": "confidence_tier"}),
+            (plot_caller_overlap, {"group_col": "confidence_tier"}),
+            (plot_variant_type_distribution, {"group_col": "confidence_tier"}),
+            (plot_ti_tv_ratio, {"group_col": "confidence_tier"}),
+            (plot_cross_modality, {"group_col": "confidence_tier"}),
+            (plot_filter_distribution, {"group_col": "confidence_tier"}),
+            (plot_cosmic_gnomad_annotation, {"group_col": "confidence_tier"}),
+            (plot_vaf_distribution, {"color_col": "confidence_tier"}),
+        ],
     }
 
     # Global charts (not per-wise — plotted once into top-level plots/)
@@ -1688,6 +1787,26 @@ def main():
     global_charts.append(plot_caller_agreement_matrix(combined_df, str(output_dir)))
 
     # Per-wise chart generation
+    # ── Tier column verification ──────────────────────────────────────────
+    # Some chart functions in the tier registry depend on caller_tier,
+    # database_tier, and final_tier columns. If parquet files were written
+    # before compute_tiers_for_dataframe() was added, these columns are
+    # absent from the lazy scan schema. Detect and recompute.
+    tier_cols = ["caller_tier", "database_tier", "final_tier"]
+    combined_schema = combined_df.collect_schema().names()
+    missing_tier_cols = [c for c in tier_cols if c not in combined_schema]
+    if missing_tier_cols:
+        print(f"WARNING: Tier columns missing from parquet schema: {missing_tier_cols} — recomputing tiers")
+        try:
+            combined_eager = combined_df.collect()
+            combined_eager = compute_tiers_for_dataframe(combined_eager)
+            combined_df = combined_eager.lazy()
+            print(f"  Tiers recomputed for {len(combined_eager)} variants")
+            del combined_eager
+        except Exception as e:
+            print(f"  ERROR: Tier recomputation failed: {e}")
+            print(f"  Tier-dependent charts may be skipped or produce empty output")
+
     for wise_name in active_wises:
         wise_plot_dir = output_dir / "plots" / wise_name
         wise_plot_dir.mkdir(parents=True, exist_ok=True)
@@ -1706,7 +1825,7 @@ def main():
 
     # BAM charts (sample-wise only)
     if not args.no_bam and not bam_stats_df.is_empty():
-        figs.append(plot_bam_metrics_bars(bam_stats_df, str(output_dir)))
+        figs.append(plot_bam_metrics_bars(bam_stats_df, str(output_dir), top_n=30))
     if not args.no_pileup:
         figs.append(plot_bam_coverage_violin(combined_df, str(output_dir)))
         figs.append(plot_bam_dp_distribution(combined_df, str(output_dir)))
@@ -1726,6 +1845,30 @@ def main():
 
     # Master dashboard
     generate_dashboard(figs, str(output_dir))
+
+    # ── High-confidence variant export for ML training ─────────────────────
+    if args.export_high_confidence:
+        print("Exporting HIGH-confidence variants for ML training...")
+        try:
+            hc_dir = output_dir / "stats" / "confidence"
+            hc_dir.mkdir(parents=True, exist_ok=True)
+            hc_parquet = hc_dir / "high_confidence_variants.parquet"
+            # Filter: confidence_tier=HIGH AND FILTER in {Somatic, Germline, Reference}
+            hc_expr = (pl.col("confidence_tier") == "HIGH") & pl.col("FILTER").is_in(["Somatic", "Germline", "Reference"])
+            if "confidence_tier" not in combined_df.collect_schema().names():
+                print("  WARNING: confidence_tier column not in schema — cannot export")
+            else:
+                hc_df = combined_df.filter(hc_expr).collect()
+                hc_df.write_parquet(str(hc_parquet))
+                n_hc = len(hc_df)
+                print(f"  Exported {n_hc} HIGH-confidence variants to {hc_parquet}")
+                # Print FILTER breakdown
+                if not hc_df.is_empty():
+                    filter_counts = hc_df.group_by("FILTER").agg(pl.len().alias("count"))
+                    for row in filter_counts.to_dicts():
+                        print(f"    {row['FILTER']}: {row['count']}")
+        except Exception as e:
+            print(f"  ERROR: HIGH-confidence export failed: {e}")
 
     # ── variant_details_filtered/ removed ─────────────────────────────────
     # The separate variant_details_filtered/ output directory is removed.

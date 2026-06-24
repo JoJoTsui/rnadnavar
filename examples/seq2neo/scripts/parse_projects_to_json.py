@@ -95,7 +95,7 @@ def parse_prjna298376(txt_path: Path) -> dict:
     for block in re.split(r'\nPatientID--', text)[1:]:
         lines       = block.splitlines()
         patient_id  = lines[0].strip()
-        disease     = ""
+        disease     = "Unknown"  # default if no README-- line found
         raw_paths: dict = defaultdict(list)
         current_mod = None
 

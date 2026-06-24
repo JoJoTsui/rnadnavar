@@ -769,6 +769,7 @@ def plot_filter_distribution(df, output_dir: str, group_col: str = "set_number")
                           stack="zero", show_pct=True, group_col=group_col,
                           x_sort=chrom_order)
     chart = (bars + text).properties(title=f"FILTER Distribution by {group_title}")
+    chart = _apply_faceting(chart, group_col)
     _save_chart(chart, "24_filter_distribution", output_dir)
     return chart
 
@@ -815,6 +816,7 @@ def plot_redi_evidence(df, output_dir: str, group_col: str = "set_number"):
                           stack="zero", show_pct=True, group_col=group_col,
                           x_sort=chrom_order)
     chart = (bars + text).properties(title=f"REDIportal RNA Editing Evidence by {group_title}")
+    chart = _apply_faceting(chart, group_col)
     _save_chart(chart, "29_redi_evidence", output_dir)
     return chart
 
@@ -1020,6 +1022,7 @@ def plot_dna_vs_rna_dp(df, output_dir: str, group_col: str = "set_number"):
         enc["color"] = alt.Color(f"{group_col}:N", title=group_title)
     chart = alt.Chart(pdf).mark_circle(opacity=0.4, size=20).encode(**enc).properties(
         title=alt.Title("DNA vs RNA Mean Depth (capped at 2000)", subtitle=subtitle))
+    chart = _apply_faceting(chart, group_col)
     _save_chart(chart, "05_dna_vs_rna_dp", output_dir)
     return chart
 
@@ -1123,6 +1126,8 @@ def plot_ref_alt_dp_scatter(df, output_dir: str, group_col: str = "set_number"):
             enc["color"] = alt.Color(f"{group_col}:N", title=group_title)
         c = alt.Chart(pdf).mark_circle(opacity=0.4, size=20).encode(**enc).properties(
             title=alt.Title(f"DNA vs RNA Mean {label} (capped at 2000)", subtitle=subtitle))
+        if group_col in pdf.columns:
+            c = _apply_faceting(c, group_col)
         subcharts.append(c)
     chart = alt.hconcat(*subcharts).properties(title="DNA vs RNA REF_DP and ALT_DP (capped at 2000)")
     _save_chart(chart, "17_ref_alt_dp_scatter", output_dir)
@@ -1582,7 +1587,7 @@ def plot_validation_heatmap(report, output_dir: str):
     return chart
 
 
-def plot_bam_metrics_bars(bam_stats_df, output_dir: str, top_n: int = 20):
+def plot_bam_metrics_bars(bam_stats_df, output_dir: str, top_n: int = 30):
     """BAM metrics: grouped bar chart of per-sample reads for DN/DT/RT, faceted by set."""
     if bam_stats_df is None or (hasattr(bam_stats_df, 'is_empty') and bam_stats_df.is_empty()):
         return
@@ -2963,7 +2968,7 @@ def plot_bam_metrics_sample_wise(bam_stats_df, output_dir: str):
         xOffset=alt.XOffset("bam_type:N"),
     ).properties(
         title="BAM Metrics per Sample by BAM Type",
-        width=alt.Step(15),
+        width=200,
     )
 
     # Use Facet for grid layout — 2D faceting via row/column when multiple sets

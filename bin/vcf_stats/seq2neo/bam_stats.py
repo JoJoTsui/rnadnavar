@@ -267,11 +267,25 @@ def compute_bam_stats(bam_path: str, bed_total: int = 0,
             result["cov_50x_pct"] = None
             result["cov_100x_pct"] = None
     else:
-        result["cov_1x_pct"] = None
-        result["cov_10x_pct"] = None
-        result["cov_20x_pct"] = None
-        result["cov_50x_pct"] = None
-        result["cov_100x_pct"] = None
+        # Whole-genome mode: compute coverage bins via Rust wg_coverage_bins.
+        # Uses BAI-indexed 1Mb window queries across all reference sequences.
+        try:
+            cov_bins = stats_core.wg_coverage_bins(bam_path)
+            if cov_bins is not None:
+                result.update(cov_bins)
+            else:
+                result["cov_1x_pct"] = None
+                result["cov_10x_pct"] = None
+                result["cov_20x_pct"] = None
+                result["cov_50x_pct"] = None
+                result["cov_100x_pct"] = None
+        except (TypeError, RuntimeError, OSError) as e:
+            print(f"  [BAM STATS] wg_coverage_bins error for {bam_path}: {e}")
+            result["cov_1x_pct"] = None
+            result["cov_10x_pct"] = None
+            result["cov_20x_pct"] = None
+            result["cov_50x_pct"] = None
+            result["cov_100x_pct"] = None
 
     # Diagnostic: show path taken + coverage value
     mode = "BED" if bed_regions else "WG"

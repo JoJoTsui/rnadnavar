@@ -147,7 +147,10 @@ def build_manifest(samples: list[dict]) -> list[dict]:
         if sample_id in EXCLUDED_SAMPLES:
             n_excluded += 1
             continue
-        set_number = s["partition_set"]
+        set_number = s.get("partition_set")
+        if set_number is None:
+            print(f"WARNING: {sample_id} has no partition_set — defaulting to 0")
+            set_number = 0
         patient_id = str(s["patient_id"])
         base_dir = SET_TO_BASE_DIR[set_number]
 

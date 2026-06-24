@@ -400,6 +400,28 @@ fn coverage_bins(py: Python<'_>, bam_path: String, bed_regions: Vec<(String, u32
     }
 }
 
+/// Compute whole-genome coverage depth bins for all reference sequences.
+///
+/// Returns a dict mapping "cov_Nx_pct" → percentage of genome bases with
+/// depth >= N, or None when no BAI index is available.
+#[pyfunction]
+fn wg_coverage_bins(py: Python<'_>, bam_path: String) -> PyResult<Option<Bound<'_, PyDict>>> {
+    let path_buf = PathBuf::from(&bam_path);
+    let result = py.detach(|| {
+        bam::wg_coverage_bins(&path_buf)
+            .map_err(|e| e.to_string())
+    }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))?;
+
+    match result {
+        Some(map) => {
+            let dict = PyDict::new(py);
+            for (k, v) in map { dict.set_item(k, v)?; }
+            Ok(Some(dict))
+        }
+        None => Ok(None),
+    }
+}
+
 /// Convert a Vec<PileupResult> to a Python dict of column lists.
 fn pileup_results_to_pydict<'a>(py: Python<'a>, results: &[pileup::PileupResult]) -> PyResult<Bound<'a, PyDict>> {
     let d = PyDict::new(py);
@@ -455,5 +477,6 @@ fn stats_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pileup_variants, m)?)?;
     m.add_function(wrap_pyfunction!(pileup_variants_multi, m)?)?;
     m.add_function(wrap_pyfunction!(coverage_bins, m)?)?;
+    m.add_function(wrap_pyfunction!(wg_coverage_bins, m)?)?;
     Ok(())
 }
