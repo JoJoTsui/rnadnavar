@@ -27,15 +27,8 @@ SET_TO_BASE_DIR = {
     4: "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1",
 }
 
-# Samples with truncated/incomplete BAM files — temporarily excluded from manifest.
-# Data team needs to regenerate/re-transfer these before re-enabling.
-EXCLUDED_SAMPLES = {
-    "PRJNA298376_4077",
-    "PRJNA298376_4110",
-    "PRJNA298376_4200",
-    "PRJNA298376_4220",
-    "PRJNA298376_4264",
-}
+# Samples previously excluded due to truncated/incomplete BAM files — now rerun and re-enabled.
+EXCLUDED_SAMPLES = set()
 
 # Rescue VCF filename pattern (filled with vcf_prefix)
 RESCUE_VCF_TEMPLATE = (
