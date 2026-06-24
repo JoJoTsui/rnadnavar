@@ -1,6 +1,7 @@
 """Parse rescue VCF files for metadata, annotations, and classification fields.
 
-Uses cyvcf2 for fast VCF parsing. Extracts INFO fields into a polars DataFrame.
+Rust stats_core (parse_rescue_columns) is the primary parser. This module provides
+derived column computation (variant_type, ti_tv) and INFO field definitions.
 Rescue VCF fields are used for classification/metadata — numeric QC metrics
 (DP, AD, VAF) come from caller VCFs (caller_parser.py) as the ground truth.
 """
@@ -9,7 +10,6 @@ from typing import Any
 
 import numpy as np
 import polars as pl
-from cyvcf2 import VCF
 
 # ── INFO fields to extract from the rescue VCF ────────────────────────────
 
@@ -175,8 +175,8 @@ def _add_derived_columns_polars(df: pl.DataFrame) -> pl.DataFrame:
 def parse_rescue_vcf(vcf_path: str) -> pl.DataFrame:
     """Parse a rescue VCF file and return a polars DataFrame.
 
-    Extracts core coordinates, FILTER status, all INFO fields listed in
-    rescue_info_fields(), plus derived columns variant_type and ti_tv.
+    DEPRECATED: Use rust_vcf.parse_rescue_vcf (Rust stats_core) instead.
+    cyvcf2 fallback has been removed. This function now delegates to the Rust parser.
 
     Args:
         vcf_path: Path to the .filtered.vcf.stripped.vcf.gz rescue VCF.
@@ -184,71 +184,5 @@ def parse_rescue_vcf(vcf_path: str) -> pl.DataFrame:
     Returns:
         polars DataFrame with one row per variant.
     """
-    records = []
-
-    reader = VCF(vcf_path)
-    for record in reader:
-        chrom = record.CHROM
-        pos = record.POS
-        ref = record.REF
-        alt = record.ALT[0] if record.ALT else None
-        if alt is None:
-            continue
-        alt_str = str(alt)
-        filter_val = (
-            record.FILTERS[0]
-            if record.FILTERS and record.FILTERS[0] is not None
-            else "PASS"
-        )
-        info = record.INFO
-
-        row: dict[str, Any] = {
-            "CHROM": chrom,
-            "POS": pos,
-            "REF": ref,
-            "ALT": alt_str,
-            "FILTER": str(filter_val) if filter_val else "PASS",
-        }
-
-        # Extract int fields
-        for field in RESCUE_INT_FIELDS:
-            row[field] = _safe_int(info.get(field))
-
-        # Extract float fields
-        for field in RESCUE_FLOAT_FIELDS:
-            row[field] = _safe_float(info.get(field))
-
-        # Extract string fields
-        for field in RESCUE_STRING_FIELDS:
-            row[field] = _safe_str(info.get(field))
-
-        # Extract flag fields (True if present in INFO)
-        for field in RESCUE_FLAG_FIELDS:
-            row[field] = info.get(field) is True
-
-        records.append(row)
-
-    if not records:
-        return pl.DataFrame()
-
-    df = pl.from_dicts(records, infer_schema_length=None)
-
-    # Ensure int columns are int
-    for field in RESCUE_INT_FIELDS:
-        if field in df.columns:
-            df = df.with_columns(pl.col(field).cast(pl.Int64, strict=False))
-
-    # Ensure float columns are float
-    for field in RESCUE_FLOAT_FIELDS:
-        if field in df.columns:
-            df = df.with_columns(pl.col(field).cast(pl.Float64, strict=False))
-
-    # Ensure flag columns are bool
-    for field in RESCUE_FLAG_FIELDS:
-        if field in df.columns:
-            df = df.with_columns(pl.col(field).cast(pl.Boolean, strict=False))
-
-    # Derived columns via polars vectorized expressions (6× faster than per-row Python)
-    df = _add_derived_columns_polars(df)
-
-    return df
+    from .rust_vcf import parse_rescue_vcf as _rust_parse
+    return _rust_parse(vcf_path)

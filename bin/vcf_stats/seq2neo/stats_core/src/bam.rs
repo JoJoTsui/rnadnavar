@@ -108,6 +108,7 @@ fn whole_genome_stats_impl(
     let mut total: u64 = 0;
     let mut mapped: u64 = 0;
     let mut mq_sum: f64 = 0.0;
+    let mut mapq_count: u64 = 0;
     let mut insert_sum: f64 = 0.0;
     let mut insert_sum_sq: f64 = 0.0;
     let mut insert_count: u64 = 0;
@@ -130,6 +131,7 @@ fn whole_genome_stats_impl(
             if flags.is_properly_segmented() { proper_pair_count += 1; }
             if let Some(mq) = record.mapping_quality() {
                 mq_sum += u8::from(mq) as f64;
+                mapq_count += 1;
             }
             let seq_len = record.sequence().len() as u64;
             total_query_length += seq_len;
@@ -211,7 +213,7 @@ fn whole_genome_stats_impl(
         mapping_rate: if total > 0 { mapped as f64 / total as f64 * 100.0 } else { 0.0 },
         mean_coverage: if denominator > 0 { coverage_bases as f64 / denominator as f64 } else { 0.0 },
         mean_insert_size: if insert_count > 0 { insert_sum / insert_count as f64 } else { 0.0 },
-        mean_mapq: if mapped > 0 { mq_sum / mapped as f64 } else { 0.0 },
+        mean_mapq: if mapq_count > 0 { mq_sum / mapq_count as f64 } else { 0.0 },
         duplication_rate_pct,
         properly_paired_pct,
         insert_size_stddev,
@@ -249,11 +251,14 @@ pub fn coverage_bins(bam_path: &Path, bed_regions: &[(String, u32, u32)]) -> Res
         total_bases += region_len;
         let mut depths = vec![0u32; region_len as usize];
 
-        let pos_start = std::num::NonZero::new(*start as usize)
-            .and_then(|nz| noodles_core::Position::try_from(usize::from(nz)).ok());
-        let pos_end = std::num::NonZero::new(*end as usize)
-            .and_then(|nz| noodles_core::Position::try_from(usize::from(nz)).ok());
-        let (Some(pos_start), Some(pos_end)) = (pos_start, pos_end) else { continue; };
+        // Convert BED 0-based half-open [start, end) to noodles 1-based inclusive [start+1, end].
+        // BED start=0 is valid and maps to 1-based position 1.
+        let one_based_start = (*start as usize) + 1;
+        let one_based_end = *end as usize;  // BED end is exclusive → 1-based inclusive = end
+        let pos_start = noodles_core::Position::try_from(one_based_start)
+            .map_err(|e| format!("Invalid start position: {}", e))?;
+        let pos_end = noodles_core::Position::try_from(one_based_end)
+            .map_err(|e| format!("Invalid end position: {}", e))?;
         let region = Region::new(chrom.clone(), pos_start..=pos_end);
 
         let query = reader.query(&header, &index, &region)
@@ -281,7 +286,9 @@ pub fn coverage_bins(bam_path: &Path, bed_regions: &[(String, u32, u32)]) -> Res
                     let is_alignment = matches!(op.kind(), Kind::Match | Kind::SequenceMatch | Kind::SequenceMismatch);
                     if is_alignment {
                         for offset in 0..op_len {
-                            let base_pos = pos + offset - (*start as i64);
+                            // rec_start is 1-based (from noodles); BED start is 0-based.
+                            // Convert: base_pos = (1-based pos + offset) - (1-based start) = (rec_start + offset - one_based_start)
+                            let base_pos = pos + offset - ((*start as i64) + 1);
                             if base_pos >= 0 && (base_pos as u64) < region_len {
                                 depths[base_pos as usize] += 1;
                             }

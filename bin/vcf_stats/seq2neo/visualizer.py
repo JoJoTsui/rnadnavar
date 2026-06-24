@@ -19,6 +19,19 @@ import polars as pl
 # Disable altair's 5000-row default limit
 alt.data_transformers.disable_max_rows()
 
+# Fixed seed for reproducible sampling in _sample_if_large
+SAMPLE_SEED = 42
+
+# Tier sort order (imported from tiering_stats for explicit tier-axis sorting)
+try:
+    from .tiering_stats import FINAL_TIER_ORDER
+except ImportError:
+    FINAL_TIER_ORDER = [
+        "C1D1", "C1D0", "C2D1", "C2D0", "C3D1", "C3D0",
+        "C4D1", "C4D0", "C5D1", "C5D0", "C6D1", "C6D0",
+        "C7D1", "C7D0",
+    ]
+
 
 # ── Scientific publishing theme (Section 10) ─────────────────────────────
 def _register_publishing_theme():
@@ -136,8 +149,7 @@ def _sample_if_large(df, max_rows: int = 5000) -> pl.DataFrame:
 
     Returns an eager pl.DataFrame suitable for .to_pandas().
     Safe to call on already-eager DataFrames (pass-through with sampling).
-    Collects first (LazyFrame.sample() not available in polars < 1.42),
-    then samples the eager frame.
+    Uses a fixed seed (SAMPLE_SEED) for reproducibility.
     """
     try:
         if isinstance(df, pl.LazyFrame):
@@ -145,7 +157,7 @@ def _sample_if_large(df, max_rows: int = 5000) -> pl.DataFrame:
     except pl.exceptions.ColumnNotFoundError:
         return pl.DataFrame()
     if df.height > max_rows:
-        return df.sample(max_rows)
+        return df.sample(max_rows, seed=SAMPLE_SEED)
     return df
 
 
@@ -592,7 +604,7 @@ def plot_caller_overlap(df, output_dir: str, group_col: str = "set_number"):
     counts[group_col] = counts[group_col].astype(str)
     group_title = group_col.replace("_", " ").title()
     chart = alt.Chart(counts).mark_bar().encode(
-        x=alt.X("final_tier:N", title="Variant Tier (CxDy)"),
+        x=alt.X("final_tier:N", title="Variant Tier (CxDy)", sort=FINAL_TIER_ORDER),
         y=alt.Y("pct:Q", title="% of Variants"),
         color=alt.Color(f"{group_col}:N", title=group_title),
     ).properties(title=f"Variant Tier Distribution by {group_title}")
@@ -656,7 +668,7 @@ def plot_ti_tv_ratio(df, output_dir: str, group_col: str = "set_number", facet_c
         y=alt.Y("ratio:Q", title="Ti/Tv Ratio"),
     )
     text = base.mark_text(dy=-8).encode(
-        x=alt.X(f"{group_col}:N"), y=alt.Y("ratio:Q"),
+        x=alt.X(f"{group_col}:N", sort=chrom_order), y=alt.Y("ratio:Q"),
         text=alt.Text("ratio:Q", format=".2f"),
     )
     chart = (bars + text).properties(title=f"Ti/Tv Ratio by {group_title}")
@@ -823,7 +835,7 @@ def plot_tiered_caller_overlap(df, output_dir: str, facet_col: str = None):
         (pl.col("count") / pl.col("total") * 100).round(1).alias("pct")
     )
     pdf = _maybe_collect(pdf).to_pandas()
-    col_enc = alt.Column("caller_tier:N", title="Caller Tier")
+    col_enc = alt.Column("caller_tier:N", title="Caller Tier", sort=FINAL_TIER_ORDER)
     if facet_col and facet_col in pdf.columns:
         pdf[facet_col] = pdf[facet_col].astype(str)
         col_enc = alt.Column(f"{facet_col}:N", title=facet_col.replace("_", " ").title())
@@ -853,7 +865,7 @@ def plot_tiered_variant_types(df, output_dir: str, facet_col: str = None):
         (pl.col("count") / pl.col("total") * 100).round(1).alias("pct")
     )
     pdf = _maybe_collect(pdf).to_pandas()
-    col_enc = alt.Column("caller_tier:N", title="Caller Tier")
+    col_enc = alt.Column("caller_tier:N", title="Caller Tier", sort=FINAL_TIER_ORDER)
     if facet_col and facet_col in pdf.columns:
         pdf[facet_col] = pdf[facet_col].astype(str)
         col_enc = alt.Column(f"{facet_col}:N", title=facet_col.replace("_", " ").title())
@@ -1031,7 +1043,7 @@ def plot_vaf_boxplot_per_tier(df, output_dir: str, facet_col: str = None):
     ).drop_nulls()
     pdf = _sample_if_large(melted, max_rows=50000).to_pandas()
     pdf["caller"] = pdf["caller"].str.replace("_VAF", "")
-    col_enc = alt.Column("caller_tier:N", title="Caller Tier")
+    col_enc = alt.Column("caller_tier:N", title="Caller Tier", sort=FINAL_TIER_ORDER)
     if facet_col and facet_col in pdf.columns:
         pdf[facet_col] = pdf[facet_col].astype(str)
         col_enc = alt.Column(f"{facet_col}:N", title=facet_col.replace("_", " ").title())
@@ -1069,7 +1081,7 @@ def plot_dp_boxplot_per_tier(df, output_dir: str, facet_col: str = None):
     n_over = int((pdf["DP"] > 2000).sum())
     pdf["DP"] = pdf["DP"].clip(0, 2000)
     pdf["caller"] = pdf["caller"].str.replace("_DP", "")
-    col_enc = alt.Column("caller_tier:N", title="Caller Tier")
+    col_enc = alt.Column("caller_tier:N", title="Caller Tier", sort=FINAL_TIER_ORDER)
     if facet_col and facet_col in pdf.columns:
         pdf[facet_col] = pdf[facet_col].astype(str)
         col_enc = alt.Column(f"{facet_col}:N", title=facet_col.replace("_", " ").title())
@@ -1125,7 +1137,7 @@ def plot_per_tier_vaf_boxplot(df, output_dir: str):
     pdf = _sample_if_large(pdf, max_rows=50000).to_pandas()
     pdf["VAF_display"] = pdf["DNA_VAF_mean"].clip(0.0, 1.0)
     chart = alt.Chart(pdf).mark_boxplot().encode(
-        x=alt.X("final_tier:N", title="Tier"),
+        x=alt.X("final_tier:N", title="Tier", sort=FINAL_TIER_ORDER),
         y=alt.Y("VAF_display:Q", title="DNA Mean VAF (capped at 1.0)",
                 scale=alt.Scale(domain=[0, 1])),
         color=alt.Color("final_tier:N", scale=_color_scale("final_tier")),
@@ -1466,7 +1478,7 @@ def plot_gt_concordance_per_tier(df, output_dir: str, facet_col: str = None):
     ).to_pandas()
     result["agreement"] = result["agreement"].astype(str)
 
-    col_enc = alt.Column("caller_tier:N", title="Caller Tier")
+    col_enc = alt.Column("caller_tier:N", title="Caller Tier", sort=FINAL_TIER_ORDER)
     if facet_col and facet_col in result.columns:
         result[facet_col] = result[facet_col].astype(str)
         col_enc = alt.Column(f"{facet_col}:N", title=facet_col.replace("_", " ").title())
@@ -1593,7 +1605,7 @@ def plot_bam_metrics_bars(bam_stats_df, output_dir: str, top_n: int = 20):
         pdf["set_number"] = pdf["set_number"].astype(str)
     chart = alt.Chart(pdf).mark_bar().encode(**enc).properties(
         title="Per-Sample BAM Read Counts — DN/DT/RT",
-        width=350)
+        width=alt.Step(20))
     if has_set:
         chart = chart.facet(
             facet=alt.Facet("set_number:N", title="Set"),
@@ -1701,7 +1713,7 @@ def plot_per_tier_cross_sample_vaf(sample_tier_df, output_dir: str):
         return
     pdf = sample_tier_df.select(["final_tier", vaf_col]).to_pandas()
     chart = alt.Chart(pdf).mark_boxplot().encode(
-        x=alt.X("final_tier:N", title="Tier"),
+        x=alt.X("final_tier:N", title="Tier", sort=FINAL_TIER_ORDER),
         y=alt.Y(f"{vaf_col}:Q", title=f"Mean {vaf_col}"),
         color=alt.Color("final_tier:N", scale=_color_scale("final_tier")),
     ).properties(title="Per-Tier VAF Distribution Across Samples")
@@ -1895,7 +1907,7 @@ def plot_database_enrichment_by_tier(df, output_dir: str):
         if col not in pdf.columns:
             continue
         c = alt.Chart(pdf).mark_bar().encode(
-            x=alt.X("tier:N", title="Tier (CxDy)"),
+            x=alt.X("tier:N", title="Tier (CxDy)", sort=FINAL_TIER_ORDER),
             y=alt.Y(f"{col}:Q", title=f"% with {db} Annotation"),
             color=alt.Color("tier:N"),
         ).properties(title=f"{db} Annotation by Tier")
@@ -2323,12 +2335,19 @@ def _chart_section(fig, index: int) -> str:
 
 
 def _extract_body_content(html: str) -> str:
-    """Extract inner content between <body> and </body> from a full HTML document."""
+    """Extract inner content between <body> and </body> from a full HTML document.
+
+    Strips <script> blocks before searching for <body> to avoid matching
+    <body> strings inside JavaScript template literals (e.g., vega-embed's
+    "View Source" feature uses `<body>` in template strings).
+    """
     import re
-    body_start = re.search(r'<body[^>]*>', html)
-    body_end = html.rfind('</body>')
+    # Remove <script>...</script> blocks to prevent matching <body> inside JS
+    html_no_scripts = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
+    body_start = re.search(r'<body[^>]*>', html_no_scripts)
+    body_end = html_no_scripts.rfind('</body>')
     if body_start and body_end != -1:
-        return html[body_start.end():body_end].strip()
+        return html_no_scripts[body_start.end():body_end].strip()
     return html
 
 
@@ -2395,7 +2414,7 @@ def plot_per_tier_dp_boxplot(df, output_dir: str):
     n_over = int((pdf["DNA_DP_mean"] > 2000).sum())
     pdf["DNA_DP_mean"] = pdf["DNA_DP_mean"].clip(0, 2000)
     chart = alt.Chart(pdf).mark_boxplot().encode(
-        x=alt.X("final_tier:N", title="Tier"),
+        x=alt.X("final_tier:N", title="Tier", sort=FINAL_TIER_ORDER),
         y=alt.Y("DNA_DP_mean:Q", title="DNA Mean DP (capped at 2000)", scale=alt.Scale(domain=[0, 2000])),
         color=alt.Color("final_tier:N", scale=_color_scale("final_tier")),
     ).properties(title=alt.Title("DNA DP Distribution per Tier (capped at 2000)",
@@ -2617,7 +2636,7 @@ def plot_rescue_by_tier(rescue_tier_df, output_dir: str,
     pdf = rescue_tier_df.to_pandas()
     evidence_title = evidence_col.replace("_", " ").title()
     bars = alt.Chart(pdf).mark_bar().encode(
-        x=alt.X("final_tier:N", title="Caller Tier"),
+        x=alt.X("final_tier:N", title="Caller Tier", sort=FINAL_TIER_ORDER),
         y=alt.Y("count:Q", title="Variant Count", scale=_count_scale(), axis=_count_axis(), stack="zero"),
         color=alt.Color(f"{evidence_col}:N", title=evidence_title,
                         scale=_color_scale(evidence_col) if evidence_col in _COLOR_REGISTRY else alt.Scale()),
@@ -2932,7 +2951,7 @@ def plot_bam_metrics_sample_wise(bam_stats_df, output_dir: str):
     if has_set:
         pdf["set_number"] = pdf["set_number"].astype(str)
 
-    # Faceted bar chart: one panel per metric
+    # Faceted bar chart: grid of panels per metric, faceted by set_number
     n_metrics = len(metric_cols)
     n_cols = min(3, n_metrics)
 
@@ -2941,12 +2960,25 @@ def plot_bam_metrics_sample_wise(bam_stats_df, output_dir: str):
                 axis=alt.Axis(labelAngle=-45, labelLimit=100)),
         y=alt.Y("value:Q", title="Value"),
         color=alt.Color("bam_type:N", title="BAM Type", scale=_color_scale("bam_type")),
-        column=alt.Column("metric:N", title="Metric"),
+        xOffset=alt.XOffset("bam_type:N"),
     ).properties(
         title="BAM Metrics per Sample by BAM Type",
-        width=alt.Step(12),
+        width=alt.Step(15),
     )
-    chart = chart.resolve_scale(x="independent", y="independent")
+
+    # Use Facet for grid layout — 2D faceting via row/column when multiple sets
+    if has_set and pdf["set_number"].nunique() > 1:
+        # 2D grid: rows=set_number, columns=metric
+        chart = chart.facet(
+            row=alt.Row("set_number:N", title="Set"),
+            column=alt.Column("metric:N", title="Metric"),
+        ).resolve_scale(x="independent", y="independent")
+    else:
+        # 1D grid: wrapped by metric
+        chart = chart.facet(
+            facet=alt.Facet("metric:N", title="Metric"),
+            columns=n_cols,
+        ).resolve_scale(x="independent", y="independent")
 
     _save_chart(chart, "metrics_sample_wise", output_dir)
     return chart
@@ -2966,6 +2998,12 @@ def plot_bam_coverage_distribution(bam_stats_df, output_dir: str):
     cov_pct_cols = [c for c in bam_stats_df.columns
                     if c.endswith("_pct") and "cov_" in c]
     if not cov_pct_cols:
+        return
+
+    # Check if all cov columns are entirely null — if so, skip chart
+    has_any_data = any(bam_stats_df[c].is_not_null().any() for c in cov_pct_cols)
+    if not has_any_data:
+        print("  [VIZ] Skipping coverage_distribution: all cov_*_pct columns are null")
         return
 
     has_set = "set_number" in bam_stats_df.columns
@@ -3001,7 +3039,7 @@ def plot_bam_coverage_distribution(bam_stats_df, output_dir: str):
         y=alt.Y("mean_pct:Q", title="Mean % of Bases Covered"),
         xOffset="coverage_bin:N",
         color=alt.Color("coverage_bin:N", title="Coverage Threshold"),
-        tooltip=["bam_type", "coverage_bin", "mean_pct"],
+        tooltip=["bam_type", "coverage_bin", alt.Tooltip("mean_pct:Q", title="Mean %")],
     )
     chart = bars.properties(
         title="Mean Coverage Distribution by BAM Type",
@@ -3025,6 +3063,9 @@ def generate_dashboard(figs: list, output_dir: str):
     html_parts = [
         "<!DOCTYPE html><html><head><meta charset='utf-8'>",
         "<title>Seq2neo Variant Statistics Dashboard</title>",
+        "<script type='text/javascript' src='https://cdn.jsdelivr.net/npm/vega@6'></script>",
+        "<script type='text/javascript' src='https://cdn.jsdelivr.net/npm/vega-lite@6.4.1'></script>",
+        "<script type='text/javascript' src='https://cdn.jsdelivr.net/npm/vega-embed@7'></script>",
         "<style>",
         "body{font-family:Arial,sans-serif;margin:20px;background:#f5f5f5}",
         ".chart{margin-bottom:40px;background:white;padding:20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1)}",
@@ -3062,7 +3103,7 @@ def generate_dashboard(figs: list, output_dir: str):
             html_parts.append(f'<h2 id="{section}">{section_title}</h2>')
 
         html_parts.append(f'<div class="chart" id="chart-{i}">')
-        body_content = _extract_body_content(fig.to_html(output_div=f"vis-{i}", inline=True))
+        body_content = _extract_body_content(fig.to_html(output_div=f"vis-{i}", inline=False))
         html_parts.append(body_content)
         html_parts.append('</div>')
 

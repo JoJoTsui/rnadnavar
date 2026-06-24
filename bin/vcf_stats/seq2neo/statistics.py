@@ -186,6 +186,12 @@ _CROSS_SAMPLE_COLS = [
     "flag_category_conflict", "flag_germline_low_vaf",
     "flag_somatic_high_vaf", "flag_reference_with_signal",
     "flag_rna_rescued",
+    # New biological flags (low-confidence variant filtering)
+    "flag_germline_high_vaf", "flag_somatic_loh",
+    "flag_no_caller_support", "flag_low_rna_mapq",
+    "category_conflict_resolution",
+    # Cross-sample and confidence metrics
+    "n_recurrent_samples", "confidence_tier", "soft_flags",
     # Database annotations
     "COSMIC_ID", "GNOMAD_AF", "REDI_EVIDENCE",
     # GT concordance (caller GT columns — only 4 of 6 callers have GT)
@@ -345,11 +351,13 @@ def compute_mean_columns(df: pl.DataFrame) -> pl.DataFrame:
 def compute_modality_evidence(df: pl.DataFrame) -> pl.DataFrame:
     """Compute modality_evidence_caller and modality_evidence_dp.
 
-    modality_evidence_caller — classifies each variant based on caller support:
-        cross_modality: both DNA ≥ 1 callers AND RNA ≥ 1 callers support
-        dna_confident:  DNA ≥ 2 callers support, RNA < 1
-        rna_rescued:    RNA ≥ 2 callers support, DNA < 1
-        low_confidence:  everything else
+    modality_evidence_caller — classifies each variant based on C1-C7 tier mapping:
+        cross_modality: C1 tier (≥2 DNA + ≥2 RNA concordant callers)
+        dna_confident:  C2 tier (≥2 DNA concordant callers, RNA ≤1)
+        rna_rescued:    C3+C4 tiers (≥2 RNA concordant, or 1 DNA + 1 RNA)
+        low_confidence: C5-C7 tiers (single or no caller support)
+
+    Falls back to raw caller counts if final_tier is not available.
 
     modality_evidence_dp — classifies based on depth evidence (>30 reads):
         cross_modality: both DNA_DP_mean > 30 AND RNA_DP_mean > 30
@@ -357,18 +365,35 @@ def compute_modality_evidence(df: pl.DataFrame) -> pl.DataFrame:
         rna_rescued:    RNA_DP_mean > 30, DNA_DP_mean <= 30
         low_confidence:  both <= 30
     """
+    has_final_tier = "final_tier" in df.columns
     has_dna_callers = "N_DNA_CALLERS_SUPPORT" in df.columns
     has_rna_callers = "N_RNA_CALLERS_SUPPORT" in df.columns
     has_dna_dp = "DNA_DP_mean" in df.columns
     has_rna_dp = "RNA_DP_mean" in df.columns
 
-    if has_dna_callers and has_rna_callers:
+    # modality_evidence_caller: prefer tier-based mapping, fall back to raw counts
+    if has_final_tier:
         df = df.with_columns(
-            pl.when((pl.col("N_DNA_CALLERS_SUPPORT") >= 1) & (pl.col("N_RNA_CALLERS_SUPPORT") >= 1))
+            pl.when(pl.col("final_tier").str.starts_with("C1"))
             .then(pl.lit("cross_modality"))
-            .when((pl.col("N_DNA_CALLERS_SUPPORT") >= 2) & (pl.col("N_RNA_CALLERS_SUPPORT") < 1))
+            .when(pl.col("final_tier").str.starts_with("C2"))
             .then(pl.lit("dna_confident"))
-            .when((pl.col("N_RNA_CALLERS_SUPPORT") >= 2) & (pl.col("N_DNA_CALLERS_SUPPORT") < 1))
+            .when(pl.col("final_tier").str.starts_with("C3") | pl.col("final_tier").str.starts_with("C4"))
+            .then(pl.lit("rna_rescued"))
+            .otherwise(pl.lit("low_confidence"))
+            .alias("modality_evidence_caller")
+        )
+    elif has_dna_callers and has_rna_callers:
+        # Fallback: raw caller counts (legacy behavior, should not be reached
+        # if tiering ran before modality_evidence)
+        df = df.with_columns(
+            pl.when((pl.col("N_DNA_CALLERS_SUPPORT") >= 2) & (pl.col("N_RNA_CALLERS_SUPPORT") >= 2))
+            .then(pl.lit("cross_modality"))
+            .when((pl.col("N_DNA_CALLERS_SUPPORT") >= 2) & (pl.col("N_RNA_CALLERS_SUPPORT") <= 1))
+            .then(pl.lit("dna_confident"))
+            .when((pl.col("N_RNA_CALLERS_SUPPORT") >= 2) & (pl.col("N_DNA_CALLERS_SUPPORT") <= 1))
+            .then(pl.lit("rna_rescued"))
+            .when((pl.col("N_DNA_CALLERS_SUPPORT") == 1) & (pl.col("N_RNA_CALLERS_SUPPORT") == 1))
             .then(pl.lit("rna_rescued"))
             .otherwise(pl.lit("low_confidence"))
             .alias("modality_evidence_caller")
@@ -396,13 +421,14 @@ def compute_multi_allelic_metrics(df: pl.DataFrame) -> pl.DataFrame:
         n_alleles_at_site — number of variant rows at this position
         vaf_sum — sum of DNA_VAF_mean across all alleles at this site
         total_alt_dp — sum of DNA_ALT_DP_mean across all alleles
-        allele_balance_ratio — ratio of (2nd highest ALT_DP) / (max ALT_DP)
+        allele_balance_ratio — max_alt_dp / total_alt_dp (dominance of major allele)
         category_conflict — True if alleles have different FILTER values
-        multiallelic_class — classification:
+        multiallelic_class — classification using per-allele criteria:
             single: only 1 allele at site
-            normalization_artifact: minor_alt_dp / max_alt_dp < 0.03
-            noise: vaf_sum < 0.15
-            true_multi_allelic: everything else
+            normalization_artifact: alleles have different REF/ALT lengths OR
+                one allele has VAF≤0.001 AND DP≤1 (zero signal)
+            noise: exactly one allele has VAF≥0.01 AND DP≥5; others have no signal
+            true_multi_allelic: ≥2 alleles with VAF≥0.01 AND DP≥5 AND different ALT bases
     """
     if "CHROM" not in df.columns or "POS" not in df.columns:
         return df
@@ -418,34 +444,27 @@ def compute_multi_allelic_metrics(df: pl.DataFrame) -> pl.DataFrame:
             (pl.col("FILTER").n_unique() > 1).alias("category_conflict")
         )
 
-    # Compute allele_balance_ratio = 2nd_max_alt_dp / max_alt_dp per site.
-    # Uses two-pass max aggregation to avoid polars list.get() edge cases.
+    # Compute allele_balance_ratio = max_alt_dp / total_alt_dp per site.
+    # This measures dominance of the major allele. Range [0, 1]:
+    #   1.0 = one allele dominates completely, 0.5 = equal balance between two alleles.
+    # For 3+ alleles, denominator includes all alleles (not just top-2).
     if "DNA_ALT_DP_mean" in df.columns:
         non_null = df.filter(pl.col("DNA_ALT_DP_mean").is_not_null())
-        # Pass 1: max ALT_DP per position
-        max_dp = non_null.group_by(["CHROM", "POS"]).agg(
-            pl.col("DNA_ALT_DP_mean").max().alias("alt_dp_max")
+        balance = non_null.group_by(["CHROM", "POS"]).agg(
+            pl.col("DNA_ALT_DP_mean").max().alias("alt_dp_max"),
+            pl.col("DNA_ALT_DP_mean").sum().alias("alt_dp_total"),
         )
-        # Pass 2: 2nd max = max of values strictly below the max
-        with_max = non_null.join(max_dp, on=["CHROM", "POS"])
-        second_max = (
-            with_max
-            .filter(pl.col("DNA_ALT_DP_mean") < pl.col("alt_dp_max"))
-            .group_by(["CHROM", "POS"])
-            .agg(pl.col("DNA_ALT_DP_mean").max().alias("alt_dp_2nd_max"))
-        )
-        ranked = max_dp.join(second_max, on=["CHROM", "POS"], how="left")
-        ranked = ranked.with_columns(
+        balance = balance.with_columns(
             pl.when(
-                pl.col("alt_dp_max").is_not_null()
-                & (pl.col("alt_dp_max") > 0)
-                & pl.col("alt_dp_2nd_max").is_not_null()
+                pl.col("alt_dp_total").is_not_null()
+                & (pl.col("alt_dp_total") > 0)
+                & pl.col("alt_dp_max").is_not_null()
             )
-            .then(pl.col("alt_dp_2nd_max") / pl.col("alt_dp_max"))
+            .then(pl.col("alt_dp_max") / pl.col("alt_dp_total"))
             .otherwise(None)
             .alias("allele_balance_ratio")
         )
-        ranked = ranked.select(["CHROM", "POS", "allele_balance_ratio"])
+        ranked = balance.select(["CHROM", "POS", "allele_balance_ratio"])
     else:
         ranked = df.select(["CHROM", "POS"]).unique().with_columns(
             pl.lit(None).alias("allele_balance_ratio")
@@ -455,28 +474,113 @@ def compute_multi_allelic_metrics(df: pl.DataFrame) -> pl.DataFrame:
     site_metrics = df.group_by(["CHROM", "POS"]).agg(group_exprs)
     site_metrics = site_metrics.join(ranked, on=["CHROM", "POS"], how="left")
 
-    # Classify multi-allelic sites
+    # Compute per-allele criteria for classification.
+    # Need: n_alleles_with_signal (VAF≥0.01 AND DP≥5), has_length_diff, n_unique_alt_with_signal
+    has_vaf = "DNA_VAF_mean" in df.columns
+    has_dp = "DNA_ALT_DP_mean" in df.columns
+    has_ref = "REF" in df.columns
+    has_alt = "ALT" in df.columns
+
+    if has_vaf and has_dp:
+        # Treat null VAF/DP as 0 for signal detection
+        signal_df = df.with_columns([
+            pl.col("DNA_VAF_mean").fill_null(0.0).alias("_vaf_safe"),
+            pl.col("DNA_ALT_DP_mean").fill_null(0).alias("_dp_safe"),
+        ])
+        # Per-position: count alleles with signal (VAF≥0.01 AND DP≥5)
+        signal_counts = signal_df.group_by(["CHROM", "POS"]).agg(
+            (
+                (pl.col("_vaf_safe") >= 0.01) & (pl.col("_dp_safe") >= 5)
+            ).sum().alias("n_alleles_with_signal"),
+            # Count alleles with zero signal (VAF≤0.001 AND DP≤1)
+            (
+                (pl.col("_vaf_safe") <= 0.001) & (pl.col("_dp_safe") <= 1)
+            ).sum().alias("n_alleles_zero_signal"),
+        )
+        site_metrics = site_metrics.join(signal_counts, on=["CHROM", "POS"], how="left")
+    else:
+        site_metrics = site_metrics.with_columns([
+            pl.lit(0).alias("n_alleles_with_signal"),
+            pl.lit(0).alias("n_alleles_zero_signal"),
+        ])
+
+    # Check for REF/ALT length differences within each position
+    if has_ref and has_alt:
+        length_diff = df.group_by(["CHROM", "POS"]).agg(
+            (
+                pl.col("REF").str.len_chars().n_unique() > 1
+            ).alias("has_ref_length_diff"),
+            (
+                pl.col("ALT").str.len_chars().n_unique() > 1
+            ).alias("has_alt_length_diff"),
+        )
+        site_metrics = site_metrics.join(length_diff, on=["CHROM", "POS"], how="left")
+    else:
+        site_metrics = site_metrics.with_columns([
+            pl.lit(False).alias("has_ref_length_diff"),
+            pl.lit(False).alias("has_alt_length_diff"),
+        ])
+
+    # Count unique ALT bases among signal alleles
+    if has_alt and has_vaf and has_dp:
+        signal_alts = df.with_columns([
+            pl.col("DNA_VAF_mean").fill_null(0.0).alias("_vaf_safe"),
+            pl.col("DNA_ALT_DP_mean").fill_null(0).alias("_dp_safe"),
+        ]).filter(
+            (pl.col("_vaf_safe") >= 0.01) & (pl.col("_dp_safe") >= 5)
+        ).group_by(["CHROM", "POS"]).agg(
+            pl.col("ALT").n_unique().alias("n_unique_alt_with_signal")
+        )
+        site_metrics = site_metrics.join(signal_alts, on=["CHROM", "POS"], how="left")
+        site_metrics = site_metrics.with_columns(
+            pl.col("n_unique_alt_with_signal").fill_null(0)
+        )
+    else:
+        site_metrics = site_metrics.with_columns(
+            pl.lit(0).alias("n_unique_alt_with_signal")
+        )
+
+    # Classify multi-allelic sites using per-allele criteria (spec-compliant)
     site_metrics = site_metrics.with_columns(
         pl.when(pl.col("n_alleles_at_site") == 1)
         .then(pl.lit("single"))
+        # normalization_artifact: different REF/ALT lengths OR one allele has zero signal
         .when(
             (pl.col("n_alleles_at_site") > 1)
-            & pl.col("allele_balance_ratio").is_not_null()
-            & (pl.col("allele_balance_ratio") < 0.03)
+            & (
+                pl.col("has_ref_length_diff")
+                | pl.col("has_alt_length_diff")
+                | (pl.col("n_alleles_zero_signal") > 0)
+            )
         )
         .then(pl.lit("normalization_artifact"))
+        # noise: exactly one allele with signal, others have no signal
         .when(
             (pl.col("n_alleles_at_site") > 1)
-            & (pl.col("vaf_sum") < 0.15)
+            & (pl.col("n_alleles_with_signal") == 1)
         )
         .then(pl.lit("noise"))
-        .when(pl.col("n_alleles_at_site") > 1)
+        # true_multi_allelic: ≥2 alleles with signal AND different ALT bases
+        .when(
+            (pl.col("n_alleles_at_site") > 1)
+            & (pl.col("n_alleles_with_signal") >= 2)
+            & (pl.col("n_unique_alt_with_signal") >= 2)
+        )
         .then(pl.lit("true_multi_allelic"))
+        # Fallback: multi-allelic but doesn't meet strict criteria
+        .when(pl.col("n_alleles_at_site") > 1)
+        .then(pl.lit("noise"))
         .otherwise(pl.lit("single"))
         .alias("multiallelic_class")
     )
 
-    df = df.join(site_metrics, on=["CHROM", "POS"], how="left")
+    # Select only the columns to join back (exclude intermediate criteria)
+    cols_to_join = ["CHROM", "POS", "n_alleles_at_site", "vaf_sum" if "vaf_sum" in site_metrics.columns else "_skip_vaf",
+                    "total_alt_dp" if "total_alt_dp" in site_metrics.columns else "_skip_dp",
+                    "allele_balance_ratio", "category_conflict" if "category_conflict" in site_metrics.columns else "_skip_cc",
+                    "multiallelic_class"]
+    cols_to_join = [c for c in cols_to_join if c in site_metrics.columns and not c.startswith("_skip")]
+    df = df.join(site_metrics.select(cols_to_join), on=["CHROM", "POS"], how="left")
     return df
 
 
@@ -486,42 +590,68 @@ def compute_biological_flags(df: pl.DataFrame) -> pl.DataFrame:
     Adds the following boolean columns:
         flag_vaf_overflow — True if vaf_sum > 1.1 across alleles at a site
         flag_multi_allelic_heterogeneity — True if multiallelic_class is
-            "true_multi_allelic" or "normalization_artifact"
-        flag_category_conflict — True if same position has conflicting FILTER values
-        flag_germline_low_vaf — FILTER=Germline AND DNA_VAF_mean < 0.10 AND DNA_DP_mean >= 10
+            "true_multi_allelic" only (NOT normalization_artifact)
+        flag_category_conflict — True if same position has conflicting FILTER
+            values AND all categories have biological significance
+            (Somatic, Germline, or RNAedit — not just NoConsensus/Artifact/Reference)
+        flag_germline_low_vaf — FILTER=Germline AND DNA_VAF_mean < 0.10
+            (no DP constraint — low-coverage false positives also flagged)
         flag_somatic_high_vaf — FILTER=Somatic AND DNA_VAF_mean > 0.60
         flag_reference_with_signal — FILTER=Reference AND DNA_VAF_mean > 0.05
         flag_rna_rescued — DNA_VAF < 0.05 AND N_DNA_CALLERS_SUPPORT <= 1
                            AND N_RNA_CALLERS_SUPPORT >= 2 AND RNA_DP_mean >= 10
     """
+    BIOLOGICAL_CATEGORIES = ["Somatic", "Germline", "RNAedit"]
+
     # flag_vaf_overflow
     if "vaf_sum" in df.columns:
         df = df.with_columns(
             (pl.col("vaf_sum") > 1.1).alias("flag_vaf_overflow")
         )
 
-    # flag_multi_allelic_heterogeneity
+    # flag_multi_allelic_heterogeneity — true_multi_allelic ONLY
     if "multiallelic_class" in df.columns:
         df = df.with_columns(
-            pl.col("multiallelic_class").is_in(["true_multi_allelic", "normalization_artifact"])
+            (pl.col("multiallelic_class") == "true_multi_allelic")
             .alias("flag_multi_allelic_heterogeneity")
         )
 
-    # flag_category_conflict
-    if "category_conflict" in df.columns:
+    # flag_category_conflict — with biological-significance guard
+    if "category_conflict" in df.columns and "FILTER" in df.columns:
+        df = df.with_columns(
+            (
+                pl.col("category_conflict")
+                & pl.col("FILTER").is_in(BIOLOGICAL_CATEGORIES)
+            ).alias("flag_category_conflict")
+        )
+    elif "category_conflict" in df.columns:
         df = df.with_columns(
             pl.col("category_conflict").alias("flag_category_conflict")
         )
 
-    # flag_germline_low_vaf
+    # category_conflict_resolution
+    if "category_conflict" in df.columns and "FILTER" in df.columns:
+        df = df.with_columns(
+            pl.when(~pl.col("category_conflict"))
+            .then(pl.lit(None))
+            .when(pl.col("FILTER") == "Somatic")
+            .then(pl.lit("keep_somatic"))
+            .when(pl.col("FILTER") == "Germline")
+            .then(pl.lit("keep_germline"))
+            .when(pl.col("FILTER") == "RNAedit")
+            .then(pl.lit("keep_rnaedit"))
+            .otherwise(pl.lit("drop_both"))
+            .alias("category_conflict_resolution")
+        )
+
+    # flag_germline_low_vaf — no DP constraint (per spec update)
     has_filter = "FILTER" in df.columns
     has_vaf = "DNA_VAF_mean" in df.columns
     has_dp = "DNA_DP_mean" in df.columns
-    if has_filter and has_vaf and has_dp:
+    if has_filter and has_vaf:
         df = df.with_columns(
             ((pl.col("FILTER") == "Germline")
-             & (pl.col("DNA_VAF_mean") < 0.10)
-             & (pl.col("DNA_DP_mean") >= 10))
+             & (pl.col("DNA_VAF_mean") < 0.10))
             .alias("flag_germline_low_vaf")
         )
     elif "flag_germline_low_vaf" not in df.columns:
@@ -561,6 +691,47 @@ def compute_biological_flags(df: pl.DataFrame) -> pl.DataFrame:
         )
     elif "flag_rna_rescued" not in df.columns:
         df = df.with_columns(pl.lit(False).alias("flag_rna_rescued"))
+
+    # flag_germline_high_vaf — Germline with VAF > 0.85 (LOH or contamination)
+    has_dna_ref_dp = "DNA_REF_DP_mean" in df.columns
+    if has_filter and has_vaf:
+        df = df.with_columns(
+            ((pl.col("FILTER") == "Germline")
+             & (pl.col("DNA_VAF_mean") > 0.85))
+            .alias("flag_germline_high_vaf")
+        )
+    elif "flag_germline_high_vaf" not in df.columns:
+        df = df.with_columns(pl.lit(False).alias("flag_germline_high_vaf"))
+
+    # flag_somatic_loh — Somatic with VAF > 0.60 AND REF_DP < 0.10 * DP
+    if has_filter and has_vaf and has_dna_ref_dp and has_dp:
+        df = df.with_columns(
+            ((pl.col("FILTER") == "Somatic")
+             & (pl.col("DNA_VAF_mean") > 0.60)
+             & (pl.col("DNA_REF_DP_mean") < 0.10 * pl.col("DNA_DP_mean")))
+            .alias("flag_somatic_loh")
+        )
+    elif "flag_somatic_loh" not in df.columns:
+        df = df.with_columns(pl.lit(False).alias("flag_somatic_loh"))
+
+    # flag_no_caller_support — N_SUPPORT_CALLERS == 0
+    if "N_SUPPORT_CALLERS" in df.columns:
+        df = df.with_columns(
+            (pl.col("N_SUPPORT_CALLERS") == 0).alias("flag_no_caller_support")
+        )
+    elif "flag_no_caller_support" not in df.columns:
+        df = df.with_columns(pl.lit(False).alias("flag_no_caller_support"))
+
+    # flag_low_rna_mapq — RNA support from poorly-mapped reads
+    # (requires MAPQ=255 fix from fix-bam-stats-rust to produce meaningful values)
+    if "BAM_RT_mean_MQ" in df.columns and has_rna_dp:
+        df = df.with_columns(
+            ((pl.col("BAM_RT_mean_MQ") < 2)
+             & (pl.col("RNA_DP_mean") >= 20))
+            .alias("flag_low_rna_mapq")
+        )
+    elif "flag_low_rna_mapq" not in df.columns:
+        df = df.with_columns(pl.lit(False).alias("flag_low_rna_mapq"))
 
     return df
 
@@ -763,7 +934,12 @@ def vc_distribution(df: pl.DataFrame | pl.LazyFrame, group_col: str = "set_numbe
 
 
 def caller_overlap_distribution(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
-    """Distribution of final_tier (C1D1..C7D0) — variant tiering support."""
+    """Distribution of final_tier (C1D1..C7D0) — variant tiering support.
+
+    Note: This function name is kept for backward compatibility but it produces
+    a tier distribution, not a caller overlap. Use caller_overlap_matrix() for
+    the actual pairwise caller co-occurrence matrix.
+    """
     df = _ensure_eager(df)
     if "final_tier" not in df.columns:
         return pl.DataFrame()
@@ -774,8 +950,45 @@ def caller_overlap_distribution(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame
     )
 
 
+def caller_overlap_matrix(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
+    """Compute pairwise caller co-occurrence matrix.
+
+    Returns a symmetric N×N matrix where cell (i,j) = count of variants
+    where both caller_i and caller_j called the variant. Diagonal = total
+    calls by that caller. Callers are identified by their per-caller VAF
+    columns being non-null.
+    """
+    df = _ensure_eager(df)
+    caller_vaf_cols = [
+        "DNA_mutect2_VAF", "RNA_mutect2_VAF",
+        "DNA_deepsomatic_VAF", "RNA_deepsomatic_VAF",
+        "DNA_strelka_VAF", "RNA_strelka_VAF",
+    ]
+    available = [c for c in caller_vaf_cols if c in df.columns]
+    if not available:
+        return pl.DataFrame()
+
+    # For each caller, a variant is "called" if its VAF column is non-null
+    caller_names = [c.replace("_VAF", "").replace("_", " ") for c in available]
+    n = len(available)
+
+    # Compute pairwise co-occurrence
+    rows = []
+    for i in range(n):
+        row = {"caller": caller_names[i]}
+        for j in range(n):
+            if i == j:
+                row[caller_names[j]] = df[available[i]].is_not_null().sum()
+            else:
+                row[caller_names[j]] = (
+                    df[available[i]].is_not_null() & df[available[j]].is_not_null()
+                ).sum()
+        rows.append(row)
+    return pl.DataFrame(rows)
+
+
 def caller_support_distribution(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
-    """Distribution of N_SUPPORT_CALLERS (raw caller count, 1-6)."""
+    """Distribution of N_SUPPORT_CALLERS (raw caller count, 0-6)."""
     df = _ensure_eager(df)
     if "N_SUPPORT_CALLERS" not in df.columns:
         return pl.DataFrame()
@@ -785,6 +998,193 @@ def caller_support_distribution(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame
         .agg(pl.len().alias("count"))
         .sort("N_SUPPORT_CALLERS")
     )
+
+
+def build_hard_filter_expr(columns: list[str] | set[str]) -> pl.Expr | None:
+    """Build the Stage 0 hard exclusion filter expression.
+
+    Returns a boolean expression that is True for variants to DROP.
+    Returns None if no hard filter conditions can be applied.
+    """
+    cols = set(columns)
+    conditions = []
+
+    # N_SUPPORT_CALLERS == 0 (no caller support, C7 tier)
+    if "N_SUPPORT_CALLERS" in cols:
+        conditions.append(pl.col("N_SUPPORT_CALLERS") == 0)
+
+    # flag_vaf_overflow (VAF sum > 1.1, physics violation)
+    if "flag_vaf_overflow" in cols:
+        conditions.append(pl.col("flag_vaf_overflow"))
+
+    # multiallelic_class == "noise" (one real allele + noise)
+    if "multiallelic_class" in cols:
+        conditions.append(pl.col("multiallelic_class") == "noise")
+
+    # No modality has coverage: DNA_DP < 5 AND RNA_DP < 5
+    if "DNA_DP_mean" in cols and "RNA_DP_mean" in cols:
+        conditions.append(
+            (pl.col("DNA_DP_mean") < 5) & (pl.col("RNA_DP_mean") < 5)
+        )
+
+    # No alt evidence: DNA_ALT_DP < 2 AND RNA_ALT_DP < 2
+    if "DNA_ALT_DP_mean" in cols and "RNA_ALT_DP_mean" in cols:
+        conditions.append(
+            (pl.col("DNA_ALT_DP_mean") < 2) & (pl.col("RNA_ALT_DP_mean") < 2)
+        )
+
+    # Germline with low VAF (flag_germline_low_vaf)
+    if "flag_germline_low_vaf" in cols:
+        conditions.append(pl.col("flag_germline_low_vaf"))
+
+    # Somatic with LOH pattern (flag_somatic_loh)
+    if "flag_somatic_loh" in cols:
+        conditions.append(pl.col("flag_somatic_loh"))
+
+    # Reference with substantive alt signal (VAF > 0.10 AND ALT_DP >= 3)
+    if "FILTER" in cols and "DNA_VAF_mean" in cols and "DNA_ALT_DP_mean" in cols:
+        conditions.append(
+            (pl.col("FILTER") == "Reference")
+            & (pl.col("DNA_VAF_mean") > 0.10)
+            & (pl.col("DNA_ALT_DP_mean") >= 3)
+        )
+
+    if not conditions:
+        return None
+
+    # Combine all conditions with OR (drop if ANY condition is true)
+    result = conditions[0]
+    for cond in conditions[1:]:
+        result = result | cond
+    return result
+
+
+def compute_confidence_tier(df: pl.DataFrame) -> pl.DataFrame:
+    """Assign confidence tiers based on hard/soft filter results.
+
+    HIGH: no soft flags AND final_tier in {C1D0,C1D1,C2D1,C3D1,C4D1}
+          AND (N_DNA_CALLERS_SUPPORT >= 1 OR N_RNA_CALLERS_SUPPORT >= 2)
+    MEDIUM: no soft flags AND final_tier in {C2D0,C3D0,C4D0}
+    LOW: passes hard filters but has any soft flag
+    """
+    SOFT_FLAG_COLS = [
+        "flag_category_conflict", "flag_multi_allelic_heterogeneity",
+        "flag_rna_rescued", "flag_germline_high_vaf",
+        "flag_low_rna_mapq",
+    ]
+
+    has_soft_flags = None
+    for col in SOFT_FLAG_COLS:
+        if col in df.columns:
+            if has_soft_flags is None:
+                has_soft_flags = pl.col(col)
+            else:
+                has_soft_flags = has_soft_flags | pl.col(col)
+    if has_soft_flags is None:
+        has_soft_flags = pl.lit(False)
+
+    # Also check modality_evidence_caller == low_confidence
+    if "modality_evidence_caller" in df.columns:
+        has_soft_flags = has_soft_flags | (pl.col("modality_evidence_caller") == "low_confidence")
+
+    # Check recurrence
+    if "n_recurrent_samples" in df.columns:
+        has_soft_flags = has_soft_flags | (pl.col("n_recurrent_samples") > 20)
+
+    # Check single-caller Somatic/Germline
+    if "N_SUPPORT_CALLERS" in df.columns and "FILTER" in df.columns:
+        has_soft_flags = has_soft_flags | (
+            (pl.col("N_SUPPORT_CALLERS") == 1)
+            & pl.col("FILTER").is_in(["Somatic", "Germline"])
+        )
+
+    HIGH_TIERS = ["C1D0", "C1D1", "C2D1", "C3D1", "C4D1"]
+    MEDIUM_TIERS = ["C2D0", "C3D0", "C4D0"]
+
+    has_final_tier = "final_tier" in df.columns
+    has_dna_callers = "N_DNA_CALLERS_SUPPORT" in df.columns
+    has_rna_callers = "N_RNA_CALLERS_SUPPORT" in df.columns
+
+    if has_final_tier:
+        high_tier = pl.col("final_tier").is_in(HIGH_TIERS)
+        medium_tier = pl.col("final_tier").is_in(MEDIUM_TIERS)
+    else:
+        high_tier = pl.lit(False)
+        medium_tier = pl.lit(False)
+
+    if has_dna_callers and has_rna_callers:
+        min_callers = (pl.col("N_DNA_CALLERS_SUPPORT") >= 1) | (pl.col("N_RNA_CALLERS_SUPPORT") >= 2)
+    else:
+        min_callers = pl.lit(True)
+
+    df = df.with_columns(
+        pl.when(~has_soft_flags & high_tier & min_callers)
+        .then(pl.lit("HIGH"))
+        .when(~has_soft_flags & medium_tier)
+        .then(pl.lit("MEDIUM"))
+        .otherwise(pl.lit("LOW"))
+        .alias("confidence_tier")
+    )
+    return df
+
+
+def compute_soft_flags(df: pl.DataFrame) -> pl.DataFrame:
+    """Compute the soft_flags column as a comma-separated string of flag names."""
+    SOFT_FLAG_MAP = {
+        "flag_category_conflict": "category_conflict",
+        "flag_multi_allelic_heterogeneity": "multi_allelic_het",
+        "flag_rna_rescued": "rna_rescued",
+        "flag_germline_high_vaf": "germline_high_vaf",
+        "flag_low_rna_mapq": "low_rna_mapq",
+    }
+
+    # Build list of flag name columns (each is a string or empty)
+    flag_str_cols = []
+    for col, label in SOFT_FLAG_MAP.items():
+        if col in df.columns:
+            alias = f"_soft_{col}"
+            df = df.with_columns(
+                pl.when(pl.col(col)).then(pl.lit(label)).otherwise(pl.lit(None)).alias(alias)
+            )
+            flag_str_cols.append(alias)
+
+    if "modality_evidence_caller" in df.columns:
+        alias = "_soft_low_confidence"
+        df = df.with_columns(
+            pl.when(pl.col("modality_evidence_caller") == "low_confidence")
+            .then(pl.lit("low_confidence")).otherwise(pl.lit(None)).alias(alias)
+        )
+        flag_str_cols.append(alias)
+
+    if "n_recurrent_samples" in df.columns:
+        alias = "_soft_high_recurrence"
+        df = df.with_columns(
+            pl.when(pl.col("n_recurrent_samples") > 20)
+            .then(pl.lit("high_recurrence")).otherwise(pl.lit(None)).alias(alias)
+        )
+        flag_str_cols.append(alias)
+
+    if "N_SUPPORT_CALLERS" in df.columns and "FILTER" in df.columns:
+        alias = "_soft_single_caller"
+        df = df.with_columns(
+            pl.when((pl.col("N_SUPPORT_CALLERS") == 1) & pl.col("FILTER").is_in(["Somatic", "Germline"]))
+            .then(pl.lit("single_caller_only")).otherwise(pl.lit(None)).alias(alias)
+        )
+        flag_str_cols.append(alias)
+
+    if not flag_str_cols:
+        df = df.with_columns(pl.lit(None).alias("soft_flags"))
+        return df
+
+    # Join all non-null flag strings with commas
+    df = df.with_columns(
+        pl.concat_str(flag_str_cols, separator=",", ignore_nulls=True)
+        .alias("soft_flags")
+    )
+
+    # Clean up temporary columns
+    df = df.drop(flag_str_cols)
+    return df
 
 
 def gt_concordance(df: pl.DataFrame | pl.LazyFrame) -> dict[str, int]:

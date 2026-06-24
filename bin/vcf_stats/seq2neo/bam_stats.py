@@ -1,12 +1,11 @@
 """Per-sample per-modality BAM statistics.
 
 Computes read-level statistics from alignment BAM files for both DNA and RNA
-modalities. Uses Rust stats_core (noodles-bam) when available, falls back to
-pysam. Parallelizes across samples via ThreadPoolExecutor.
+modalities. Uses Rust stats_core (noodles-bam) exclusively — no pysam fallback.
+Parallelizes across samples via ThreadPoolExecutor.
 """
 
 import os
-import statistics
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
@@ -113,33 +112,15 @@ def read_and_merge_bed(bed_path: str, gap: int = 100_000) -> tuple[int, list[tup
     return raw_total, intervals, merged
 
 
-def _get_bam_ref_total(bam_path: str) -> int:
-    """Get the total reference length from a BAM header (pysam, header-only).
-
-    Fast — reads only the header, not the alignment records.
-    Used to post-hoc recalculate mean_coverage with a custom denominator
-    (e.g., WES BED region total) without needing the Rust module rebuilt.
-    """
-    try:
-        import pysam
-        bam = pysam.AlignmentFile(bam_path, "rb")
-        total = sum(bam.lengths) if bam.lengths else 0
-        bam.close()
-        return total
-    except Exception:
-        return 0
-
 try:
     import stats_core
-    HAS_RUST_BAM = hasattr(stats_core, 'bam_stats')
+    if not hasattr(stats_core, 'bam_stats'):
+        raise ImportError("stats_core.bam_stats not found")
 except ImportError:
-    HAS_RUST_BAM = False
-
-try:
-    import pysam
-    HAS_PYSAM = True
-except ImportError:
-    HAS_PYSAM = False
+    raise ImportError(
+        "Rust BAM stats backend (stats_core.bam_stats) is required but could not be loaded. "
+        "Build the Rust module: cd bin/vcf_stats/seq2neo/stats_core && ./build_rust.sh"
+    )
 
 
 # Three BAM types per sample
@@ -185,273 +166,8 @@ def _locate_bam_file(base_dir: str, dir_name: str, bam_type: str) -> str | None:
 
 
 # ---------------------------------------------------------------------------
-# Section 4: Expanded BAM Alignment Stats
+# Section 4: BAM Alignment Stats (Rust-only, expanded metrics from Rust)
 # ---------------------------------------------------------------------------
-
-
-def _compute_duplication_rate(bam_path: str, max_reads: int = 10_000_000) -> float | None:
-    """Compute duplication rate as percentage of reads with the duplicate flag (0x400).
-
-    Args:
-        bam_path: Path to the BAM file.
-        max_reads: Maximum number of reads to scan (default: 10,000,000).
-
-    Returns:
-        Percentage (0-100) of reads marked as duplicate, or None on failure.
-    """
-    try:
-        import pysam
-        bam = pysam.AlignmentFile(bam_path, "rb")
-        dup = 0
-        total = 0
-        for read in bam.fetch():
-            total += 1
-            if read.flag & 0x400:
-                dup += 1
-            if total >= max_reads:
-                break
-        bam.close()
-        if total == 0:
-            return None
-        return round(100 * dup / total, 2)
-    except Exception as e:
-        print(f"  [BAM STATS] Error computing duplication_rate for {bam_path}: {e}")
-        return None
-
-
-def _compute_properly_paired_pct(bam_path: str, max_reads: int = 10_000_000) -> float | None:
-    """Compute percentage of mapped reads that are properly paired.
-
-    A read is considered properly paired if:
-      - flag has 0x1 (paired) and 0x2 (proper pair) set
-      - flag has 0x4 (unmapped) and 0x8 (mate unmapped) NOT set
-
-    Denominator is total mapped reads (0x4 not set).
-
-    Args:
-        bam_path: Path to the BAM file.
-        max_reads: Maximum number of reads to scan (default: 10,000,000).
-
-    Returns:
-        Percentage (0-100) of mapped reads that are properly paired, or None on failure.
-    """
-    try:
-        import pysam
-        bam = pysam.AlignmentFile(bam_path, "rb")
-        proper = 0
-        mapped = 0
-        n = 0
-        for read in bam.fetch():
-            n += 1
-            if read.flag & 0x4:  # unmapped
-                if n >= max_reads:
-                    break
-                continue
-            mapped += 1
-            if ((read.flag & 0x1) and (read.flag & 0x2)
-                and not (read.flag & 0x4) and not (read.flag & 0x8)):
-                proper += 1
-            if n >= max_reads:
-                break
-        bam.close()
-        if mapped == 0:
-            return None
-        return round(100 * proper / mapped, 2)
-    except Exception as e:
-        print(f"  [BAM STATS] Error computing properly_paired_pct for {bam_path}: {e}")
-        return None
-
-
-def _compute_insert_size_stddev(bam_path: str, max_reads: int = 10_000_000) -> float | None:
-    """Compute standard deviation of insert sizes for properly paired reads.
-
-    Only includes properly paired reads with positive insert size < 10000
-    to exclude outliers. Uses statistics.stdev().
-
-    Args:
-        bam_path: Path to the BAM file.
-        max_reads: Maximum number of reads to scan (default: 10,000,000).
-
-    Returns:
-        Standard deviation of insert sizes (rounded to 1 decimal), or None on failure.
-    """
-    try:
-        import pysam
-        bam = pysam.AlignmentFile(bam_path, "rb")
-        insert_sizes = []
-        n = 0
-        for read in bam.fetch():
-            n += 1
-            if (read.is_proper_pair and not read.is_supplementary
-                and not read.is_secondary
-                and read.template_length and read.template_length > 0
-                and read.template_length < 10000):
-                insert_sizes.append(read.template_length)
-            if n >= max_reads:
-                break
-        bam.close()
-        if len(insert_sizes) < 2:
-            return None
-        return round(statistics.stdev(insert_sizes), 1)
-    except Exception as e:
-        print(f"  [BAM STATS] Error computing insert_size_stddev for {bam_path}: {e}")
-        return None
-
-
-def _compute_coverage_bins(bed_regions: list[tuple[str, int, int]] | None,
-                           bam_path: str,
-                           max_pileup_rows: int = 1_000_000) -> dict[str, float | None] | None:
-    """Compute fraction of BED bases covered at various depth thresholds.
-
-    For each BED region, counts bases with pileup depth >= each threshold.
-    Returns fraction of total BED bases at 1x, 10x, 20x, 50x, 100x.
-
-    Args:
-        bed_regions: List of (chrom, start, end) tuples defining target regions.
-        bam_path: Path to the BAM file.
-        max_pileup_rows: Maximum pileup columns to process (default: 1,000,000).
-
-    Returns:
-        Dict with keys cov_1x_pct, cov_10x_pct, cov_20x_pct, cov_50x_pct, cov_100x_pct,
-        or None if no bed_regions provided.
-    """
-    if not bed_regions:
-        return None
-    try:
-        import pysam
-        bam = pysam.AlignmentFile(bam_path, "rb")
-        thresholds = [1, 10, 20, 50, 100]
-        covered_bases = {t: 0 for t in thresholds}
-        total_bed_bases = 0
-        n_pileup = 0
-
-        for chrom, start, end in bed_regions:
-            total_bed_bases += end - start
-            for pileup_column in bam.pileup(chrom, start, end, truncate=True,
-                                             min_base_quality=0,
-                                             stepper="all"):
-                depth = pileup_column.nsegments
-                for t in thresholds:
-                    if depth >= t:
-                        covered_bases[t] += 1
-                n_pileup += 1
-                if n_pileup >= max_pileup_rows:
-                    break
-            if n_pileup >= max_pileup_rows:
-                break
-
-        bam.close()
-
-        if total_bed_bases == 0:
-            return None
-
-        return {
-            "cov_1x_pct": round(100 * covered_bases[1] / total_bed_bases, 2),
-            "cov_10x_pct": round(100 * covered_bases[10] / total_bed_bases, 2),
-            "cov_20x_pct": round(100 * covered_bases[20] / total_bed_bases, 2),
-            "cov_50x_pct": round(100 * covered_bases[50] / total_bed_bases, 2),
-            "cov_100x_pct": round(100 * covered_bases[100] / total_bed_bases, 2),
-        }
-    except Exception as e:
-        print(f"  [BAM STATS] Error computing coverage bins for {bam_path}: {e}")
-        return None
-
-
-def _compute_bam_stats_pysam(bam_path: str, bed_total: int = 0,
-                             bed_regions: list[tuple[str, int, int]] | None = None) -> dict[str, Any] | None:
-    """Compute BAM statistics using pysam (Python fallback)."""
-    if not HAS_PYSAM:
-        return None
-
-    try:
-        bam = pysam.AlignmentFile(bam_path, "rb")
-
-        total_reads = 0
-        mapped_reads = 0
-        total_mapq = 0
-        total_insert = 0
-        insert_count = 0
-        total_length = 0
-        on_target_bases = 0
-
-        # Reference lengths for coverage estimation — use BED total for WES,
-        # otherwise use BAM header reference lengths (whole-genome).
-        ref_lengths = bed_total if bed_total > 0 else (sum(bam.lengths) if bam.lengths else 1)
-
-        # Build per-chromosome BED interval index for on-target check
-        bed_index: dict[str, list[tuple[int, int]]] = {}
-        if bed_regions:
-            for chrom, start, end in bed_regions:
-                bed_index.setdefault(chrom, []).append((start, end))
-
-        for read in bam.fetch():
-            total_reads += 1
-            if not read.is_unmapped:
-                mapped_reads += 1
-                total_mapq += read.mapping_quality
-                read_len = read.query_length or 0
-                total_length += read_len
-                # Insert size: only count properly paired reads (TLEN can be
-                # arbitrarily large for supplementary/improper pairs)
-                if (read.is_proper_pair and not read.is_supplementary
-                    and not read.is_secondary
-                    and read.template_length and read.template_length > 0):
-                    total_insert += read.template_length
-                    insert_count += 1
-
-                # On-target check for WES coverage accuracy
-                if bed_index:
-                    chrom = read.reference_name
-                    if chrom in bed_index:
-                        read_start = read.reference_start
-                        read_end = read.reference_end or (read_start + read_len)
-                        for int_start, int_end in bed_index[chrom]:
-                            if read_start < int_end and read_end > int_start:
-                                overlap_start = max(read_start, int_start)
-                                overlap_end = min(read_end, int_end)
-                                if overlap_end > overlap_start:
-                                    on_target_bases += overlap_end - overlap_start
-                                break  # one interval is enough per read
-
-        bam.close()
-
-        if total_reads == 0:
-            return None
-
-        mapping_rate = mapped_reads / total_reads * 100 if total_reads > 0 else 0
-        mean_mapq = total_mapq / mapped_reads if mapped_reads > 0 else 0
-        mean_insert = total_insert / insert_count if insert_count > 0 else 0
-        coverage_bases = on_target_bases if bed_regions else total_length
-        mean_coverage = coverage_bases / ref_lengths if coverage_bases > 0 else 0
-
-        result = {
-            "total_reads": total_reads,
-            "mapped_reads": mapped_reads,
-            "mapping_rate_pct": round(mapping_rate, 2),
-            "mean_coverage": round(mean_coverage, 4),
-            "mean_insert_size": round(mean_insert, 1),
-            "mean_mapq": round(mean_mapq, 1),
-        }
-
-        # Section 4: New expanded metrics
-        result["duplication_rate_pct"] = _compute_duplication_rate(bam_path)
-        result["properly_paired_pct"] = _compute_properly_paired_pct(bam_path)
-        result["insert_size_stddev"] = _compute_insert_size_stddev(bam_path)
-
-        cov_bins = _compute_coverage_bins(bed_regions, bam_path)
-        if cov_bins:
-            result.update(cov_bins)
-        else:
-            result["cov_1x_pct"] = None
-            result["cov_10x_pct"] = None
-            result["cov_20x_pct"] = None
-            result["cov_50x_pct"] = None
-            result["cov_100x_pct"] = None
-
-        return result
-    except Exception as e:
-        print(f"  [BAM STATS] Error reading {bam_path}: {e}")
-        return None
 
 
 def _compute_bam_stats_rust(bam_path: str,
@@ -478,6 +194,9 @@ def _compute_bam_stats_rust(bam_path: str,
             "mean_coverage": round(raw["mean_coverage"], 4),
             "mean_insert_size": round(raw["mean_insert_size"], 1),
             "mean_mapq": round(raw["mean_mapq"], 1),
+            "duplication_rate_pct": round(raw["duplication_rate_pct"], 2),
+            "properly_paired_pct": round(raw["properly_paired_pct"], 2),
+            "insert_size_stddev": round(raw["insert_size_stddev"], 1),
         }
     except Exception as e:
         print(f"  [BAM STATS] Rust error on {bam_path}: {e}")
@@ -486,21 +205,19 @@ def _compute_bam_stats_rust(bam_path: str,
 
 def compute_bam_stats(bam_path: str, bed_total: int = 0,
                      bed_regions: list[tuple[str, int, int]] | None = None) -> dict[str, Any] | None:
-    """Compute basic statistics from a BAM file.
-
-    Uses Rust stats_core when available (faster), falls back to pysam.
+    """Compute statistics from a BAM file using the Rust stats_core backend.
 
     Args:
         bam_path: Path to the BAM file.
         bed_total: Total length of BED regions (for WES coverage denominator).
                    When > 0, used as coverage denominator instead of whole-genome
                    reference lengths. Default 0 = whole-genome.
-        bed_regions: Merged BED regions [(chrom, start, end), ...] for on-target
+        bed_regions: BED regions [(chrom, start, end), ...] for on-target
                      coverage. When provided, only bases overlapping BED regions
                      are counted toward coverage. Default None = whole-genome.
 
     Returns dict with: total_reads, mapped_reads, mapping_rate_pct,
-    mean_coverage, mean_insert_size, mean_mapq, plus new expanded metrics:
+    mean_coverage, mean_insert_size, mean_mapq,
     duplication_rate_pct, properly_paired_pct, insert_size_stddev,
     cov_1x_pct, cov_10x_pct, cov_20x_pct, cov_50x_pct, cov_100x_pct.
     Returns None if BAM is unreadable.
@@ -508,63 +225,58 @@ def compute_bam_stats(bam_path: str, bed_total: int = 0,
     if not bam_path or not os.path.isfile(bam_path):
         return None
 
-    # NOTE: When adding new BAM metrics, implement in stats_core/src/bam.rs
-    # BEFORE adding pysam fallback. The pysam path is ~100x slower for
-    # full-BAM scans (iterates every read via Python/C-htslib overhead).
-    if HAS_RUST_BAM:
-        has_bed = bool(bed_regions)
-        if has_bed:
-            print(f"  [BAM STATS] Using Rust bam_stats_bed ({len(bed_regions)} regions, bed_total={bed_total})")
-        result = _compute_bam_stats_rust(bam_path, bed_regions)
-        if result is not None:
-            # When bed_regions provided, Rust already computes on-target coverage.
-            # No post-hoc recalculation needed.
-            if not bed_regions and bed_total > 0:
-                # Legacy path: no BED regions but BED total provided.
-                # Recalculate using WES denominator (kept for backwards compat).
-                bam_ref = _get_bam_ref_total(bam_path)
-                if bam_ref > 0 and result.get("mean_coverage"):
-                    result["mean_coverage"] = round(
-                        result["mean_coverage"] * (bam_ref / bed_total), 4
-                    )
+    has_bed = bool(bed_regions)
+    if has_bed:
+        print(f"  [BAM STATS] Using Rust bam_stats_bed ({len(bed_regions)} regions, bed_total={bed_total})")
+    result = _compute_bam_stats_rust(bam_path, bed_regions)
+    if result is None:
+        print(f"  [BAM STATS] Rust failed for {bam_path}")
+        return None
 
-            # Expanded metrics from Rust backend (computed in single-pass scan)
-            result["duplication_rate_pct"] = result.get("duplication_rate_pct")
-            result["properly_paired_pct"] = result.get("properly_paired_pct")
-            result["insert_size_stddev"] = result.get("insert_size_stddev")
-
-            # Coverage bins via dedicated Rust function
-            try:
-                import stats_core
-                cov_bins = stats_core.coverage_bins(bam_path, bed_regions)
-                if cov_bins is not None:
-                    result.update(cov_bins)
-                else:
-                    result["cov_1x_pct"] = None
-                    result["cov_10x_pct"] = None
-                    result["cov_20x_pct"] = None
-                    result["cov_50x_pct"] = None
-                    result["cov_100x_pct"] = None
-            except Exception:
+    # Coverage bins via dedicated Rust function
+    if bed_regions:
+        try:
+            cov_bins = stats_core.coverage_bins(bam_path, bed_regions)
+            if cov_bins is not None:
+                result.update(cov_bins)
+            else:
                 result["cov_1x_pct"] = None
                 result["cov_10x_pct"] = None
                 result["cov_20x_pct"] = None
                 result["cov_50x_pct"] = None
                 result["cov_100x_pct"] = None
+        except TypeError as e:
+            print(f"  [BAM STATS] coverage_bins type error for {bam_path}: {e}")
+            result["cov_1x_pct"] = None
+            result["cov_10x_pct"] = None
+            result["cov_20x_pct"] = None
+            result["cov_50x_pct"] = None
+            result["cov_100x_pct"] = None
+        except RuntimeError as e:
+            print(f"  [BAM STATS] coverage_bins Rust error for {bam_path}: {e}")
+            result["cov_1x_pct"] = None
+            result["cov_10x_pct"] = None
+            result["cov_20x_pct"] = None
+            result["cov_50x_pct"] = None
+            result["cov_100x_pct"] = None
+        except OSError as e:
+            print(f"  [BAM STATS] coverage_bins file error for {bam_path}: {e}")
+            result["cov_1x_pct"] = None
+            result["cov_10x_pct"] = None
+            result["cov_20x_pct"] = None
+            result["cov_50x_pct"] = None
+            result["cov_100x_pct"] = None
+    else:
+        result["cov_1x_pct"] = None
+        result["cov_10x_pct"] = None
+        result["cov_20x_pct"] = None
+        result["cov_50x_pct"] = None
+        result["cov_100x_pct"] = None
 
-            # Diagnostic: show path taken + coverage value
-            mode = "BED" if bed_regions else "WG"
-            cov = result.get("mean_coverage", "N/A")
-            print(f"  [BAM STATS] mode={mode} mean_coverage={cov}")
-            return result
-        # Fall through to pysam on Rust failure
-        print(f"  [BAM STATS] Rust failed for {bam_path}, falling back to pysam")
-
-    result = _compute_bam_stats_pysam(bam_path, bed_total, bed_regions)
-    if result:
-        mode = "BED" if bed_regions else "WG"
-        cov = result.get("mean_coverage", "N/A")
-        print(f"  [BAM STATS] mode={mode} (pysam) mean_coverage={cov}")
+    # Diagnostic: show path taken + coverage value
+    mode = "BED" if bed_regions else "WG"
+    cov = result.get("mean_coverage", "N/A")
+    print(f"  [BAM STATS] mode={mode} mean_coverage={cov}")
     return result
 
 
@@ -656,7 +368,7 @@ def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8, bed_t
                    When > 0, passed through to compute_bam_stats for coverage
                    recalculation. Default 0 = whole-genome.
         bed_regions: Merged BED regions [(chrom, start, end), ...] for on-target
-                     coverage calculation. Passed to Rust/pysam for accurate WES
+                     coverage calculation. Passed to Rust for accurate WES
                      coverage. Default None = whole-genome.
 
     Returns:
@@ -665,8 +377,7 @@ def compute_all_bam_stats(manifest_rows: list[dict], max_workers: int = 8, bed_t
     all_rows = []
 
     if max_workers > 1 and len(manifest_rows) > 1:
-        # Parallel BAM processing via ThreadPoolExecutor (threads, safe with htslib
-        # even when using pysam fallback — threads share the htslib state safely)
+        # Parallel BAM processing via ThreadPoolExecutor (threads safe with htslib)
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {}
             for row in manifest_rows:

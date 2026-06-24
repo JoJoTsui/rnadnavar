@@ -20,7 +20,6 @@ from typing import Any
 
 import numpy as np
 import polars as pl
-from cyvcf2 import VCF
 
 from .manifest_loader import CALLER_CONFIGS, _find_vcf_file
 
@@ -43,7 +42,7 @@ CALLERS_WITH_PRECOMPUTED_VAF = {
 CALLERS_STRELKA = {"DNA_strelka", "RNA_strelka"}
 
 
-def _find_sample_index(vcf: VCF, sample_suffix: str) -> int:
+def _find_sample_index(vcf, sample_suffix: str) -> int:
     """Find the sample index in a VCF by suffix matching."""
     for i, name in enumerate(vcf.samples):
         if name.endswith(sample_suffix) or name == sample_suffix:
@@ -276,34 +275,34 @@ def _parse_one_caller(
     if HAS_RUST_CALLER and target_positions:
         # Use Rust parser with 4-tuple target positions.
         # Returns column-oriented data directly — no intermediate lookup dict.
-        try:
-            sample = next(iter(target_positions))
-            if len(sample) >= 4:
-                chroms = [t[0] for t in target_positions]
-                poss = [t[1] for t in target_positions]
-                refs = [t[2] for t in target_positions]
-                alts = [t[3] for t in target_positions]
+        sample = next(iter(target_positions))
+        if len(sample) >= 4:
+            chroms = [t[0] for t in target_positions]
+            poss = [t[1] for t in target_positions]
+            refs = [t[2] for t in target_positions]
+            alts = [t[3] for t in target_positions]
+            try:
                 result = stats_core.parse_caller_vcf(
                     vcf_path, chroms, poss, refs, alts,
                     cfg["sample_suffix"], caller_name,
                 )
-                n_found = len(result.get("CHROM", []))
-                print(f"    [{caller_name}] found {n_found} variants (Rust, column-oriented)")
-                return (caller_name, result)  # column-oriented: {col: [vals]}
-        except Exception as e:
-            print(f"    [{caller_name}] Rust parser failed ({e}), falling back to cyvcf2")
+            except Exception as e:
+                raise RuntimeError(
+                    f"Rust caller parser failed for {caller_name} ({vcf_path}): {e}. "
+                    "cyvcf2 fallback has been removed — the Rust parser is required."
+                ) from e
+            n_found = len(result.get("CHROM", []))
+            print(f"    [{caller_name}] found {n_found} variants (Rust, column-oriented)")
+            return (caller_name, result)  # column-oriented: {col: [vals]}
 
-    # Python fallback: use 2-tuple positions for cyvcf2
-    pos2 = {(t[0], t[1]) for t in target_positions}
-    result = parse_single_caller(
-        vcf_path, pos2, cfg["sample_suffix"], caller_name
-    )
-    # Convert to column-oriented via build_caller_results_lookup (needed for cyvcf2 compat)
-    lookup = build_caller_results_lookup(result)
-    # Convert lookup back to column-oriented for consistent return type
-    cols = _lookup_to_columns(lookup)
-    print(f"    [{caller_name}] found {len(cols.get('CHROM', []))} variants")
-    return (caller_name, cols)
+    # No 4-tuple positions or Rust unavailable — cannot parse
+    if not HAS_RUST_CALLER:
+        raise ImportError(
+            "Rust caller parser (stats_core.parse_caller_vcf) is required but not available. "
+            "Build the Rust module: cd bin/vcf_stats/seq2neo/stats_core && ./build_rust.sh"
+        )
+    print(f"    [{caller_name}] no 4-tuple target positions, skipping")
+    return (caller_name, {})
 
 
 def _lookup_to_columns(lookup: dict) -> dict[str, list]:

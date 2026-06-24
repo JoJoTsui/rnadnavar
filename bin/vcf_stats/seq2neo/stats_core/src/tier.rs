@@ -176,8 +176,8 @@ pub fn compute_tier(
     gnomad_af: Option<f64>,
     cosmic_cnt: Option<i64>,
     redi_evidence: Option<&str>,
-    dna_support: Option<i64>,
-    rna_support: Option<i64>,
+    _dna_support: Option<i64>,
+    _rna_support: Option<i64>,
     info_dict: &HashMap<String, String>,
 ) -> TierResult {
     let final_filter = if final_filter.is_empty() || final_filter == "." { "PASS" } else { final_filter };
@@ -193,13 +193,13 @@ pub fn compute_tier(
     }
 
     // Count concordant callers
-    let (mut dna_count, mut rna_count) = count_concordant_callers(final_filter, &filter_normalized);
+    let (dna_count, rna_count) = count_concordant_callers(final_filter, &filter_normalized);
 
-    // If no concordant callers found via FILTERS_NORMALIZED, use fallback counts
-    if dna_count == 0 && rna_count == 0 {
-        dna_count = dna_support.unwrap_or(0);
-        rna_count = rna_support.unwrap_or(0);
-    }
+    // When no concordant callers are found, return C7 (not a fallback to raw counts).
+    // This correctly handles RNAedit variants (assigned by REDIportal annotation, not by
+    // callers) and unclassified variants. The Python TieringEngine has the same behavior.
+    // Previously, the code fell back to raw N_DNA/RNA_CALLERS_SUPPORT, which misassigned
+    // 598K RNAedit variants to C3 instead of C7.
 
     // Database tier
     let db_support = has_database_support(gnomad_af, cosmic_cnt, redi_evidence, info_dict);

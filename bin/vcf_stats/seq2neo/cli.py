@@ -67,7 +67,6 @@ from .bam_stats import compute_all_bam_stats, read_and_merge_bed
 from .bam_validation import validate_bam_vs_caller as validate_bam_one
 from .caller_parser import _parse_one_caller, CALLERS_STRELKA, CALLERS_WITH_GT, parse_pre_norm_multiallelic
 from .manifest_loader import CALLER_CONFIGS, filter_complete, load_manifest, get_pre_norm_vcf_path
-from .rescue_parser import parse_rescue_vcf as _py_parse_rescue
 from .rust_vcf import parse_rescue_vcf as _rust_parse_rescue
 from .rescue_validator import validate_all_samples, validate_sample, validation_summary
 from .rust_bam import pileup_variants, pileup_variants_multi
@@ -265,8 +264,8 @@ def build_unified_filter(args, combined_df_columns: set) -> pl.Expr | None:
 
     # ── --exclude-multiallelic-conflict ───────────────────────────────────
     if args.exclude_multiallelic_conflict:
-        if "flag_vaf_overflow" in combined_df_columns:
-            keep_expr = keep_expr & ~pl.col("flag_vaf_overflow")
+        if "flag_category_conflict" in combined_df_columns:
+            keep_expr = keep_expr & ~pl.col("flag_category_conflict")
 
     return keep_expr
 
@@ -425,9 +424,8 @@ def process_single_sample(row: dict, max_workers: int = 1, use_rust: bool = True
     dir_name = row["dir_name"]
     vcf_prefix = row["vcf_prefix"]
 
-    parse_fn = _rust_parse_rescue if use_rust else _py_parse_rescue
-    print(f"  [{sample_id}] Parsing rescue VCF ({'rust' if use_rust else 'python'})...")
-    rescue_df = parse_fn(rescue_path)
+    print(f"  [{sample_id}] Parsing rescue VCF (rust)...")
+    rescue_df = _rust_parse_rescue(rescue_path)
     if rescue_df.is_empty():
         print(f"  [{sample_id}] WARNING: No variants in rescue VCF — sample SKIPPED")
         return {"sample_id": sample_id, "df": None, "stats": None}
@@ -781,10 +779,16 @@ def main():
                         help="Maximum gnomAD AF threshold. Variants with GNOMAD_AF above this are excluded. "
                              "NULL GNOMAD_AF values pass through (no gnomAD entry = not excluded).")
     parser.add_argument("--exclude-multiallelic-conflict", action="store_true",
-                        help="Exclude variants where vaf_sum > 1.1 (flag_vaf_overflow). "
-                             "These are likely multiallelic sites with conflicting allele assignments.")
+                        help="Exclude variants at multi-allelic sites with category conflicts "
+                             "(flag_category_conflict). These are positions where different "
+                             "callers assigned different biological FILTER categories.")
     parser.add_argument("--no-filter", action="store_true",
                         help="Disable the entire unified filter pipeline. All variants pass through unfiltered.")
+    parser.add_argument("--no-hard-filter", action="store_true",
+                        help="Disable Stage 0 hard exclusions (auto-drop of false variants). "
+                             "Variants will still receive soft flags and confidence tiers.")
+    parser.add_argument("--confidence-tier", choices=["high", "medium", "low"], default=None,
+                        help="Filter output to only the specified confidence tier.")
     parser.add_argument("--no-pre-norm", action="store_true",
                         help="Skip pre-decomposition caller VCF parsing (for environments "
                              "where variant_calling/ VCFs are unavailable).")
@@ -798,8 +802,6 @@ def main():
     parser.add_argument("--bam-workers", type=int, default=8,
                         help="Threads for parallel BAM stats processing (default: 8). "
                              "Uses ThreadPoolExecutor (safe with htslib).")
-    parser.add_argument("--parser", choices=["rust", "python"], default="rust",
-                        help="VCF parser: rust (default) or python (cyvcf2 fallback)")
     parser.add_argument("--wise", nargs="*", default=None, metavar="WISE",
                         help="Generate specific wise summaries and charts (space-separated). "
                              "Choices: set, disease, sample, tier, caller, chromosome, threshold. "
@@ -866,14 +868,14 @@ def main():
         print("No samples to process.")
         sys.exit(0)
 
-    use_rust = args.parser == "rust"
+    use_rust = True  # Rust parser is the only backend (cyvcf2 removed)
 
     # Determine process mode (used by print below and execution logic below)
     process_mode = args.process_mode
     if process_mode is None:
         process_mode = "spawn" if args.sample_workers > 1 else "thread"
 
-    print(f"Processing {len(manifest)} samples (parser={args.parser}, caller_threads={args.threads}, sample_workers={args.sample_workers}, bam_workers={args.bam_workers}, process_mode={process_mode})")
+    print(f"Processing {len(manifest)} samples (parser=rust, caller_threads={args.threads}, sample_workers={args.sample_workers}, bam_workers={args.bam_workers}, process_mode={process_mode})")
     if len(manifest) > 20 and not args.no_validate:
         print("NOTE: >20 samples with validation enabled may be slow due to BAM pileup.")
         print("      Consider --no-validate for initial runs, then validate separately.")
@@ -1096,7 +1098,9 @@ def main():
         sys.exit(1)
 
     # ── Lazy scan across all per-sample parquet files ──────────────────────
-    combined_df = pl.scan_parquet(str(variant_dir / "*_variants.parquet"))
+    # Use extra_columns='ignore' to handle schema drift when new columns are
+    # added to compute_biological_flags (e.g., category_conflict_resolution)
+    combined_df = pl.scan_parquet(str(variant_dir / "*_variants.parquet"), extra_columns="ignore")
 
     # ── Repair Strelka TAR/TIR inversion in old parquet files ────────────
     # Old parquet has AD_ALT == TAR (ref counts) instead of TIR (alt counts).
@@ -1121,6 +1125,15 @@ def main():
     # Build the filter expression once, evaluate it, and keep only passing rows.
     combined_df_cols = set(combined_df.collect_schema().names())
     filter_expr = build_unified_filter(args, combined_df_cols)
+
+    # Compute cross-sample recurrence before filtering (needs all samples)
+    if "CHROM" in combined_df_cols and "POS" in combined_df_cols:
+        if "REF" in combined_df_cols and "ALT" in combined_df_cols:
+            combined_df = combined_df.with_columns(
+                pl.len().over(["CHROM", "POS", "REF", "ALT"]).alias("n_recurrent_samples")
+            )
+            print("Computed n_recurrent_samples (cross-sample recurrence)")
+
     if filter_expr is not None:
         n_before = combined_df.select(pl.len()).collect().item()
         combined_df = combined_df.filter(filter_expr)
@@ -1128,6 +1141,58 @@ def main():
         if n_before != n_after:
             print(f"Unified filter: {n_before} → {n_after} variants "
                   f"({n_before - n_after} excluded)")
+
+    # Stage 0 hard exclusions (auto-drop false variants)
+    if not args.no_hard_filter:
+        from .statistics import build_hard_filter_expr
+        hard_expr = build_hard_filter_expr(combined_df.collect_schema().names())
+        if hard_expr is not None:
+            n_before_hard = combined_df.select(pl.len()).collect().item()
+            combined_df = combined_df.filter(~hard_expr)
+            n_after_hard = combined_df.select(pl.len()).collect().item()
+            if n_before_hard != n_after_hard:
+                print(f"Hard filter (Stage 0): {n_before_hard} → {n_after_hard} variants "
+                      f"({n_before_hard - n_after_hard} dropped)")
+
+    # Stage 1+2: compute soft flags and confidence tiers
+    from .statistics import compute_confidence_tier, compute_soft_flags
+    combined_df_cols = set(combined_df.collect_schema().names())
+    if "confidence_tier" not in combined_df_cols:
+        # Collect, compute confidence/soft flags, then re-scan
+        combined_eager = combined_df.collect()
+        combined_eager = compute_confidence_tier(combined_eager)
+        combined_eager = compute_soft_flags(combined_eager)
+        # Write confidence tier summary
+        from .statistics import write_tsv as _write_tsv
+        ct_summary = combined_eager.group_by(["confidence_tier", "FILTER"]).agg(
+            pl.len().alias("count")
+        ).sort(["confidence_tier", "FILTER"])
+        if not ct_summary.is_empty():
+            _write_tsv(ct_summary, str(output_dir / "confidence_tier_summary.tsv"))
+            print(f"Confidence tier summary: {output_dir / 'confidence_tier_summary.tsv'}")
+        # Replace combined_df with the enriched version
+        combined_df = pl.scan_parquet(variant_dir / "*_variants.parquet", extra_columns="ignore")
+        # Re-apply filters on the new scan
+        combined_df_cols = set(combined_df.collect_schema().names())
+        new_filter = build_unified_filter(args, combined_df_cols)
+        if new_filter is not None:
+            combined_df = combined_df.filter(new_filter)
+        # Add n_recurrent_samples again
+        if all(c in combined_df_cols for c in ["CHROM", "POS", "REF", "ALT"]):
+            combined_df = combined_df.with_columns(
+                pl.len().over(["CHROM", "POS", "REF", "ALT"]).alias("n_recurrent_samples")
+            )
+        # Re-apply hard filter
+        if not args.no_hard_filter:
+            hard_expr2 = build_hard_filter_expr(combined_df.collect_schema().names())
+            if hard_expr2 is not None:
+                combined_df = combined_df.filter(~hard_expr2)
+        # Join confidence_tier and soft_flags from the eager computation
+        ct_lookup = combined_eager.select(["sample_id", "CHROM", "POS", "confidence_tier", "soft_flags"])
+        # Note: This is a best-effort approach; for production, confidence_tier should be
+        # computed at per-sample parquet write time and stored in the parquet.
+        # For now, we use the eager version for statistics.
+        combined_df = combined_eager.lazy()
 
     print(f"Variant details: {variant_dir}/ (lazy scan, {total_variants} variants across {len(rows)} samples)")
 
@@ -1196,12 +1261,25 @@ def main():
             print(f"Sample-tier summary: {output_dir / 'sample_tier_summary.tsv'}")
         _mem("after sample_tier_summary")
 
-    # Caller overlap
-    from .statistics import caller_overlap_distribution
-    overlap_df = caller_overlap_distribution(combined_df)
-    if not overlap_df.is_empty():
-        write_tsv(overlap_df, str(output_dir / "caller_overlap.tsv"))
-    _mem("after caller_overlap")
+    # Tier distribution (renamed from caller_overlap.tsv — it contains tier counts)
+    from .statistics import caller_overlap_distribution, caller_overlap_matrix, caller_support_distribution
+    tier_dist_df = caller_overlap_distribution(combined_df)
+    if not tier_dist_df.is_empty():
+        write_tsv(tier_dist_df, str(output_dir / "tier_distribution.tsv"))
+        print(f"Tier distribution: {output_dir / 'tier_distribution.tsv'}")
+
+    # Caller overlap matrix (pairwise co-occurrence)
+    overlap_matrix_df = caller_overlap_matrix(combined_df)
+    if not overlap_matrix_df.is_empty():
+        write_tsv(overlap_matrix_df, str(output_dir / "caller_overlap_matrix.tsv"))
+        print(f"Caller overlap matrix: {output_dir / 'caller_overlap_matrix.tsv'}")
+
+    # Caller support distribution (histogram of N_SUPPORT_CALLERS)
+    support_dist_df = caller_support_distribution(combined_df)
+    if not support_dist_df.is_empty():
+        write_tsv(support_dist_df, str(output_dir / "caller_support_distribution.tsv"))
+        print(f"Caller support distribution: {output_dir / 'caller_support_distribution.tsv'}")
+    _mem("after caller overlap/distribution")
 
     # Filter distribution
     from .statistics import filter_distribution, variant_type_distribution, vc_distribution
