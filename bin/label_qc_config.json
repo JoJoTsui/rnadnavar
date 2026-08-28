@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "variant_rules": {
+    "target_filter": "Somatic",
+    "conflict_filters": ["Germline", "Reference"],
+    "dna_prefix": "DNA_",
+    "gnomad_af_fields": ["GNOMAD_AF", "MAX_AF", "AF_popmax", "AF_POPMAX", "gnomAD_AF", "gnomad_AF", "AF_gnomad"],
+    "cosmic_id_fields": ["COSMIC_ID", "COSMIC_IDS"],
+    "R1": {"enabled": true, "af_common": 0.001, "af_strong": 0.01},
+    "R2": {"enabled": true},
+    "R3": {"enabled": true},
+    "R4": {"enabled": true},
+    "R6": {"enabled": true, "contradict_unified": ["Reference", "Germline"]},
+    "R7": {"enabled": true, "evidence_levels": ["VERY_HIGH", "HIGH"], "require_canonical": false},
+    "R8": {"enabled": true, "window_bp": 100, "min_records": 3},
+    "R9": {"enabled": true, "max_support_callers": 1},
+    "mid_relabel_to": "Germline"
+  },
+  "sample_gates": {
+    "min_cohort_for_outliers": 5,
+    "min_mad": 1.0,
+    "S0_flag_burden": {"enabled": true, "warn": 0.15, "fail": 0.50, "min_somatic": 20},
+    "S1_count_outlier": {"enabled": true, "z_warn": 4.0, "z_fail": 6.0, "abs_warn": 4000, "abs_fail": 6000},
+    "S2_contradiction": {"enabled": true, "warn": 0.05, "fail": 0.20},
+    "S3_rna_only": {"enabled": true, "warn": 0.05, "fail": 0.20},
+    "S4_normal_contamination": {"enabled": false, "tier": "B"},
+    "S5_modality": {"enabled": true, "fail_floor": 0.0, "z_warn": 4.0},
+    "S6_spectrum": {"enabled": true, "min_snvs": 20, "ti_tv_min": 0.3, "ti_tv_max": 5.0, "indel_frac_max": 0.5, "het_vaf_lo": 0.35, "het_vaf_hi": 0.65, "het_vaf_frac_max": 0.5, "caller_share_max": 0.95},
+    "S7_coverage": {"enabled": true, "dp_floor": 10, "low_dp_frac_max": 0.3, "min_dp_records": 20},
+    "S8_strand_bias": {"enabled": false, "tier": "B", "warn": 0.2, "min_sites": 20}
+  },
+  "tier_b": {
+    "enabled": false,
+    "samtools": "samtools",
+    "min_mapq": 0,
+    "min_baseq": 0,
+    "timeout_sec": 7200,
+    "normal_contamination": {
+      "enabled": true,
+      "alt_vaf_min": 0.05,
+      "warn_fraction": 0.2,
+      "fail_fraction": 0.5,
+      "min_sites": 20,
+      "min_normal_dp": 5
+    },
+    "strand_bias": {
+      "enabled": true,
+      "min_alt_reads": 4,
+      "max_strand_share": 0.9,
+      "min_sites": 20
+    }
+  }
+}
