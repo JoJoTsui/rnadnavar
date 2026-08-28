@@ -97,30 +97,132 @@ def is_ig_pseudo(biotype):
     return any(pattern in biotype for pattern in ig_pseudo_patterns)
 
 
+# Common gnomAD AF INFO field names, matched case-insensitively.
+# 'GNOMAD_AF' (uppercase) is what gnomad_annotator.py writes via
+# bcftools annotate -c INFO/GNOMAD_AF:=INFO/AF; the rest are historical aliases.
+GNOMAD_AF_FIELDS = ['MAX_AF', 'gnomAD_AF', 'AF_gnomad', 'gnomad_AF', 'GNOMAD_AF']
+
+
 def get_gnomad_af(variant, use_cyvcf2=False):
     """
     Extract maximum gnomAD allele frequency from INFO field.
-    
+
+    Field names are matched case-insensitively against GNOMAD_AF_FIELDS.
+    Single-element tuple/list values (pysam Number=A fields) are unwrapped.
+
     Args:
         variant: Variant object (cyvcf2 or pysam)
         use_cyvcf2: If True, variant is cyvcf2.Variant, else pysam.VariantRecord
-    
+
     Returns:
         float: Maximum gnomAD AF, or 0.0 if not found
     """
-    # Try common gnomAD field names
-    for field in ['MAX_AF', 'gnomAD_AF', 'AF_gnomad', 'gnomad_AF']:
+    info = variant.INFO if use_cyvcf2 else variant.info
+    try:
+        # cyvcf2 INFO iterates as (key, value) pairs; pysam info iterates keys
+        names = [key for key, _ in info] if use_cyvcf2 else list(info)
+    except TypeError:
+        return 0.0
+    names_by_lower = {name.lower(): name for name in names}
+
+    for field in GNOMAD_AF_FIELDS:
+        actual_name = names_by_lower.get(field.lower())
+        if actual_name is None:
+            continue
         try:
-            if use_cyvcf2:
-                value = variant.INFO.get(field)
-            else:
-                value = variant.info.get(field)
-            
-            if value is not None:
-                return float(value)
+            value = info.get(actual_name)
         except (ValueError, TypeError, KeyError):
-            pass
+            continue
+        if isinstance(value, (tuple, list)):
+            value = value[0] if value else None
+        if value is not None:
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                pass
     return 0.0
+
+
+# Biological-class FILTER values written by the consensus/rescue stages.
+# These are biological labels (the pipeline's label contract), not caller
+# rejection filters, so they must not trip the vc_filter check.
+BIOLOGICAL_CLASS_FILTERS = frozenset(
+    ["Somatic", "Germline", "Reference", "Artifact", "NoConsensus", "RNAedit"]
+)
+
+
+def get_tumor_alt_count(variant, use_cyvcf2=False):
+    """
+    Best available tumor alt-read count for a variant.
+
+    Consensus/rescue VCFs written by write_union_vcf have no FORMAT column;
+    they carry per-caller tumor alt counts in INFO (ALT_COUNT_BY_CALLER and
+    ALT_COUNT_MAX), extracted from the tumor sample of each caller VCF. The
+    min_alt_reads rule uses the MAXIMUM tumor alt count across callers: a
+    record has alt support if at least one caller saw enough tumor alt reads
+    (mirrors the consensus semantics where one strong caller suffices).
+    FORMAT/AD of the first sample is only a fallback for VCFs that genuinely
+    have it (e.g. raw caller VCFs).
+
+    Args:
+        variant: Variant object (cyvcf2 or pysam)
+        use_cyvcf2: If True, variant is cyvcf2.Variant, else pysam.VariantRecord
+
+    Returns:
+        int: Tumor alt-read count, or 0 if no evidence is available
+    """
+    info = variant.INFO if use_cyvcf2 else variant.info
+
+    def info_get(key):
+        try:
+            return info.get(key)
+        except (KeyError, ValueError, TypeError):
+            return None
+
+    # 1. Consensus aggregate INFO: ALT_COUNT_MAX
+    alt_max = info_get("ALT_COUNT_MAX")
+    if isinstance(alt_max, (tuple, list)):
+        alt_max = alt_max[0] if alt_max else None
+    if alt_max is not None:
+        try:
+            return int(alt_max)
+        except (ValueError, TypeError):
+            pass
+
+    # 2. Consensus per-caller INFO: ALT_COUNT_BY_CALLER ("caller:count|...")
+    by_caller = info_get("ALT_COUNT_BY_CALLER")
+    if isinstance(by_caller, (tuple, list)):
+        by_caller = by_caller[0] if by_caller else None
+    if by_caller:
+        counts = []
+        for entry in str(by_caller).split("|"):
+            if ":" not in entry:
+                continue
+            _, value = entry.rsplit(":", 1)
+            try:
+                counts.append(int(value))
+            except (ValueError, TypeError):
+                continue
+        if counts:
+            return max(counts)
+
+    # 3. Fallback: FORMAT/AD of the first sample (raw caller VCFs)
+    try:
+        if use_cyvcf2:
+            ad = variant.format("AD")
+            if ad is not None and len(ad) > 0 and len(ad[0]) > 1:
+                return int(ad[0][1])
+        else:
+            if len(variant.samples) > 0:
+                sample = variant.samples[0]
+                if "AD" in sample:
+                    ad = sample["AD"]
+                    if ad and len(ad) > 1:
+                        return int(ad[1])
+    except (KeyError, IndexError, TypeError):
+        pass
+
+    return 0
 
 
 def get_csq_field(variant, field_name, use_cyvcf2=False):
@@ -202,25 +304,11 @@ def apply_ravex_filters(variant, args, genome=None, blacklist_regions=None, use_
             if is_multiallelic(ref, variant.alts):
                 filters.append("multiallelic")
     
-    # Alt read count filter
+    # Alt read count filter. Alt support comes from the consensus per-caller
+    # tumor alt-count INFO when present (consensus VCFs have no FORMAT
+    # column); FORMAT/AD is only a fallback for raw caller VCFs.
     if hasattr(args, 'min_alt_reads'):
-        alt_count = 0
-        try:
-            if use_cyvcf2:
-                ad = variant.format('AD')
-                if ad is not None and len(ad) > 0 and len(ad[0]) > 1:
-                    alt_count = ad[0][1]
-            else:
-                # pysam format
-                if len(variant.samples) > 0:
-                    sample = variant.samples[0]
-                    if 'AD' in sample:
-                        ad = sample['AD']
-                        if ad and len(ad) > 1:
-                            alt_count = ad[1]
-        except (KeyError, IndexError, TypeError):
-            pass
-        
+        alt_count = get_tumor_alt_count(variant, use_cyvcf2=use_cyvcf2)
         if alt_count < args.min_alt_reads:
             filters.append("min_alt_reads")
     

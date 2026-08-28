@@ -26,7 +26,12 @@ from vcf_utils.classification_config import DEFAULT_THRESHOLDS
 from vcf_utils.filters import normalize_filter
 from vcf_utils.io_utils import normalize_chromosome, variant_key
 from vcf_utils.stripped_writer import write_vcf_stripped
-from vcf_utils.unified_filters import is_multiallelic
+from vcf_utils.unified_filters import (
+    BIOLOGICAL_CLASS_FILTERS,
+    get_gnomad_af,
+    get_tumor_alt_count,
+    is_multiallelic,
+)
 
 
 def argparser():
@@ -171,16 +176,8 @@ def is_ig_pseudo(biotype):
 
 
 def get_gnomad_af_cyvcf2(variant):
-    """Extract maximum gnomAD allele frequency from INFO field"""
-    # Try common gnomAD field names
-    for field in ["MAX_AF", "gnomAD_AF", "AF_gnomad", "gnomad_AF"]:
-        try:
-            value = variant.INFO.get(field)
-            if value is not None:
-                return float(value)
-        except (ValueError, TypeError):
-            pass
-    return 0.0
+    """Extract maximum gnomAD allele frequency from INFO field (case-insensitive)"""
+    return get_gnomad_af(variant, use_cyvcf2=True)
 
 
 def get_csq_field_cyvcf2(variant, field_name):
@@ -265,14 +262,10 @@ def apply_filters(vcf_in, args, genome, include_non_canonical=False):
             filtered_variants.append((variant, "PASS", []))
             continue
 
-        # Get alt read count from FORMAT field
-        alt_count = 0
-        try:
-            ad = variant.format("AD")
-            if ad is not None and len(ad) > 0 and len(ad[0]) > 1:
-                alt_count = ad[0][1]
-        except (KeyError, IndexError, TypeError):
-            pass
+        # Get alt read count: consensus VCFs have no FORMAT column and carry
+        # per-caller tumor alt counts in INFO (ALT_COUNT_BY_CALLER /
+        # ALT_COUNT_MAX); FORMAT/AD is only a fallback for raw caller VCFs.
+        alt_count = get_tumor_alt_count(variant, use_cyvcf2=True)
 
         # Apply filters
         if alt_count < args.min_alt_reads:
@@ -305,10 +298,23 @@ def apply_filters(vcf_in, args, genome, include_non_canonical=False):
             if context and filter_homopolymer(context, alt):
                 filters.append("homopolymer")
 
-        # Variant caller filter - use normalize_filter for consistency
+        # Variant caller filter - use normalize_filter for consistency.
+        # Biological-class FILTER values (Somatic/Germline/Reference/Artifact/
+        # NoConsensus/RNAedit) are labels written by the consensus/rescue
+        # stages, not caller rejections, so they never trip vc_filter.
         if variant.FILTER:
             normalized = normalize_filter(variant.FILTER)
-            if normalized != "PASS" and variant.FILTER not in args.filters:
+            filter_values = [
+                f.strip() for f in str(variant.FILTER).split(";") if f.strip()
+            ]
+            is_biological_class = all(
+                f in BIOLOGICAL_CLASS_FILTERS for f in filter_values
+            )
+            if (
+                normalized != "PASS"
+                and not is_biological_class
+                and variant.FILTER not in args.filters
+            ):
                 filters.append("vc_filter")
 
             # Multiallelic filter (multiple ALT alleles)

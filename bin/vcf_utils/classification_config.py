@@ -26,6 +26,10 @@ DEFAULT_THRESHOLDS = {
     # Consensus voting thresholds
     "consensus_snv_threshold": 2,  # Minimum callers for SNV consensus
     "consensus_indel_threshold": 2,  # Minimum callers for indel consensus
+    # Minimum tumor alt reads for a caller's record to count toward consensus
+    # support (audit: a 1-2 alt-read caller PASS must not count as a full
+    # Somatic vote). Applied only when tumor AD evidence exists; 0 disables.
+    "consensus_min_alt_support": 3,
     # Annotation-based reclassification thresholds
     # Note: Maps to Nextflow param cosmic_gnomad_germline_freq_threshold
     "annotation_germline_freq_threshold": 0.001,  # gnomAD AF for germline
@@ -36,6 +40,17 @@ DEFAULT_THRESHOLDS = {
     # Cross-modality thresholds for rescue
     "cross_modality_min_support": 1,  # Min callers per modality
     "cross_modality_min_callers_for_artifact": 2,  # Min callers to declare artifact on disagreement
+    # Cross-modality rescue contract (audit M1/M2, ticket 06)
+    # Promotion: when neither modality has a consensus label and individual
+    # DNA and RNA callers agree on Somatic, rescue the site as Somatic.
+    "rescue_promotion_enabled": True,
+    "rescue_promotion_min_dna_callers": 1,  # Min DNA callers agreeing on Somatic
+    "rescue_promotion_min_rna_callers": 1,  # Min RNA callers agreeing on Somatic
+    # Veto: which modality's Artifact consensus label outranks the other
+    # modality's non-Artifact evidence. "dna" (default): a DNA Artifact label
+    # vetoes RNA-driven overrides; "rna": reverse; "none": legacy behavior
+    # (non-Artifact side with enough callers wins, RNA checked first).
+    "rescue_veto_direction": "dna",
     # RNA editing classification thresholds
     # Note: Maps to Nextflow param min_rna_support
     "rna_editing_min_rna_support": 2,  # Min RNA callers for RNAedit

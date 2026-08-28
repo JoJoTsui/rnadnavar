@@ -128,7 +128,10 @@ Core variant aggregation logic for combining variants from multiple callers and 
 
 **Key Functions:**
 
-- `extract_genotype_info(variant, caller)`: Extract GT, DP, AD, VAF, GQ from a variant
+- `resolve_tumor_sample_index(samples, caller, normal_sample=None)`: Resolve the tumor sample index — Mutect2's `##normal_sample` header (ground truth) takes priority, then name matching, then caller convention (Strelka/Mutect2 list the normal first, DeepSomatic the tumor first)
+
+- `extract_genotype_info(variant, caller, sample_idx=0)`: Extract GT, DP, AD, VAF, GQ from a variant
+  - `sample_idx` should be the tumor sample index from `resolve_tumor_sample_index()`
   - Special handling for Strelka's non-standard format fields
   - Returns dict with genotype information
 
@@ -390,7 +393,7 @@ All consensus VCF files include these INFO fields:
 |-------|------|-------------|
 | N_CALLERS | Integer | Total number of aggregated callers |
 | CALLERS | String | Pipe-separated list of all callers |
-| N_SUPPORT_CALLERS | Integer | Number of callers that detected this variant |
+| N_SUPPORT_CALLERS | Integer | Number of callers whose record counts toward consensus support (caller did not reject the record; tumor alt-read floor applied) |
 | CALLERS_SUPPORT | String | Pipe-separated list of supporting callers |
 | FILTERS_ORIGINAL | String | Original filter values from each caller |
 | FILTERS_NORMALIZED | String | Normalized filter categories |
@@ -405,6 +408,8 @@ All consensus VCF files include these INFO fields:
 | DP_BY_CALLER | String | Pipe-separated depth values |
 | VAF_MEAN/MIN/MAX | Float | VAF statistics |
 | VAF_BY_CALLER | String | Pipe-separated VAF values |
+| ALT_COUNT_BY_CALLER | String | Pipe-separated tumor alt-read counts from each caller |
+| ALT_COUNT_MAX | Integer | Maximum tumor alt-read count across callers |
 
 ### Rescue VCF Additional Fields
 

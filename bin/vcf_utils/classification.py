@@ -444,7 +444,7 @@ def get_unified_filter_headers():
 
 
 def compute_unified_classification_consensus(
-    variant_data, snv_threshold, indel_threshold
+    variant_data, snv_threshold, indel_threshold, with_rationale=False
 ):
     """
     Compute unified biological classification for consensus mode.
@@ -463,9 +463,13 @@ def compute_unified_classification_consensus(
         variant_data (dict): Aggregated variant data with 'callers', 'filters_normalized', 'is_snv'
         snv_threshold (int): SNV consensus threshold
         indel_threshold (int): Indel consensus threshold
+        with_rationale (bool, optional): If True, also return a VCF-INFO-safe
+            rationale string (CLASSIFICATION_RATIONALE, ticket 07) so every
+            FILTER is derivable from the record's own INFO. Default: False
 
     Returns:
-        str: Unified biological classification
+        str: Unified biological classification; or tuple
+            (classification, rationale) when with_rationale=True
     """
     # Create classifier with custom thresholds (lazy import to avoid circular refs)
     from .variant_classifier_unified import UnifiedVariantClassifier
@@ -477,10 +481,17 @@ def compute_unified_classification_consensus(
     classifier = UnifiedVariantClassifier(config)
 
     # Delegate to unified classifier
+    if with_rationale:
+        if hasattr(classifier, "classify_consensus_variant_with_rationale"):
+            return classifier.classify_consensus_variant_with_rationale(variant_data)
+        return classifier.classify_consensus_variant(variant_data), None
     return classifier.classify_consensus_variant(variant_data)
 
 
-def compute_unified_classification_rescue(variant_data, modality_map):
+def compute_unified_classification_rescue(
+    variant_data, modality_map, snv_threshold=None, indel_threshold=None,
+    rescue_config=None, with_rationale=False,
+):
     """
     Compute unified biological classification for rescue mode.
 
@@ -498,12 +509,51 @@ def compute_unified_classification_rescue(variant_data, modality_map):
     Args:
         variant_data (dict): Complete variant data with both consensus and individual callers
         modality_map (dict): Maps caller names to modalities ('DNA' or 'RNA')
+        snv_threshold (int, optional): SNV consensus threshold from the CLI
+            (--snv_thr). When provided, a configured classifier instance is
+            built (mirroring the consensus path) instead of using the global
+            default instance — audit finding M4.
+        indel_threshold (int, optional): Indel consensus threshold (--indel_thr)
+        rescue_config (dict, optional): Rescue contract overrides
+            (rescue_promotion_enabled, rescue_promotion_min_dna_callers,
+            rescue_promotion_min_rna_callers, rescue_veto_direction —
+            audit findings M1/M2). Merged into the classifier config.
+        with_rationale (bool, optional): If True, also return a VCF-INFO-safe
+            rationale string (CLASSIFICATION_RATIONALE, ticket 07) so every
+            FILTER is derivable from the record's own INFO. Default: False
 
     Returns:
-        str: Unified biological classification
+        str: Unified biological classification; or tuple
+            (classification, rationale) when with_rationale=True
     """
-    # Delegate to the global unified classifier instance (lazy initialization)
-    return _get_unified_classifier().classify_rescue_variant(variant_data, modality_map)
+    if snv_threshold is None and indel_threshold is None and rescue_config is None:
+        # Delegate to the global unified classifier instance (lazy initialization)
+        classifier = _get_unified_classifier()
+        if with_rationale:
+            if hasattr(classifier, "classify_rescue_variant_with_rationale"):
+                return classifier.classify_rescue_variant_with_rationale(
+                    variant_data, modality_map
+                )
+            return classifier.classify_rescue_variant(variant_data, modality_map), None
+        return classifier.classify_rescue_variant(variant_data, modality_map)
+
+    # Create classifier with custom thresholds (lazy import to avoid circular refs)
+    from .variant_classifier_unified import UnifiedVariantClassifier
+
+    config = dict(rescue_config) if rescue_config else {}
+    if snv_threshold is not None:
+        config["consensus_snv_threshold"] = snv_threshold
+    if indel_threshold is not None:
+        config["consensus_indel_threshold"] = indel_threshold
+    classifier = UnifiedVariantClassifier(config)
+
+    if with_rationale:
+        if hasattr(classifier, "classify_rescue_variant_with_rationale"):
+            return classifier.classify_rescue_variant_with_rationale(
+                variant_data, modality_map
+            )
+        return classifier.classify_rescue_variant(variant_data, modality_map), None
+    return classifier.classify_rescue_variant(variant_data, modality_map)
 
 
 def is_low_quality_artifact(

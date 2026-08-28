@@ -42,7 +42,85 @@ Example:
 """
 
 
-def extract_genotype_info(variant, caller):
+def resolve_tumor_sample_index(samples, caller, normal_sample=None):
+    """
+    Resolve the tumor sample index in a caller VCF.
+
+    Genotype metrics (GT/AD/DP/VAF) must be extracted from the tumor sample,
+    never blindly from sample index 0, which is the NORMAL for Mutect2 and
+    Strelka in this pipeline.
+
+    Resolution order:
+        1. Single-sample (tumor-only) VCF: the only sample is used
+        2. Mutect2 ``##normal_sample=<name>`` header line (ground truth
+           written by the caller): the tumor is the other sample
+        3. Sample named *tumor*/*tumour* (Strelka 'TUMOR',
+           DeepSomatic '<id>_tumor'): matched by name
+        4. Sample named *normal* (Mutect2 with a named normal): the tumor is
+           the other sample
+        5. Caller ordering conventions: Strelka uses a fixed NORMAL,TUMOR
+           order and Mutect2 is invoked with the normal CRAM first
+           (subworkflows/local/bam_variant_calling/main.nf), so the tumor is
+           the last sample; DeepSomatic lists the tumor first
+        6. Fallback: index 0
+
+    Args:
+        samples (list): Sample names from the VCF header (vcf.samples)
+        caller (str): Caller name (e.g., 'mutect2', 'strelka', 'deepsomatic')
+        normal_sample (str, optional): Value of the VCF header's
+            ``##normal_sample`` line, if present (Mutect2 writes this for
+            paired runs). Default: None
+
+    Returns:
+        int: Index of the tumor sample in `samples`
+    """
+    if not samples or len(samples) == 1:
+        return 0
+
+    # Caller-declared normal (Mutect2 ##normal_sample header) is ground truth
+    if normal_sample and normal_sample in samples:
+        return (samples.index(normal_sample) + 1) % len(samples)
+
+    # Name-based resolution: tumor name wins outright
+    for i, sample in enumerate(samples):
+        sample_lower = sample.lower()
+        if "tumor" in sample_lower or "tumour" in sample_lower:
+            return i
+
+    # A named normal identifies the tumor as the other sample
+    for i, sample in enumerate(samples):
+        if "normal" in sample.lower():
+            return (i + 1) % len(samples)
+
+    # Caller ordering conventions when names are uninformative
+    if caller and caller.lower() in ("strelka", "mutect2"):
+        # Normal sample is listed first for both callers in this pipeline
+        return len(samples) - 1
+
+    # DeepSomatic lists the tumor first; unknown callers keep the legacy default
+    return 0
+
+
+def _normal_sample_from_header(raw_header):
+    """
+    Extract the sample name declared by a ``##normal_sample=<name>`` header
+    line (written by Mutect2 for paired tumor/normal runs), if present.
+
+    Args:
+        raw_header (str): Full VCF header text (cyvcf2 ``VCF.raw_header``)
+
+    Returns:
+        str or None: The declared normal sample name, or None
+    """
+    if not raw_header:
+        return None
+    for line in raw_header.splitlines():
+        if line.startswith("##normal_sample="):
+            return line.split("=", 1)[1].strip() or None
+    return None
+
+
+def extract_genotype_info(variant, caller, sample_idx=0):
     """
     Extract genotype, depth, and VAF information from variant.
 
@@ -56,6 +134,9 @@ def extract_genotype_info(variant, caller):
         caller (str): Caller name for caller-specific parsing. Special handling
             is provided for 'strelka' which uses non-standard format fields
             (TAR, TIR, AU, CU, GU, TU, SGT)
+        sample_idx (int): Index of the sample to extract from. This should be
+            the tumor sample index as resolved by resolve_tumor_sample_index().
+            Default: 0 (legacy behavior for direct callers)
 
     Returns:
         dict: Genotype information dictionary with keys:
@@ -99,10 +180,15 @@ def extract_genotype_info(variant, caller):
             except Exception:
                 return None
 
+        def pick(arr):
+            # Per-sample FORMAT rows: select the tumor sample row, falling
+            # back to row 0 if the field has fewer rows than samples
+            return arr[sample_idx] if len(arr) > sample_idx else arr[0]
+
         # Extract genotype
         try:
             if variant.genotypes and len(variant.genotypes) > 0:
-                gt = variant.genotypes[0]
+                gt = pick(variant.genotypes)
                 if len(gt) >= 2:
                     a1 = "." if gt[0] == -1 else str(gt[0])
                     a2 = "." if gt[1] == -1 else str(gt[1])
@@ -116,90 +202,45 @@ def extract_genotype_info(variant, caller):
         dp = fmt("DP")
         if dp is not None and len(dp) > 0:
             try:
-                info["DP"] = int(dp[0]) if dp[0] is not None else None
+                row = pick(dp)
+                info["DP"] = int(row) if row is not None else None
             except Exception:
                 pass
 
         # Allele depth
         ad = fmt("AD")
-        if ad is not None and len(ad) > 0 and ad[0] is not None:
-            try:
-                info["AD"] = ",".join(map(str, ad[0]))
-            except Exception:
-                pass
+        if ad is not None and len(ad) > 0:
+            row = pick(ad)
+            if row is not None:
+                try:
+                    info["AD"] = ",".join(map(str, row))
+                except Exception:
+                    pass
 
         # VAF/AF
         if info["VAF"] is None:
             for vaf_field in ["VAF", "AF", "FREQ", "FA"]:
                 vaf = fmt(vaf_field)
-                if vaf is not None and len(vaf) > 0 and vaf[0] is not None:
-                    val = vaf[0]
-                    if isinstance(val, str) and "%" in val:
-                        val = float(val.replace("%", "")) / 100.0
-                    try:
-                        info["VAF"] = float(val)
-                    except Exception:
-                        pass
-                    break
+                if vaf is None or len(vaf) == 0:
+                    continue
+                row = pick(vaf)
+                if row is None:
+                    continue
+                val = row
+                if isinstance(val, str) and "%" in val:
+                    val = float(val.replace("%", "")) / 100.0
+                try:
+                    info["VAF"] = float(val)
+                except Exception:
+                    pass
+                break
 
         # Strelka-specific parsing when AD/AF are missing
         if caller.lower() == "strelka":
-
-            def choose_row():
-                try:
-                    tar = fmt("TAR")
-                    tir = fmt("TIR")
-                    if (
-                        tar is not None
-                        and tir is not None
-                        and len(tar) > 0
-                        and len(tir) > 0
-                    ):
-                        scores = []
-                        for i in range(max(len(tar), len(tir))):
-                            r = tar[i] if i < len(tar) else None
-                            a = tir[i] if i < len(tir) else None
-                            r1 = r[0] if hasattr(r, "__len__") and len(r) > 0 else r
-                            a1 = a[0] if hasattr(a, "__len__") and len(a) > 0 else a
-                            s = 0
-                            try:
-                                s += int(r1) if r1 is not None else 0
-                            except Exception:
-                                pass
-                            try:
-                                s += int(a1) if a1 is not None else 0
-                            except Exception:
-                                pass
-                            scores.append(s)
-                        if scores:
-                            return max(range(len(scores)), key=lambda i: scores[i])
-                    au, cu, gu, tu = fmt("AU"), fmt("CU"), fmt("GU"), fmt("TU")
-                    bases = [au, cu, gu, tu]
-                    if any(b is not None for b in bases):
-                        nrows = 0
-                        for b in bases:
-                            if b is not None:
-                                nrows = max(nrows, len(b))
-                        scores = []
-                        for i in range(nrows):
-                            s = 0
-                            for b in bases:
-                                if b is None or i >= len(b):
-                                    continue
-                                v = b[i]
-                                v1 = v[0] if hasattr(v, "__len__") and len(v) > 0 else v
-                                try:
-                                    s += int(v1) if v1 is not None else 0
-                                except Exception:
-                                    pass
-                            scores.append(s)
-                        if scores:
-                            return max(range(len(scores)), key=lambda i: scores[i])
-                except Exception:
-                    pass
-                return 0
-
-            row_idx = choose_row()
+            # Extract from the tumor sample row explicitly (Strelka writes
+            # samples in fixed NORMAL,TUMOR order); never mix rows across
+            # samples, so DP and VAF always come from the same sample.
+            row_idx = sample_idx
             if info["AD"] is None:
                 tir = fmt("TIR")
                 tar = fmt("TAR")
@@ -291,11 +332,13 @@ def extract_genotype_info(variant, caller):
             # Use SGT when GT is absent
             if info["GT"] is None:
                 sgt = fmt("SGT")
-                if sgt is not None and len(sgt) > 0 and sgt[0] is not None:
-                    try:
-                        info["GT"] = str(sgt[0])
-                    except Exception:
-                        pass
+                if sgt is not None and len(sgt) > 0:
+                    row = pick(sgt)
+                    if row is not None:
+                        try:
+                            info["GT"] = str(row)
+                        except Exception:
+                            pass
 
         # Calculate VAF from AD if still not available
         if info["VAF"] is None and info["AD"] is not None:
@@ -317,7 +360,8 @@ def extract_genotype_info(variant, caller):
         gq = fmt("GQ")
         if gq is not None and len(gq) > 0:
             try:
-                info["GQ"] = int(gq[0]) if gq[0] is not None else None
+                row = pick(gq)
+                info["GQ"] = int(row) if row is not None else None
             except Exception:
                 pass
 
@@ -328,6 +372,62 @@ def extract_genotype_info(variant, caller):
         # Don't re-raise for genotype extraction as it's not critical
 
     return info
+
+
+def tumor_alt_count_from_genotype(genotype_info):
+    """
+    Tumor alt-read count from an extract_genotype_info() dict.
+
+    The AD field is stored as a comma-separated "ref,alt[,alt2...]" string
+    extracted from the tumor sample (see resolve_tumor_sample_index); the
+    alt count is the second value.
+
+    Args:
+        genotype_info (dict or None): Genotype info dict from
+            extract_genotype_info()
+
+    Returns:
+        int or None: Tumor alt-read count, or None if no AD evidence exists
+    """
+    if not genotype_info:
+        return None
+    ad = genotype_info.get("AD")
+    if not ad:
+        return None
+    try:
+        values = [int(x) for x in str(ad).split(",")]
+    except (ValueError, TypeError):
+        return None
+    return values[1] if len(values) > 1 else None
+
+
+def _counts_toward_support(variant_data, min_alt_support):
+    """
+    Decide whether a caller's record votes toward consensus support.
+
+    A record counts only if:
+    - the caller itself did not reject it (per-record classification is not
+      Artifact — audit finding M9), and
+    - the tumor alt-read evidence meets the floor (audit minor note: a caller
+      PASS with 1-2 alt reads must not count as a full Somatic vote). The
+      floor is only applied when alt-read evidence (AD) exists; records
+      without evidence (e.g. consensus callers in rescue mode) keep the
+      legacy behavior. Records without a classification keep legacy behavior.
+
+    Args:
+        variant_data (dict): Per-caller record from read_variants_from_vcf()
+        min_alt_support (int): Minimum tumor alt reads for a support vote
+            (0 disables the floor)
+
+    Returns:
+        bool: True if the record counts toward caller support
+    """
+    if variant_data.get("classification") == "Artifact":
+        return False
+    alt_count = tumor_alt_count_from_genotype(variant_data.get("genotype"))
+    if alt_count is not None and min_alt_support and alt_count < min_alt_support:
+        return False
+    return True
 
 
 def aggregate_genotypes(genotypes_by_caller, callers_order):
@@ -363,6 +463,9 @@ def aggregate_genotypes(genotypes_by_caller, callers_order):
             - gt_by_caller (list): Ordered list of genotypes (or '.' if None) by caller
             - dp_by_caller (list): Ordered list of depths (or None) by caller
             - vaf_by_caller (list): Ordered list of VAFs (or None) by caller
+            - alt_count_by_caller (list): Ordered list of tumor alt-read counts
+                (or None) by caller, derived from the tumor-sample AD
+            - alt_count_max (int or None): Maximum tumor alt-read count across callers
 
     Example:
         >>> genotypes = {
@@ -396,6 +499,8 @@ def aggregate_genotypes(genotypes_by_caller, callers_order):
         "gt_by_caller": [],
         "dp_by_caller": [],
         "vaf_by_caller": [],
+        "alt_count_by_caller": [],
+        "alt_count_max": None,
     }
 
     gt_counts = defaultdict(int)
@@ -431,6 +536,15 @@ def aggregate_genotypes(genotypes_by_caller, callers_order):
         # Collect GQs
         if info and "GQ" in info and info["GQ"] is not None:
             agg["gq_values"].append(info["GQ"])
+
+        # Collect tumor alt counts (from AD, tumor sample — see
+        # resolve_tumor_sample_index / extract_genotype_info)
+        alt_count = tumor_alt_count_from_genotype(info)
+        agg["alt_count_by_caller"].append(alt_count)
+        if alt_count is not None and (
+            agg["alt_count_max"] is None or alt_count > agg["alt_count_max"]
+        ):
+            agg["alt_count_max"] = alt_count
 
     # Determine consensus genotype (most common)
     if gt_counts:
@@ -545,6 +659,13 @@ def read_variants_from_vcf(
     if classify_variants:
         sample_indices = get_sample_indices(vcf, caller_name)
 
+    # Resolve the tumor sample once per VCF so genotype metrics (GT/AD/DP/VAF)
+    # are extracted from the tumor sample, not blindly from sample index 0
+    # (which is the NORMAL for Mutect2 and Strelka in this pipeline). Mutect2's
+    # ##normal_sample header is ground truth and takes priority over heuristics.
+    normal_sample = _normal_sample_from_header(vcf.raw_header)
+    tumor_sample_idx = resolve_tumor_sample_index(vcf.samples, caller_name, normal_sample)
+
     # Import chromosome filtering
     from vcf_utils.chromosome_utils import is_canonical_chromosome
 
@@ -606,7 +727,7 @@ def read_variants_from_vcf(
             if classification
             else normalize_filter(filter_str),
             "quality": float(variant.QUAL) if variant.QUAL is not None else None,
-            "genotype": extract_genotype_info(variant, caller_name),
+            "genotype": extract_genotype_info(variant, caller_name, tumor_sample_idx),
             "id": variant.ID if variant.ID else None,
         }
 
@@ -626,7 +747,9 @@ def read_variants_from_vcf(
     return variants
 
 
-def aggregate_variants(variant_collections, snv_threshold=2, indel_threshold=2):
+def aggregate_variants(
+    variant_collections, snv_threshold=2, indel_threshold=2, min_alt_support=None
+):
     """
     Aggregate variants from multiple collections.
 
@@ -644,6 +767,12 @@ def aggregate_variants(variant_collections, snv_threshold=2, indel_threshold=2):
             a SNV to pass consensus. Default: 2
         indel_threshold (int, optional): Minimum number of callers required for
             an indel to pass consensus. Default: 2
+        min_alt_support (int, optional): Minimum tumor alt reads for a caller's
+            record to count toward consensus support (audit minor note: a 1-2
+            alt-read caller PASS must not count as a full Somatic vote).
+            Records without alt-read evidence are not floored (legacy
+            behavior); 0 disables the floor. Default: None, which uses
+            DEFAULT_THRESHOLDS["consensus_min_alt_support"]
 
     Returns:
         dict: Dictionary mapping variant_key to aggregated variant_data. Each
@@ -662,7 +791,9 @@ def aggregate_variants(variant_collections, snv_threshold=2, indel_threshold=2):
             - qualities (list): Quality scores from each caller
             - genotypes (dict): Maps caller name to genotype info dict
             - ids (list): Variant IDs from each caller
-            - support_callers (set): Set of unique callers supporting this variant
+            - support_callers (set): Set of unique callers whose record counts
+                toward consensus support (caller did not itself reject the
+                record; min_alt_support floor applied when AD is available)
             - passes_consensus (bool): True if variant meets consensus threshold
             - gt_aggregated (dict): Aggregated genotype statistics from
                 aggregate_genotypes()
@@ -698,6 +829,11 @@ def aggregate_variants(variant_collections, snv_threshold=2, indel_threshold=2):
     """
     from collections import defaultdict
 
+    if min_alt_support is None:
+        from vcf_utils.classification_config import DEFAULT_THRESHOLDS
+
+        min_alt_support = DEFAULT_THRESHOLDS["consensus_min_alt_support"]
+
     aggregated = defaultdict(
         lambda: {
             "CHROM": None,
@@ -731,9 +867,13 @@ def aggregate_variants(variant_collections, snv_threshold=2, indel_threshold=2):
                 data["ALT"] = variant_data["ALT"]
                 data["is_snv"] = variant_data["is_snv"]
 
-            # Store caller-specific information
+            # Store caller-specific information. A caller's record only counts
+            # toward consensus support if the caller itself did not reject it
+            # (non-Artifact classification, audit M9) and its tumor alt-read
+            # evidence meets the min_alt_support floor (when AD is available).
             data["callers"].append(caller_name)
-            data["support_callers"].add(caller_name)
+            if _counts_toward_support(variant_data, min_alt_support):
+                data["support_callers"].add(caller_name)
 
             # Store modality information
             if modality:
