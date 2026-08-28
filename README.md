@@ -7,6 +7,9 @@
 
 # :warning: UNDER ACTIVE DEVELOPMENT :warning:
 
+> [!NOTE]
+> This repository is a heavily modified fork of [nf-core/rnadnavar](https://github.com/nf-core/rnadnavar), developed as **EnsembleVar**. Full attribution for the original pipeline remains with the nf-core/rnadnavar authors (see [Credits](#credits)).
+
 [![GitHub Actions CI Status](https://github.com/nf-core/rnadnavar/actions/workflows/nf-test.yml/badge.svg)](https://github.com/nf-core/rnadnavar/actions/workflows/nf-test.yml)
 [![GitHub Actions Linting Status](https://github.com/nf-core/rnadnavar/actions/workflows/linting.yml/badge.svg)](https://github.com/nf-core/rnadnavar/actions/workflows/linting.yml)[![AWS CI](https://img.shields.io/badge/CI%20tests-full%20size-FF9900?labelColor=000000&logo=Amazon%20AWS)](https://nf-co.re/rnadnavar/results)[![Cite with Zenodo](http://img.shields.io/badge/DOI-10.5281/zenodo.XXXXXXX-1073c8?labelColor=000000)](https://doi.org/10.5281/zenodo.XXXXXXX)
 [![nf-test](https://img.shields.io/badge/unit_tests-nf--test-337ab7.svg)](https://www.nf-test.com)
@@ -66,7 +69,9 @@ BaseRecalibrator` and `GATK ApplyBQSR`)
 - Variant calling (enabled with `--tools`)
   - `Mutect2`
   - `Strelka2`
-  - `SAGE`
+  - `DeepSomatic`
+
+  SAGE and Manta modules are present in the repository but are currently unused by the active workflow.
 
 > [!NOTE]
 > **Panel of Normals (PON):** By default, Mutect2 uses the GATK-provided Panel of Normals if no custom PON is specified via `--pon`. For production analyses, consider providing a study-specific PON matched to your sample population for improved variant calling specificity. See the [GATK documentation](https://gatk.broadinstitute.org/hc/en-us/articles/360035890631-Panel-of-Normals-PON-) for details on creating a custom PON.
@@ -134,6 +139,29 @@ nextflow run nf-core/rnadnavar \
 > Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/usage/getting_started/configuration#custom-configuration-files).
 
 For more details and further functionality, please refer to the [usage documentation](https://nf-co.re/rnadnavar/usage) and the [parameter documentation](https://nf-co.re/rnadnavar/parameters).
+
+## Cohort (seq2neo)
+
+The **seq2neo** cohort is the reference dataset used to develop and evaluate EnsembleVar. It comprises **66 eligible patients** drawn from three SRA projects — PRJNA298376 (67 patients in the manifest), PRJNA298330 (8) and PRJNA298310 (1) — with 10 further patients excluded as incomplete (missing one or more modalities). Each patient contributes three modalities: **DN** (DNA normal, status 0), **DT** (DNA tumor, status 1) and **RT** (RNA tumor, status 2). All data are Illumina WES (DNA) and RNA-seq (RNA), processed against GRCh38 (GATK bundle) with WES intervals (`ukb.pad50.broad.pad50.union.bed`, `wes = true`). In total the cohort spans 580 FASTQ files, ~56.2 billion reads / 8.08 Tbases.
+
+For cross-validation, the patients are partitioned into four **disease-exclusive folds** (each disease appears in exactly one set):
+
+| Set  | Patients | Disease(s)                                                              |
+| ---- | -------- | ----------------------------------------------------------------------- |
+| set1 | 15       | Colorectal                                                              |
+| set2 | 20       | Colon                                                                   |
+| set3 | 16       | Ampullary / Bile duct / Cholangiocarcinoma / Esophageal / Melanoma      |
+| set4 | 15       | Gastric / Lung / Pancreatic / Rectal                                    |
+
+## Running the seq2neo cohort
+
+Cohort execution is driven by wrapper scripts in [`examples/seq2neo/`](examples/seq2neo/):
+
+1. **Parse** — `parse.sh` parses the raw SRA manifests into a merged sample database (`merged.json`) and per-fold membership lists.
+2. **Run** — `run_set1.sh` … `run_set4.sh` (per fold) or `run_single.sh` (one patient). For each patient a three-row samplesheet (DN/DT/RT) is generated and the pipeline is invoked per sample from raw FASTQ (`step = mapping`) with `tools = deepsomatic,mutect2,strelka,vep,norm,consensus,rescue,filtering,rna_filtering,realignment`, `realignment_mode = vcf`, `trim_fastq = true`, and REDIportal RNA-editing plus COSMIC/gnomAD annotation enabled (see `examples/seq2neo/seq2neo.shared.config`). Completion of a sample is gated on the existence of a rescue VCF.
+3. **Statistics** — downstream statistics are produced by `run_stats.sh`, which drives `python -m vcf_stats.seq2neo.cli`.
+
+See [`examples/seq2neo/README.usage.md`](examples/seq2neo/README.usage.md) for full operator details (configuration, dry-run, resume, output layout).
 
 ## Pipeline output
 

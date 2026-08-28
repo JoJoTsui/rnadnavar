@@ -135,6 +135,7 @@ The `bin/` directory contains two major Python packages and standalone scripts:
 - `filter_vcf.py` / `filter_mutations.py` / `filter_rna_mutations.py` / `filter_rescue_vcf.py` — Various filtering pipelines
 - `maf2bed.py` — MAF-to-BED conversion for realignment
 - `run_consensus.R` — R-based consensus statistics
+- `label_qc.py` — label QC gate for truth VCFs: Tier A (VCF-only rules, pure stdlib) plus optional Tier B BAM verification via samtools mpileup subprocess (`--verify-bam`; defaults in `bin/label_qc_config.json`; design doc: `dev_docs/implementation/label_qc_design.md`; tests: `tests/label_qc/`)
 
 ### Configuration System
 
