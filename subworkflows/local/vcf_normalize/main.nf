@@ -22,11 +22,14 @@ workflow VCF_NORMALIZE {
     main:
     version          = Channel.empty()
 
-    if (params.step == 'norm') vcf_to_normalize = input_sample
+    // Post-calling VCF entries that feed consensus must normalize too (M5):
+    // exact-key consensus matching requires decomposed/left-aligned input.
+    if (params.step in ['norm', 'consensus']) vcf_to_normalize = input_sample
 
     if ((params.step in ['mapping', 'markduplicates', 'splitncigar',
                         'prepare_recalibration', 'recalibrate',
-                        'variant_calling', 'norm'] &&
+                        'variant_calling', 'norm', 'consensus',
+                        'annotate', 'filtering', 'rna_filtering'] &&
                         ((params.tools && params.tools.split(",").contains("consensus")))) ||
                         realignment) {
 

@@ -139,7 +139,7 @@ workflow  SAMPLESHEET_TO_CHANNEL{
                 meta = meta + [id: meta.sample, data_type: 'vcf', variantcaller: variantcaller ?: '']
 
                 if (params.step == 'annotate' ) return [ meta - meta.subMap('lane'), vcf ]
-                else if (params.step == 'norm') {
+                else if (params.step in ['norm', 'consensus']) {
                     if (meta.status == 0){ // TODO: more specific checks on this is needed
                         error("Samplesheet contains vcf files with status 0, vcfs should only be for tumours (1|2).")
                     }

@@ -318,6 +318,10 @@ def retrieveInput(need_input, step, outdir) {
             log.warn("Using file ${outdir}/csv/variantcalled.csv")
             input = outdir + "/csv/variantcalled.csv"
         }
+        else if (step == 'consensus') {
+            log.warn("Using file ${outdir}/csv/variantcalled.csv")
+            input = outdir + "/csv/variantcalled.csv"
+        }
         else {
             log.warn("Please provide an input samplesheet to the pipeline e.g. '--input samplesheet.csv'")
             error("Unknown step ${step}")
