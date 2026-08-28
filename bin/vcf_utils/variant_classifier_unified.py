@@ -87,6 +87,38 @@ class UnifiedVariantClassifier:
         Returns:
             str: One of ['Somatic', 'Germline', 'Reference', 'Artifact', 'NoConsensus']
         """
+        classification, _ = self.classify_consensus_variant_with_rationale(
+            variant_data
+        )
+        return classification
+
+    @staticmethod
+    def _format_votes(classification_counts):
+        """Format vote counts for INFO: 'Somaticx2+Artifactx1' (VCF-safe)."""
+        return "+".join(
+            f"{cls}x{count}"
+            for cls, count in sorted(
+                classification_counts.items(), key=lambda kv: (-kv[1], kv[0])
+            )
+        )
+
+    def classify_consensus_variant_with_rationale(self, variant_data):
+        """
+        Classify a consensus variant and explain the decision (ticket 07).
+
+        Same logic as classify_consensus_variant; additionally returns a
+        VCF-INFO-safe rationale string so every FILTER is derivable from the
+        record's own INFO (CLASSIFICATION_RATIONALE).
+
+        Args:
+            variant_data (dict): Aggregated variant data (see
+                classify_consensus_variant)
+
+        Returns:
+            tuple: (classification, rationale) where rationale has the form
+                'rule:<rule>|class:<classification>|votes:<class>x<n>+...|
+                callers:<n>|threshold:<t>'
+        """
         # Get individual caller classifications (exclude consensus callers)
         individual_filters = []
         for i, caller in enumerate(variant_data["callers"]):
@@ -102,15 +134,27 @@ class UnifiedVariantClassifier:
             else self.config["consensus_indel_threshold"]
         )
 
-        if caller_count < required_threshold:
-            return "NoConsensus"  # Not enough callers
-
         # Use majority vote to determine classification
         classification_counts = Counter(individual_filters)
+        votes = (
+            self._format_votes(classification_counts)
+            if classification_counts
+            else "none"
+        )
+
+        def rationale(rule, classification):
+            return (
+                f"rule:{rule}|class:{classification}|votes:{votes}"
+                f"|callers:{caller_count}|threshold:{required_threshold}"
+            )
+
+        if caller_count < required_threshold:
+            # Not enough callers
+            return "NoConsensus", rationale("insufficient_callers", "NoConsensus")
 
         # Find the most frequent classification(s)
         if not classification_counts:
-            return "NoConsensus"
+            return "NoConsensus", rationale("insufficient_callers", "NoConsensus")
 
         max_count = max(classification_counts.values())
         majority_classifications = [
@@ -120,10 +164,11 @@ class UnifiedVariantClassifier:
         # Check if there's a clear majority (no tie)
         if len(majority_classifications) == 1:
             # Clear majority - use the majority classification
-            return majority_classifications[0]
+            classification = majority_classifications[0]
+            return classification, rationale("majority", classification)
         else:
             # Tie between classifications - mark as Artifact due to disagreement
-            return "Artifact"
+            return "Artifact", rationale("majority_tie", "Artifact")
 
     def classify_rescue_variant(self, variant_data, modality_map):
         """
@@ -137,12 +182,47 @@ class UnifiedVariantClassifier:
            - Single modality consensus: Return that classification
            - No consensus: Analyze individual caller patterns
 
+        Rescue contract (audit M1/M2, ticket 06):
+        - A "NoConsensus" consensus label means the modality reached no
+          consensus and is treated as absent.
+        - Promotion: when neither modality has a consensus label and at
+          least rescue_promotion_min_dna_callers DNA callers and
+          rescue_promotion_min_rna_callers RNA callers agree on Somatic, the
+          site is rescued as Somatic and the record is tagged
+          (variant_data["rescued"]/["rescue_promoted"]). Gated by
+          rescue_promotion_enabled (default on).
+        - Veto: with rescue_veto_direction "dna" (default), a DNA Artifact
+          consensus label outranks RNA non-Artifact evidence; "rna" mirrors
+          it; "none" restores the legacy RNA-first override.
+
         Args:
             variant_data (dict): Complete variant data with consensus and individual callers
             modality_map (dict): Maps caller names to modalities ('DNA' or 'RNA')
 
         Returns:
             str: One of ['Somatic', 'Germline', 'Reference', 'Artifact', 'NoConsensus']
+        """
+        classification, _ = self.classify_rescue_variant_with_rationale(
+            variant_data, modality_map
+        )
+        return classification
+
+    def classify_rescue_variant_with_rationale(self, variant_data, modality_map):
+        """
+        Classify a rescue variant and explain the decision (ticket 07).
+
+        Same logic as classify_rescue_variant; additionally returns a
+        VCF-INFO-safe rationale string so every FILTER is derivable from the
+        record's own INFO (CLASSIFICATION_RATIONALE).
+
+        Args:
+            variant_data (dict): Complete variant data with consensus and individual callers
+            modality_map (dict): Maps caller names to modalities ('DNA' or 'RNA')
+
+        Returns:
+            tuple: (classification, rationale) where rationale has the form
+                'rule:<rule>|class:<classification>|dna_consensus:<label|none>|
+                rna_consensus:<label|none>|dna_votes:<class>x<n>+...|rna_votes:...'
         """
         # Step 1: Separate consensus callers from individual callers
         dna_consensus_label = None
@@ -152,11 +232,17 @@ class UnifiedVariantClassifier:
 
         for i, caller in enumerate(variant_data["callers"]):
             if caller.endswith("_consensus"):
-                # Extract consensus labels
+                # Extract consensus labels. A "NoConsensus" consensus label
+                # means the modality reached NO consensus for this site —
+                # treat it as absent so individual callers can still drive
+                # the rescue contract (audit M1).
+                label = variant_data["filters_normalized"][i]
+                if label == "NoConsensus":
+                    label = None
                 if "DNA" in caller.upper():
-                    dna_consensus_label = variant_data["filters_normalized"][i]
+                    dna_consensus_label = label
                 elif "RNA" in caller.upper():
-                    rna_consensus_label = variant_data["filters_normalized"][i]
+                    rna_consensus_label = label
             else:
                 # Collect individual callers
                 individual_callers.append(caller)
@@ -174,52 +260,98 @@ class UnifiedVariantClassifier:
             elif modality == "RNA" and i < len(individual_filters):
                 rna_callers.append(individual_filters[i])
 
+        def rationale(rule, classification):
+            dna_votes = (
+                self._format_votes(Counter(dna_callers)) if dna_callers else "none"
+            )
+            rna_votes = (
+                self._format_votes(Counter(rna_callers)) if rna_callers else "none"
+            )
+            return (
+                f"rule:{rule}|class:{classification}"
+                f"|dna_consensus:{dna_consensus_label or 'none'}"
+                f"|rna_consensus:{rna_consensus_label or 'none'}"
+                f"|dna_votes:{dna_votes}|rna_votes:{rna_votes}"
+            )
+
         # Step 2: Apply cross-modality consensus rules if both available
         if dna_consensus_label and rna_consensus_label:
             # Both modalities have consensus
             if dna_consensus_label == rna_consensus_label:
                 # Agreement across modalities - use agreed classification
-                return dna_consensus_label
+                return dna_consensus_label, rationale(
+                    "cross_modality_agreement", dna_consensus_label
+                )
             elif (
                 dna_consensus_label == "Artifact" and rna_consensus_label == "Artifact"
             ):
                 # Both modalities are Artifact
-                return "Artifact"
+                return "Artifact", rationale("cross_modality_agreement", "Artifact")
             elif (
                 dna_consensus_label != "Artifact" and rna_consensus_label != "Artifact"
             ):
                 # Cross-modality disagreement on non-Artifact classifications
                 min_callers = self.config["cross_modality_min_callers_for_artifact"]
                 if len(dna_callers) >= min_callers and len(rna_callers) >= min_callers:
-                    return "Artifact"
+                    return "Artifact", rationale(
+                        "cross_modality_disagreement", "Artifact"
+                    )
                 elif len(dna_callers) >= min_callers:
-                    return dna_consensus_label
+                    return dna_consensus_label, rationale(
+                        "dna_consensus_priority", dna_consensus_label
+                    )
                 elif len(rna_callers) >= min_callers:
-                    return rna_consensus_label
+                    return rna_consensus_label, rationale(
+                        "rna_consensus_priority", rna_consensus_label
+                    )
                 else:
-                    return "NoConsensus"
+                    return "NoConsensus", rationale(
+                        "insufficient_modality_support", "NoConsensus"
+                    )
+            elif (
+                self.config["rescue_veto_direction"] == "dna"
+                and dna_consensus_label == "Artifact"
+            ):
+                # DNA Artifact veto (audit M2): a DNA-flagged artifact
+                # outranks RNA non-Artifact evidence — RNA-specific error
+                # modes must not flip it to Somatic
+                return "Artifact", rationale("dna_artifact_veto", "Artifact")
+            elif (
+                self.config["rescue_veto_direction"] == "rna"
+                and rna_consensus_label == "Artifact"
+            ):
+                # Mirrored veto when the direction is configured to RNA
+                return "Artifact", rationale("rna_artifact_veto", "Artifact")
             elif (
                 rna_consensus_label != "Artifact"
                 and len(rna_callers)
                 >= self.config["cross_modality_min_callers_for_artifact"]
             ):
                 # One modality is Artifact, other is not - use non-Artifact with priority
-                return rna_consensus_label
+                return rna_consensus_label, rationale(
+                    "rna_consensus_priority", rna_consensus_label
+                )
             elif (
                 dna_consensus_label != "Artifact"
                 and len(dna_callers)
                 >= self.config["cross_modality_min_callers_for_artifact"]
             ):
-                return dna_consensus_label
+                return dna_consensus_label, rationale(
+                    "dna_consensus_priority", dna_consensus_label
+                )
             else:
-                return "Artifact"
+                return "Artifact", rationale("artifact_by_default", "Artifact")
 
         # Step 3: Single modality consensus
         elif dna_consensus_label and not rna_consensus_label:
-            return dna_consensus_label
+            return dna_consensus_label, rationale(
+                "dna_consensus_only", dna_consensus_label
+            )
 
         elif rna_consensus_label and not dna_consensus_label:
-            return rna_consensus_label
+            return rna_consensus_label, rationale(
+                "rna_consensus_only", rna_consensus_label
+            )
 
         # Step 4: No consensus labels - analyze individual caller patterns
         else:
@@ -229,7 +361,9 @@ class UnifiedVariantClassifier:
 
             if not (has_dna_support and has_rna_support):
                 # Insufficient cross-modality support
-                return "NoConsensus"
+                return "NoConsensus", rationale(
+                    "insufficient_modality_support", "NoConsensus"
+                )
 
             # Check for cross-modality consistency
             dna_classifications = set(dna_callers)
@@ -242,15 +376,40 @@ class UnifiedVariantClassifier:
 
                 if dna_class == rna_class:
                     # Cross-modality agreement
-                    if dna_class != "Artifact":
-                        return "NoConsensus"  # Not enough consensus support
-                    return dna_class
+                    if dna_class == "Artifact":
+                        return dna_class, rationale(
+                            "cross_modality_agreement", dna_class
+                        )
+                    # Cross-modality promotion (audit M1): individual DNA and
+                    # RNA callers agreeing on Somatic rescue a site that
+                    # failed within-modality consensus. The record is tagged
+                    # as cross-modality rescued for the writer (INFO RESCUED /
+                    # RESCUE_PROMOTED).
+                    if (
+                        dna_class == "Somatic"
+                        and self.config["rescue_promotion_enabled"]
+                        and len(dna_callers)
+                        >= self.config["rescue_promotion_min_dna_callers"]
+                        and len(rna_callers)
+                        >= self.config["rescue_promotion_min_rna_callers"]
+                    ):
+                        variant_data["rescued"] = True
+                        variant_data["rescue_promoted"] = True
+                        return "Somatic", rationale("rescue_promotion", "Somatic")
+                    # Not enough consensus support
+                    return "NoConsensus", rationale(
+                        "below_rescue_promotion_threshold", "NoConsensus"
+                    )
                 else:
                     # Cross-modality disagreement
-                    return "Artifact"
+                    return "Artifact", rationale(
+                        "cross_modality_disagreement", "Artifact"
+                    )
             else:
                 # Internal inconsistency within modalities
-                return "Artifact"
+                return "Artifact", rationale(
+                    "modality_internal_disagreement", "Artifact"
+                )
 
     def reclassify_with_annotation(
         self,

@@ -117,39 +117,72 @@ def tag_variant_with_modality(variant_data, modality_map):
     return variant_data
 
 
+def _passed_somatic_keys(variants):
+    """
+    Keys of records that PASSED as Somatic.
+
+    The union consensus VCF contains every aggregated record, including
+    NoConsensus/Artifact/Germline ones — mere presence in the file is not
+    evidence (audit M3). Only records whose normalized filter (the consensus
+    FILTER class) is Somatic count.
+
+    Args:
+        variants: Dict of variant_key -> per-record dict as returned by
+            read_variants_from_vcf(), or a plain set of variant keys
+            (legacy: all keys are treated as present/passed)
+
+    Returns:
+        set: Variant keys that passed as Somatic
+    """
+    if isinstance(variants, dict):
+        return {
+            vkey
+            for vkey, record in variants.items()
+            if (record or {}).get("filter_normalized") == "Somatic"
+        }
+    return set(variants)
+
+
 def mark_rescued_variants(variant_data, dna_variants, rna_variants):
     """
-    Mark variants present in both DNA and RNA variant sets.
-    
+    Mark variants that PASSED as Somatic in both DNA and RNA variant sets.
+
     This function identifies variants that have cross-modality support
-    (present in both DNA and RNA consensus results) and marks them with
-    rescue flags.
-    
+    (passed as Somatic in both DNA and RNA consensus results) and marks them
+    with rescue flags. Presence alone never marks a record: the union file
+    includes NoConsensus/Artifact/Germline records (audit M3).
+
     Args:
         variant_data: Aggregated variant data dict (keyed by variant_key)
-        dna_variants: Set of DNA variant keys
-        rna_variants: Set of RNA variant keys
-    
+        dna_variants: Dict of DNA variant records (read_variants_from_vcf
+            output) or set of DNA variant keys (legacy presence semantics)
+        rna_variants: Dict of RNA variant records or set of RNA variant keys
+
     Returns:
         dict: Updated variant data with rescue flags:
-            - 'rescued': True if variant present in both DNA and RNA
-            - 'dna_support': True if variant present in DNA
-            - 'rna_support': True if variant present in RNA
-            - 'cross_modality': True if variant has both DNA and RNA support
+            - 'rescued': True if variant passed as Somatic in both DNA and RNA
+            - 'dna_support': True if variant passed as Somatic in DNA
+            - 'rna_support': True if variant passed as Somatic in RNA
+            - 'cross_modality': True if variant passed as Somatic in both
     """
+    dna_passed = _passed_somatic_keys(dna_variants)
+    rna_passed = _passed_somatic_keys(rna_variants)
+
     for vkey, data in variant_data.items():
-        # Check if variant is in DNA and/or RNA sets
-        in_dna = vkey in dna_variants
-        in_rna = vkey in rna_variants
-        
+        # Check if variant passed as Somatic in DNA and/or RNA sets
+        in_dna = vkey in dna_passed
+        in_rna = vkey in rna_passed
+
         # Set support flags
         data['dna_support'] = in_dna
         data['rna_support'] = in_rna
         data['cross_modality'] = in_dna and in_rna
-        
-        # Mark as rescued if present in both modalities
+
+        # Mark as rescued only if passed as Somatic in both modalities.
+        # Note: cross-modality promotion (classify_rescue_variant) may set
+        # 'rescued' later for sites without a consensus label.
         data['rescued'] = in_dna and in_rna
-    
+
     return variant_data
 
 

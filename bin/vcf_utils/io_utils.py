@@ -209,8 +209,9 @@ def create_output_header(
     Args:
         template_header (cyvcf2.VCF): cyvcf2 VCF header object to use as template.
             Metadata lines (contigs, references, etc.) are preserved.
-        sample_name (str): Sample name for the output VCF. If None or empty,
-            defaults to 'SAMPLE'.
+        sample_name (str): Unused. Kept for API compatibility; the output
+            header carries no sample column because records written by
+            write_union_vcf carry no FORMAT/sample data (audit M8a).
         include_rescue_fields (bool, optional): If True, add rescue-specific
             INFO fields for modality tracking (MODALITIES, CALLERS_BY_MODALITY,
             DNA_SUPPORT, RNA_SUPPORT, CROSS_MODALITY, DP_DNA_MEAN, DP_RNA_MEAN,
@@ -240,6 +241,12 @@ def create_output_header(
         - DP_BY_CALLER: Depth values from each caller
         - VAF_MEAN/MIN/MAX: VAF statistics
         - VAF_BY_CALLER: VAF values from each caller
+        - ALT_COUNT_BY_CALLER: Tumor alt-read counts from each caller
+        - ALT_COUNT_MAX: Maximum tumor alt-read count across callers
+        - VC: Variant classification (Somatic/Germline/Reference/Artifact)
+        - VC_CALLERS: Classification by each caller
+        - VC_CONSENSUS: Consensus biological classification
+        - CLASSIFICATION_RATIONALE: Why the final FILTER was assigned
 
     INFO Fields Added (Rescue, when include_rescue_fields=True):
         - MODALITIES: Modalities where variant was detected
@@ -427,14 +434,14 @@ def create_output_header(
         "PASSES_CONSENSUS_DNA",
         "1",
         "String",
-        "Whether variant passes DNA consensus threshold (YES/NO)",
+        "Whether the DNA consensus record passed as Somatic (YES/NO)",
     )
     add_info_safe(
         new_header,
         "PASSES_CONSENSUS_RNA",
         "1",
         "String",
-        "Whether variant passes RNA consensus threshold (YES/NO)",
+        "Whether the RNA consensus record passed as Somatic (YES/NO)",
     )
 
     # Quality aggregation
@@ -490,13 +497,36 @@ def create_output_header(
         "VAF values from each caller with modality prefix (format: MODALITY_caller:VAF|...)",
     )
 
+    # Tumor alt-read count aggregation (tumor sample of each caller VCF)
+    add_info_safe(
+        new_header,
+        "ALT_COUNT_BY_CALLER",
+        ".",
+        "String",
+        "Tumor alt-read count from each caller with modality prefix (format: MODALITY_caller:alt_count|...)",
+    )
+    add_info_safe(
+        new_header,
+        "ALT_COUNT_MAX",
+        "1",
+        "Integer",
+        "Maximum tumor alt-read count across callers",
+    )
+
     # Rescue indicator
     add_info_safe(
         new_header,
         "RESCUED",
         "1",
         "String",
-        "Variant included via cross-modality consensus (YES/NO)",
+        "Variant passed as Somatic in both DNA and RNA consensus, or rescued by cross-modality promotion (YES/NO)",
+    )
+    add_info_safe(
+        new_header,
+        "RESCUE_PROMOTED",
+        "1",
+        "String",
+        "Variant failed within-modality consensus but was rescued as Somatic by agreeing DNA and RNA individual callers (YES/NO)",
     )
 
     # Add rescue-specific modality tracking fields if requested
@@ -534,7 +564,7 @@ def create_output_header(
             "CROSS_MODALITY",
             "1",
             "String",
-            "Whether variant has cross-modality support (YES/NO)",
+            "Whether both DNA and RNA contributed a record that passed as Somatic (YES/NO)",
         )
 
         # Modality-specific statistics
@@ -573,10 +603,21 @@ def create_output_header(
         "String",
         "Consensus biological classification across callers",
     )
+    add_info_safe(
+        new_header,
+        "CLASSIFICATION_RATIONALE",
+        "1",
+        "String",
+        "Why the final FILTER was assigned: rule fired, per-class vote counts, "
+        "caller support and consensus thresholds "
+        "(format: rule:<rule>|class:<filter>|votes:<class>x<count>+...|...)",
+    )
 
-    # Add sample
-    if (sample_name if sample_name else "SAMPLE") not in new_header.samples:
-        new_header.add_sample(sample_name if sample_name else "SAMPLE")
+    # No sample column (audit M8a, ticket 07): records written by
+    # write_union_vcf carry no FORMAT/sample data (all genotype evidence lives
+    # in INFO), so adding a sample here produced a dangling sample name with an
+    # empty FORMAT column (e.g. 'FORMAT "." COO8801DN "."'). The sample_name
+    # argument is kept for API compatibility but is intentionally unused.
 
     # Add biological category FILTER values (standardized classification)
     # These are the canonical FILTER values based on variant classification
@@ -611,6 +652,57 @@ def create_output_header(
     return new_header
 
 
+def _majority_classification(filters):
+    """
+    Majority vote over per-caller classifications for the UNIFIED_FILTER_DNA/RNA
+    fallback.
+
+    A clear majority wins; any tie for the top class resolves to Artifact
+    (disagreement indicates inconsistency) per docs/consensus_vcf_rules.md —
+    no Somatic-favoring priority tiebreak.
+
+    Args:
+        filters (list): Per-caller normalized classifications
+
+    Returns:
+        str or None: Majority classification, "Artifact" on tie, None if empty
+    """
+    from collections import Counter
+
+    if not filters:
+        return None
+    counts = Counter(filters)
+    max_count = max(counts.values())
+    most_common = [cls for cls, count in counts.items() if count == max_count]
+    if len(most_common) != 1:
+        # Tie for the top class -> Artifact (documented consensus rule)
+        return "Artifact"
+    return most_common[0]
+
+
+def _any_caller_somatic(data, caller_pred):
+    """
+    True if any per-caller record of an aggregated variant PASSED as Somatic.
+
+    Checks the parallel lists data["callers"] / data["filters_normalized"] for
+    a caller matching `caller_pred` whose normalized filter is "Somatic"
+    (audit M3: mere presence in the union file — which includes
+    NoConsensus/Artifact/Germline records — is not a pass).
+
+    Args:
+        data (dict): Aggregated variant data from aggregate_variants()
+        caller_pred (callable): Predicate on the caller name
+
+    Returns:
+        bool: True if a matching caller's record is classified Somatic
+    """
+    filters = data["filters_normalized"]
+    return any(
+        caller_pred(c) and i < len(filters) and filters[i] == "Somatic"
+        for i, c in enumerate(data["callers"])
+    )
+
+
 def write_union_vcf(
     variant_data,
     template_header,
@@ -622,6 +714,7 @@ def write_union_vcf(
     snv_threshold=2,
     indel_threshold=2,
     include_non_canonical=False,
+    rescue_config=None,
 ):
     """
     Write union VCF with all variants and aggregated information using pysam.
@@ -635,7 +728,9 @@ def write_union_vcf(
             Each value should be an aggregated variant dict from aggregate_variants().
         template_header (cyvcf2.VCF): cyvcf2 VCF header object to use as template
             for creating the output header.
-        sample_name (str): Sample name for the output VCF.
+        sample_name (str): Unused. Kept for API compatibility; the output
+            header carries no sample column because records carry no
+            FORMAT/sample data (audit M8a, ticket 07).
         out_file (str): Output file path (e.g., 'output.vcf.gz').
         output_format (str): Output format - 'vcf', 'vcf.gz', or 'bcf'.
         all_callers (list): List of all caller names in the analysis. Used to
@@ -652,6 +747,10 @@ def write_union_vcf(
             Default: 2
         include_non_canonical (bool, optional): If True, include non-canonical chromosomes
             in the output header. Default: False (only canonical contigs in header)
+        rescue_config (dict, optional): Rescue contract overrides forwarded to
+            the rescue classifier (rescue_promotion_enabled,
+            rescue_promotion_min_dna_callers, rescue_promotion_min_rna_callers,
+            rescue_veto_direction). Default: None (config defaults)
 
     Returns:
         int: Number of variants written to the output file.
@@ -684,7 +783,6 @@ def write_union_vcf(
         ...     'vcf.gz', ['mutect2', 'strelka', 'deepsomatic'], modality_map
         ... )
     """
-    from collections import Counter
     from statistics import mean
 
     import pysam
@@ -797,8 +895,18 @@ def write_union_vcf(
 
         # Prefix caller names with modality if modality_map is provided
         prefixed_all_callers = [prefix_caller(c, modality_map) for c in all_callers]
+        # Support = callers whose record votes toward consensus: the caller did
+        # not itself reject the record (non-Artifact, audit M9) and the tumor
+        # alt-read floor is met (aggregate_variants). Fall back to detection
+        # counts for data aggregated before this change.
+        support_callers = data.get("support_callers")
+        if support_callers is None:
+            support_callers = set(actual_callers_in_variant)
+        supporting_callers_in_variant = [
+            c for c in actual_callers_in_variant if c in support_callers
+        ]
         prefixed_support_callers = [
-            prefix_caller(c, modality_map) for c in actual_callers_in_variant
+            prefix_caller(c, modality_map) for c in supporting_callers_in_variant
         ]
         prefixed_consensus_callers = [
             prefix_caller(c, modality_map) for c in consensus_callers_in_variant
@@ -806,8 +914,10 @@ def write_union_vcf(
 
         record.info["N_CALLERS"] = len(all_callers)
         record.info["CALLERS"] = "|".join(prefixed_all_callers)
-        record.info["N_SUPPORT_CALLERS"] = len(set(actual_callers_in_variant))
-        record.info["CALLERS_SUPPORT"] = "|".join(prefixed_support_callers)
+        record.info["N_SUPPORT_CALLERS"] = len(set(supporting_callers_in_variant))
+        record.info["CALLERS_SUPPORT"] = (
+            "|".join(prefixed_support_callers) if prefixed_support_callers else "."
+        )
 
         # Add consensus support tracking
         if consensus_callers_in_variant:
@@ -882,17 +992,32 @@ def write_union_vcf(
         )
 
         if modality_map:
-            # Rescue mode: use new rescue classification logic
-            unified_classification = compute_unified_classification_rescue(
-                data, modality_map
+            # Rescue mode: use new rescue classification logic, forwarding the
+            # CLI consensus thresholds to the classifier (audit M4) and the
+            # rescue contract config (audit M1/M2)
+            unified_classification, classification_rationale = (
+                compute_unified_classification_rescue(
+                    data,
+                    modality_map,
+                    snv_threshold=snv_threshold,
+                    indel_threshold=indel_threshold,
+                    rescue_config=rescue_config,
+                    with_rationale=True,
+                )
             )
         else:
             # Consensus mode: use new consensus classification logic
-            unified_classification = compute_unified_classification_consensus(
-                data, snv_threshold, indel_threshold
+            unified_classification, classification_rationale = (
+                compute_unified_classification_consensus(
+                    data, snv_threshold, indel_threshold, with_rationale=True
+                )
             )
 
         record.info["UNIFIED_FILTER"] = unified_classification
+        # Classification rationale (ticket 07): every record's FILTER is
+        # derivable from its own INFO (rule fired, votes, support, thresholds)
+        if classification_rationale:
+            record.info["CLASSIFICATION_RATIONALE"] = classification_rationale
         record.filter.clear()
         record.filter.add(unified_classification)
 
@@ -914,20 +1039,11 @@ def write_union_vcf(
                     if not is_consensus_caller(c) and modality_map.get(c) == "DNA"
                 ]
                 if dna_filters:
-                    dna_counts = Counter(dna_filters)
-                    dna_max_count = max(dna_counts.values())
-                    dna_most_common = [
-                        cls
-                        for cls, count in dna_counts.items()
-                        if count == dna_max_count
-                    ]
-                    priority = ["Somatic", "Germline", "Reference", "Artifact"]
-                    dna_unified = dna_most_common[0]
-                    for cls in priority:
-                        if cls in dna_most_common:
-                            dna_unified = cls
-                            break
-                    record.info["UNIFIED_FILTER_DNA"] = dna_unified
+                    # Majority vote; ties resolve to Artifact per
+                    # docs/consensus_vcf_rules.md (no Somatic-favoring tiebreak)
+                    record.info["UNIFIED_FILTER_DNA"] = _majority_classification(
+                        dna_filters
+                    )
 
             # RNA unified classification - use RNA consensus label if available
             rna_label = None
@@ -945,20 +1061,11 @@ def write_union_vcf(
                     if not is_consensus_caller(c) and modality_map.get(c) == "RNA"
                 ]
                 if rna_filters:
-                    rna_counts = Counter(rna_filters)
-                    rna_max_count = max(rna_counts.values())
-                    rna_most_common = [
-                        cls
-                        for cls, count in rna_counts.items()
-                        if count == rna_max_count
-                    ]
-                    priority = ["Somatic", "Germline", "Reference", "Artifact"]
-                    rna_unified = rna_most_common[0]
-                    for cls in priority:
-                        if cls in rna_most_common:
-                            rna_unified = cls
-                            break
-                    record.info["UNIFIED_FILTER_RNA"] = rna_unified
+                    # Majority vote; ties resolve to Artifact per
+                    # docs/consensus_vcf_rules.md (no Somatic-favoring tiebreak)
+                    record.info["UNIFIED_FILTER_RNA"] = _majority_classification(
+                        rna_filters
+                    )
 
         # Add consensus flag for informational purposes (but don't override FILTER)
         # The FILTER field is now set by the classification functions above
@@ -983,17 +1090,34 @@ def write_union_vcf(
                 for c in data["callers"]
             )
 
+            # PASSES_CONSENSUS_* means the modality's consensus record PASSED
+            # as Somatic (audit M3) — mere presence in the union file (which
+            # includes NoConsensus/Artifact/Germline records) is not a pass.
+            dna_consensus_somatic = _any_caller_somatic(
+                data, lambda c: c == "DNA_consensus"
+            )
+            rna_consensus_somatic = _any_caller_somatic(
+                data, lambda c: c == "RNA_consensus"
+            )
+
             if has_dna_consensus or has_dna_callers:
                 record.info["PASSES_CONSENSUS_DNA"] = (
-                    "YES" if has_dna_consensus else "NO"
+                    "YES" if dna_consensus_somatic else "NO"
                 )
             if has_rna_consensus or has_rna_callers:
                 record.info["PASSES_CONSENSUS_RNA"] = (
-                    "YES" if has_rna_consensus else "NO"
+                    "YES" if rna_consensus_somatic else "NO"
                 )
 
         # Rescue indicator - use actual rescued status from variant data
+        # (computed from records that passed as Somatic, audit M3)
         record.info["RESCUED"] = "YES" if data.get("rescued", False) else "NO"
+        # Cross-modality promotion tag (audit M1): the site failed
+        # within-modality consensus but individual DNA+RNA callers agreed on
+        # Somatic
+        record.info["RESCUE_PROMOTED"] = (
+            "YES" if data.get("rescue_promoted", False) else "NO"
+        )
 
         # Add modality-specific fields if modality_map is provided
         if modality_map:
@@ -1027,7 +1151,16 @@ def write_union_vcf(
 
             record.info["DNA_SUPPORT"] = len(set(dna_callers))
             record.info["RNA_SUPPORT"] = len(set(rna_callers))
-            record.info["CROSS_MODALITY"] = "YES" if len(modalities) > 1 else "NO"
+            # CROSS_MODALITY means each modality contributed a record that
+            # PASSED as Somatic (audit M3) — detection by callers whose
+            # records are NoConsensus/Artifact/Germline does not count.
+            dna_somatic = _any_caller_somatic(
+                data, lambda c: modality_map.get(c) == "DNA"
+            )
+            rna_somatic = _any_caller_somatic(
+                data, lambda c: modality_map.get(c) == "RNA"
+            )
+            record.info["CROSS_MODALITY"] = "YES" if (dna_somatic and rna_somatic) else "NO"
 
             # Calculate modality-specific statistics
             agg = data["gt_aggregated"]
@@ -1138,6 +1271,27 @@ def write_union_vcf(
                         prefixed_vaf_by_caller.append(f"{prefixed_caller}:{vaf_val}")
             if prefixed_vaf_by_caller:
                 record.info["VAF_BY_CALLER"] = "|".join(prefixed_vaf_by_caller)
+
+        # Add tumor alt-read counts with modality prefix - EXCLUDE consensus.
+        # Consumed by the RaVeX filtering stage (min_alt_reads), since this
+        # output has no FORMAT column to read AD from (audit C2).
+        alt_count_by_caller = agg.get("alt_count_by_caller", [])
+        if agg.get("alt_count_max") is not None:
+            record.info["ALT_COUNT_MAX"] = agg["alt_count_max"]
+
+            prefixed_alt_by_caller = []
+            for i, caller in enumerate(data["callers"]):
+                if not is_consensus_caller(caller):  # Skip consensus callers
+                    prefixed_caller = prefix_caller(caller, modality_map)
+                    if i < len(alt_count_by_caller):
+                        alt_val = (
+                            ""
+                            if alt_count_by_caller[i] is None
+                            else str(alt_count_by_caller[i])
+                        )
+                        prefixed_alt_by_caller.append(f"{prefixed_caller}:{alt_val}")
+            if prefixed_alt_by_caller:
+                record.info["ALT_COUNT_BY_CALLER"] = "|".join(prefixed_alt_by_caller)
 
         # Write record
         vcf_out.write(record)

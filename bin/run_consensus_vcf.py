@@ -51,6 +51,13 @@ def argparser():
         help="Number of callers required for indel consensus",
     )
     parser.add_argument(
+        "--min_alt_support",
+        type=int,
+        default=DEFAULT_THRESHOLDS["consensus_min_alt_support"],
+        help="Minimum tumor alt reads for a caller's record to count toward "
+        "consensus support (0 disables the floor)",
+    )
+    parser.add_argument(
         "--output_format",
         choices=["vcf", "vcf.gz", "bcf"],
         default="vcf.gz",
@@ -154,7 +161,11 @@ def main():
     for caller, vcf_path in vcf_files.items():
         print(f"  - Reading {caller}: {vcf_path}")
 
-        # Get template header and sample name from first VCF
+        # Get template header and sample name from first VCF.
+        # Note (audit M8a, ticket 07): sample_name is no longer written to the
+        # output — the output header carries no sample column because records
+        # carry no FORMAT/sample data. It is still parsed here for API
+        # compatibility with write_union_vcf and --sample_name.
         if template_header is None:
             vcf = VCF(vcf_path)
             template_header = vcf
@@ -181,7 +192,10 @@ def main():
     # Aggregate variants using vcf_utils
     print("\n- Aggregating variants across callers")
     variant_data = aggregate_variants(
-        variant_collections, snv_threshold=args.snv_thr, indel_threshold=args.indel_thr
+        variant_collections,
+        snv_threshold=args.snv_thr,
+        indel_threshold=args.indel_thr,
+        min_alt_support=args.min_alt_support,
     )
 
     print(f"- Total unique variants: {len(variant_data):,}")

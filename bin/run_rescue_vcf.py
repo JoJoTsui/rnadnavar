@@ -79,6 +79,43 @@ def argparser():
         default=DEFAULT_THRESHOLDS["consensus_indel_threshold"],
         help="Minimum number of callers for indel consensus",
     )
+    parser.add_argument(
+        "--min_alt_support",
+        type=int,
+        default=DEFAULT_THRESHOLDS["consensus_min_alt_support"],
+        help="Minimum tumor alt reads for a caller's record to count toward "
+        "consensus support (0 disables the floor)",
+    )
+
+    # Rescue contract (audit M1/M2)
+    parser.add_argument(
+        "--disable_rescue_promotion",
+        action="store_true",
+        help="Disable cross-modality promotion: individual DNA+RNA callers "
+        "agreeing on Somatic no longer rescue a site that failed "
+        "within-modality consensus (legacy NoConsensus outcome)",
+    )
+    parser.add_argument(
+        "--rescue_min_dna_callers",
+        type=int,
+        default=DEFAULT_THRESHOLDS["rescue_promotion_min_dna_callers"],
+        help="Minimum DNA callers agreeing on Somatic for cross-modality promotion",
+    )
+    parser.add_argument(
+        "--rescue_min_rna_callers",
+        type=int,
+        default=DEFAULT_THRESHOLDS["rescue_promotion_min_rna_callers"],
+        help="Minimum RNA callers agreeing on Somatic for cross-modality promotion",
+    )
+    parser.add_argument(
+        "--rescue_veto",
+        type=str,
+        choices=["dna", "rna", "none"],
+        default=DEFAULT_THRESHOLDS["rescue_veto_direction"],
+        help="Which modality's Artifact consensus label vetoes the other "
+        "modality's non-Artifact evidence ('none' restores the legacy "
+        "RNA-first override)",
+    )
 
     # Rescue mode
     parser.add_argument(
@@ -185,6 +222,16 @@ def main():
     print("\nThresholds:")
     print(f"  - SNV: {args.snv_thr}")
     print(f"  - Indel: {args.indel_thr}")
+    print("\nRescue contract:")
+    if args.disable_rescue_promotion:
+        print("  - Cross-modality promotion: DISABLED (legacy NoConsensus)")
+    else:
+        print(
+            f"  - Cross-modality promotion: ON (min DNA callers: "
+            f"{args.rescue_min_dna_callers}, min RNA callers: "
+            f"{args.rescue_min_rna_callers})"
+        )
+    print(f"  - Artifact veto direction: {args.rescue_veto}")
     print("\nChromosome Filtering:")
     if args.include_non_canonical:
         print("  - Including ALL chromosomes (non-canonical enabled)")
@@ -300,7 +347,10 @@ def main():
         f"    - RNA sources: {1 + len(rna_caller_variants)} (1 consensus + {len(rna_caller_variants)} callers)"
     )
 
-    variant_data = aggregate_variants(all_collections, args.snv_thr, args.indel_thr)
+    variant_data = aggregate_variants(
+        all_collections, args.snv_thr, args.indel_thr,
+        min_alt_support=args.min_alt_support,
+    )
 
     print(f"  - Aggregated {len(variant_data):,} unique variants")
 
@@ -339,16 +389,17 @@ def main():
     print("Marking rescued variants...")
     print("=" * 80)
 
-    # Get variant keys from DNA and RNA consensus
+    # Get variant keys from DNA and RNA consensus (for statistics)
     dna_variant_keys = set(dna_consensus.keys())
     rna_variant_keys = set(rna_consensus.keys())
 
     print(f"  - DNA consensus variants: {len(dna_variant_keys):,}")
     print(f"  - RNA consensus variants: {len(rna_variant_keys):,}")
 
-    variant_data = mark_rescued_variants(
-        variant_data, dna_variant_keys, rna_variant_keys
-    )
+    # Pass the record dicts (not just keys): rescue flags are computed from
+    # records that PASSED as Somatic, never from mere presence in the union
+    # file (audit M3)
+    variant_data = mark_rescued_variants(variant_data, dna_consensus, rna_consensus)
 
     # Count rescued variants
     rescued_count = sum(
@@ -392,6 +443,14 @@ def main():
     for caller in sorted(all_caller_names):
         print(f"    - {caller}")
 
+    # Rescue contract config (audit M1/M2) forwarded to the rescue classifier
+    rescue_config = {
+        "rescue_promotion_enabled": not args.disable_rescue_promotion,
+        "rescue_promotion_min_dna_callers": args.rescue_min_dna_callers,
+        "rescue_promotion_min_rna_callers": args.rescue_min_rna_callers,
+        "rescue_veto_direction": args.rescue_veto,
+    }
+
     # Write VCF with modality_map to enable modality-specific INFO fields
     written_count = write_union_vcf(
         variant_data,
@@ -404,6 +463,7 @@ def main():
         snv_threshold=args.snv_thr,
         indel_threshold=args.indel_thr,
         include_non_canonical=args.include_non_canonical,
+        rescue_config=rescue_config,
     )
 
     print("\n" + "=" * 80)
