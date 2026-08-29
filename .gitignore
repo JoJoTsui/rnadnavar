@@ -50,3 +50,10 @@ dev_docs/
 full_v0
 bin/vcf_stats/seq2neo/stats_core.so
 examples/seq2neo/stats/full_filtered/
+
+# Re-consensus rerun artifacts (outputs, state, checksums, label_qc reports)
+examples/seq2neo/output_reconsensus/
+examples/seq2neo/runs/label_qc/
+examples/seq2neo/runs/rerun_checksums/
+examples/seq2neo/runs/rerun_csv/
+examples/seq2neo/runs/rerun_state.json
