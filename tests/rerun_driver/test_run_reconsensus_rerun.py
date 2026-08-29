@@ -324,3 +324,60 @@ def test_verify_only_mode(fake_cohort, tmp_path):
     )
     assert res.returncode == 1
     assert "checksum mismatch" in res.stdout
+
+
+# ---------------------------------------------------------------------------
+# Parallel-cohort seams: comma-separated --sample, per-group --state-file
+# ---------------------------------------------------------------------------
+
+
+def test_sample_filter_accepts_comma_separated_list(fake_cohort, tmp_path):
+    """The cohort launcher hands each parallel driver a disjoint comma-
+    separated sample list via --sample."""
+    manifest, rows = fake_cohort
+    res = run_driver(
+        "--manifest", str(manifest),
+        "--seq2neo", str(tmp_path / "rerun"),
+        "--sample", ",".join(r["sample_id"] for r in rows),
+        "--dry-run",
+    )
+    assert res.returncode == 0, res.stderr
+    assert "Selected 2 sample(s)" in res.stdout
+
+    # a single id still works (backward compatible)
+    res = run_driver(
+        "--manifest", str(manifest),
+        "--seq2neo", str(tmp_path / "rerun"),
+        "--sample", rows[1]["sample_id"],
+        "--dry-run",
+    )
+    assert res.returncode == 0, res.stderr
+    assert "Selected 1 sample(s)" in res.stdout
+
+
+def test_state_file_cli_override(fake_cohort, tmp_path):
+    """--state-file redirects state writes (per-group state files keep
+    concurrent drivers from racing on the shared state file)."""
+    manifest, rows = fake_cohort
+    victim = next(
+        (Path(rows[0]["base_output_dir"]) / rows[0]["dir_name"]).rglob(
+            "*.strelka.variants.vcf.gz"
+        )
+    )
+    victim.unlink()
+    rerun_root = tmp_path / "rerun"
+    group_state = rerun_root / "runs" / "cohort_state" / "group1.json"
+    res = run_driver(
+        "--manifest", str(manifest),
+        "--seq2neo", str(rerun_root),
+        "--sample", rows[0]["sample_id"],
+        "--state-file", str(group_state),
+        "--main-nf", "/nonexistent/main.nf",
+        "--rdv-conf", "/nonexistent/c.config",
+    )
+    assert res.returncode == 0, res.stderr
+    # state written to the override path, not the default rerun_state.json
+    assert group_state.is_file()
+    state = json.loads(group_state.read_text())
+    assert state[rows[0]["sample_id"]]["status"] == "failed"
+    assert not (rerun_root / "runs" / "rerun_state.json").exists()

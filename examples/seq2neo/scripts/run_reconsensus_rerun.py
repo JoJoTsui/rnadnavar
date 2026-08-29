@@ -41,6 +41,15 @@ Usage examples:
 
   # Resume (re-run same command — completed samples are auto-skipped)
   python3 scripts/run_reconsensus_rerun.py --config config/rerun.yaml
+
+  # Parallel cohort run (6 detached group drivers, disjoint samples/state):
+  python3 scripts/run_reconsensus_cohort.py --config config/rerun_cohort.yaml
+
+  # One parallel group by hand: comma-separated --sample + a per-group state
+  # file (the state file is loaded once and written back wholesale, so it is
+  # NOT safe for concurrent processes sharing one file).
+  python3 scripts/run_reconsensus_rerun.py --config config/rerun_cohort.yaml \\
+      --sample ID1,ID2,ID3 --state-file runs/cohort_state/group1.json
 """
 
 import argparse
@@ -425,9 +434,12 @@ def check_outdir_separation(rows: list, outdir_base: Path):
 
 
 def filter_samples(rows: list, args) -> list:
+    # --sample accepts a comma-separated list of sample_ids (used by the
+    # parallel cohort launcher to hand one disjoint group to each process).
+    wanted = set(args.sample.split(",")) if args.sample else None
     out = []
     for r in rows:
-        if args.sample and r["sample_id"] != args.sample:
+        if wanted and r["sample_id"] not in wanted:
             continue
         if args.set is not None and str(r.get("set_number")) != str(args.set):
             continue
@@ -450,7 +462,8 @@ def main():
     )
     ap.add_argument("--config", default=None, help="Path to rerun.yaml")
     # filters
-    ap.add_argument("--sample", default=None, help="Run a single sample_id")
+    ap.add_argument("--sample", default=None,
+                    help="Run one sample_id, or a comma-separated list of sample_ids")
     ap.add_argument("--set", default=None, type=int, help="Filter by partition set (1-4)")
     ap.add_argument(
         "--status", default="all", help="standard | extra | all  (default: all)"
@@ -465,6 +478,9 @@ def main():
     ap.add_argument("--main-nf", default=None, dest="main_nf")
     ap.add_argument("--rdv-conf", default=None, dest="rdv_conf")
     ap.add_argument("--outdir-base", default=None, dest="outdir_base")
+    ap.add_argument("--state-file", default=None, dest="state_file",
+                    help="Override state_file (per-group state for parallel runs; "
+                         "the state file is not safe for concurrent writers)")
     ap.add_argument("--seq2neo", default=None, dest="seq2neo_root")
     ap.add_argument("--manifest", default=None, dest="manifest_tsv")
     ap.add_argument("--dry-run", action="store_true", default=None, dest="dry_run")

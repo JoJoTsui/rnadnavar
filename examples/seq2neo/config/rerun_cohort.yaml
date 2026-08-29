@@ -1,0 +1,64 @@
+# rerun_cohort.yaml — parallel 64-sample re-consensus cohort config
+#
+# Copy of rerun.yaml with ONE deliberate difference: VEP is dropped from
+# `tools`. Rationale (smoke-proven on PRJNA298330_4032 / PRJNA298376_4278):
+# the training-label artifact — the rescue filtered stripped VCF
+# (rescue/**/<pair>.filtered.vcf.stripped.vcf.gz) — is produced BEFORE VEP in
+# the process chain (execution trace: ... VCF_RESCUE → COSMIC_GNOMAD_ANNOTATION
+# → RNA_EDITING_ANNOTATION → VCF_RESCUE_FILTER → ENSEMBLVEP_VEP → MULTIQC).
+# VEP contributed ~1h20m of the ~3h smoke wall time on 4278 and annotates
+# nothing the label gate consumes, so the cohort run stops after filtering.
+# The mandatory `vep_cache` param stays set in seq2neo.shared.config, so
+# pipeline validation is unaffected.
+#
+# Launch via scripts/run_reconsensus_cohort.py (6 detached group drivers).
+# Everything else is identical to rerun.yaml.
+
+# ── Nextflow pipeline ─────────────────────────────────────────────────────
+main_nf:  /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/main.nf
+rdv_conf: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seq2neo/seq2neo.shared.config
+
+# ── Conda / Nextflow env ───────────────────────────────────────────────────
+nxf_conda_cachedir: /t9k/mnt/joey/nf_conda_envs
+nxf_conda_usemamba: "true"
+micromamba_env: nextflow          # micromamba run -n <this>
+
+# ── Network proxy (leave empty to disable) ────────────────────────────────
+https_proxy: "http://10.233.17.241:3128"
+
+# ── Data root (all relative paths below are anchored here) ────────────────
+seq2neo_root: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seq2neo
+
+manifest_tsv: data/processed/sample_manifest.tsv  # input: cohort sample list
+csv_dir:      runs/rerun_csv                      # generated per-sample VCF samplesheets
+outdir_base:  output_reconsensus                  # NEW per-sample rerun output dirs
+state_file:   runs/rerun_state.json               # per-group override via --state-file
+checksum_dir: runs/rerun_checksums                # per-sample input checksum manifests
+
+# ── Rerun entry point (do not change; enforced by the driver) ─────────────
+# step 'consensus' enters after variant calling; VCF_NORMALIZE now runs first
+# (M5 fix), then consensus → rescue → rescue post-processing.
+step:  consensus
+# No caller names: no variant-calling process can be triggered.
+# No 'vep': label artifact is produced upstream of VEP (see header comment).
+tools: consensus,rescue,filtering
+extra_nextflow_args: []
+
+# ── Execution ─────────────────────────────────────────────────────────────
+dry_run: false
+resume:  true    # pass -resume to nextflow
+offline: true    # pass -offline to nextflow
+max_retries: 2
+
+# ── Completion check ──────────────────────────────────────────────────────
+# All completion_artifacts globs must match ≥1 file.
+# At least one consensus and one rescue pattern must match.
+completion_artifacts:
+  - "**/pipeline_info/execution_trace*.txt"
+
+consensus_success_patterns:
+  - "consensus/**/*.vcf.gz"
+
+rescue_success_patterns:
+  - "rescue/**/*.filtered.vcf.gz"
+  - "rescue/**/*.rescued.vcf.gz"

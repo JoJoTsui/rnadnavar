@@ -35,6 +35,16 @@ nf-test test --profile test,singularity
 
 The nf-test config (`nf-test.config`) sets `testsDir "."` and profile `test`. CI uses nf-test 0.9.2, Nextflow 24.10.x, and Python 3.13. Tests auto-shard across parallel CI jobs.
 
+### Python Unit Tests (uv-managed venv)
+
+The repo's Python environment is uv-managed: `pyproject.toml` + `uv.lock`, with the venv at `.venv/` (created by uv; Python 3.10). Run the Python suites with the venv interpreter:
+
+```bash
+.venv/bin/python -m pytest tests/ -q --ignore=tests/test_vcf_stats --ignore=tests/vcf_stats
+```
+
+Note: `.venv` contains extra packages beyond the lockfile (e.g. `maturin`, needed to build `bin/vcf_stats/seq2neo/stats_core.so`). Do NOT run bare `uv sync` — it would uninstall those; use `uv sync --inexact` if you must reconcile. New Python tools should stay stdlib-only where possible (see `bin/label_qc.py`).
+
 ### Pipeline Execution (Local Development)
 
 ```bash

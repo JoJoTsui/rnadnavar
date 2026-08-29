@@ -104,6 +104,51 @@ All commands assume the repo root as CWD unless noted. The cohort is 66 samples 
 
 ### 1. Rerun the cohort (consensus+rescue only)
 
+**Parallel cohort run (the way the 64-sample remainder is being run, launched 2026-08-29).**
+Launcher: `examples/seq2neo/scripts/run_reconsensus_cohort.py`, config: `examples/seq2neo/config/rerun_cohort.yaml`.
+
+```bash
+cd examples/seq2neo
+
+# show the partition + exact per-group commands; launch nothing
+python3 scripts/run_reconsensus_cohort.py --dry-run
+
+# launch 6 detached group drivers (nohup-style; safe to close the shell)
+python3 scripts/run_reconsensus_cohort.py
+
+# re-run the same command later: groups with a live driver are skipped,
+# completed samples are auto-skipped inside each group
+```
+
+The launcher reads the manifest (66 samples), excludes samples marked `succeeded` in `runs/rerun_state.json` (the 2 smoke samples), and round-robin-partitions the remaining 64 into 6 disjoint groups (11/11/11/11/10/10). Each group gets a detached `run_reconsensus_rerun.py` process running its samples sequentially with a comma-separated `--sample` list.
+
+**No-VEP decision (cohort config).** `rerun_cohort.yaml` is `rerun.yaml` with `tools: consensus,rescue,filtering` — VEP dropped. Rationale: the training-label artifact (the rescue filtered stripped VCF, `rescue/**/<pair>.filtered.vcf.stripped.vcf.gz`) is produced *before* VEP in the process chain — smoke-run execution trace: `... VCF_RESCUE → COSMIC_GNOMAD_ANNOTATION → RNA_EDITING_ANNOTATION → VCF_RESCUE_FILTER → ENSEMBLVEP_VEP → MULTIQC`. VEP cost ~1h20m of the ~3h smoke wall time on 4278 and feeds nothing the label gate consumes. The mandatory `vep_cache` param stays set in `seq2neo.shared.config`, so pipeline validation still passes. Expected duration: ~1.7h/sample without VEP; 6-way parallel → **~18–20h total** for the 64-sample remainder.
+
+**State-file race handling.** The driver's state file is loaded once at startup and written back wholesale — concurrent drivers sharing it would lose each other's updates (last writer wins). The launcher therefore gives each group its own state file via the driver's `--state-file` flag (`runs/cohort_state/group<N>.json`), and each group driver runs with its own CWD (`runs/cohort_work/group<N>/`) so nextflow `work/` and `.nextflow/` session dirs are per-group. Per-sample artifacts (`runs/rerun_csv/<sid>.csv`, `runs/rerun_checksums/<sid>.json`, `output_reconsensus/<sid>/`) are disjoint by the partition.
+
+**Monitoring.**
+
+```bash
+cd examples/seq2neo
+
+# per-group progress + per-sample OK/FAIL lines
+tail -f runs/cohort_logs/group1.log
+
+# per-sample state (running/succeeded/failed + retry counts)
+cat runs/cohort_state/group1.json
+
+# which nextflow pipelines are alive
+ps -o pid,etime,cmd -p $(cat runs/cohort_logs/group*.pid)
+
+# task-level detail for a running sample
+grep -E 'VCF_CONSENSUS|VCF_RESCUE' \
+  output_reconsensus/<sid>/pipeline_info/execution_trace_*.txt | tail
+```
+
+A group is done when its log ends with `=== Done succeeded=N skipped=M failed=K ===` and its driver PID exits. Completion of the whole cohort: all 6 group state files plus `runs/rerun_state.json` show 66 `succeeded` (failures retry up to `max_retries=2` on launcher re-run; a tripped checksum guard is never auto-retried).
+
+**Sequential fallback (original driver, includes VEP via `rerun.yaml`):**
+
 ```bash
 cd examples/seq2neo
 
@@ -203,4 +248,5 @@ The rerun does not rehabilitate FAIL samples whose signature is intrinsic to the
 ### 7. Known pending items
 
 - **S7 recalibration** (see 4278 smoke section): the low-DP WARN threshold was calibrated on pre-fix DP fields; expect cohort-wide S7 WARNs until recalibrated against the fixed DP extraction.
-- Both smoke samples are done; remaining work is the full 64-sample remainder of the cohort (§1) plus the cohort-mode label_qc gate (§5).
+- Both smoke samples are done; the 64-sample remainder is running 6-way parallel (§1, launched 2026-08-29, `config/rerun_cohort.yaml` without VEP, ~18–20h expected). Remaining work after it completes: the cohort-mode label_qc gate (§5).
+- The cohort outputs contain no VEP annotations (deliberate, §1). If VEP-annotated MAFs are needed later for specific samples, re-run those samples with `config/rerun.yaml` — completed samples are auto-skipped, so clear their state entry or use a fresh state file.
