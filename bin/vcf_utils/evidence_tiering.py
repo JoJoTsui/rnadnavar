@@ -139,13 +139,17 @@ class EvidenceTieringProcessor:
         """
         Determine if FILTER column should be updated based on evidence tier.
         
+        Only tiers with NO DNA support trigger a FILTER change to "RNAedit"
+        (audit M7); MEDIUM/LOW tiers keep the original FILTER and are carried
+        as the REDI_EVIDENCE INFO annotation instead.
+        
         Args:
             evidence_tier: Evidence tier (HIGH, MEDIUM, LOW, NONE)
             
         Returns:
             True if FILTER should be updated to "RNAedit", False to preserve original
         """
-        return evidence_tier in ['HIGH', 'MEDIUM', 'LOW']
+        return evidence_tier in ['VERY_HIGH', 'HIGH']
     
     def process_variant(self, variant_info: Dict[str, Any], 
                        has_rediportal_match: bool) -> Dict[str, Any]:
@@ -365,9 +369,9 @@ class EvidenceTieringValidator:
         Returns:
             True if logic is consistent, False otherwise
         """
-        if evidence_tier in ['HIGH', 'MEDIUM', 'LOW']:
+        if evidence_tier in ['VERY_HIGH', 'HIGH']:
             return update_filter is True
-        elif evidence_tier == 'NONE':
+        elif evidence_tier in ['MEDIUM', 'LOW', 'NONE']:
             return update_filter is False
         else:
             return False

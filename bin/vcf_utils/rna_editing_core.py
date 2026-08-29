@@ -161,8 +161,11 @@ def classify_rna_editing_biological_category(evidence_level: str,
     """
     Determine biological classification (FILTER field) based on evidence level.
     
-    Rules:
-    - VERY_HIGH, HIGH, MEDIUM, LOW evidence -> RNAedit
+    Rules (audit M7 — FILTER change restricted to tiers with NO DNA support):
+    - VERY_HIGH, HIGH evidence (RNA-only, no DNA support) -> RNAedit
+    - MEDIUM, LOW evidence (DNA presence / non-canonical) -> preserve original
+      classification; the tier is carried as the REDI_EVIDENCE INFO annotation
+      instead of masking DNA-supported somatic calls
     - NONE evidence -> preserve original classification
     
     Args:
@@ -172,7 +175,7 @@ def classify_rna_editing_biological_category(evidence_level: str,
     Returns:
         Biological classification for FILTER field
     """
-    if evidence_level in ['VERY_HIGH', 'HIGH', 'MEDIUM', 'LOW']:
+    if evidence_level in ['VERY_HIGH', 'HIGH']:
         return 'RNAedit'
     else:
         return original_classification

@@ -49,14 +49,17 @@ class FilterUpdater:
         """
         Determine if FILTER should be updated to "RNAedit" based on evidence criteria.
         
-        FILTER Update Rules (Requirements 5.1, 5.2):
+        FILTER Update Rules (Requirements 5.1, 5.2; audit M7):
         - Update to "RNAedit" if:
           - N_RNA_CALLERS_SUPPORT >= min_rna_support (RNA consensus)
           - Has exact REDIportal match
-          - Evidence tier is HIGH, MEDIUM, or LOW
+          - Evidence tier has NO DNA support (VERY_HIGH/HIGH)
+        - MEDIUM/LOW tiers (DNA presence or non-canonical transition) preserve
+          the original FILTER; the tier is emitted as the REDI_EVIDENCE INFO
+          annotation instead of masking DNA-supported somatic calls.
         
         Args:
-            evidence_tier: Evidence tier (HIGH, MEDIUM, LOW, NONE)
+            evidence_tier: Evidence tier (VERY_HIGH, HIGH, MEDIUM, LOW, NONE)
             has_rediportal_match: Whether variant has exact REDIportal match
             rna_support: Number of RNA callers supporting the variant
             min_rna_support: Minimum RNA support threshold
@@ -72,8 +75,8 @@ class FilterUpdater:
         if not has_rediportal_match:
             return False
         
-        # Check evidence tier requirement
-        if evidence_tier not in ['HIGH', 'MEDIUM', 'LOW']:
+        # Check evidence tier requirement (no-DNA-support tiers only, audit M7)
+        if evidence_tier not in ['VERY_HIGH', 'HIGH']:
             return False
         
         return True
@@ -234,8 +237,8 @@ class FilterUpdater:
         # Log efficiency metrics
         if stats['total_variants_processed'] > 0:
             logger.debug("=== FILTER Update Decision Details ===")
-            logger.debug("Update criteria: RNA consensus + REDIportal match + evidence tier HIGH/MEDIUM/LOW")
-            logger.debug("Preserve criteria: No RNA consensus OR no REDIportal match OR evidence tier NONE")
+            logger.debug("Update criteria: RNA consensus + REDIportal match + no-DNA-support evidence tier (VERY_HIGH/HIGH)")
+            logger.debug("Preserve criteria: No RNA consensus OR no REDIportal match OR evidence tier MEDIUM/LOW/NONE (INFO annotation only)")
     
     def log_filter_decision(self, original_filter: str, new_filter: str, evidence_tier: str, 
                            has_rediportal_match: bool, rna_support: int, was_updated: bool):
@@ -282,11 +285,11 @@ class FilterUpdateValidator:
         Returns:
             True if logic is consistent, False otherwise
         """
-        # Check if update criteria are met
+        # Check if update criteria are met (no-DNA-support tiers only, audit M7)
         should_update = (
             rna_support >= min_rna_support and
             has_rediportal_match and
-            evidence_tier in ['HIGH', 'MEDIUM', 'LOW']
+            evidence_tier in ['VERY_HIGH', 'HIGH']
         )
         
         if should_update:
@@ -362,14 +365,14 @@ if __name__ == '__main__':
             'expected_updated': True
         },
         {
-            'name': 'MEDIUM evidence - should update to RNAedit',
+            'name': 'MEDIUM evidence - should preserve original (DNA support, audit M7)',
             'original_filter': 'PASS',
             'evidence_tier': 'MEDIUM',
             'has_rediportal_match': True,
             'rna_support': 2,
             'min_rna_support': 2,
-            'expected_filter': 'RNAedit',
-            'expected_updated': True
+            'expected_filter': 'PASS',
+            'expected_updated': False
         },
         {
             'name': 'NONE evidence - should preserve original',

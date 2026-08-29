@@ -352,8 +352,9 @@ class VariantClassifier:
         Classify variant based on multi-modal evidence with proper rule priority.
 
         Classification Rule Priority:
-        1. Somatic rules (unanimous DNA callers, cross-modality + COSMIC)
-        2. Germline rules (population frequency)
+        1. Somatic rules (majority DNA callers, cross-modality + COSMIC) — the
+           majority-DNA rule is vetoed by common population frequency evidence
+        2. Germline rules (population frequency + DNA-side germline evidence)
         3. Conservative preservation of original classification
 
         Args:
@@ -364,14 +365,25 @@ class VariantClassifier:
         """
         self.stats["total_classified"] += 1
 
+        # Common population frequency (gnomAD AF above the germline threshold) is
+        # evaluated jointly with Rule 1 (audit M6): it vetoes a Rule-1 Somatic
+        # (re)classification so that >=2 DNA-caller "Somatic" agreement cannot
+        # override common-AF (likely germline) evidence.
+        common_population_frequency = (
+            evidence.population_frequency is not None
+            and evidence.population_frequency > self.germline_freq_threshold
+        )
+
         # Rule 1: Majority DNA Somatic-labeled caller support → High-confidence Somatic (Priority: Highest)
         # Requires:
         #   - At least somatic_consensus_threshold (default 2) DNA callers labeled Somatic
         #   - Those Somatic-labeled callers represent > 50% of total DNA callers
         #     (equivalent to within-modality consensus, avoids requiring 100% unanimity)
+        #   - No common population frequency evidence (vetoed by gnomAD AF > threshold)
         # Source: FILTERS_NORMALIZED e.g. DNA_mutect2:Somatic|DNA_strelka:Somatic
         if (
-            evidence.total_dna_callers > 0
+            not common_population_frequency
+            and evidence.total_dna_callers > 0
             and evidence.dna_somatic_caller_count >= self.somatic_consensus_threshold
             and evidence.dna_somatic_caller_count > evidence.total_dna_callers / 2
         ):
@@ -436,13 +448,11 @@ class VariantClassifier:
         # Rule 3: Population frequency > threshold → Germline (Priority: Medium, after somatic rules)
         # Requirements:
         #   - gnomAD AF exceeds germline threshold
-        #   - At least 1 Germline-labeled caller in the DNA modality
-        #   - At least 1 Germline-labeled caller in the RNA modality
+        #   - At least 1 Germline-labeled caller in the DNA modality (DNA-side germline
+        #     evidence at common AF suffices; audit M6 — RNA Mutect2 is typically sparse,
+        #     so requiring RNA germline evidence made this rule nearly unreachable)
         #   - No Artifact label in either modality (artifact protection)
-        if (
-            evidence.population_frequency is not None
-            and evidence.population_frequency > self.germline_freq_threshold
-        ):
+        if common_population_frequency:
             # Check artifact protection before germline reclassification
             if variant_info and self._check_artifact_protection(evidence, variant_info):
                 self.stats["unchanged_count"] += 1
@@ -460,15 +470,15 @@ class VariantClassifier:
                 logger.debug(f"Artifact protection applied: {result.evidence_summary}")
                 return result
 
-            # Require at least 1 Germline-labeled caller in each modality
+            # Require at least 1 Germline-labeled caller in the DNA modality
+            # (RNA germline evidence is no longer required — audit M6)
             has_dna_germline = evidence.dna_germline_caller_count >= 1
-            has_rna_germline = evidence.rna_germline_caller_count >= 1
 
-            if not (has_dna_germline and has_rna_germline):
+            if not has_dna_germline:
                 # Insufficient germline label support — fall through to Rule 4
                 logger.debug(
                     f"Germline skipped: population frequency {evidence.population_frequency:.4f} > threshold "
-                    f"but insufficient Germline-labeled callers "
+                    f"but no Germline-labeled DNA caller "
                     f"(DNA germline: {evidence.dna_germline_caller_count}, "
                     f"RNA germline: {evidence.rna_germline_caller_count})"
                 )

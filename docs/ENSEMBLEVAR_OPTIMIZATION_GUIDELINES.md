@@ -10,9 +10,11 @@ This document carries (a) fix specs for findings deliberately deferred from the 
 
 ## 1. Deferred findings — fix specs
 
-### 1.1 Annotation-stage germline leakage (M6) — highest priority deferred item
+### 1.1 Annotation-stage germline leakage (M6) — IMPLEMENTED 2026-08-29
 
-**Problem.** In the annotation-stage classifier, Rule 1 reclassifies a variant to Somatic when ≥2 DNA callers carry the label "Somatic" (>50% of DNA callers) with **no gnomAD check**, taking priority over the germline rule; and the germline-demotion rule additionally requires a Germline-labeled caller in *both* DNA and RNA, which is nearly unreachable because RNA Mutect2 is sparse. A caller's "Somatic" label is just its own `FILTER == PASS`; if Mutect2 runs without `--germline-resource`/panel-of-normals, common SNPs PASS and get labeled Somatic.
+**Status:** fixed (no longer deferred). The cohort's Mutect2 invocations were confirmed to use `--germline-resource` + `--panel-of-normals` (step 1 below, closed), and the classifier rules were corrected in `bin/vcf_utils/variant_classifier.py` (`classify_variant`): common population frequency (`annotation_germline_freq_threshold`, default 0.001) vetoes a Rule-1 Somatic (re)classification, and germline demotion now requires only DNA-side germline evidence (the RNA-germline requirement was dropped). Regression tests: `tests/vcf_utils/test_annotation_germline_ordering.py` (AF 0.3 + two DNA Somatic labels → Germline; sub-threshold AF keeps Rule-1 Somatic; DNA-only germline evidence demotes without RNA labels).
+
+**Original problem.** In the annotation-stage classifier, Rule 1 reclassifies a variant to Somatic when ≥2 DNA callers carry the label "Somatic" (>50% of DNA callers) with **no gnomAD check**, taking priority over the germline rule; and the germline-demotion rule additionally requires a Germline-labeled caller in *both* DNA and RNA, which is nearly unreachable because RNA Mutect2 is sparse. A caller's "Somatic" label is just its own `FILTER == PASS`; if Mutect2 runs without `--germline-resource`/panel-of-normals, common SNPs PASS and get labeled Somatic.
 
 **Fix spec.**
 1. First confirm configuration reality: check whether the cohort's Mutect2 invocations used `--germline-resource` (af-only-gnomad) and `--panel-of-normals` (1000g PON is present in the seq2neo shared config — verify it reaches the process). If they did, severity drops; if not, this is the structural leak behind the 4032-class failures on the DNA side.
@@ -20,9 +22,11 @@ This document carries (a) fix specs for findings deliberately deferred from the 
 3. Drop the RNA-germline requirement for demotion: DNA-only germline evidence at common AF must suffice.
 4. Regression-test with a fixture: two DNA callers PASS a variant at gnomAD AF 0.3 → must demote to Germline.
 
-### 1.2 RNA-editing over-masking (M7)
+### 1.2 RNA-editing over-masking (M7) — IMPLEMENTED 2026-08-29
 
-**Problem.** Any variant with an exact REDIportal match and ≥2 RNA callers is relabeled `RNAedit` — including MEDIUM tier (has DNA presence) and LOW tier (non-canonical transition at a known site). This removes genuine high-VAF DNA-supported A>G somatic mutations at editing sites, and the step runs *after* COSMIC/gnomAD reclassification, overwriting it.
+**Status:** fixed (no longer deferred). FILTER changes to `RNAedit` are now restricted to the no-DNA-support tiers (VERY_HIGH/HIGH) in `bin/vcf_utils/rna_editing_core.py` (`classify_rna_editing_biological_category`), `bin/vcf_utils/filter_updater.py` (`should_update_filter_to_rnaedit`), and `bin/vcf_utils/evidence_tiering.py` (`should_update_filter`). MEDIUM/LOW tiers keep their FILTER and are annotated in INFO via the existing `REDI_EVIDENCE` field that `annotate_rna_editing.py` writes for every processed variant. Regression tests: `tests/vcf_utils/test_rna_editing_overmasking.py` (DNA-supported A>G at a REDIportal site with tumor DNA VAF 0.3 stays Somatic; RNA-only canonical sites still become RNAedit).
+
+**Original problem.** Any variant with an exact REDIportal match and ≥2 RNA callers is relabeled `RNAedit` — including MEDIUM tier (has DNA presence) and LOW tier (non-canonical transition at a known site). This removes genuine high-VAF DNA-supported A>G somatic mutations at editing sites, and the step runs *after* COSMIC/gnomAD reclassification, overwriting it.
 
 **Fix spec.** Restrict FILTER changes to the VERY_HIGH/HIGH tiers (no DNA support); for MEDIUM/LOW tiers emit INFO annotation only (e.g. an `RNA_EDIT_TIER` field) and leave FILTER alone. Depends on the ticket-02 tumor-VAF fix being in place (it is), because the tier logic keys off DNA VAF. Regression-test: DNA-supported A>G at a REDIportal site with tumor DNA VAF 0.3 stays Somatic with an INFO annotation.
 
@@ -79,6 +83,6 @@ SOTA VCF hygiene would put PASS in FILTER and the biological class in INFO (the 
 - The 2026-08 fix set (C1–C3, M1–M5, M8a, M9 + plumbing) is **a subset of all issues** — it is what one adversarial review plus one external label audit surfaced. There is no proof the label logic is now correct; there is only a stronger net. The QC gate (`label_qc.py`) is the standing mitigation: keep expanding its rule set whenever a new failure class is diagnosed in model evaluation.
 - **Normal contamination is a cohort provenance problem, not a pipeline bug.** Tier B detects it, but the source (sample swap? low tumor purity? shared variants?) needs wet-lab/data-provenance follow-up for 4081/4255.
 - **Low-coverage FN (~28% of evaluation FNs, tumor DP < 50)** is a genuine model/data limitation, not label noise — address via candidate generation or model design, not label QC.
-- **Mutect2 germline-resource/PoN usage in the cohort configs is unverified** (§1.1 step 1) — until confirmed, treat the germline-leak fix as speculative in impact.
+- ~~Mutect2 germline-resource/PoN usage in the cohort configs is unverified~~ — verified 2026-08-29: the cohort's Mutect2 ran with `--germline-resource` + `--panel-of-normals`, and the residual annotation-stage ordering issue was fixed (§1.1).
 - The **MAF-based legacy path** (`run_consensus.R`, `enable_maf_workflow`) was only lightly audited; if it is ever re-enabled, audit it first (indel positional-overlap rescue is known-bad).
 - Both model tryouts diagnosed **score inflation vs score separation** as the dominant residual failure even on cleaned labels — expect the next failure class to come from label *ambiguity* (low-VAF subclonal vs artifact), not the gross corruption fixed here.
