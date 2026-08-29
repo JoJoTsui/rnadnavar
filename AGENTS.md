@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**nf-core/rnadnavar** is a bioinformatics pipeline for RNA and DNA integrated analysis for somatic mutation detection. It uses Nextflow (DSL2/Groovy) for workflow orchestration and implements a consensus-based approach across multiple variant callers (Mutect2, Strelka2, DeepSomatic). The pipeline is designed for cancer research and supports both single-sample and multi-sample analyses.
+**EnsembleVar** (this repo; a heavily modified fork of **nf-core/rnadnavar**) is a bioinformatics pipeline for RNA and DNA integrated analysis for somatic mutation detection. It uses Nextflow (DSL2/Groovy) for workflow orchestration and implements a consensus-based approach across multiple variant callers (Mutect2, Strelka2, DeepSomatic). The pipeline is designed for cancer research and supports both single-sample and multi-sample analyses. Its consensus/rescue VCFs serve as training labels for downstream DN+DT+RT deep-learning models, so label correctness is held to a higher standard than typical pipeline output.
 
 > **Note on utilized variant callers:** Only **Mutect2, Strelka2, and DeepSomatic** are currently utilized as variant callers. SAGE and Manta modules exist in the repo (`modules/local/sage/`, `modules/nf-core/manta/`, and corresponding subworkflows/configs), but are presently ignored by the active workflow. Set `--tools` without them for a standard run.
 
@@ -115,12 +115,13 @@ modules/
 The `bin/` directory contains two major Python packages and standalone scripts:
 
 **`bin/vcf_utils/`** — Core VCF operations library:
-- `io_utils.py` — VCF reading/writing with custom INFO fields
-- `aggregation.py` — Variant aggregation from multiple callers/modalities
-- `tagging.py` — Caller support and modality metadata tagging
+- `io_utils.py` — VCF reading/writing with custom INFO fields (writes `CLASSIFICATION_RATIONALE`, per-caller `GT/DP/VAF/ALT_COUNT_BY_CALLER`, `RESCUE_PROMOTED`; output is 8-column VCF, no sample column)
+- `aggregation.py` — Variant aggregation from multiple callers/modalities (tumor-sample-aware genotype/DP/AD/VAF extraction via `resolve_tumor_sample_index`; caller support counts only non-Artifact records above a min tumor alt-read floor)
+- `tagging.py` — Caller support and modality metadata tagging (`RESCUED`/`CROSS_MODALITY` computed from passed-as-Somatic records only)
 - `filters.py` — Filter normalization across callers
-- `variant_classifier.py` / `variant_classifier_unified.py` — Somatic/germline/artifact/reference classification
-- `rna_editing_core.py` — RNA editing detection logic
+- `unified_filters.py` — Shared filter logic (case-insensitive gnomAD AF lookup; biological-class FILTERs exempt from caller-rejection checks)
+- `variant_classifier.py` / `variant_classifier_unified.py` — Somatic/germline/artifact/reference classification (common-AF vetoes Rule-1 Somatic reclassification; rescue contract: cross-modality promotion + DNA-Artifact veto)
+- `rna_editing_core.py` — RNA editing detection logic (FILTER=RNAedit only for no-DNA-support tiers VERY_HIGH/HIGH; MEDIUM/LOW keep FILTER with tier in INFO)
 - `cosmic_annotator.py` / `gnomad_annotator.py` — Database annotation
 - `annotation_utils.py` / `bcftools_annotator.py` — Annotation helpers
 - `evidence_tiering.py` / `variant_statistics.py` — Statistical analysis
@@ -199,12 +200,37 @@ CONTROL_REP1,LX,path/to/R1.fastq.gz,path/to/R2.fastq.gz
 Consensus is implemented in `bin/run_consensus_vcf.py` using the `bin/vcf_utils/` package. Key thresholds:
 - `--snv_thr` — Minimum callers for SNV consensus (default: 2)
 - `--indel_thr` — Minimum callers for indel consensus (default: 2)
+- `--min_alt_support` — Minimum tumor alt reads for a caller's record to count as a support vote (default: 3, from `consensus_min_alt_support` in `classification_config.py`)
+
+Support semantics (since 2026-08): a caller's record counts toward consensus support only if the caller itself did not reject it (non-Artifact) and it clears the alt-read floor. Ties resolve to Artifact everywhere.
+
+Rescue (`bin/run_rescue_vcf.py`) follows the redesigned contract: cross-modality promotion is ON by default (`--disable_rescue_promotion`, `--rescue_min_dna_callers`, `--rescue_min_rna_callers`), a DNA Artifact vetoes RNA overrides (`--rescue_veto dna|rna|none`), and `RESCUED`/`PASSES_CONSENSUS_*` flags reflect passed-as-Somatic records only. See `docs/rescue_vcf_rules.md`.
 
 See `docs/consensus_logic_explained.md` and `docs/consensus_vcf_rules.md` for detailed rules.
+
+### Label Quality Gate (`label_qc.py`)
+
+The consensus/rescue VCFs are training labels for downstream models; `bin/label_qc.py` gates them before training use:
+- **Tier A** (VCF-only, pure stdlib): rules R1–R6 (gnomAD common AF, no-DNA-caller support, COSMIC hotspot-vs-frequency, co-located records, FILTER/UNIFIED_FILTER self-contradiction) plus RNA-editing overlap, clustered variants, caller-agreement; cohort-adaptive sample gates (count outlier, contradiction rate, RNA-only-at-common-AF fraction, modality completeness, spectrum sanity, coverage floors) → per-sample PASS/WARN/FAIL.
+- **Tier B** (`--verify-bam`): normal-contamination and strand-bias checks via `samtools mpileup` subprocess (no pysam).
+- Outputs: `report.md`, `summary.json` + `samples_qc.tsv`, `flagged_sites.tsv.gz`, cleaned VCFs only under `--apply`. Inputs are never modified. Thresholds in `bin/label_qc_config.json` (override via `--config`, deep-merged).
+
+Design doc: `dev_docs/implementation/label_qc_design.md` (dev_docs/ is gitignored, local only). Tests: `tests/label_qc/`.
+
+### Re-consensus Rerun
+
+To regenerate consensus+rescue labels from existing caller VCFs without re-aligning or re-calling (originals stay read-only):
+- Driver: `examples/seq2neo/scripts/run_reconsensus_rerun.py` (config `config/rerun.yaml`); per sample it checksums the six caller VCFs, invokes Nextflow with `--step consensus --tools consensus,rescue,filtering[,vep]`, and verifies checksums afterward.
+- Parallel cohort launcher: `examples/seq2neo/scripts/run_reconsensus_cohort.py` (config `config/rerun_cohort.yaml`, VEP dropped — the label artifact is upstream of VEP), 6 detached group drivers with per-group state files.
+- Entering at `--step consensus` always runs VCF_NORMALIZE first; alignment/calling processes are structurally unreachable.
+
+Full runbook + smoke results: `docs/RECONSENSUS_RERUN.md`.
 
 ### Working with the Variant Classification System
 
 The unified classification system (`bin/vcf_utils/variant_classifier_unified.py`, configured via `bin/common/vcf_config.py`) classifies variants into four biological categories (Somatic, Germline, Reference, Artifact). Each caller (Strelka, DeepSomatic, Mutect2) has caller-specific classification logic. Categories are used directly as VCF FILTER values. See `bin/CLASSIFICATION_SYSTEM.md` for full documentation.
+
+**FILTER is the downstream label contract**: the model repos (`neo_var`, `set_somatic`) read the FILTER column as training labels, so the vocabulary `{Somatic, Germline, Reference, Artifact, NoConsensus, RNAedit}` is frozen — do not migrate to PASS+INFO without a coordinated three-repo change (see `docs/ENSEMBLEVAR_OPTIMIZATION_GUIDELINES.md` §3). Every record's FILTER must be derivable from its own INFO (`CLASSIFICATION_RATIONALE` carries the rule trace).
 
 ### RNA Editing Annotation
 
@@ -235,7 +261,9 @@ nf-test plugins used: `nft-bam@0.4.0`, `nft-utils@0.0.5`, `nft-vcf@1.0.7`.
 
 The `docs/` directory contains detailed guides on specific pipeline features:
 - `consensus_logic_explained.md` / `consensus_vcf_rules.md` — Consensus variant calling rules
-- `rescue_workflow.md` / `rescue_vcf_rules.md` — Cross-modality rescue logic
+- `rescue_workflow.md` / `rescue_vcf_rules.md` — Cross-modality rescue logic (rescue contract: promotion, DNA-Artifact veto, passed-not-present flags)
+- `RECONSENSUS_RERUN.md` — Consensus+rescue-only rerun path, driver/launcher usage, cohort runbook, smoke results
+- `ENSEMBLEVAR_OPTIMIZATION_GUIDELINES.md` — Optimization guidelines: deferred fix specs, pipeline→model contract rules, FILTER→PASS migration plan, label-QC operating procedure, known unknowns
 - `VCF_REALIGNMENT.md` — Realignment workflow details
 - `MAF_FILTERING_COMPREHENSIVE_GUIDE.md` — MAF filtering documentation
 - `RNA_EDITING_ANNOTATION_GUIDE.md` — RNA editing annotation
@@ -245,4 +273,5 @@ The `docs/` directory contains detailed guides on specific pipeline features:
 
 - `main` — Latest stable release
 - `dev` — Development branch, merge feature branches here
+- `stats` — EnsembleVar label-quality work (consensus/rescue fixes, `label_qc.py`, re-consensus rerun); current active branch
 - Feature branches — Named by feature (e.g., `realignment`, `vcf_refactoring`, `wes`)
