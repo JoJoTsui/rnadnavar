@@ -55,7 +55,7 @@ State is tracked in `runs/rerun_state.json`; re-running the same command skips c
 
 - `nextflow config .` loads cleanly (25.10.2), and a `-stub-run` at `--step consensus` on a synthetic 6-VCF samplesheet submits exactly `VT_DECOMPOSE`×6 → `BCFTOOLS_NORM`×6 → `VCF_CONSENSUS`×2 (DNA + RNA groups) and no alignment or variant-calling processes. Rescue/post-processing processes sit behind the same `tools`-contains-`rescue` gate as the production mapping path; they were not reached in stub mode because the local modules define no `stub:` blocks.
 - Driver behavior (samplesheet layout, dry-run, checksum guard, config guards) is covered by `tests/rerun_driver/` (`.venv/bin/python -m pytest tests/rerun_driver/`).
-- Smoke rerun on real cohort data (ticket 12) done on `PRJNA298330_4032` — see below; second smoke sample `PRJNA298376_4278` documented as pending in the runbook.
+- Smoke reruns on real cohort data (ticket 12) done on **both** smoke samples: `PRJNA298330_4032` (abnormal class — correctly FAILs) and `PRJNA298376_4278` (clean class — WARN on S7 only) — see the two smoke sections below.
 
 ## Smoke run: PRJNA298330_4032 (2026-08-29)
 
@@ -84,6 +84,19 @@ Notable quantitative shifts old → rerun, consistent with the post-audit fixes 
 **Tier B (BAM verification, `runs/label_qc/smoke_PRJNA298330_4032_tierB/`, dry-run, 364 s):** verdict unchanged — **FAIL** (S0,S1,S3; S7 WARN). Tier B adds B1 (tumor strand bias) 86 LOW-tier sites; S4 normal contamination is clean: only 9/7,112 evaluable Somatic sites (0.1%) have normal alt-VAF ≥ 0.05. So unlike 4081/4255 (78–83% normal contamination), 4032's failure is purely the RNA-only germline-leakage signature, not contamination.
 
 **Driver fix found by the second smoke sample.** `PRJNA298376_4278` failed at samplesheet validation: its `vcf_prefix` is numeric-only (`4278`), and nf-schema coerces the CSV `patient` field to an integer, failing the patient-is-string check. 15 of 66 cohort samples have numeric-only prefixes (all in PRJNA298376, incl. 4081 and 4278). Fixed in `run_reconsensus_rerun.py` — `patient_column()` falls back to `sample_id` when `vcf_prefix` is all digits (a no-op for the other 51, where the two are identical); regression test `test_samplesheet_numeric_vcf_prefix_uses_sample_id_as_patient` in `tests/rerun_driver/` (10/10 pass).
+
+## Smoke run: PRJNA298376_4278 (2026-08-29, clean-sample control)
+
+Run via the same driver command with `--sample PRJNA298376_4278` after the patient-column fix; state `succeeded` (finished 08:09, wall ~3h — VEP dominated; ~1h50m to rescue filtering, then ~1h20m VEP + MultiQC). Trace `output_reconsensus/PRJNA298376_4278/pipeline_info/execution_trace_2026-08-29_05-10-29.txt`: 49 tasks (46 COMPLETED + 3 CACHED from the shared work dir), **zero alignment/calling tasks** (same grep as §4032). Input checksums verified unchanged (`[OK] ... input checksums verified unchanged`).
+
+**label_qc Tier A, old vs rerun** (dry-run; artifacts `runs/label_qc/smoke_PRJNA298376_4278/` and `runs/label_qc/old_PRJNA298376_4278/`):
+
+| output | somatic | HIGH | MID | actioned | RNA-only common-AF (S3) | self-contradiction (S2) | Ti/Tv | low-DP frac (S7) | verdict |
+|---|---|---|---|---|---|---|---|---|---|
+| old (Apr 28, pre-fix) | 2,384 | 53 | 2 | 2.31% | 1.76% | 0.0% | 2.240 | 3.6% | **PASS** |
+| rerun smoke | 2,380 | 50 | 4 | 2.27% | 1.76% | 0.0% | 2.239 | 31.6% | **WARN** (S7 only) |
+
+Every label-quality signature is reproduced on the clean sample — the fixed pipeline neither inflates nor deflates labels. The only delta is again the low-DP fraction (3.6% → 31.6%; for 4032: 2.2% → 44.5%), a systematic consequence of the C1 fix (DP now read from the tumor genotype fields rather than the corrupted pre-fix extraction), not label corruption. **Follow-up: S7's 30% WARN threshold was calibrated on pre-fix DP values and should be recalibrated against the fixed DP fields; until then expect cohort-wide S7 WARNs.** Under the inclusion contract below, WARN means include-after-cleaning — for 4278 that drops 50 HIGH + relabels 4 MID of 2,380 records, which is the gate working as intended.
 
 ## Cohort runbook — all 66 samples + training gate
 
@@ -189,4 +202,5 @@ The rerun does not rehabilitate FAIL samples whose signature is intrinsic to the
 
 ### 7. Known pending items
 
-- Second smoke sample `PRJNA298376_4278` (a clean-signature control, old label_qc: 2,384 somatic / ~1.8% RNA-only common-AF): rerun command in §1; expected outcome is **PASS**, providing the positive control that the rerun does not inflate labels on clean samples. (First attempt exposed the numeric-`patient` schema bug above; rerun relaunched after the fix.)
+- **S7 recalibration** (see 4278 smoke section): the low-DP WARN threshold was calibrated on pre-fix DP fields; expect cohort-wide S7 WARNs until recalibrated against the fixed DP extraction.
+- Both smoke samples are done; remaining work is the full 64-sample remainder of the cohort (§1) plus the cohort-mode label_qc gate (§5).
