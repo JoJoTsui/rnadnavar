@@ -60,3 +60,4 @@ examples/seq2neo/runs/rerun_state.json
 examples/seq2neo/runs/cohort_logs/
 examples/seq2neo/runs/cohort_state/
 examples/seq2neo/runs/cohort_work/
+examples/seq2neo/runs/streaming_validation/
