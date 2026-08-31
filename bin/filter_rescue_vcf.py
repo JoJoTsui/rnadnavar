@@ -196,46 +196,47 @@ def write_filtered_vcf(input_vcf_path, output_path, args, genome, whitelist_vars
     """
     # For stripped output, delegate to unified stripped writer
     if strip_format:
-        # Collect records with filters applied
-        input_vcf = pysam.VariantFile(input_vcf_path)
-        records_with_filters = []
-        processed_count = 0
-        filtered_count = 0
-        multiallelic_count = 0
-        
-        for record in input_vcf:
-            chrom = normalize_chromosome(record.chrom)
-            vkey = f"{chrom}:{record.pos}:{record.ref}:{record.alts[0] if record.alts else ''}"
-            
-            if whitelist_vars and vkey in whitelist_vars:
-                filters = []
-            else:
-                filters = apply_ravex_filters(
-                    record, args, genome=genome,
-                    blacklist_regions=blacklist_regions,
-                    use_cyvcf2=False
-                )
-            
-            # Skip multiallelic if requested
-            if filter_multiallelic and is_multiallelic(record.ref, record.alts):
-                multiallelic_count += 1
-                continue
-            
-            filter_status = "PASS" if not filters else "RaVeX_FILTER"
-            records_with_filters.append((record, filter_status, filters))
-            processed_count += 1
-            if filters:
-                filtered_count += 1
-            
-            if processed_count % 10000 == 0:
-                print(f"  Processed {processed_count:,} variants...")
-        
-        input_vcf.close()
-        
-        # Write using unified stripped writer
-        write_vcf_stripped(records_with_filters, input_vcf_path, output_path, use_cyvcf2=False)
-        
-        return processed_count, filtered_count, multiallelic_count
+        # Stream records with filters applied (generator - no list retention,
+        # memory stays O(1); counts are collected via a shared dict)
+        counts = {'processed': 0, 'filtered': 0, 'multiallelic': 0}
+
+        def iter_records_with_filters():
+            input_vcf = pysam.VariantFile(input_vcf_path)
+            try:
+                for record in input_vcf:
+                    chrom = normalize_chromosome(record.chrom)
+                    vkey = f"{chrom}:{record.pos}:{record.ref}:{record.alts[0] if record.alts else ''}"
+
+                    if whitelist_vars and vkey in whitelist_vars:
+                        filters = []
+                    else:
+                        filters = apply_ravex_filters(
+                            record, args, genome=genome,
+                            blacklist_regions=blacklist_regions,
+                            use_cyvcf2=False
+                        )
+
+                    # Skip multiallelic if requested
+                    if filter_multiallelic and is_multiallelic(record.ref, record.alts):
+                        counts['multiallelic'] += 1
+                        continue
+
+                    filter_status = "PASS" if not filters else "RaVeX_FILTER"
+                    counts['processed'] += 1
+                    if filters:
+                        counts['filtered'] += 1
+
+                    if counts['processed'] % 10000 == 0:
+                        print(f"  Processed {counts['processed']:,} variants...")
+
+                    yield (record, filter_status, filters)
+            finally:
+                input_vcf.close()
+
+        # Write using unified stripped writer (streams the generator)
+        write_vcf_stripped(iter_records_with_filters(), input_vcf_path, output_path, use_cyvcf2=False)
+
+        return counts['processed'], counts['filtered'], counts['multiallelic']
     
     # Standard output with FORMAT preserved
     input_vcf = pysam.VariantFile(input_vcf_path)

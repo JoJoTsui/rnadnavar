@@ -11,17 +11,20 @@ import pysam
 def write_vcf_stripped(records, input_vcf_path, output_path, use_cyvcf2=False):
     """
     Write VCF WITHOUT FORMAT/sample columns using raw text writing.
-    
+
     This bypasses pysam's VariantFile writer which always emits FORMAT/sample
     columns if samples exist in the header.
-    
+
+    Writes are streamed record-by-record so ``records`` may be a generator;
+    memory stays O(1) in the number of variants.
+
     Args:
-        records: List of (variant, filter_status, filter_list) tuples
+        records: Iterable of (variant, filter_status, filter_list) tuples
                  variant can be cyvcf2.Variant or pysam.VariantRecord
         input_vcf_path: Path to input VCF (for header template)
         output_path: Path to output VCF
         use_cyvcf2: If True, variants are cyvcf2.Variant objects
-    
+
     Returns:
         int: Number of records written
     """
@@ -96,110 +99,104 @@ def write_vcf_stripped(records, input_vcf_path, output_path, use_cyvcf2=False):
     
     # Add column header WITHOUT FORMAT/sample columns
     header_lines.append('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO')
-    
-    # Build variant lines
-    variant_lines = []
+
+    # Stream output (BGZF compressed for tabix compatibility): header first,
+    # then one line per record as it is consumed - no record/line retention.
     written_count = 0
-    
-    for variant, filter_status, filter_list in records:
-        # Extract variant fields based on type
-        if use_cyvcf2:
-            # cyvcf2.Variant
-            chrom_str = variant.CHROM
-            pos_str = str(variant.POS)
-            id_str = variant.ID if variant.ID else '.'
-            ref_str = variant.REF
-            alt_str = ','.join(variant.ALT) if variant.ALT else '.'
-            qual_str = str(variant.QUAL) if variant.QUAL is not None else '.'
-            
-            # Get original FILTER
-            if variant.FILTER:
-                filter_str = variant.FILTER
-            else:
-                filter_str = 'PASS'
-            
-            # Copy existing INFO fields from cyvcf2
-            # cyvcf2 doesn't iterate well over INFO, so we parse the raw INFO string
-            info_parts = []
-            try:
-                # Get raw INFO string from variant
-                info_str_raw = str(variant).strip().split('\t')[7]
-                if info_str_raw and info_str_raw != '.':
-                    # Split and add each INFO field
-                    for info_field in info_str_raw.split(';'):
-                        if info_field:
-                            info_parts.append(info_field)
-            except Exception:
-                pass
-        else:
-            # pysam.VariantRecord
-            chrom_str = variant.contig
-            pos_str = str(variant.pos)
-            id_str = variant.id if variant.id else '.'
-            ref_str = variant.ref
-            alt_str = ','.join(variant.alts) if variant.alts else '.'
-            qual_str = str(variant.qual) if variant.qual is not None else '.'
-            
-            # Get original FILTER - extract from raw string to preserve exact format
-            try:
-                variant_str = str(variant).strip()
-                fields = variant_str.split('\t')
-                if len(fields) > 6:
-                    filter_str = fields[6]
-                    if not filter_str or filter_str == '.':
-                        filter_str = 'PASS'
+
+    with pysam.BGZFile(output_path, 'w') as f:
+        for line in header_lines:
+            f.write(line.encode('utf-8') + b'\n')
+
+        for variant, filter_status, filter_list in records:
+            # Extract variant fields based on type
+            if use_cyvcf2:
+                # cyvcf2.Variant
+                chrom_str = variant.CHROM
+                pos_str = str(variant.POS)
+                id_str = variant.ID if variant.ID else '.'
+                ref_str = variant.REF
+                alt_str = ','.join(variant.ALT) if variant.ALT else '.'
+                qual_str = str(variant.QUAL) if variant.QUAL is not None else '.'
+
+                # Get original FILTER
+                if variant.FILTER:
+                    filter_str = variant.FILTER
                 else:
                     filter_str = 'PASS'
-            except Exception:
-                filter_str = 'PASS'
-            
-            # Copy existing INFO fields from pysam
-            # Parse raw INFO string to avoid Python object string representation
-            info_parts = []
-            try:
-                # Get the raw variant string and extract INFO field
-                variant_str = str(variant).strip()
-                fields = variant_str.split('\t')
-                if len(fields) > 7:
-                    info_str_raw = fields[7]
+
+                # Copy existing INFO fields from cyvcf2
+                # cyvcf2 doesn't iterate well over INFO, so we parse the raw INFO string
+                info_parts = []
+                try:
+                    # Get raw INFO string from variant
+                    info_str_raw = str(variant).strip().split('\t')[7]
                     if info_str_raw and info_str_raw != '.':
                         # Split and add each INFO field
                         for info_field in info_str_raw.split(';'):
                             if info_field:
                                 info_parts.append(info_field)
-            except Exception:
-                pass
-        
-        # Add RaVeX filter INFO
-        if filter_status == "PASS" or not filter_list:
-            info_parts.append('RaVeX_FILTER=PASS')
-        else:
-            # Deduplicate filter list first
-            unique_filters = list(dict.fromkeys(filter_list))  # Preserve order while removing duplicates
-            # Use comma to separate multiple filter reasons (VCF standard for multi-valued String fields)
-            ravex_filter_value = ",".join(unique_filters)
-            info_parts.append(f'RaVeX_FILTER={ravex_filter_value}')
-            # Add individual filter flags as separate INFO fields (no duplicates)
-            for flag in unique_filters:
-                info_parts.append(flag)
-        
-        info_str = ';'.join(info_parts) if info_parts else '.'
-        
-        # Write variant line (8 columns only - no FORMAT/sample)
-        variant_line = f"{chrom_str}\t{pos_str}\t{id_str}\t{ref_str}\t{alt_str}\t{qual_str}\t{filter_str}\t{info_str}"
-        variant_lines.append(variant_line)
-        written_count += 1
-    
-    # Write output (BGZF compressed for tabix compatibility)
-    with pysam.BGZFile(output_path, 'w') as f:
-        # Write header
-        for line in header_lines:
-            f.write(line.encode('utf-8') + b'\n')
-        # Write variants
-        if variant_lines:
-            for line in variant_lines:
-                f.write(line.encode('utf-8') + b'\n')
-    
+                except Exception:
+                    pass
+            else:
+                # pysam.VariantRecord
+                chrom_str = variant.contig
+                pos_str = str(variant.pos)
+                id_str = variant.id if variant.id else '.'
+                ref_str = variant.ref
+                alt_str = ','.join(variant.alts) if variant.alts else '.'
+                qual_str = str(variant.qual) if variant.qual is not None else '.'
+
+                # Get original FILTER - extract from raw string to preserve exact format
+                try:
+                    variant_str = str(variant).strip()
+                    fields = variant_str.split('\t')
+                    if len(fields) > 6:
+                        filter_str = fields[6]
+                        if not filter_str or filter_str == '.':
+                            filter_str = 'PASS'
+                    else:
+                        filter_str = 'PASS'
+                except Exception:
+                    filter_str = 'PASS'
+
+                # Copy existing INFO fields from pysam
+                # Parse raw INFO string to avoid Python object string representation
+                info_parts = []
+                try:
+                    # Get the raw variant string and extract INFO field
+                    variant_str = str(variant).strip()
+                    fields = variant_str.split('\t')
+                    if len(fields) > 7:
+                        info_str_raw = fields[7]
+                        if info_str_raw and info_str_raw != '.':
+                            # Split and add each INFO field
+                            for info_field in info_str_raw.split(';'):
+                                if info_field:
+                                    info_parts.append(info_field)
+                except Exception:
+                    pass
+
+            # Add RaVeX filter INFO
+            if filter_status == "PASS" or not filter_list:
+                info_parts.append('RaVeX_FILTER=PASS')
+            else:
+                # Deduplicate filter list first
+                unique_filters = list(dict.fromkeys(filter_list))  # Preserve order while removing duplicates
+                # Use comma to separate multiple filter reasons (VCF standard for multi-valued String fields)
+                ravex_filter_value = ",".join(unique_filters)
+                info_parts.append(f'RaVeX_FILTER={ravex_filter_value}')
+                # Add individual filter flags as separate INFO fields (no duplicates)
+                for flag in unique_filters:
+                    info_parts.append(flag)
+
+            info_str = ';'.join(info_parts) if info_parts else '.'
+
+            # Write variant line (8 columns only - no FORMAT/sample)
+            variant_line = f"{chrom_str}\t{pos_str}\t{id_str}\t{ref_str}\t{alt_str}\t{qual_str}\t{filter_str}\t{info_str}"
+            f.write(variant_line.encode('utf-8') + b'\n')
+            written_count += 1
+
     input_vcf.close()
-    
+
     return written_count
