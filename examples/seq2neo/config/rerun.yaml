@@ -50,12 +50,18 @@ max_retries: 2
 # ── Completion check ──────────────────────────────────────────────────────
 # All completion_artifacts globs must match ≥1 file.
 # At least one consensus and one rescue pattern must match.
+# Strict: the true final deliverables are the FILTERED VCFs (standard +
+# stripped) for the consensus branches and the rescue branch; the
+# intermediate *.rescued.vcf.gz alone is NOT completion.
 completion_artifacts:
   - "**/pipeline_info/execution_trace*.txt"
+  - "filtered/**/*.filtered.vcf.gz"
+  - "filtered/**/*.filtered.vcf.stripped.vcf.gz"
+  - "rescue/**/*.filtered.vcf.gz"
+  - "rescue/**/*.filtered.vcf.stripped.vcf.gz"
 
 consensus_success_patterns:
   - "consensus/**/*.vcf.gz"
 
 rescue_success_patterns:
   - "rescue/**/*.filtered.vcf.gz"
-  - "rescue/**/*.rescued.vcf.gz"
