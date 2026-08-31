@@ -573,6 +573,7 @@ def read_variants_from_vcf(
     exclude_germline=False,
     classify_variants=True,
     include_non_canonical=False,
+    chrom=None,
 ):
     """
     Read variants from a single VCF file with biological classification.
@@ -597,6 +598,12 @@ def read_variants_from_vcf(
             Default: True
         include_non_canonical (bool, optional): If True, include variants on
             non-canonical chromosomes. Default: False (only chr1-22, X, Y, M)
+        chrom (str, optional): If set, only read variants on this chromosome
+            (any naming style — matched after normalize_chromosome, with M/MT
+            equivalence). Uses a tabix/csi region query when an index exists;
+            falls back to a full scan with early skipping otherwise. Used by
+            per-chromosome streaming drivers to bound memory. Default: None
+            (read the whole file)
 
     Returns:
         dict: Dictionary mapping variant_key to variant_data. Each variant_data
@@ -669,7 +676,31 @@ def read_variants_from_vcf(
     # Import chromosome filtering
     from vcf_utils.chromosome_utils import is_canonical_chromosome
 
-    for variant in vcf:
+    # Per-chromosome streaming: restrict iteration to the requested contig.
+    # Region queries need a tabix/csi index; without one, fall back to a full
+    # scan with an early chromosome skip (slower, same result).
+    record_iter = vcf
+    if chrom is not None:
+        import os
+
+        from vcf_utils.io_utils import normalize_chromosome
+
+        target = normalize_chromosome(chrom)
+        match = {"M", "MT"} if target in ("M", "MT") else {target}
+        seqname = next(
+            (n for n in vcf.seqnames if normalize_chromosome(n) in match), None
+        )
+        if seqname is None:
+            vcf.close()
+            return variants
+        if os.path.exists(vcf_path + ".tbi") or os.path.exists(vcf_path + ".csi"):
+            record_iter = vcf(seqname)
+        else:
+            record_iter = (
+                v for v in vcf if normalize_chromosome(v.CHROM) in match
+            )
+
+    for variant in record_iter:
         # Skip non-canonical chromosomes if filtering is enabled
         if not include_non_canonical:
             if not is_canonical_chromosome(variant.CHROM):

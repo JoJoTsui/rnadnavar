@@ -715,6 +715,7 @@ def write_union_vcf(
     indel_threshold=2,
     include_non_canonical=False,
     rescue_config=None,
+    vcf_out=None,
 ):
     """
     Write union VCF with all variants and aggregated information using pysam.
@@ -764,6 +765,10 @@ def write_union_vcf(
         - Progress is printed every 10,000 variants
         - When modality_map is provided, caller names are prefixed with modality
         - When include_non_canonical=False, only canonical chromosomes in output header
+        - vcf_out: optional already-open pysam.VariantFile (from open_union_vcf).
+            When provided, header creation, file opening, and closing are the
+            caller's responsibility; this function only sorts and writes the
+            given chunk. Used by per-chromosome streaming drivers.
 
     Example:
         >>> from cyvcf2 import VCF
@@ -787,7 +792,9 @@ def write_union_vcf(
 
     import pysam
 
-    print(f"- Writing union VCF to {out_file}")
+    close_on_exit = vcf_out is None
+    if close_on_exit:
+        print(f"- Writing union VCF to {out_file}")
 
     # Helper function to add modality prefix to caller name
     def prefix_caller(caller, modality_map):
@@ -822,24 +829,25 @@ def write_union_vcf(
             and any(caller.startswith(prefix) for prefix in ["DNA_", "RNA_"])
         )
 
-    # Create output header with rescue fields if modality_map is provided
-    include_rescue_fields = modality_map is not None
-    output_header = create_output_header(
-        template_header,
-        sample_name,
-        include_rescue_fields,
-        include_non_canonical=include_non_canonical,
-    )
+    # Create output header and open the output file (standalone mode only;
+    # streaming drivers pass an open writer via vcf_out)
+    if close_on_exit:
+        include_rescue_fields = modality_map is not None
+        output_header = create_output_header(
+            template_header,
+            sample_name,
+            include_rescue_fields,
+            include_non_canonical=include_non_canonical,
+        )
 
-    # Determine write mode
-    mode = "w"
-    if output_format == "vcf.gz":
-        mode = "wz"
-    elif output_format == "bcf":
-        mode = "wb"
+        # Determine write mode
+        mode = "w"
+        if output_format == "vcf.gz":
+            mode = "wz"
+        elif output_format == "bcf":
+            mode = "wb"
 
-    # Open output VCF
-    vcf_out = pysam.VariantFile(out_file, mode, header=output_header)
+        vcf_out = pysam.VariantFile(out_file, mode, header=output_header)
 
     # Get chromosome order for sorting
     chrom_order = {}
@@ -1300,7 +1308,105 @@ def write_union_vcf(
         if written_count % 10000 == 0:
             print(f"  - Written {written_count:,} variants...")
 
-    vcf_out.close()
-    print(f"- Successfully wrote {written_count:,} variants to {out_file}")
+    if close_on_exit:
+        vcf_out.close()
+        print(f"- Successfully wrote {written_count:,} variants to {out_file}")
 
     return written_count
+
+
+def open_union_vcf(
+    template_header,
+    sample_name,
+    out_file,
+    output_format,
+    modality_map=None,
+    include_non_canonical=False,
+):
+    """
+    Open a union-VCF writer for per-chromosome streaming.
+
+    Creates the same output header write_union_vcf() would create and returns
+    an open pysam.VariantFile. Feed per-chromosome aggregated chunks through
+    write_union_vcf(..., vcf_out=writer) in union_contig_order() order, then
+    close the writer. Streaming chunks in that order reproduces the
+    whole-genome output exactly, because write_union_vcf sorts every chunk by
+    (chromosome, position) and chromosome chunks are disjoint.
+
+    Args:
+        template_header (cyvcf2.VCF): Template header source.
+        sample_name (str): Kept for API symmetry; no sample column is written.
+        out_file (str): Output file path.
+        output_format (str): 'vcf', 'vcf.gz', or 'bcf'.
+        modality_map (dict, optional): Caller -> modality map; when provided,
+            rescue INFO fields are declared in the header.
+        include_non_canonical (bool): Include non-canonical contigs in header.
+
+    Returns:
+        pysam.VariantFile: Open output writer (caller closes it).
+    """
+    import pysam
+
+    include_rescue_fields = modality_map is not None
+    output_header = create_output_header(
+        template_header,
+        sample_name,
+        include_rescue_fields,
+        include_non_canonical=include_non_canonical,
+    )
+
+    mode = "w"
+    if output_format == "vcf.gz":
+        mode = "wz"
+    elif output_format == "bcf":
+        mode = "wb"
+
+    print(f"- Writing union VCF to {out_file} (streaming per chromosome)")
+    return pysam.VariantFile(out_file, mode, header=output_header)
+
+
+def union_contig_order(template_header, include_non_canonical=False):
+    """
+    Template-header contig names in the order write_union_vcf() emits them.
+
+    Mirrors the sort_key logic in write_union_vcf: numeric chromosomes sort by
+    integer value, then X=23, Y=24, M/MT=25, and any remaining contigs by
+    their position (line index) in the template header. Per-chromosome
+    streaming drivers must write chunks in this order to reproduce the
+    whole-genome sorted output.
+
+    Args:
+        template_header (cyvcf2.VCF): Template header source.
+        include_non_canonical (bool): If False, only canonical contigs
+            (1-22, X, Y, M/MT) are returned.
+
+    Returns:
+        list: Contig names as they appear in the template header, in output
+            order.
+    """
+    from vcf_utils.chromosome_utils import is_canonical_chromosome
+
+    contigs = []
+    for idx, line in enumerate(str(template_header.raw_header).split("\n")):
+        if line.startswith("##contig=<ID="):
+            name = line.split("ID=")[1].split(",")[0].split(">")[0]
+            if include_non_canonical or is_canonical_chromosome(name):
+                contigs.append((idx, name))
+
+    def order_value(item):
+        idx, name = item
+        chrom = normalize_chromosome(name)
+        # Mirrors write_union_vcf's sort_key: default is the header line index
+        value = idx
+        if chrom.isdigit():
+            value = int(chrom)
+        elif chrom == "X":
+            value = 23
+        elif chrom == "Y":
+            value = 24
+        elif chrom in ("M", "MT"):
+            value = 25
+        return value
+
+    contigs.sort(key=order_value)
+    return [name for _, name in contigs]

@@ -200,6 +200,35 @@ def get_csq_field_cyvcf2(variant, field_name):
     return None
 
 
+class _VariantLite:
+    """Memory-lean stand-in for a cyvcf2.Variant.
+
+    apply_filters() used to retain every cyvcf2.Variant object until writing,
+    which peaked at 40+ GB RSS on large cohort samples (each live variant
+    pins htslib record memory). Only string/scalar fields plus the raw record
+    line (for INFO passthrough in the stripped writer) are actually needed.
+
+    Attribute names mirror the cyvcf2.Variant API so downstream code
+    (write_filtered_vcf key construction, is_multiallelic, write_vcf_stripped
+    with use_cyvcf2=True) works unchanged.
+    """
+
+    __slots__ = ("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "_raw")
+
+    def __init__(self, variant):
+        self.CHROM = variant.CHROM
+        self.POS = variant.POS
+        self.ID = variant.ID
+        self.REF = variant.REF
+        self.ALT = variant.ALT
+        self.QUAL = variant.QUAL
+        self.FILTER = variant.FILTER
+        self._raw = str(variant)
+
+    def __str__(self):
+        return self._raw
+
+
 def apply_filters(vcf_in, args, genome, include_non_canonical=False):
     """Apply RaVeX filtering logic to VCF using cyvcf2 for reading"""
 
@@ -251,6 +280,10 @@ def apply_filters(vcf_in, args, genome, include_non_canonical=False):
             continue
         seen_variants.add(vkey)
 
+        # Detach from the live cyvcf2 record at retention time — only
+        # scalars and the raw line survive the iteration (see _VariantLite)
+        lite = _VariantLite(variant)
+
         # Get variant info
         chrom = normalize_chromosome(variant.CHROM)
         pos = variant.POS
@@ -259,7 +292,7 @@ def apply_filters(vcf_in, args, genome, include_non_canonical=False):
 
         # Check whitelist first
         if whitelist_vars and vkey in whitelist_vars:
-            filtered_variants.append((variant, "PASS", []))
+            filtered_variants.append((lite, "PASS", []))
             continue
 
         # Get alt read count: consensus VCFs have no FORMAT column and carry
@@ -321,9 +354,9 @@ def apply_filters(vcf_in, args, genome, include_non_canonical=False):
             if args.filter_multiallelic and is_multiallelic(ref, variant.ALT):
                 filters.append("multiallelic")
 
-        # Store variant with filter info
+        # Store variant with filter info (lite record, not the live object)
         filter_status = "PASS" if not filters else "RaVeX_FILTER"
-        filtered_variants.append((variant, filter_status, filters))
+        filtered_variants.append((lite, filter_status, filters))
 
     return filtered_variants
 
@@ -400,12 +433,10 @@ def write_filtered_vcf(
         vkey = f"{variant.CHROM}:{variant.POS}:{variant.REF}:{variant.ALT[0]}"
         variant_map[vkey] = (filter_status, filter_list)
 
-    # Get chromosome order for sorting
-    chrom_order = {contig: idx for idx, contig in enumerate(new_header.contigs)}
-
-    # Collect records to write
-    records_to_write = []
-
+    # Stream records in input order. Consensus/rescue VCFs are already sorted
+    # by (contig, position), so the previous collect-all-then-sort step did
+    # not change ordering — it only pinned every pysam record in memory
+    # (40+ GB RSS on large cohort samples).
     for record in input_vcf_pysam:
         vkey = f"{record.contig}:{record.pos}:{record.ref}:{record.alts[0]}"
 
@@ -413,18 +444,6 @@ def write_filtered_vcf(
             continue
 
         filter_status, filter_list = variant_map[vkey]
-        records_to_write.append((record, filter_status, filter_list))
-
-    # Sort records
-    def sort_key(item):
-        record, _, _ = item
-        chrom_idx = chrom_order.get(record.contig, 999999)
-        return (chrom_idx, record.start)
-
-    records_to_write.sort(key=sort_key)
-
-    # Write sorted records
-    for record, filter_status, filter_list in records_to_write:
         # Create new record with new header
         new_record = output_vcf.new_record(
             contig=record.contig,
@@ -523,30 +542,28 @@ def main():
             print("Warning: Failed to open reference; continuing without it")
             genome = None
 
-    # Read and filter variants using cyvcf2
+    # Read and filter variants using cyvcf2 (single pass; the result is
+    # reused for the stripped output — filtering is deterministic)
     vcf_in = VCF(args.input)
     filtered_variants = apply_filters(
         vcf_in, args, genome, include_non_canonical=args.include_non_canonical
     )
+    vcf_in.close()
 
     # Generate standard output (all variants, FORMAT preserved)
     print("\nGenerating standard output...")
     write_filtered_vcf(filtered_variants, args.input, args.output, strip_format=False)
     print(f"✓ Standard output written to: {args.output}")
 
-    # Re-read for stripped output
-    vcf_in = VCF(args.input)
-    filtered_variants_stripped = apply_filters(
-        vcf_in, args, genome, include_non_canonical=args.include_non_canonical
-    )
-
     # Filter multiallelic variants for stripped output
     if args.filter_multiallelic:
         filtered_variants_stripped = [
             (v, s, f)
-            for v, s, f in filtered_variants_stripped
+            for v, s, f in filtered_variants
             if not is_multiallelic(v.REF, v.ALT)
         ]
+    else:
+        filtered_variants_stripped = filtered_variants
 
     # Generate stripped output (multiallelic-filtered, FORMAT removed)
     print("\nGenerating stripped output...")

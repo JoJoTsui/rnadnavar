@@ -149,75 +149,117 @@ def main():
         )
     print()
 
-    # Read variants from each VCF file using vcf_utils
-    print("- Reading variants from VCF files")
-    variant_collections = []
-    template_header = None
-    sample_name = None
-    all_callers = list(vcf_files.keys())
-
+    # Per-chromosome streaming: read each caller's records for one chromosome,
+    # aggregate, write the sorted chunk, then free it before the next
+    # chromosome. Whole-genome materialization peaked at 19-43 GB RSS on the
+    # cohort (OOM kills in the 78 GB pod cgroup); chunking bounds peak memory
+    # at roughly chr1's share. Output is identical to whole-genome processing:
+    # write_union_vcf sorts each chunk by (chrom, pos) and chunks are written
+    # in union_contig_order(), which mirrors that sort.
     from cyvcf2 import VCF
 
-    for caller, vcf_path in vcf_files.items():
-        print(f"  - Reading {caller}: {vcf_path}")
+    from vcf_utils.io_utils import open_union_vcf, union_contig_order
 
-        # Get template header and sample name from first VCF.
-        # Note (audit M8a, ticket 07): sample_name is no longer written to the
-        # output — the output header carries no sample column because records
-        # carry no FORMAT/sample data. It is still parsed here for API
-        # compatibility with write_union_vcf and --sample_name.
-        if template_header is None:
-            vcf = VCF(vcf_path)
-            template_header = vcf
-            if vcf.samples:
-                sample_name = vcf.samples[0]
+    all_callers = list(vcf_files.keys())
 
-        # Read variants using vcf_utils with chromosome filtering
-        variants = read_variants_from_vcf(
-            vcf_path,
-            caller,
-            modality=None,
-            exclude_refcall=args.exclude_refcall,
-            exclude_germline=args.exclude_germline,
-            include_non_canonical=args.include_non_canonical,
-        )
-
-        print(f"    - Read {len(variants):,} variants from {caller}")
-        variant_collections.append((caller, variants, None))
+    # Template header and sample name from the first VCF.
+    # Note (audit M8a, ticket 07): sample_name is no longer written to the
+    # output — the output header carries no sample column because records
+    # carry no FORMAT/sample data. It is still parsed here for API
+    # compatibility with open_union_vcf/write_union_vcf and --sample_name.
+    template_header = VCF(next(iter(vcf_files.values())))
+    sample_name = (
+        template_header.samples[0] if template_header.samples else None
+    )
 
     # Override sample name if provided
     if args.sample_name:
         sample_name = args.sample_name
 
-    # Aggregate variants using vcf_utils
-    print("\n- Aggregating variants across callers")
-    variant_data = aggregate_variants(
-        variant_collections,
-        snv_threshold=args.snv_thr,
-        indel_threshold=args.indel_thr,
-        min_alt_support=args.min_alt_support,
-    )
-
-    print(f"- Total unique variants: {len(variant_data):,}")
-
-    # Compute statistics using vcf_utils
-    stats = compute_consensus_statistics(variant_data, args.snv_thr, args.indel_thr)
-    print_statistics(stats, operation_type="consensus")
-
-    # Write output VCF using vcf_utils
     out_file = f"{args.out_prefix}.{args.output_format}"
-    write_union_vcf(
-        variant_data,
+    vcf_out = open_union_vcf(
         template_header,
         sample_name,
         out_file,
         args.output_format,
-        all_callers,
         modality_map=None,
-        snv_threshold=args.snv_thr,
-        indel_threshold=args.indel_thr,
         include_non_canonical=args.include_non_canonical,
     )
+    chroms = union_contig_order(
+        template_header, include_non_canonical=args.include_non_canonical
+    )
+
+    total_stats = {
+        "total_variants": 0,
+        "snvs": 0,
+        "indels": 0,
+        "snvs_consensus": 0,
+        "indels_consensus": 0,
+        "single_caller": 0,
+        "multi_caller": 0,
+    }
+    total_written = 0
+
+    print("- Streaming per chromosome over " + ", ".join(chroms))
+    import gc
+
+    for chrom in chroms:
+        variant_collections = []
+        n_records = 0
+        for caller, vcf_path in vcf_files.items():
+            variants = read_variants_from_vcf(
+                vcf_path,
+                caller,
+                modality=None,
+                exclude_refcall=args.exclude_refcall,
+                exclude_germline=args.exclude_germline,
+                include_non_canonical=args.include_non_canonical,
+                chrom=chrom,
+            )
+            n_records += len(variants)
+            variant_collections.append((caller, variants, None))
+
+        if n_records == 0:
+            continue
+
+        variant_data = aggregate_variants(
+            variant_collections,
+            snv_threshold=args.snv_thr,
+            indel_threshold=args.indel_thr,
+            min_alt_support=args.min_alt_support,
+        )
+
+        chunk_stats = compute_consensus_statistics(
+            variant_data, args.snv_thr, args.indel_thr
+        )
+        for key in total_stats:
+            total_stats[key] += chunk_stats[key]
+
+        total_written += write_union_vcf(
+            variant_data,
+            template_header,
+            sample_name,
+            out_file,
+            args.output_format,
+            all_callers,
+            modality_map=None,
+            snv_threshold=args.snv_thr,
+            indel_threshold=args.indel_thr,
+            include_non_canonical=args.include_non_canonical,
+            vcf_out=vcf_out,
+        )
+        print(
+            f"  - {chrom}: {len(variant_data):,} unique variants "
+            f"(running total {total_written:,})"
+        )
+
+        del variant_collections, variant_data
+        gc.collect()
+
+    vcf_out.close()
+    print(f"- Successfully wrote {total_written:,} variants to {out_file}")
+
+    print_statistics(total_stats, operation_type="consensus")
 
     print(f"\n{'=' * 60}")
     print("DONE! Union VCF created successfully.")

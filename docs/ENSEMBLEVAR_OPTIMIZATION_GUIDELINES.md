@@ -47,6 +47,10 @@ This document carries (a) fix specs for findings deliberately deferred from the 
 - **`--normal-sample` propagation**: tumor resolution currently infers from VCF sample names/ordering (ticket 02); the robust follow-up is a CLI flag carrying the normal sample name into the consensus/rescue scripts.
 - **Model-side dead channel precedent**: `neo_var`'s `supports_alt` channel was dead (constant) due to a gating bug — when regenerating tensors after the rerun, verify channel liveness before training.
 
+### 1.5 Consensus/rescue memory footprint — top scalability target
+
+Measured during the 2026-08 cohort rerun (pod cgroup cap 78 GB): `VCF_CONSENSUS` peaks at ~19–42 GB RSS and `VCF_RESCUE` at ~20–40 GB RSS, i.e. **200–400× the gzipped input-VCF size** (0.18 GB input → 42 GB RSS on PRJNA298376_4077). The scripts hold all variants as Python objects in dicts. Consequences observed in production: 25 of 64 samples OOM-killed at least once across rounds; two samples (4077, 4071) could not complete even fully serial whenever external pod tenants were active. This is the highest-leverage engineering item: stream variant records instead of materializing them, or move the hot aggregation/rescue loops to the Rust/PyO3 core (`stats_core.so`) pattern already used elsewhere in the repo. Interval-scatter (consensus/rescue per interval, then gather) is the cheaper interim fix — the interval infrastructure already exists (PREPARE_REFERENCE_AND_INTERVALS) but these two processes currently run genome-wide in a single task. Any rewrite must preserve the frozen output contract (§2) exactly: same FILTER vocabulary, same INFO fields, same sort order.
+
 ---
 
 ## 2. Pipeline → model contract rules
