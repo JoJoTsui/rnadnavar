@@ -268,6 +268,17 @@ Tier B (`--verify-bam`, 12 samples: all WARN/FAIL + anchors; `runs/label_qc/coho
 
 **Old vs new anchors:** the rerun resolved 2 of 3 abnormal samples (4081, 4255 now PASS/S7-WARN with clean Tier B); 4032 remains FAIL because its pathology is intrinsic to its caller VCFs, not to the consensus logic. The gate's discrimination is preserved: the one sample that should fail, fails.
 
+**Cohort-wide old-vs-new verification** (last week's TruthQC run `20260826_204134` vs the rerun gate; all 66 samples matched 1:1): the rerun is **surgical** — it changed essentially only the two contamination-signature samples and left the healthy cohort untouched:
+
+| sample | Somatic old → new | actioned rate old → new | R6 self-contradictions old |
+|---|---|---|---|
+| 4081 | 10,944 → 189 | 93.3% → 2.6% | 8,146 → ~0 |
+| 4255 | 21,672 → 1,875 | 88.7% → 2.7% | 17,349 → ~0 |
+| 4032 | 7,114 → 7,115 | 60.3% → 60.3% | 1 (intrinsic, unchanged) |
+| other 63 | within ±few records | within ±1.5pp (max: 4077 +1.5pp) | 0 → 0 |
+
+The old 4081/4255 pathology was the R6 class (FILTER=Somatic while UNIFIED_FILTER=Reference/Germline) — thousands of germline/reference sites leaked into the Somatic label. The M6 germline-rule-ordering fix removed the leak at the source; their residual Somatic counts are back in the cohort's normal range. Every other sample's somatic count and actioned rate are statistically unchanged, so the fixed consensus/rescue does not perturb healthy labels.
+
 ### 7. Known pending items
 
 - ~~**S7 recalibration**~~ **DONE (2026-09-01)**: `S7_coverage.low_dp_frac_max` recalibrated 0.3 → **0.5** in `bin/label_qc_config.json`, fitted on the 58 completed rerun samples (Tier A dry-run, `runs/label_qc/cohort58/`). Post-C1 DP fields shift the cohort low-DP (DP<10) distribution up: median 22.9%, mean 24.8%, sd 13.7%, p90 44.5%. Both robust estimators — median+3·MAD (0.516) and mean+2·sd (0.522) — land at ≈0.5; at 0.50 only the true tail WARNs (3/58 = 5%: PRJNA298330_3948 63.5%, PRJNA298376_4255 60.0%, PRJNA298376_4232 53.7%), vs 29% of the cohort at the old 0.30.
