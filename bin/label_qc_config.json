@@ -26,7 +26,7 @@
     "S4_normal_contamination": {"enabled": false, "tier": "B"},
     "S5_modality": {"enabled": true, "fail_floor": 0.0, "z_warn": 4.0},
     "S6_spectrum": {"enabled": true, "min_snvs": 20, "ti_tv_min": 0.3, "ti_tv_max": 5.0, "indel_frac_max": 0.5, "het_vaf_lo": 0.35, "het_vaf_hi": 0.65, "het_vaf_frac_max": 0.5, "caller_share_max": 0.95},
-    "S7_coverage": {"enabled": true, "dp_floor": 10, "low_dp_frac_max": 0.3, "min_dp_records": 20},
+    "S7_coverage": {"enabled": true, "dp_floor": 10, "low_dp_frac_max": 0.5, "min_dp_records": 20},
     "S8_strand_bias": {"enabled": false, "tier": "B", "warn": 0.2, "min_sites": 20}
   },
   "tier_b": {

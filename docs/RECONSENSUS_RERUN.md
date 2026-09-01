@@ -96,7 +96,7 @@ Run via the same driver command with `--sample PRJNA298376_4278` after the patie
 | old (Apr 28, pre-fix) | 2,384 | 53 | 2 | 2.31% | 1.76% | 0.0% | 2.240 | 3.6% | **PASS** |
 | rerun smoke | 2,380 | 50 | 4 | 2.27% | 1.76% | 0.0% | 2.239 | 31.6% | **WARN** (S7 only) |
 
-Every label-quality signature is reproduced on the clean sample — the fixed pipeline neither inflates nor deflates labels. The only delta is again the low-DP fraction (3.6% → 31.6%; for 4032: 2.2% → 44.5%), a systematic consequence of the C1 fix (DP now read from the tumor genotype fields rather than the corrupted pre-fix extraction), not label corruption. **Follow-up: S7's 30% WARN threshold was calibrated on pre-fix DP values and should be recalibrated against the fixed DP fields; until then expect cohort-wide S7 WARNs.** Under the inclusion contract below, WARN means include-after-cleaning — for 4278 that drops 50 HIGH + relabels 4 MID of 2,380 records, which is the gate working as intended.
+Every label-quality signature is reproduced on the clean sample — the fixed pipeline neither inflates nor deflates labels. The only delta is again the low-DP fraction (3.6% → 31.6%; for 4032: 2.2% → 44.5%), a systematic consequence of the C1 fix (DP now read from the tumor genotype fields rather than the corrupted pre-fix extraction), not label corruption. **Follow-up (resolved 2026-09-01, §7): S7's 30% WARN threshold was calibrated on pre-fix DP values; it has been recalibrated to 0.50 against the fixed DP extraction on the rerun cohort.** Under the inclusion contract below, WARN means include-after-cleaning — for 4278 that drops 50 HIGH + relabels 4 MID of 2,380 records, which is the gate working as intended.
 
 ## Cohort runbook — all 66 samples + training gate
 
@@ -247,6 +247,13 @@ The rerun does not rehabilitate FAIL samples whose signature is intrinsic to the
 
 ### 7. Known pending items
 
-- **S7 recalibration** (see 4278 smoke section): the low-DP WARN threshold was calibrated on pre-fix DP fields; expect cohort-wide S7 WARNs until recalibrated against the fixed DP extraction.
+- ~~**S7 recalibration**~~ **DONE (2026-09-01)**: `S7_coverage.low_dp_frac_max` recalibrated 0.3 → **0.5** in `bin/label_qc_config.json`, fitted on the 58 completed rerun samples (Tier A dry-run, `runs/label_qc/cohort58/`). Post-C1 DP fields shift the cohort low-DP (DP<10) distribution up: median 22.9%, mean 24.8%, sd 13.7%, p90 44.5%. Both robust estimators — median+3·MAD (0.516) and mean+2·sd (0.522) — land at ≈0.5; at 0.50 only the true tail WARNs (3/58 = 5%: PRJNA298330_3948 63.5%, PRJNA298376_4255 60.0%, PRJNA298376_4232 53.7%), vs 29% of the cohort at the old 0.30.
 - Both smoke samples are done; the 64-sample remainder is running 6-way parallel (§1, launched 2026-08-29, `config/rerun_cohort.yaml` without VEP, ~18–20h expected). Remaining work after it completes: the cohort-mode label_qc gate (§5).
 - The cohort outputs contain no VEP annotations (deliberate, §1). If VEP-annotated MAFs are needed later for specific samples, re-run those samples with `config/rerun.yaml` — completed samples are auto-skipped, so clear their state entry or use a fresh state file.
+
+### 8. Cohort completion audit (2026-08-31/09-01)
+
+- **Strict completion check** (`e5dd580`): the original rescue success pattern accepted the intermediate `*.rescued.vcf.gz`, silently waving through samples whose rescue post-processing never ran. Completion now requires the final filtered standard+stripped VCFs for both consensus branches and the rescue branch. The audit found **7 samples** incomplete under the strict check (4007, 4060, 4077, 4115, 4214, 4220, 4228); all 7 were re-driven to completion (mop-up round 7).
+- **Memory fixes**: per-chromosome streaming in consensus/rescue/filter (`c210ba2`) and generator-based streaming in the rescue stripped-output path (`a807e57`, validated byte-identical, peak RSS 43.5 MB on a 3.6M-record input) eliminated the cgroup OOMs (exit 137) that repeatedly killed the largest samples against the 78 GB pod cap.
+- **Ops lesson**: the per-group drivers each iterate the full manifest and only skip samples already complete *when reached* — launching several drivers over the same manifest duplicates in-flight work (mop-up 7 re-ran 4 samples 3×). Launch drivers on **disjoint `--sample` subsets** instead.
+- `annotate_cosmic_gnomad.py` on ~9M-record rescue VCFs is the remaining memory-edge step: it succeeded solo but OOM'd under 3-driver contention (duplicate 4077 runs). Candidate for the same streaming treatment if contention is expected.
