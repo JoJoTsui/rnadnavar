@@ -51,6 +51,22 @@ This document carries (a) fix specs for findings deliberately deferred from the 
 
 Measured during the 2026-08 cohort rerun (pod cgroup cap 78 GB): `VCF_CONSENSUS` peaks at ~19–42 GB RSS and `VCF_RESCUE` at ~20–40 GB RSS, i.e. **200–400× the gzipped input-VCF size** (0.18 GB input → 42 GB RSS on PRJNA298376_4077). The scripts hold all variants as Python objects in dicts. Consequences observed in production: 25 of 64 samples OOM-killed at least once across rounds; two samples (4077, 4071) could not complete even fully serial whenever external pod tenants were active. This is the highest-leverage engineering item: stream variant records instead of materializing them, or move the hot aggregation/rescue loops to the Rust/PyO3 core (`stats_core.so`) pattern already used elsewhere in the repo. Interval-scatter (consensus/rescue per interval, then gather) is the cheaper interim fix — the interval infrastructure already exists (PREPARE_REFERENCE_AND_INTERVALS) but these two processes currently run genome-wide in a single task. Any rewrite must preserve the frozen output contract (§2) exactly: same FILTER vocabulary, same INFO fields, same sort order.
 
+### 1.6 Post-rerun adversarial review fixes — IMPLEMENTED 2026-09-01
+
+Second adversarial review round (three independent reviewers: consensus/rescue logic, gate soundness, model-contract fit) after the 66-sample rerun. Fixed:
+
+- **gnomAD chrM silent deletion** (`bin/vcf_utils/gnomad_annotator.py`): contigs without a gnomAD file (chrM in the exomes dir) had all records silently dropped during scatter-gather merge (2,325 records in 4081, incl. 3 Somatic). Now passed through unannotated. The 66 rerun outputs predate this fix (nuclear-only).
+- **Annotation Rule 2 vetoes** (`bin/vcf_utils/variant_classifier.py`): COSMIC-recurrence Somatic reclassification now has the same common-AF veto as Rule 1 (M6) plus a prior-artifact-veto guard via `CLASSIFICATION_RATIONALE`. Residual common-AF Somatic labels in current outputs are gated downstream by label_qc R1.
+- **label_qc hardening** (`bin/label_qc.py`): FAIL samples are excluded from `--apply` cleaning and `samples_cleaned.tsv`; S1/S5 FAIL tiers are absolute-only (`z_fail: null`) because z-FAIL flips verdicts with cohort composition (4112: z=4.0 at n=66 vs z=10.8 at n=9); R7-driven MID records are dropped, not relabelled Germline; small-cohort runs print a warning.
+
+**Review findings still open:**
+- **No low-count gate**: S1 only looks upward; a sample with ~15 garbage Somatic records PASSes every gate. Add an absolute low-count floor (WARN < ~100 Somatic) and a downward z.
+- **Tier B coverage**: S4/B1 verified on 12/66 samples only (all clean). Run cohort-wide Tier B before the final model's training freeze.
+- **VAF high-side blind spot**: S6 checks only the het band; several PASS samples have median VAF 0.66–0.80 (4275: 0.795) — legitimate for RNA-rescued expressed sites, but undocumented and ungated.
+- **S3 drift cluster**: 5 PASS samples at 0.036–0.045 vs warn 0.05; the clean distribution drifted ~2× toward the threshold since calibration. Cheap insurance: multi-metric near-miss review rule (≥2 metrics within 20% of warn → escalate).
+- **Dead gates**: S2 vacuous post-M6 (1 R6 hit cohort-wide), S5 z-component never fires. Harmless, but don't mistake gate count for coverage.
+- **filter_vcf multi-ALT key quirk** (standard output only, does not reach the stripped training artifact): writer lookup uses `alts[0]`, `apply_filters` uses all-ALTs key — multi-ALT records can be mis-keyed in the consensus standard output. Fix when that output becomes a deliverable.
+
 ---
 
 ## 2. Pipeline → model contract rules
@@ -64,6 +80,9 @@ Learned from the two model tryouts (`neo_var`, `set_somatic`). Treat these as ha
 5. **AD/VAF features are circular with consensus labels.** The pipeline should keep emitting per-caller tumor AD/DP/VAF reliably in INFO (done — tickets 02/03/07), but models must not train on them (set_somatic excludes them deliberately; neo_var's DeepSomatic-style candidate filter uses them only for filtering).
 6. **Patient-holdout CV is available but unused.** The manifest's `set_number` (4 disease-exclusive folds) is parsed but both tryouts split by chromosome *within* all patients — train/test share patient genomes (optimistic generalization). Wire `set_number` into the split stage for the final model.
 7. **Depth gates exist downstream**: set_somatic drops sites with <2 reads per required modality (~4.2% of sites); neo_var tags low-DP pools at BAM_DT_DP < 20. Stable depth reporting in pipeline outputs avoids split-count drift.
+8. **The stripped label VCFs have no FORMAT column** (8-column VCF); both consumers fall back to the stats parquet for AD (`--stats-dir`). Always ship the parquet alongside the VCFs.
+9. **label_qc cleaned VCFs are plain gzip** (stdlib writer). cyvcf2 (neo_var) reads them; pysam (set_somatic) hard-fails. Keep bgzip+tabix copies beside them (`*.bgz.vcf.gz`) for pysam consumers, or move the writer to a bgzf-capable implementation later.
+10. **Consume verdicts and cleaned VCFs from the same full-cohort run.** Subset runs recompute cohort-relative gates and can flip verdicts (guarded since 2026-09-01: FAIL excluded from cleaning, z-FAIL disabled, small-cohort warning).
 
 ---
 

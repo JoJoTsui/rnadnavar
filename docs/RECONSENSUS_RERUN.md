@@ -264,7 +264,7 @@ Tier B (`--verify-bam`, 12 samples: all WARN/FAIL + anchors; `runs/label_qc/coho
 
 - **S4 normal contamination is clean across the board** (max 3.7% vs 20% WARN threshold) — the old-cohort 78–83% normal contamination in 4081/4255 is entirely absent from the rerun outputs. This is direct BAM-level evidence that the fixed consensus/rescue no longer leaks normal reads into labels.
 - B1 strand bias: 651 sites cohort-wide, all LOW-tier; no sample near thresholds.
-- **Caveat — cohort-relative gates in subset runs:** PRJNA298376_4112 read FAIL(S1) in the 12-sample Tier B run vs WARN(S1) in the 66-sample Tier A run. S1/S5 are z-score gates computed within the run's own cohort; a 12-sample subset shifts the reference distribution. Use Tier B subset runs for the S4/B1 BAM evidence only — verdicts come from the full-cohort Tier A run. Under the cohort-context verdict, 4112 stays WARN (4,272 Somatic, under the 6,000 abs_fail).
+- **Caveat — cohort-relative gates in subset runs:** PRJNA298376_4112 read FAIL(S1) in the 12-sample Tier B run vs WARN(S1) in the 66-sample Tier A run. S1/S5 are z-score gates computed within the run's own cohort; a 12-sample subset shifts the reference distribution. Use Tier B subset runs for the S4/B1 BAM evidence only — verdicts come from the full-cohort Tier A run. Under the cohort-context verdict, 4112 stays WARN (4,272 Somatic, under the 6,000 abs_fail). **(Fixed 2026-09-01: S1/S5 z-FAIL is now disabled — FAIL tiers are absolute-only — and label_qc warns on small-cohort runs; see §9.)**
 
 **Old vs new anchors:** the rerun resolved 2 of 3 abnormal samples (4081, 4255 now PASS/S7-WARN with clean Tier B); 4032 remains FAIL because its pathology is intrinsic to its caller VCFs, not to the consensus logic. The gate's discrimination is preserved: the one sample that should fail, fails.
 
@@ -291,3 +291,22 @@ The old 4081/4255 pathology was the R6 class (FILTER=Somatic while UNIFIED_FILTE
 - **Memory fixes**: per-chromosome streaming in consensus/rescue/filter (`c210ba2`) and generator-based streaming in the rescue stripped-output path (`a807e57`, validated byte-identical, peak RSS 43.5 MB on a 3.6M-record input) eliminated the cgroup OOMs (exit 137) that repeatedly killed the largest samples against the 78 GB pod cap.
 - **Ops lesson**: the per-group drivers each iterate the full manifest and only skip samples already complete *when reached* — launching several drivers over the same manifest duplicates in-flight work (mop-up 7 re-ran 4 samples 3×). Launch drivers on **disjoint `--sample` subsets** instead.
 - `annotate_cosmic_gnomad.py` on ~9M-record rescue VCFs is the remaining memory-edge step: it succeeded solo but OOM'd under 3-driver contention (duplicate 4077 runs). Candidate for the same streaming treatment if contention is expected.
+
+### 9. Post-gate adversarial review + fixes (2026-09-01)
+
+A three-way adversarial review (consensus/rescue logic, gate soundness, model-contract fit) of the finished rerun found and fixed:
+
+**Fixed in code (this commit series):**
+- **label_qc apply-run inconsistency (was a training-set blocker):** the first `--apply` run was executed on a 9-sample subset, so cohort z-gates recomputed (4112 flipped WARN→FAIL there) and a cleaned VCF was written for the FAIL sample 4032. Now: FAIL samples get no cleaned VCF and are excluded from `samples_cleaned.tsv`; small-cohort runs print a prominent warning; S1/S5 FAIL tiers are absolute-only (`z_fail: null` in `bin/label_qc_config.json`). The apply artifacts were regenerated on the full 66-sample cohort (`runs/label_qc/cohort66_apply/`, 65 cleaned VCFs, 4032 absent).
+- **R7-driven MID relabel:** RNA-editing-evidence MID records are now DROPPED, not relabelled Germline (16 cohort-wide; relabelling them taught a biologically false negative class). R1 strong-AF MIDs still relabel to Germline.
+- **gnomAD chrM silent deletion:** the scatter-gather annotator dropped all records on contigs without a gnomAD file (chrM; 2,325 records incl. 3 Somatic in 4081). Fixed to pass unmatched contigs through unannotated. **The 66 cohort outputs predate this fix — they are nuclear-only.** chrM somatic labels are almost certainly out of scope for the model; re-annotate only if that changes.
+- **Annotation-stage Rule 2 veto:** COSMIC-recurrence reclassification now carries the same common-AF veto (and a prior-artifact-veto guard) as Rule 1. Predates-fix residue in the current outputs is small (~5/189 Somatic in 4081 carry AF ≥ 0.001) and is already flagged HIGH by label_qc R1 → dropped in cleaned VCFs. Applies to future annotation runs.
+
+**Consumer-contract findings (neo_var / set_somatic):**
+- neo_var class order: Germline/Somatic/Reference = 0/1/2; set_somatic: Reference/Germline/Somatic = 0/1/2 — both read FILTER by name, both drop NoConsensus/Artifact/RNAedit silently (by design).
+- Both repos fall back to the stats parquet for AD on the 8-column stripped VCFs (verified present, 66/66).
+- The cleaned WARN VCFs are plain gzip — **bgzip-recompressed copies are required for set_somatic** (pysam hard-fails on plain gzip); neo_var (cyvcf2) tolerates them. bgzipped copies live beside the originals (`cleaned_vcf/*.bgz.vcf.gz` + `.tbi`).
+- `data/processed/sample_manifest.tsv`'s `rescue_vcf_path` still points at the OLD production dirs. The training manifest `data/processed/training_manifest_65.tsv` repoints: PASS → rerun stripped VCF, WARN → bgzipped cleaned VCF, 4032 excluded.
+- Neither repo has an external-truth benchmark mode; evaluation is on held-out splits of these same labels (self-referential) — label correctness is the only lever.
+
+**Review items deliberately NOT acted on (recorded in the guidelines doc):** no low-count gate (a sample with ~15 garbage Somatic records would PASS — add a floor when the next cohort arrives); cohort-wide Tier B was run only on 12 samples (all clean, max 3.7% contamination); S6/S7 WARN cleaning does not remediate the warned metric (contract language adjusted — WARN means include-after-cleaning of the *flagged records*, not spectrum repair); 5 PASS samples sit at S3 0.036–0.045 vs warn 0.05 (watch cluster).
