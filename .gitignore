@@ -61,3 +61,5 @@ examples/seq2neo/runs/cohort_logs/
 examples/seq2neo/runs/cohort_state/
 examples/seq2neo/runs/cohort_work/
 examples/seq2neo/runs/streaming_validation/
+examples/seq2neo/runs/stale8_quarantine/
+examples/seq2neo/runs/label_qc_manifest*.tsv
