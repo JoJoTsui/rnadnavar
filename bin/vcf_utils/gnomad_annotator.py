@@ -401,7 +401,9 @@ class GnomadAnnotator:
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=900  # Reduced timeout per chromosome
+                timeout=3600  # Per-chromosome watchdog; 900s proved too tight under
+                              # shared-storage I/O contention (chr1 gnomAD annotate
+                              # timed out at ~900s with 4 concurrent rerun drivers)
             )
             
             # Index annotated chromosome VCF
