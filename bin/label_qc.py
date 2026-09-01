@@ -18,6 +18,7 @@ label, default "Somatic"):
 
 Disposition tiers (TruthQC-compatible):
     HIGH -> DROP candidate, MID -> RELABEL candidate, LOW -> report only.
+    Exception: R7-driven MID (RNA-editing candidate) -> DROP, not RELABEL.
 
 Sample-level gates (cohort-adaptive median/MAD outliers with absolute floors;
 all thresholds in the bundled label_qc_config.json, overridable via --config):
@@ -397,8 +398,11 @@ def evaluate_record(info, conflict, cluster_count, cfg):
     n_strong = sum(1 for name in STRONG_RULES if fired[name])
     if fired["R4"] or fired["R6"] or n_strong >= 2:
         confidence, action = "high", "DROP"
-    elif ((fired["R1"] and af >= r1_cfg["af_strong"])
-          or (fired["R7"] and n_strong == 1)):
+    elif fired["R7"] and n_strong == 1:
+        # R7-driven MID: RNA-editing candidate, not germline — relabelling it
+        # Germline would teach a false-negative class, so drop it like HIGH.
+        confidence, action = "mid", "DROP"
+    elif fired["R1"] and af >= r1_cfg["af_strong"]:
         confidence = "mid"
         action = "RELABEL_" + vcfg["mid_relabel_to"].upper()
     else:
@@ -881,16 +885,24 @@ def evaluate_gates(res, all_results, cfg):
         else:
             gates.append(_gate("S0", "PASS", actioned_rate, ""))
 
-    # S1: somatic-count outlier vs cohort, with absolute floors
+    # S1: somatic-count outlier vs cohort, with absolute floors.
+    # z_fail is null in the bundled config: the cohort-relative z-score can
+    # WARN but never FAIL (z-FAIL is unstable to cohort composition, e.g. on
+    # subset reruns), so FAIL comes from the absolute threshold only.
     g = gates_cfg["S1_count_outlier"]
     if g["enabled"]:
         n = res["n_somatic"]
         z = (_robust_z(n, [r["n_somatic"] for r in ok_results], min_mad)
              if cohort_mode else 0.0)
-        if n >= g["abs_fail"] or (cohort_mode and z >= g["z_fail"]):
+        z_fail = g.get("z_fail")
+        if n >= g["abs_fail"]:
             gates.append(_gate("S1", "FAIL", n,
-                               "somatic count %d (z=%.1f, abs_fail=%d)"
-                               % (n, z, g["abs_fail"])))
+                               "somatic count %d >= absolute fail threshold %d"
+                               " (z=%.1f)" % (n, g["abs_fail"], z)))
+        elif z_fail is not None and cohort_mode and z >= z_fail:
+            gates.append(_gate("S1", "FAIL", n,
+                               "somatic count %d is a cohort high outlier"
+                               " (z=%.1f >= %.1f)" % (n, z, z_fail)))
         elif n >= g["abs_warn"] or (cohort_mode and z >= g["z_warn"]):
             gates.append(_gate("S1", "WARN", n,
                                "somatic count %d (z=%.1f)" % (n, z)))
@@ -991,9 +1003,15 @@ def evaluate_gates(res, all_results, cfg):
         z = (-_robust_z(r, [x["dna_records"] / float(max(x["n_records"], 1))
                             for x in ok_results], min_mad)
              if cohort_mode else 0.0)
+        z_fail = g.get("z_fail")  # null: z can WARN but never FAIL (as S1)
         if r <= g["fail_floor"]:
             gates.append(_gate("S5", "FAIL", r,
-                               "no DNA-caller participation in any record"))
+                               "no DNA-caller participation in any record"
+                               " (absolute floor %.2f)" % g["fail_floor"]))
+        elif z_fail is not None and cohort_mode and z >= z_fail:
+            gates.append(_gate("S5", "FAIL", r,
+                               "DNA participation %.3f is a cohort low outlier"
+                               " (z=%.1f >= %.1f)" % (r, z, z_fail)))
         elif cohort_mode and z >= g["z_warn"]:
             gates.append(_gate("S5", "WARN", r,
                                "DNA participation %.3f is a cohort low outlier (z=%.1f)"
@@ -1178,7 +1196,8 @@ def write_report(path, cfg, results, run_id, n_flagged, elapsed):
                 format(sum(r["n_somatic"] for r in ok), ",")))
     L.append("| flagged total | %s |" % format(n_flagged, ","))
     L.append("| high (-> DROP) | %s |" % format(conf_all.get("high", 0), ","))
-    L.append("| mid (-> RELABEL) | %s |" % format(conf_all.get("mid", 0), ","))
+    L.append("| mid (-> RELABEL; R7-driven -> DROP) | %s |"
+             % format(conf_all.get("mid", 0), ","))
     L.append("| low (report only) | %s |" % format(conf_all.get("low", 0), ","))
     L.append("")
     L.append("### Rule hits\n")
@@ -1260,8 +1279,10 @@ def write_report(path, cfg, results, run_id, n_flagged, elapsed):
     L.append("samples_qc.tsv         per-sample verdicts and metrics")
     L.append("flagged_sites.tsv.gz   per-site flagged detail (%d rows)" % n_flagged)
     if cfg["apply"]:
-        L.append("cleaned_vcf/           cleaned VCFs (HIGH dropped, MID relabelled)")
-        L.append("samples_cleaned.tsv    manifest pointing at cleaned VCFs")
+        L.append("cleaned_vcf/           cleaned VCFs (HIGH and R7-driven MID "
+                 "dropped, other MID relabelled)")
+        L.append("samples_cleaned.tsv    manifest pointing at cleaned VCFs "
+                 "(FAIL samples excluded)")
     L.append("```")
     with open(path, "wt") as fh:
         fh.write("\n".join(L) + "\n")
@@ -1270,7 +1291,8 @@ def write_report(path, cfg, results, run_id, n_flagged, elapsed):
 # ------------------------------------------------------------------ apply mode
 
 def write_cleaned_vcf(sample, res, cfg):
-    """Second streaming pass: DROP high, RELABEL mid, pass everything else."""
+    """Second streaming pass: DROP high and R7-driven mid, RELABEL other mid,
+    pass everything else."""
     out_dir = cfg["out_cleaned"]
     os.makedirs(out_dir, exist_ok=True)
     final_path = os.path.join(out_dir, sanitize_sid(sample.sid) + ".vcf.gz")
@@ -1341,8 +1363,10 @@ def parse_args(argv=None):
     g_out.add_argument("--out", default="label_qc_out",
                        help="output directory (default: %(default)s)")
     g_out.add_argument("--apply", action="store_true",
-                       help="write cleaned VCFs (HIGH dropped, MID relabelled); "
-                            "default is dry-run — inputs are never modified")
+                       help="write cleaned VCFs (HIGH and R7-driven MID dropped,"
+                            " other MID relabelled; FAIL samples get no cleaned"
+                            " VCF); default is dry-run — inputs are never"
+                            " modified")
 
     g_cfg = ap.add_argument_group("configuration")
     g_cfg.add_argument("--config",
@@ -1401,6 +1425,17 @@ def main(argv=None):
 
     samples = load_samples(args)
 
+    # Guard rail: S1/S5 z-scores are cohort-relative (median/MAD over the
+    # samples in this run), so on small/subset runs the verdicts can diverge
+    # from a full-cohort run. Warn loudly but do not refuse to run.
+    min_cohort = cfg["sample_gates"]["min_cohort_for_outliers"]
+    if len(samples) < 2 * min_cohort:
+        sys.stderr.write(
+            "[WARN] cohort has %d sample(s) < 2 x min_cohort_for_outliers (%d):"
+            " S1/S5 z-scores are computed on a small/degenerate cohort and"
+            " verdicts may differ from a full-cohort run\n"
+            % (len(samples), min_cohort))
+
     params_fp = hashlib.sha1(
         json.dumps(cfg["variant_rules"], sort_keys=True).encode()
         + json.dumps(cfg["sample_gates"], sort_keys=True).encode()
@@ -1441,11 +1476,21 @@ def main(argv=None):
 
     if cfg["apply"]:
         cleaned_paths = {}
+        cleaned_samples = []
         for sample, r in zip(samples, results):
-            if r["error"] is None:
-                cleaned_paths[sample.sid] = write_cleaned_vcf(sample, r, cfg)
+            if r["error"] is not None:
+                continue
+            if r.get("verdict") == "FAIL":
+                # A FAIL sample's pathology survives record-level cleaning —
+                # it must never reach a training set.
+                sys.stderr.write(
+                    "[APPLY] %s: verdict FAIL — no cleaned VCF written;"
+                    " excluded from samples_cleaned.tsv\n" % sample.sid)
+                continue
+            cleaned_paths[sample.sid] = write_cleaned_vcf(sample, r, cfg)
+            cleaned_samples.append(sample)
         write_samples_cleaned(os.path.join(out_abs, "samples_cleaned.tsv"),
-                              samples, cleaned_paths)
+                              cleaned_samples, cleaned_paths)
 
     write_report(os.path.join(out_abs, "report.md"), cfg, results, run_id,
                  n_flagged, time.time() - t0)

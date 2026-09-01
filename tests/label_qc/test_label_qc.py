@@ -525,6 +525,10 @@ class TestApply:
             somatic(3000, {"GNOMAD_AF": "0.002"}),                   # LOW  -> keep as-is
             somatic(4000),                                           # clean
         ]
+        # Pad with clean records so the S2 contradiction rate (1 flagged /
+        # 24 somatic = 4.2%) stays under the S2 fail threshold and the sample
+        # verdict is not FAIL (FAIL samples get no cleaned VCF by design).
+        records += [somatic(10000 + i * 1000) for i in range(20)]
         vcf = write_vcf(tmp_path / "s.vcf", records)
         digest_before = hashlib.sha256(vcf.read_bytes()).hexdigest()
         out = tmp_path / "out"
