@@ -449,6 +449,77 @@ class GnomadAnnotator:
             # Immediate exit on any error - no graceful fallback
             raise RuntimeError(error_msg)
     
+    def extract_chromosome_passthrough(self, chromosome: str, temp_dir: Path) -> Tuple[str, Path]:
+        """
+        Extract input records for a chromosome without a matching gnomAD file.
+
+        Contigs absent from the gnomAD database (e.g. chrM) must not be
+        silently dropped: their records pass through unannotated and are
+        included in the merged output in coordinate order.
+
+        Args:
+            chromosome: Chromosome name (e.g., 'M')
+            temp_dir: Temporary directory for intermediate files
+
+        Returns:
+            Tuple of (chromosome, path to unannotated chromosome VCF)
+        """
+        chr_start_time = time.time()
+        logger.info(f"Chromosome {chromosome}: no gnomAD file, passing records through unannotated...")
+
+        try:
+            chr_passthrough = temp_dir / f"passthrough_chr{chromosome}.vcf.gz"
+
+            extract_cmd = [
+                'bcftools', 'view',
+                '-r', f"chr{chromosome},{chromosome}",  # Handle both chrM and M formats
+                '-O', 'z',
+                '--threads', '2',
+                '-o', str(chr_passthrough),
+                str(self.input_vcf)
+            ]
+
+            subprocess.run(
+                extract_cmd,
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=300
+            )
+
+            if not chr_passthrough.exists():
+                logger.warning(f"No variants found for chromosome {chromosome} during passthrough, skipping...")
+                return chromosome, None
+
+            # Index for bcftools concat (mirrors annotate_chromosome)
+            subprocess.run(
+                ['tabix', '-p', 'vcf', str(chr_passthrough)],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=120
+            )
+
+            chr_time = time.time() - chr_start_time
+            logger.info(f"✓ Chromosome {chromosome}: passed through unannotated in {chr_time:.1f}s")
+
+            return chromosome, chr_passthrough
+
+        except subprocess.CalledProcessError as e:
+            error_msg = f"Chromosome {chromosome} passthrough extraction failed: {e}"
+            logger.error(error_msg)
+            if e.stderr:
+                logger.error(f"Command stderr: {e.stderr}")
+            raise RuntimeError(error_msg)
+        except subprocess.TimeoutExpired:
+            error_msg = f"Chromosome {chromosome} passthrough extraction timed out"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+        except Exception as e:
+            error_msg = f"Unexpected error during chromosome {chromosome} passthrough: {e}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+
     def merge_annotated_chromosomes(self, annotated_files: List[Path], temp_dir: Path) -> None:
         """
         Merge annotated chromosome VCF files into final output.
@@ -542,8 +613,8 @@ class GnomadAnnotator:
                     matching_files[chrom] = self.gnomad_files[chrom]
                     logger.debug(f"Found gnomAD file for chromosome {chrom}")
                 else:
-                    logger.warning(f"No gnomAD file found for chromosome {chrom}")
-                    self.stats['warnings'].append(f"No gnomAD file for chromosome {chrom}")
+                    logger.warning(f"No gnomAD file found for chromosome {chrom}; records will pass through unannotated")
+                    self.stats['warnings'].append(f"No gnomAD file for chromosome {chrom} (records passed through unannotated)")
             
             if not matching_files:
                 raise RuntimeError("No matching gnomAD files found for input chromosomes")
@@ -577,10 +648,22 @@ class GnomadAnnotator:
             
             if not annotated_files:
                 raise RuntimeError("No chromosomes were successfully annotated")
-            
+
+            # Pass through chromosomes without a matching gnomAD file (e.g. chrM):
+            # their records are copied unannotated into the merge set instead of
+            # being silently dropped from the output.
+            unmatched_chromosomes = sorted(
+                input_chromosomes - set(matching_files.keys()),
+                key=lambda x: (int(x) if x.isdigit() else (23 if x == 'X' else (24 if x == 'Y' else 25)))
+            )
+            for chrom in unmatched_chromosomes:
+                result_chrom, result_file = self.extract_chromosome_passthrough(chrom, temp_dir)
+                if result_file:
+                    annotated_files.append(result_file)
+
             # Sort annotated files by chromosome order
             def chrom_sort_key(file_path):
-                chrom = file_path.name.replace('annotated_chr', '').replace('.vcf.gz', '')
+                chrom = file_path.name.replace('annotated_chr', '').replace('passthrough_chr', '').replace('.vcf.gz', '')
                 if chrom.isdigit():
                     return int(chrom)
                 elif chrom == 'X':

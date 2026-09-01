@@ -415,8 +415,23 @@ class VariantClassifier:
         # that explicitly labeled the variant as Somatic in FILTERS_NORMALIZED.
         # has_cross_modality is set in extract_evidence using dna_somatic_caller_count and
         # rna_somatic_caller_count, so only Somatic-labeled callers count toward this threshold.
+        # Vetoes (same idiom as Rule 1, audit M6 follow-up):
+        #   - Common population frequency: COSMIC recurrence must not rescue a common
+        #     polymorphism (gnomAD AF > germline threshold) to Somatic.
+        #   - Prior-stage artifact veto: a rescue/consensus DNA-artifact veto recorded
+        #     in CLASSIFICATION_RATIONALE (rule:dna_artifact_veto / rule:rna_artifact_veto)
+        #     must not be overridden by this rule.
+        prior_artifact_veto = False
+        if variant_info:
+            rationale = variant_info.get("CLASSIFICATION_RATIONALE", "")
+            if isinstance(rationale, (list, tuple)):
+                # pysam may return tuple for string INFO fields
+                rationale = rationale[0] if rationale else ""
+            prior_artifact_veto = "artifact_veto" in str(rationale)
         if (
-            evidence.has_cross_modality
+            not common_population_frequency
+            and not prior_artifact_veto
+            and evidence.has_cross_modality
             and evidence.cosmic_recurrence is not None
             and evidence.cosmic_recurrence >= self.cosmic_recurrence_threshold
         ):
