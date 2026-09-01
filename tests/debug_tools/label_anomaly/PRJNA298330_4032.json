@@ -1,0 +1,1823 @@
+{
+ "clean_path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/ClairS_Train/truth_qc_out/cleaned_vcf/PRJNA298330_4032.vcf.gz",
+ "rerun_path": "examples/seq2neo/output_reconsensus/PRJNA298330_4032/rescue/PRJNA298330_4032DT_vs_PRJNA298330_4032DN_rescued_PRJNA298330_4032RT_realign_vs_PRJNA298330_4032DN/PRJNA298330_4032DT_vs_PRJNA298330_4032DN_rescued_PRJNA298330_4032RT_realign_vs_PRJNA298330_4032DN.filtered.vcf.stripped.vcf.gz",
+ "n_clean_records": 714899,
+ "n_rerun_records": 719187,
+ "n_only_in_clean": 0,
+ "transitions": [
+  {
+   "clean": "NoConsensus",
+   "rerun": "NoConsensus",
+   "n": 571236,
+   "rationale_top": [
+    [
+     "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:Referencex1|rna_votes:none",
+     347026
+    ],
+    [
+     "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:none|rna_votes:Referencex1",
+     173377
+    ],
+    [
+     "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:none|rna_votes:Germlinex1",
+     38792
+    ],
+    [
+     "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:Artifactx1|rna_votes:none",
+     3327
+    ],
+    [
+     "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:none|rna_votes:Artifactx1",
+     2936
+    ],
+    [
+     "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:none|rna_votes:Somaticx1",
+     1572
+    ],
+    [
+     "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:Somaticx1|rna_votes:none",
+     1556
+    ],
+    [
+     "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:Germlinex1|rna_votes:none",
+     1518
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 571236
+   },
+   "rescued": {
+    "NO": 571236
+   },
+   "n_support_callers": {
+    "1": 288095,
+    "0": 282943,
+    "2": 198
+   },
+   "callers_support_top": [
+    [
+     ".",
+     282943
+    ],
+    [
+     "DNA_deepsomatic",
+     213660
+    ],
+    [
+     "RNA_deepsomatic",
+     67427
+    ],
+    [
+     "RNA_strelka",
+     4261
+    ],
+    [
+     "DNA_mutect2",
+     2085
+    ],
+    [
+     "DNA_strelka",
+     497
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 571236
+   },
+   "passes_consensus_dna": {
+    "<absent>": 216677,
+    "NO": 354559
+   },
+   "passes_consensus_rna": {
+    "NO": 217809,
+    "<absent>": 353427
+   },
+   "modalities": {
+    "RNA": 216677,
+    "DNA": 353427,
+    "DNA|RNA": 1132
+   },
+   "cross_modality": {
+    "NO": 571236
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    194930,
+    40583,
+    36484,
+    571236
+   ],
+   "cosmic[cosmic>0,n]": [
+    27508,
+    571236
+   ],
+   "alt_count_max_buckets": {
+    "3-4": 142966,
+    "1-2": 278491,
+    "5-9": 101531,
+    "10-19": 25911,
+    ">=20": 19171,
+    "<absent>": 657,
+    "0": 2509
+   }
+  },
+  {
+   "clean": "Reference",
+   "rerun": "Reference",
+   "n": 42115,
+   "rationale_top": [
+    [
+     "rule:rna_consensus_only|class:Reference|dna_consensus:none|rna_consensus:Reference|dna_votes:none|rna_votes:Referencex2",
+     32740
+    ],
+    [
+     "rule:rna_consensus_only|class:Reference|dna_consensus:none|rna_consensus:Reference|dna_votes:none|rna_votes:Referencex2+Somaticx1",
+     4472
+    ],
+    [
+     "rule:dna_consensus_only|class:Reference|dna_consensus:Reference|rna_consensus:none|dna_votes:Referencex2|rna_votes:none",
+     3215
+    ],
+    [
+     "rule:dna_consensus_only|class:Reference|dna_consensus:Reference|rna_consensus:none|dna_votes:Referencex2+Artifactx1|rna_votes:none",
+     597
+    ],
+    [
+     "rule:rna_consensus_only|class:Reference|dna_consensus:none|rna_consensus:Reference|dna_votes:none|rna_votes:Referencex2+Artifactx1",
+     282
+    ],
+    [
+     "rule:dna_consensus_only|class:Reference|dna_consensus:Reference|rna_consensus:none|dna_votes:Referencex3|rna_votes:none",
+     212
+    ],
+    [
+     "rule:dna_consensus_only|class:Reference|dna_consensus:Reference|rna_consensus:none|dna_votes:Referencex2|rna_votes:Referencex1",
+     193
+    ],
+    [
+     "rule:dna_consensus_only|class:Reference|dna_consensus:Reference|rna_consensus:none|dna_votes:Referencex2+Somaticx1|rna_votes:none",
+     115
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 42115
+   },
+   "rescued": {
+    "NO": 42115
+   },
+   "n_support_callers": {
+    "0": 33920,
+    "2": 6668,
+    "1": 930,
+    "3": 571,
+    "5": 4,
+    "4": 22
+   },
+   "callers_support_top": [
+    [
+     ".",
+     33920
+    ],
+    [
+     "RNA_strelka|RNA_deepsomatic",
+     3583
+    ],
+    [
+     "DNA_strelka|DNA_deepsomatic",
+     2116
+    ],
+    [
+     "DNA_deepsomatic|DNA_mutect2",
+     887
+    ],
+    [
+     "RNA_strelka",
+     353
+    ],
+    [
+     "DNA_strelka|DNA_deepsomatic|DNA_mutect2",
+     313
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 42115
+   },
+   "passes_consensus_dna": {
+    "<absent>": 37516,
+    "NO": 4599
+   },
+   "passes_consensus_rna": {
+    "NO": 37921,
+    "<absent>": 4194
+   },
+   "modalities": {
+    "RNA": 37516,
+    "DNA": 4194,
+    "DNA|RNA": 405
+   },
+   "cross_modality": {
+    "NO": 42115
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    17808,
+    3662,
+    2905,
+    42115
+   ],
+   "cosmic[cosmic>0,n]": [
+    3997,
+    42115
+   ],
+   "alt_count_max_buckets": {
+    "1-2": 33922,
+    "10-19": 1625,
+    "3-4": 2558,
+    ">=20": 2087,
+    "5-9": 1923
+   }
+  },
+  {
+   "clean": "Artifact",
+   "rerun": "Artifact",
+   "n": 38009,
+   "rationale_top": [
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:none|rna_votes:Artifactx1+Referencex1",
+     24162
+    ],
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:none|rna_votes:Artifactx1+Germlinex1",
+     6810
+    ],
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:none|rna_votes:Referencex1+Somaticx1",
+     3002
+    ],
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:none|rna_votes:Germlinex1+Referencex1",
+     1480
+    ],
+    [
+     "rule:dna_consensus_only|class:Artifact|dna_consensus:Artifact|rna_consensus:none|dna_votes:Artifactx1+Referencex1|rna_votes:none",
+     572
+    ],
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:none|rna_votes:Germlinex1+Somaticx1",
+     454
+    ],
+    [
+     "rule:dna_consensus_only|class:Artifact|dna_consensus:Artifact|rna_consensus:none|dna_votes:Germlinex1+Referencex1|rna_votes:none",
+     323
+    ],
+    [
+     "rule:cross_modality_agreement|class:Artifact|dna_consensus:Artifact|rna_consensus:Artifact|dna_votes:Germlinex1+Referencex1|rna_votes:Germlinex1+Referencex1",
+     152
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 38009
+   },
+   "rescued": {
+    "NO": 38009
+   },
+   "n_support_callers": {
+    "0": 25830,
+    "1": 8574,
+    "4": 124,
+    "2": 3361,
+    "3": 118,
+    "5": 2
+   },
+   "callers_support_top": [
+    [
+     ".",
+     25830
+    ],
+    [
+     "RNA_deepsomatic",
+     7854
+    ],
+    [
+     "RNA_strelka|RNA_deepsomatic",
+     2793
+    ],
+    [
+     "DNA_deepsomatic",
+     564
+    ],
+    [
+     "DNA_deepsomatic|DNA_mutect2",
+     188
+    ],
+    [
+     "DNA_strelka|DNA_deepsomatic",
+     134
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 38009
+   },
+   "passes_consensus_dna": {
+    "<absent>": 36187,
+    "NO": 1822
+   },
+   "passes_consensus_rna": {
+    "NO": 36948,
+    "<absent>": 1055,
+    "YES": 6
+   },
+   "modalities": {
+    "RNA": 36187,
+    "DNA|RNA": 767,
+    "DNA": 1055
+   },
+   "cross_modality": {
+    "NO": 38002,
+    "YES": 7
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    17540,
+    9993,
+    9666,
+    38009
+   ],
+   "cosmic[cosmic>0,n]": [
+    3587,
+    38009
+   ],
+   "alt_count_max_buckets": {
+    "1-2": 25590,
+    "5-9": 3474,
+    "3-4": 3524,
+    ">=20": 2802,
+    "10-19": 2619
+   }
+  },
+  {
+   "clean": "NoConsensus",
+   "rerun": "Germline",
+   "n": 28466,
+   "rationale_top": [
+    [
+     "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:Germlinex1|rna_votes:none",
+     28162
+    ],
+    [
+     "rule:cross_modality_disagreement|class:Artifact|dna_consensus:none|rna_consensus:none|dna_votes:Germlinex1|rna_votes:Referencex1",
+     287
+    ],
+    [
+     "rule:cross_modality_disagreement|class:Artifact|dna_consensus:none|rna_consensus:none|dna_votes:Germlinex1|rna_votes:Artifactx1",
+     12
+    ],
+    [
+     "rule:cross_modality_disagreement|class:Artifact|dna_consensus:none|rna_consensus:none|dna_votes:Germlinex1|rna_votes:Somaticx1",
+     5
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 28466
+   },
+   "rescued": {
+    "NO": 28466
+   },
+   "n_support_callers": {
+    "1": 23249,
+    "0": 5177,
+    "2": 40
+   },
+   "callers_support_top": [
+    [
+     "DNA_deepsomatic",
+     20465
+    ],
+    [
+     ".",
+     5177
+    ],
+    [
+     "DNA_strelka",
+     1875
+    ],
+    [
+     "DNA_mutect2",
+     892
+    ],
+    [
+     "DNA_deepsomatic|RNA_deepsomatic",
+     37
+    ],
+    [
+     "RNA_deepsomatic",
+     17
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 28466
+   },
+   "passes_consensus_dna": {
+    "NO": 28466
+   },
+   "passes_consensus_rna": {
+    "<absent>": 28162,
+    "NO": 304
+   },
+   "modalities": {
+    "DNA": 28162,
+    "DNA|RNA": 304
+   },
+   "cross_modality": {
+    "NO": 28466
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    28466,
+    28466,
+    27686,
+    28466
+   ],
+   "cosmic[cosmic>0,n]": [
+    11190,
+    28466
+   ],
+   "alt_count_max_buckets": {
+    "5-9": 3217,
+    "3-4": 4165,
+    "1-2": 5171,
+    ">=20": 11407,
+    "10-19": 3509,
+    "<absent>": 990,
+    "0": 7
+   }
+  },
+  {
+   "clean": "Germline",
+   "rerun": "Germline",
+   "n": 15249,
+   "rationale_top": [
+    [
+     "rule:below_rescue_promotion_threshold|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:Germlinex1|rna_votes:Germlinex1",
+     9550
+    ],
+    [
+     "rule:dna_consensus_only|class:Germline|dna_consensus:Germline|rna_consensus:none|dna_votes:Germlinex2|rna_votes:none",
+     2286
+    ],
+    [
+     "rule:dna_consensus_only|class:Germline|dna_consensus:Germline|rna_consensus:none|dna_votes:Germlinex2|rna_votes:Germlinex1",
+     1175
+    ],
+    [
+     "rule:rna_consensus_only|class:Germline|dna_consensus:none|rna_consensus:Germline|dna_votes:Germlinex1|rna_votes:Germlinex2",
+     1026
+    ],
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:Germlinex1|rna_votes:Artifactx1+Germlinex1",
+     414
+    ],
+    [
+     "rule:cross_modality_agreement|class:Germline|dna_consensus:Germline|rna_consensus:Germline|dna_votes:Germlinex2|rna_votes:Germlinex2",
+     277
+    ],
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:Germlinex1|rna_votes:Germlinex1+Referencex1",
+     179
+    ],
+    [
+     "rule:rna_consensus_only|class:Germline|dna_consensus:none|rna_consensus:Germline|dna_votes:none|rna_votes:Germlinex2",
+     95
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 15249
+   },
+   "rescued": {
+    "NO": 15249
+   },
+   "n_support_callers": {
+    "1": 4364,
+    "2": 8318,
+    "3": 1867,
+    "0": 444,
+    "4": 253,
+    "5": 3
+   },
+   "callers_support_top": [
+    [
+     "DNA_deepsomatic|RNA_deepsomatic",
+     5219
+    ],
+    [
+     "DNA_deepsomatic",
+     2727
+    ],
+    [
+     "DNA_strelka|DNA_deepsomatic",
+     2704
+    ],
+    [
+     "RNA_deepsomatic",
+     1518
+    ],
+    [
+     "DNA_deepsomatic|RNA_strelka|RNA_deepsomatic",
+     1015
+    ],
+    [
+     "DNA_strelka|DNA_deepsomatic|RNA_deepsomatic",
+     755
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 15249
+   },
+   "passes_consensus_dna": {
+    "NO": 15139,
+    "<absent>": 110
+   },
+   "passes_consensus_rna": {
+    "NO": 12953,
+    "<absent>": 2296
+   },
+   "modalities": {
+    "DNA|RNA": 12843,
+    "DNA": 2296,
+    "RNA": 110
+   },
+   "cross_modality": {
+    "NO": 15249
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    15247,
+    15139,
+    14876,
+    15249
+   ],
+   "cosmic[cosmic>0,n]": [
+    8349,
+    15249
+   ],
+   "alt_count_max_buckets": {
+    "5-9": 1881,
+    ">=20": 9572,
+    "10-19": 2201,
+    "3-4": 1134,
+    "1-2": 451,
+    "<absent>": 10
+   }
+  },
+  {
+   "clean": "RNAedit",
+   "rerun": "RNAedit",
+   "n": 14072,
+   "rationale_top": [
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:none|rna_votes:Artifactx1+Referencex1",
+     6905
+    ],
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:none|rna_votes:Artifactx1+Germlinex1",
+     3502
+    ],
+    [
+     "rule:rna_consensus_only|class:Reference|dna_consensus:none|rna_consensus:Reference|dna_votes:none|rna_votes:Referencex2",
+     1812
+    ],
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:none|rna_votes:Germlinex1+Referencex1",
+     573
+    ],
+    [
+     "rule:rna_consensus_only|class:Reference|dna_consensus:none|rna_consensus:Reference|dna_votes:none|rna_votes:Referencex2+Somaticx1",
+     537
+    ],
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2+Referencex1",
+     291
+    ],
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:none|rna_votes:Referencex1+Somaticx1",
+     117
+    ],
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx3",
+     93
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 14072
+   },
+   "rescued": {
+    "NO": 14072
+   },
+   "n_support_callers": {
+    "1": 4218,
+    "0": 8525,
+    "2": 822,
+    "3": 507
+   },
+   "callers_support_top": [
+    [
+     ".",
+     8525
+    ],
+    [
+     "RNA_deepsomatic",
+     4203
+    ],
+    [
+     "RNA_strelka|RNA_deepsomatic",
+     809
+    ],
+    [
+     "RNA_strelka|RNA_deepsomatic|RNA_mutect2",
+     507
+    ],
+    [
+     "RNA_deepsomatic|RNA_mutect2",
+     12
+    ],
+    [
+     "RNA_strelka",
+     8
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 14072
+   },
+   "passes_consensus_dna": {
+    "<absent>": 14072
+   },
+   "passes_consensus_rna": {
+    "NO": 13615,
+    "YES": 457
+   },
+   "modalities": {
+    "RNA": 14072
+   },
+   "cross_modality": {
+    "NO": 14072
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    8210,
+    203,
+    165,
+    14072
+   ],
+   "cosmic[cosmic>0,n]": [
+    196,
+    14072
+   ],
+   "alt_count_max_buckets": {
+    ">=20": 267,
+    "1-2": 8497,
+    "3-4": 2931,
+    "10-19": 672,
+    "5-9": 1705
+   }
+  },
+  {
+   "clean": "ONLY_IN_RERUN",
+   "rerun": "Somatic",
+   "n": 4285,
+   "rationale_top": [
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2",
+     3321
+    ],
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx3",
+     604
+    ],
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2+Referencex1",
+     276
+    ],
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2+Germlinex1",
+     56
+    ],
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2+Artifactx1",
+     12
+    ],
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:Referencex1|rna_votes:Somaticx2",
+     8
+    ],
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:Referencex1|rna_votes:Somaticx2+Referencex1",
+     3
+    ],
+    [
+     "rule:cross_modality_agreement|class:Artifact|dna_consensus:Artifact|rna_consensus:Artifact|dna_votes:Referencex1+Somaticx1|rna_votes:Referencex1+Somaticx1",
+     1
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 4285
+   },
+   "rescued": {
+    "NO": 4285
+   },
+   "n_support_callers": {
+    "2": 3289,
+    "0": 134,
+    "3": 847,
+    "1": 12,
+    "4": 2,
+    "6": 1
+   },
+   "callers_support_top": [
+    [
+     "RNA_strelka|RNA_deepsomatic",
+     3280
+    ],
+    [
+     "RNA_strelka|RNA_deepsomatic|RNA_mutect2",
+     842
+    ],
+    [
+     ".",
+     134
+    ],
+    [
+     "RNA_mutect2",
+     7
+    ],
+    [
+     "RNA_deepsomatic|RNA_mutect2",
+     6
+    ],
+    [
+     "DNA_deepsomatic|RNA_strelka|RNA_deepsomatic",
+     4
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 4285
+   },
+   "passes_consensus_dna": {
+    "<absent>": 4269,
+    "NO": 15,
+    "YES": 1
+   },
+   "passes_consensus_rna": {
+    "YES": 4281,
+    "NO": 3,
+    "<absent>": 1
+   },
+   "modalities": {
+    "RNA": 4269,
+    "DNA|RNA": 15,
+    "DNA": 1
+   },
+   "cross_modality": {
+    "NO": 4282,
+    "YES": 3
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    4285,
+    4284,
+    4012,
+    4285
+   ],
+   "cosmic[cosmic>0,n]": [
+    2821,
+    4285
+   ],
+   "alt_count_max_buckets": {
+    "5-9": 1148,
+    "1-2": 134,
+    ">=20": 1288,
+    "10-19": 1042,
+    "3-4": 673
+   }
+  },
+  {
+   "clean": "Somatic",
+   "rerun": "Somatic",
+   "n": 2825,
+   "rationale_top": [
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2+Referencex1",
+     2177
+    ],
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx3",
+     206
+    ],
+    [
+     "rule:dna_consensus_only|class:Somatic|dna_consensus:Somatic|rna_consensus:none|dna_votes:Somaticx3|rna_votes:none",
+     193
+    ],
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2",
+     77
+    ],
+    [
+     "rule:dna_consensus_only|class:Somatic|dna_consensus:Somatic|rna_consensus:none|dna_votes:Somaticx2+Referencex1|rna_votes:none",
+     70
+    ],
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2+Germlinex1",
+     22
+    ],
+    [
+     "rule:dna_consensus_only|class:Somatic|dna_consensus:Somatic|rna_consensus:none|dna_votes:Somaticx2|rna_votes:none",
+     20
+    ],
+    [
+     "rule:cross_modality_agreement|class:Somatic|dna_consensus:Somatic|rna_consensus:Somatic|dna_votes:Somaticx3|rna_votes:Somaticx3",
+     17
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 2825
+   },
+   "rescued": {
+    "NO": 2797,
+    "YES": 28
+   },
+   "n_support_callers": {
+    "3": 582,
+    "0": 2113,
+    "2": 90,
+    "5": 4,
+    "6": 29,
+    "4": 3,
+    "1": 4
+   },
+   "callers_support_top": [
+    [
+     ".",
+     2113
+    ],
+    [
+     "RNA_strelka|RNA_deepsomatic|RNA_mutect2",
+     312
+    ],
+    [
+     "DNA_strelka|DNA_deepsomatic|DNA_mutect2",
+     270
+    ],
+    [
+     "RNA_deepsomatic|RNA_mutect2",
+     57
+    ],
+    [
+     "DNA_strelka|DNA_deepsomatic|DNA_mutect2|RNA_strelka|RNA_deepsomatic|RNA_mutect2",
+     29
+    ],
+    [
+     "DNA_strelka|DNA_mutect2",
+     12
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 2825
+   },
+   "passes_consensus_dna": {
+    "YES": 331,
+    "<absent>": 2492,
+    "NO": 2
+   },
+   "passes_consensus_rna": {
+    "<absent>": 287,
+    "YES": 2522,
+    "NO": 16
+   },
+   "modalities": {
+    "DNA": 287,
+    "RNA": 2492,
+    "DNA|RNA": 46
+   },
+   "cross_modality": {
+    "NO": 2789,
+    "YES": 36
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    1251,
+    2,
+    0,
+    2825
+   ],
+   "cosmic[cosmic>0,n]": [
+    168,
+    2825
+   ],
+   "alt_count_max_buckets": {
+    "10-19": 172,
+    "1-2": 2113,
+    ">=20": 274,
+    "3-4": 120,
+    "5-9": 146
+   }
+  },
+  {
+   "clean": "Artifact",
+   "rerun": "Germline",
+   "n": 2412,
+   "rationale_top": [
+    [
+     "rule:dna_consensus_only|class:Artifact|dna_consensus:Artifact|rna_consensus:none|dna_votes:Germlinex1+Referencex1|rna_votes:none",
+     1585
+    ],
+    [
+     "rule:dna_consensus_only|class:Artifact|dna_consensus:Artifact|rna_consensus:none|dna_votes:Artifactx1+Germlinex1|rna_votes:none",
+     582
+    ],
+    [
+     "rule:dna_consensus_only|class:Artifact|dna_consensus:Artifact|rna_consensus:none|dna_votes:Germlinex1+Referencex1|rna_votes:Referencex1",
+     112
+    ],
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:Germlinex1|rna_votes:Artifactx1+Referencex1",
+     91
+    ],
+    [
+     "rule:dna_consensus_only|class:Artifact|dna_consensus:Artifact|rna_consensus:none|dna_votes:Artifactx1+Germlinex1|rna_votes:Referencex1",
+     15
+    ],
+    [
+     "rule:dna_consensus_only|class:Artifact|dna_consensus:Artifact|rna_consensus:none|dna_votes:Germlinex1+Somaticx1|rna_votes:none",
+     12
+    ],
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:Germlinex1|rna_votes:Artifactx1+Somaticx1",
+     3
+    ],
+    [
+     "rule:dna_consensus_only|class:Artifact|dna_consensus:Artifact|rna_consensus:none|dna_votes:Artifactx1+Germlinex1+Referencex1|rna_votes:none",
+     3
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 2412
+   },
+   "rescued": {
+    "NO": 2412
+   },
+   "n_support_callers": {
+    "2": 1467,
+    "1": 438,
+    "0": 495,
+    "3": 12
+   },
+   "callers_support_top": [
+    [
+     "DNA_deepsomatic|DNA_mutect2",
+     794
+    ],
+    [
+     "DNA_strelka|DNA_deepsomatic",
+     637
+    ],
+    [
+     ".",
+     495
+    ],
+    [
+     "DNA_deepsomatic",
+     354
+    ],
+    [
+     "DNA_mutect2",
+     40
+    ],
+    [
+     "RNA_deepsomatic",
+     23
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 2412
+   },
+   "passes_consensus_dna": {
+    "NO": 2412
+   },
+   "passes_consensus_rna": {
+    "<absent>": 2184,
+    "NO": 228
+   },
+   "modalities": {
+    "DNA": 2184,
+    "DNA|RNA": 228
+   },
+   "cross_modality": {
+    "NO": 2412
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    2412,
+    2412,
+    2243,
+    2412
+   ],
+   "cosmic[cosmic>0,n]": [
+    761,
+    2412
+   ],
+   "alt_count_max_buckets": {
+    "5-9": 588,
+    ">=20": 415,
+    "3-4": 503,
+    "1-2": 490,
+    "10-19": 416
+   }
+  },
+  {
+   "clean": "NoConsensus",
+   "rerun": "Artifact",
+   "n": 323,
+   "rationale_top": [
+    [
+     "rule:cross_modality_disagreement|class:Artifact|dna_consensus:none|rna_consensus:none|dna_votes:Referencex1|rna_votes:Germlinex1",
+     209
+    ],
+    [
+     "rule:cross_modality_disagreement|class:Artifact|dna_consensus:none|rna_consensus:none|dna_votes:Artifactx1|rna_votes:Referencex1",
+     36
+    ],
+    [
+     "rule:cross_modality_disagreement|class:Artifact|dna_consensus:none|rna_consensus:none|dna_votes:Germlinex1|rna_votes:Referencex1",
+     29
+    ],
+    [
+     "rule:cross_modality_disagreement|class:Artifact|dna_consensus:none|rna_consensus:none|dna_votes:Artifactx1|rna_votes:Germlinex1",
+     28
+    ],
+    [
+     "rule:cross_modality_agreement|class:Artifact|dna_consensus:none|rna_consensus:none|dna_votes:Artifactx1|rna_votes:Artifactx1",
+     8
+    ],
+    [
+     "rule:cross_modality_disagreement|class:Artifact|dna_consensus:none|rna_consensus:none|dna_votes:Referencex1|rna_votes:Somaticx1",
+     6
+    ],
+    [
+     "rule:cross_modality_disagreement|class:Artifact|dna_consensus:none|rna_consensus:none|dna_votes:Referencex1|rna_votes:Artifactx1",
+     4
+    ],
+    [
+     "rule:cross_modality_disagreement|class:Artifact|dna_consensus:none|rna_consensus:none|dna_votes:Somaticx1|rna_votes:Germlinex1",
+     2
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 323
+   },
+   "rescued": {
+    "NO": 323
+   },
+   "n_support_callers": {
+    "2": 116,
+    "0": 68,
+    "1": 139
+   },
+   "callers_support_top": [
+    [
+     "DNA_deepsomatic|RNA_deepsomatic",
+     108
+    ],
+    [
+     ".",
+     68
+    ],
+    [
+     "DNA_deepsomatic",
+     65
+    ],
+    [
+     "RNA_deepsomatic",
+     56
+    ],
+    [
+     "DNA_mutect2",
+     13
+    ],
+    [
+     "DNA_deepsomatic|RNA_strelka",
+     5
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 323
+   },
+   "passes_consensus_dna": {
+    "NO": 323
+   },
+   "passes_consensus_rna": {
+    "NO": 323
+   },
+   "modalities": {
+    "DNA|RNA": 323
+   },
+   "cross_modality": {
+    "NO": 323
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    316,
+    261,
+    254,
+    323
+   ],
+   "cosmic[cosmic>0,n]": [
+    124,
+    323
+   ],
+   "alt_count_max_buckets": {
+    "10-19": 57,
+    "1-2": 56,
+    "3-4": 53,
+    "5-9": 58,
+    ">=20": 95,
+    "0": 4
+   }
+  },
+  {
+   "clean": "Reference",
+   "rerun": "Germline",
+   "n": 160,
+   "rationale_top": [
+    [
+     "rule:dna_consensus_only|class:Reference|dna_consensus:Reference|rna_consensus:none|dna_votes:Referencex2+Germlinex1|rna_votes:none",
+     88
+    ],
+    [
+     "rule:dna_artifact_veto|class:Artifact|dna_consensus:Artifact|rna_consensus:Reference|dna_votes:Germlinex1+Referencex1|rna_votes:Referencex2",
+     58
+    ],
+    [
+     "rule:dna_consensus_only|class:Reference|dna_consensus:Reference|rna_consensus:none|dna_votes:Referencex2+Germlinex1|rna_votes:Referencex1",
+     7
+    ],
+    [
+     "rule:rna_consensus_only|class:Reference|dna_consensus:none|rna_consensus:Reference|dna_votes:Germlinex1|rna_votes:Referencex2",
+     5
+    ],
+    [
+     "rule:dna_artifact_veto|class:Artifact|dna_consensus:Artifact|rna_consensus:Reference|dna_votes:Germlinex1+Somaticx1|rna_votes:Referencex2",
+     1
+    ],
+    [
+     "rule:cross_modality_agreement|class:Reference|dna_consensus:Reference|rna_consensus:Reference|dna_votes:Referencex2+Germlinex1|rna_votes:Referencex2",
+     1
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 160
+   },
+   "rescued": {
+    "NO": 160
+   },
+   "n_support_callers": {
+    "1": 8,
+    "2": 42,
+    "0": 14,
+    "3": 84,
+    "4": 11,
+    "5": 1
+   },
+   "callers_support_top": [
+    [
+     "DNA_strelka|DNA_deepsomatic|DNA_mutect2",
+     78
+    ],
+    [
+     "DNA_strelka|DNA_deepsomatic",
+     28
+    ],
+    [
+     ".",
+     14
+    ],
+    [
+     "DNA_strelka|DNA_deepsomatic|RNA_strelka|RNA_deepsomatic",
+     8
+    ],
+    [
+     "DNA_deepsomatic|DNA_mutect2",
+     8
+    ],
+    [
+     "DNA_deepsomatic|RNA_strelka|RNA_deepsomatic",
+     4
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 160
+   },
+   "passes_consensus_dna": {
+    "NO": 160
+   },
+   "passes_consensus_rna": {
+    "NO": 72,
+    "<absent>": 88
+   },
+   "modalities": {
+    "DNA|RNA": 72,
+    "DNA": 88
+   },
+   "cross_modality": {
+    "NO": 160
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    160,
+    160,
+    138,
+    160
+   ],
+   "cosmic[cosmic>0,n]": [
+    58,
+    160
+   ],
+   "alt_count_max_buckets": {
+    "3-4": 28,
+    "1-2": 14,
+    "5-9": 55,
+    "10-19": 37,
+    ">=20": 26
+   }
+  },
+  {
+   "clean": "RNAedit",
+   "rerun": "Germline",
+   "n": 13,
+   "rationale_top": [
+    [
+     "rule:rna_consensus_only|class:Germline|dna_consensus:none|rna_consensus:Germline|dna_votes:Germlinex1|rna_votes:Germlinex2",
+     5
+    ],
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:Germlinex1|rna_votes:Artifactx1+Germlinex1",
+     4
+    ],
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:Germlinex1|rna_votes:Germlinex1+Referencex1",
+     2
+    ],
+    [
+     "rule:rna_consensus_only|class:Reference|dna_consensus:none|rna_consensus:Reference|dna_votes:Germlinex1|rna_votes:Referencex2",
+     2
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 13
+   },
+   "rescued": {
+    "NO": 13
+   },
+   "n_support_callers": {
+    "2": 3,
+    "3": 7,
+    "1": 3
+   },
+   "callers_support_top": [
+    [
+     "DNA_deepsomatic|RNA_strelka|RNA_deepsomatic",
+     7
+    ],
+    [
+     "DNA_deepsomatic|RNA_deepsomatic",
+     2
+    ],
+    [
+     "RNA_deepsomatic",
+     2
+    ],
+    [
+     "RNA_strelka|RNA_deepsomatic",
+     1
+    ],
+    [
+     "DNA_deepsomatic",
+     1
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 13
+   },
+   "passes_consensus_dna": {
+    "NO": 13
+   },
+   "passes_consensus_rna": {
+    "NO": 13
+   },
+   "modalities": {
+    "DNA|RNA": 13
+   },
+   "cross_modality": {
+    "NO": 13
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    13,
+    13,
+    13,
+    13
+   ],
+   "cosmic[cosmic>0,n]": [
+    4,
+    13
+   ],
+   "alt_count_max_buckets": {
+    "10-19": 1,
+    ">=20": 7,
+    "5-9": 4,
+    "3-4": 1
+   }
+  },
+  {
+   "clean": "RNAedit",
+   "rerun": "Artifact",
+   "n": 4,
+   "rationale_top": [
+    [
+     "rule:rna_consensus_only|class:Artifact|dna_consensus:none|rna_consensus:Artifact|dna_votes:Artifactx1|rna_votes:Artifactx1+Germlinex1",
+     2
+    ],
+    [
+     "rule:cross_modality_agreement|class:Artifact|dna_consensus:Artifact|rna_consensus:Artifact|dna_votes:Germlinex1+Referencex1|rna_votes:Germlinex1+Referencex1",
+     2
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 4
+   },
+   "rescued": {
+    "NO": 4
+   },
+   "n_support_callers": {
+    "1": 2,
+    "4": 2
+   },
+   "callers_support_top": [
+    [
+     "RNA_deepsomatic",
+     2
+    ],
+    [
+     "DNA_strelka|DNA_deepsomatic|RNA_strelka|RNA_deepsomatic",
+     2
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 4
+   },
+   "passes_consensus_dna": {
+    "NO": 4
+   },
+   "passes_consensus_rna": {
+    "NO": 4
+   },
+   "modalities": {
+    "DNA|RNA": 4
+   },
+   "cross_modality": {
+    "NO": 4
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    4,
+    4,
+    4,
+    4
+   ],
+   "cosmic[cosmic>0,n]": [
+    0,
+    4
+   ],
+   "alt_count_max_buckets": {
+    ">=20": 2,
+    "5-9": 2
+   }
+  },
+  {
+   "clean": "RNAedit",
+   "rerun": "Reference",
+   "n": 4,
+   "rationale_top": [
+    [
+     "rule:rna_consensus_only|class:Reference|dna_consensus:none|rna_consensus:Reference|dna_votes:Referencex1|rna_votes:Referencex2",
+     2
+    ],
+    [
+     "rule:dna_consensus_priority|class:Reference|dna_consensus:Reference|rna_consensus:Artifact|dna_votes:Referencex2|rna_votes:Germlinex1+Somaticx1",
+     2
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 4
+   },
+   "rescued": {
+    "NO": 4
+   },
+   "n_support_callers": {
+    "1": 1,
+    "4": 2,
+    "2": 1
+   },
+   "callers_support_top": [
+    [
+     "DNA_strelka|DNA_deepsomatic|RNA_strelka|RNA_deepsomatic",
+     2
+    ],
+    [
+     "DNA_deepsomatic",
+     1
+    ],
+    [
+     "RNA_strelka|RNA_deepsomatic",
+     1
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 4
+   },
+   "passes_consensus_dna": {
+    "NO": 4
+   },
+   "passes_consensus_rna": {
+    "NO": 4
+   },
+   "modalities": {
+    "DNA|RNA": 4
+   },
+   "cross_modality": {
+    "NO": 4
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    4,
+    2,
+    2,
+    4
+   ],
+   "cosmic[cosmic>0,n]": [
+    4,
+    4
+   ],
+   "alt_count_max_buckets": {
+    ">=20": 3,
+    "10-19": 1
+   }
+  },
+  {
+   "clean": "Reference",
+   "rerun": "Artifact",
+   "n": 4,
+   "rationale_top": [
+    [
+     "rule:dna_artifact_veto|class:Artifact|dna_consensus:Artifact|rna_consensus:Reference|dna_votes:Referencex1+Somaticx1|rna_votes:Referencex2",
+     4
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 4
+   },
+   "rescued": {
+    "NO": 4
+   },
+   "n_support_callers": {
+    "0": 2,
+    "2": 2
+   },
+   "callers_support_top": [
+    [
+     ".",
+     2
+    ],
+    [
+     "DNA_strelka|DNA_deepsomatic",
+     2
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 4
+   },
+   "passes_consensus_dna": {
+    "NO": 4
+   },
+   "passes_consensus_rna": {
+    "NO": 4
+   },
+   "modalities": {
+    "DNA|RNA": 4
+   },
+   "cross_modality": {
+    "NO": 4
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    4,
+    4,
+    3,
+    4
+   ],
+   "cosmic[cosmic>0,n]": [
+    0,
+    4
+   ],
+   "alt_count_max_buckets": {
+    "1-2": 2,
+    "5-9": 2
+   }
+  },
+  {
+   "clean": "RNAedit",
+   "rerun": "Somatic",
+   "n": 4,
+   "rationale_top": [
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:Referencex1|rna_votes:Somaticx2+Referencex1",
+     3
+    ],
+    [
+     "rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:Referencex1|rna_votes:Somaticx3",
+     1
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 4
+   },
+   "rescued": {
+    "NO": 4
+   },
+   "n_support_callers": {
+    "4": 2,
+    "0": 1,
+    "1": 1
+   },
+   "callers_support_top": [
+    [
+     "DNA_deepsomatic|RNA_strelka|RNA_deepsomatic|RNA_mutect2",
+     2
+    ],
+    [
+     ".",
+     1
+    ],
+    [
+     "DNA_deepsomatic",
+     1
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 4
+   },
+   "passes_consensus_dna": {
+    "NO": 4
+   },
+   "passes_consensus_rna": {
+    "YES": 4
+   },
+   "modalities": {
+    "DNA|RNA": 4
+   },
+   "cross_modality": {
+    "NO": 4
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    3,
+    0,
+    0,
+    4
+   ],
+   "cosmic[cosmic>0,n]": [
+    1,
+    4
+   ],
+   "alt_count_max_buckets": {
+    "5-9": 2,
+    "1-2": 1,
+    "10-19": 1
+   }
+  },
+  {
+   "clean": "ONLY_IN_RERUN",
+   "rerun": "Germline",
+   "n": 3,
+   "rationale_top": [
+    [
+     "rule:dna_consensus_only|class:Somatic|dna_consensus:Somatic|rna_consensus:none|dna_votes:Somaticx2+Germlinex1|rna_votes:none",
+     2
+    ],
+    [
+     "rule:cross_modality_disagreement|class:Artifact|dna_consensus:Somatic|rna_consensus:Reference|dna_votes:Somaticx2+Germlinex1|rna_votes:Referencex2",
+     1
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 3
+   },
+   "rescued": {
+    "NO": 3
+   },
+   "n_support_callers": {
+    "3": 2,
+    "4": 1
+   },
+   "callers_support_top": [
+    [
+     "DNA_strelka|DNA_deepsomatic|DNA_mutect2",
+     2
+    ],
+    [
+     "DNA_strelka|DNA_deepsomatic|DNA_mutect2|RNA_strelka",
+     1
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 3
+   },
+   "passes_consensus_dna": {
+    "YES": 3
+   },
+   "passes_consensus_rna": {
+    "<absent>": 2,
+    "NO": 1
+   },
+   "modalities": {
+    "DNA": 2,
+    "DNA|RNA": 1
+   },
+   "cross_modality": {
+    "NO": 3
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    3,
+    3,
+    0,
+    3
+   ],
+   "cosmic[cosmic>0,n]": [
+    3,
+    3
+   ],
+   "alt_count_max_buckets": {
+    "10-19": 2,
+    ">=20": 1
+   }
+  },
+  {
+   "clean": "NoConsensus",
+   "rerun": "Somatic",
+   "n": 1,
+   "rationale_top": [
+    [
+     "rule:rescue_promotion|class:Somatic|dna_consensus:none|rna_consensus:none|dna_votes:Somaticx1|rna_votes:Somaticx1",
+     1
+    ]
+   ],
+   "rescue_promoted": {
+    "YES": 1
+   },
+   "rescued": {
+    "YES": 1
+   },
+   "n_support_callers": {
+    "2": 1
+   },
+   "callers_support_top": [
+    [
+     "DNA_deepsomatic|RNA_deepsomatic",
+     1
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 1
+   },
+   "passes_consensus_dna": {
+    "NO": 1
+   },
+   "passes_consensus_rna": {
+    "NO": 1
+   },
+   "modalities": {
+    "DNA|RNA": 1
+   },
+   "cross_modality": {
+    "YES": 1
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "cosmic[cosmic>0,n]": [
+    1,
+    1
+   ],
+   "alt_count_max_buckets": {
+    "10-19": 1
+   }
+  },
+  {
+   "clean": "Germline",
+   "rerun": "Artifact",
+   "n": 1,
+   "rationale_top": [
+    [
+     "rule:dna_artifact_veto|class:Artifact|dna_consensus:Artifact|rna_consensus:Germline|dna_votes:Germlinex1+Referencex1|rna_votes:Germlinex2",
+     1
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 1
+   },
+   "rescued": {
+    "NO": 1
+   },
+   "n_support_callers": {
+    "2": 1
+   },
+   "callers_support_top": [
+    [
+     "DNA_strelka|DNA_deepsomatic",
+     1
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 1
+   },
+   "passes_consensus_dna": {
+    "NO": 1
+   },
+   "passes_consensus_rna": {
+    "NO": 1
+   },
+   "modalities": {
+    "DNA|RNA": 1
+   },
+   "cross_modality": {
+    "NO": 1
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    1,
+    0,
+    0,
+    1
+   ],
+   "cosmic[cosmic>0,n]": [
+    0,
+    1
+   ],
+   "alt_count_max_buckets": {
+    ">=20": 1
+   }
+  },
+  {
+   "clean": "Somatic",
+   "rerun": "Artifact",
+   "n": 1,
+   "rationale_top": [
+    [
+     "rule:cross_modality_disagreement|class:Artifact|dna_consensus:Somatic|rna_consensus:Reference|dna_votes:Somaticx3|rna_votes:Referencex2",
+     1
+    ]
+   ],
+   "rescue_promoted": {
+    "NO": 1
+   },
+   "rescued": {
+    "NO": 1
+   },
+   "n_support_callers": {
+    "3": 1
+   },
+   "callers_support_top": [
+    [
+     "DNA_strelka|DNA_deepsomatic|DNA_mutect2",
+     1
+    ]
+   ],
+   "vc_consensus": {
+    "<absent>": 1
+   },
+   "passes_consensus_dna": {
+    "YES": 1
+   },
+   "passes_consensus_rna": {
+    "NO": 1
+   },
+   "modalities": {
+    "DNA|RNA": 1
+   },
+   "cross_modality": {
+    "NO": 1
+   },
+   "gnomad[af_present,af>=1e-3,af>=1e-2,n]": [
+    1,
+    1,
+    0,
+    1
+   ],
+   "cosmic[cosmic>0,n]": [
+    0,
+    1
+   ],
+   "alt_count_max_buckets": {
+    ">=20": 1
+   }
+  }
+ ],
+ "only_in_clean_by_filter": {},
+ "only_in_rerun_by_filter": {
+  "Somatic": 4285,
+  "Germline": 3
+ }
+}

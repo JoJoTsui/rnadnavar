@@ -1,0 +1,185 @@
+{
+ "sample": "4081",
+ "vc_pairs_top": [
+  [
+   "<abs>",
+   "<abs>",
+   29119
+  ]
+ ],
+ "fo_pairs_top": [
+  [
+   "DNA_deepsomatic:RefCall",
+   "DNA_deepsomatic:RefCall",
+   18242
+  ],
+  [
+   "RNA_deepsomatic:GERMLINE",
+   "RNA_deepsomatic:GERMLINE",
+   5146
+  ],
+  [
+   "RNA_deepsomatic:RefCall",
+   "RNA_deepsomatic:RefCall",
+   3320
+  ],
+  [
+   "RNA_strelka:LowDepth%3BLowEVS",
+   "RNA_strelka:LowDepth%3BLowEVS",
+   749
+  ],
+  [
+   "DNA_deepsomatic:RefCall|RNA_strelka:LowDepth%3BLowEVS",
+   "DNA_deepsomatic:RefCall|RNA_strelka:LowDepth%3BLowEVS",
+   706
+  ],
+  [
+   "RNA_strelka:LowEVS",
+   "RNA_strelka:LowEVS",
+   316
+  ],
+  [
+   "DNA_strelka:LowEVS",
+   "DNA_strelka:LowEVS",
+   188
+  ],
+  [
+   "DNA_deepsomatic:RefCall|RNA_deepsomatic:RefCall",
+   "DNA_deepsomatic:RefCall|RNA_deepsomatic:RefCall",
+   136
+  ],
+  [
+   "DNA_deepsomatic:RefCall|RNA_strelka:LowEVS",
+   "DNA_deepsomatic:RefCall|RNA_strelka:LowEVS",
+   111
+  ],
+  [
+   "DNA_strelka:LowEVS|RNA_strelka:LowDepth%3BLowEVS",
+   "DNA_strelka:LowEVS|RNA_strelka:LowDepth%3BLowEVS",
+   52
+  ],
+  [
+   "DNA_strelka:LowDepth%3BLowEVS",
+   "DNA_strelka:LowDepth%3BLowEVS",
+   27
+  ],
+  [
+   "DNA_deepsomatic:RefCall|RNA_strelka:LowDepth",
+   "DNA_deepsomatic:RefCall|RNA_strelka:LowDepth",
+   26
+  ],
+  [
+   "RNA_strelka:LowDepth",
+   "RNA_strelka:LowDepth",
+   17
+  ],
+  [
+   "RNA_deepsomatic:PASS",
+   "RNA_deepsomatic:PASS",
+   16
+  ],
+  [
+   "DNA_deepsomatic:PASS",
+   "DNA_deepsomatic:PASS",
+   14
+  ]
+ ],
+ "examples": [
+  {
+   "site": "chr1:14464:.:A:T",
+   "clean_VC": "<abs>",
+   "rerun_VC": "<abs>",
+   "clean_FO": "RNA_deepsomatic:GERMLINE",
+   "rerun_FO": "RNA_deepsomatic:GERMLINE",
+   "rationale": "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:none|rna_votes:Germlinex1"
+  },
+  {
+   "site": "chr1:17365:.:C:G",
+   "clean_VC": "<abs>",
+   "rerun_VC": "<abs>",
+   "clean_FO": "DNA_strelka:LowDepth%3BLowEVS",
+   "rerun_FO": "DNA_strelka:LowDepth%3BLowEVS",
+   "rationale": "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:Referencex1|rna_votes:none"
+  },
+  {
+   "site": "chr1:133129:.:G:A",
+   "clean_VC": "<abs>",
+   "rerun_VC": "<abs>",
+   "clean_FO": "RNA_deepsomatic:GERMLINE",
+   "rerun_FO": "RNA_deepsomatic:GERMLINE",
+   "rationale": "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:none|rna_votes:Germlinex1"
+  },
+  {
+   "site": "chr1:183629:.:G:A",
+   "clean_VC": "<abs>",
+   "rerun_VC": "<abs>",
+   "clean_FO": "DNA_deepsomatic:RefCall",
+   "rerun_FO": "DNA_deepsomatic:RefCall",
+   "rationale": "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:Referencex1|rna_votes:none"
+  },
+  {
+   "site": "chr1:183800:.:C:G",
+   "clean_VC": "<abs>",
+   "rerun_VC": "<abs>",
+   "clean_FO": "DNA_deepsomatic:RefCall|RNA_strelka:LowDepth%3BLowEVS",
+   "rerun_FO": "DNA_deepsomatic:RefCall|RNA_strelka:LowDepth%3BLowEVS",
+   "rationale": "rule:below_rescue_promotion_threshold|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:Referencex1|rna_votes:Referencex1"
+  },
+  {
+   "site": "chr1:185336:.:C:T",
+   "clean_VC": "<abs>",
+   "rerun_VC": "<abs>",
+   "clean_FO": "RNA_deepsomatic:RefCall",
+   "rerun_FO": "RNA_deepsomatic:RefCall",
+   "rationale": "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:none|rna_votes:Referencex1"
+  },
+  {
+   "site": "chr1:187497:.:G:A",
+   "clean_VC": "<abs>",
+   "rerun_VC": "<abs>",
+   "clean_FO": "RNA_deepsomatic:GERMLINE",
+   "rerun_FO": "RNA_deepsomatic:GERMLINE",
+   "rationale": "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:none|rna_votes:Germlinex1"
+  },
+  {
+   "site": "chr1:188876:.:C:T",
+   "clean_VC": "<abs>",
+   "rerun_VC": "<abs>",
+   "clean_FO": "RNA_deepsomatic:RefCall",
+   "rerun_FO": "RNA_deepsomatic:RefCall",
+   "rationale": "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:none|rna_votes:Referencex1"
+  },
+  {
+   "site": "chr1:629274:.:G:A",
+   "clean_VC": "<abs>",
+   "rerun_VC": "<abs>",
+   "clean_FO": "RNA_deepsomatic:GERMLINE",
+   "rerun_FO": "RNA_deepsomatic:GERMLINE",
+   "rationale": "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:none|rna_votes:Germlinex1"
+  },
+  {
+   "site": "chr1:629906:.:C:T",
+   "clean_VC": "<abs>",
+   "rerun_VC": "<abs>",
+   "clean_FO": "RNA_deepsomatic:GERMLINE",
+   "rerun_FO": "RNA_deepsomatic:GERMLINE",
+   "rationale": "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:none|rna_votes:Germlinex1"
+  },
+  {
+   "site": "chr1:632487:.:A:G",
+   "clean_VC": "<abs>",
+   "rerun_VC": "<abs>",
+   "clean_FO": "RNA_deepsomatic:GERMLINE",
+   "rerun_FO": "RNA_deepsomatic:GERMLINE",
+   "rationale": "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:none|rna_votes:Germlinex1"
+  },
+  {
+   "site": "chr1:632821:.:T:C",
+   "clean_VC": "<abs>",
+   "rerun_VC": "<abs>",
+   "clean_FO": "RNA_deepsomatic:RefCall",
+   "rerun_FO": "RNA_deepsomatic:RefCall",
+   "rationale": "rule:insufficient_modality_support|class:NoConsensus|dna_consensus:none|rna_consensus:none|dna_votes:none|rna_votes:Referencex1"
+  }
+ ]
+}
