@@ -245,6 +245,29 @@ Verdicts live in `<out>/samples_qc.tsv` (per-sample) and `<out>/report.md`:
 
 The rerun does not rehabilitate FAIL samples whose signature is intrinsic to their caller VCFs — the smoke comparison above shows 4032's signature surviving the fixed pipeline essentially unchanged. Expect (and accept) FAILs; feeding them to training is the failure mode this gate exists to prevent (old-cohort evidence: dropping 4081+4255 alone lifted F1 0.633 → 0.898).
 
+### 6a. Cohort gate outcome (2026-09-01, all 66 rerun samples)
+
+Tier A on all 66 rerun outputs (`runs/label_qc/cohort66/`, recalibrated S7=0.5, dry-run): **57 PASS / 8 WARN / 1 FAIL** → training set = 57 PASS as-is + 8 WARN cleaned = **65 included, 1 excluded**.
+
+| sample | verdict | gates | note |
+|---|---|---|---|
+| PRJNA298330_4032 | **FAIL** | S0;S1;S3 | anchor — signature survived the rerun, as predicted (RNA-only common-AF germline leakage, 60.3% flag burden) |
+| PRJNA298376_4255 | WARN | S7 | **old abnormal anchor rehabilitated**: old S2/contamination signature gone; only low coverage remains (median DP 6) |
+| PRJNA298376_4081 | PASS | — | **old abnormal anchor rehabilitated** (189 Somatic, 32 flagged) |
+| PRJNA298376_4278 | PASS | — | clean anchor; S7 WARN gone after recalibration |
+| PRJNA298376_4252 | PASS | — | clean anchor, holds |
+| PRJNA298330_4096 | PASS | — | clean anchor, holds |
+| PRJNA298330_3948, PRJNA298376_3948, PRJNA298376_4232 | WARN | S7 | genuine low-coverage tail (median DP 5.7–7.25) |
+| PRJNA298376_3812, 3978, 3995 | WARN | S6 | spectrum outliers (e.g. indel fraction 0.53 > 0.50) — include-after-cleaning, watch in training |
+
+Tier B (`--verify-bam`, 12 samples: all WARN/FAIL + anchors; `runs/label_qc/cohort66_tierb/`):
+
+- **S4 normal contamination is clean across the board** (max 3.7% vs 20% WARN threshold) — the old-cohort 78–83% normal contamination in 4081/4255 is entirely absent from the rerun outputs. This is direct BAM-level evidence that the fixed consensus/rescue no longer leaks normal reads into labels.
+- B1 strand bias: 651 sites cohort-wide, all LOW-tier; no sample near thresholds.
+- **Caveat — cohort-relative gates in subset runs:** PRJNA298376_4112 read FAIL(S1) in the 12-sample Tier B run vs WARN(S1) in the 66-sample Tier A run. S1/S5 are z-score gates computed within the run's own cohort; a 12-sample subset shifts the reference distribution. Use Tier B subset runs for the S4/B1 BAM evidence only — verdicts come from the full-cohort Tier A run. Under the cohort-context verdict, 4112 stays WARN (4,272 Somatic, under the 6,000 abs_fail).
+
+**Old vs new anchors:** the rerun resolved 2 of 3 abnormal samples (4081, 4255 now PASS/S7-WARN with clean Tier B); 4032 remains FAIL because its pathology is intrinsic to its caller VCFs, not to the consensus logic. The gate's discrimination is preserved: the one sample that should fail, fails.
+
 ### 7. Known pending items
 
 - ~~**S7 recalibration**~~ **DONE (2026-09-01)**: `S7_coverage.low_dp_frac_max` recalibrated 0.3 → **0.5** in `bin/label_qc_config.json`, fitted on the 58 completed rerun samples (Tier A dry-run, `runs/label_qc/cohort58/`). Post-C1 DP fields shift the cohort low-DP (DP<10) distribution up: median 22.9%, mean 24.8%, sd 13.7%, p90 44.5%. Both robust estimators — median+3·MAD (0.516) and mean+2·sd (0.522) — land at ≈0.5; at 0.50 only the true tail WARNs (3/58 = 5%: PRJNA298330_3948 63.5%, PRJNA298376_4255 60.0%, PRJNA298376_4232 53.7%), vs 29% of the cohort at the old 0.30.
