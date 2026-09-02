@@ -1,1 +1,3 @@
 stats/full/
+# Build artifact (82 MB, reproducible via scripts/build_split_manifest.py in ~70 s)
+data/processed/selected_variants.parquet

@@ -20,6 +20,17 @@ Domain terms for this repository. Glossary only — no implementation details or
 
 - **Re-consensus rerun** — forward-only regeneration of consensus and rescue VCFs for the whole cohort from the existing, read-only per-caller VCF outputs, using fixed pipeline code, written to a new output location. Original outputs are never modified.
 
+## Split and downstream-task concepts
+
+- **Working cohort** — the 63 samples eligible for dataset splitting: rows of the rerun sample manifest with a non-empty training label VCF (56 PASS + 7 WARN). The 3 `useless` samples are never split.
+- **Selected variant** — a truth-label VCF record whose FILTER is in the whitelist {Somatic, Germline, Reference}; only selected variants enter dataset manifests. (NoConsensus, Artifact, RNAedit are excluded.)
+- **Sample pool** — the sample-level assignment: *reserved* (held out wholly for downstream evaluation) or *train pool*. For train-pool samples the real split is per-variant, by chromosome.
+- **Reserved pool** — 5 hardcoded non-digestive PASS samples spanning the disease folds, used for downstream evaluation (zero-shot and tag-defined sub-pools). Never used in training.
+- **Chromosome split (deepsomatic)** — per-variant assignment for PASS train-pool samples: chr1 → test, chr21–22 → val, chr2–20 → train, any other chromosome → train.
+- **Verdict routing** — WARN samples are train-only: all their selected variants go to train regardless of chromosome. Test and the reserved pool contain PASS-verdict samples only.
+- **Sub-pool tags** — per-variant booleans defining downstream evaluation subsets: is_zero_shot, is_low_vaf_a/b, is_low_dp, is_rescued, is_non_rescued, is_indel. Tags are derived from the truth-label VCF's own per-modality depth/VAF/rescue INFO fields.
+- **Split manifest** — the pair of artifacts recording pools, per-variant splits, tags, and label verdicts; the contract for downstream dataset validation and path tracking.
+
 ## Label-quality failure classes (observed)
 
 An **abnormal sample** is one whose truth labels fail QC at scale. Three distinct classes observed so far:

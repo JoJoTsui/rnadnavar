@@ -15,6 +15,10 @@ partitioned into:
 2. **Chromosome-based train/val/test split** — the remaining 58 samples split via the
    `deepsomatic` strategy (chr1=test, chr21–22=val, chr2–20=train).
 
+This partition is materialized by `scripts/build_split_manifest.py` into
+`data/processed/sample_split.tsv` (sample-level) + `selected_variants.parquet`
+(variant-level).
+
 ```
                         66 rerun samples
                                │
@@ -90,7 +94,8 @@ Reference}`.
 
 ### `label_verdict` column
 
-`split_assignments.parquet` gains a `label_verdict` column (`PASS` / `WARN`).
+The variant-level manifest `selected_variants.parquet` (built by
+`scripts/build_split_manifest.py`) carries a `label_verdict` column (`PASS` / `WARN`).
 
 - **Evaluation pools — PASS only**: reserved sub-pools and the test split are built
   exclusively from PASS-verdict samples.
@@ -109,8 +114,8 @@ Every input FASTQ is pinned to the G0 checksum contract:
 - `examples/seq2neo/data/raw/md5sums.txt` — `md5sum -c`-compatible manifest over the
   `data/raw/<PRJ>/<patient>/<modality>/` symlink tree (638 files, 0 broken links).
 
-`split_assignments.parquet` (or its sidecar metadata) should reference this manifest
-so the exact FASTQ bytes behind every label are reproducible.
+`split_manifest.provenance.txt` records the path and md5 of `data/raw/md5sums.txt`
+at build time, so the exact FASTQ bytes behind every label are reproducible.
 
 ## Cross-Project Patient Identity — Option A (Independent)
 
@@ -158,19 +163,25 @@ Only variants with FILTER in `{Somatic, Germline, Reference}` are included.
 
 ### Sub-Pool Tags (Boolean, Overlapping)
 
-Within the reserved pool, each variant carries boolean tags for flexible downstream use:
+Every selected variant carries boolean tags for flexible downstream use (they
+matter most in the reserved pool, where they define the evaluation sub-pools):
 
 | Tag | Criteria | Description |
 |-----|----------|-------------|
 | `is_zero_shot` | all reserved variants | unseen disease evaluation |
-| `is_low_vaf_a` | DNA_VAF_mean < 0.15 AND RNA non-zero | low allele-fraction calls with RNA evidence |
-| `is_low_vaf_b` | 0.15 ≤ DNA_VAF_mean < 0.30 AND RNA non-zero | moderate-low allele-fraction calls with RNA evidence |
-| `is_low_dp` | BAM_DT_DP < 20 AND RNA non-zero | low tumor depth calls with RNA evidence |
+| `is_low_vaf_a` | VAF_DNA_MEAN < 0.15 AND RNA non-zero | low allele-fraction calls with RNA evidence |
+| `is_low_vaf_b` | 0.15 ≤ VAF_DNA_MEAN < 0.30 AND RNA non-zero | moderate-low allele-fraction calls with RNA evidence |
+| `is_low_dp` | DP_DNA_MEAN < 20 AND RNA non-zero (missing DP_DNA_MEAN ⇒ False) | low tumor depth calls with RNA evidence |
 | `is_rescued` | RESCUED = "YES" | cross-modality rescued variants |
 | `is_non_rescued` | RESCUED = "NO" | non-rescued variants |
 | `is_indel` | variant_type IN ("INS", "DEL") | insertion and deletion variants |
 
-**RNA non-zero** is defined as: `(RNA_VAF_mean > 0) AND (RNA_DP_mean > 0)`.
+**RNA non-zero** is defined as: `(VAF_RNA_MEAN > 0) AND (DP_RNA_MEAN > 0)`;
+missing RNA fields ⇒ not non-zero.
+
+Tags are computed for every selected variant (not only reserved ones). The
+`DP_DNA_MEAN`-for-`BAM_DT_DP` substitution and its consequences are recorded in
+`docs/adr/0001-split-manifest-design.md`.
 
 Tags are **not mutually exclusive** — a variant can be both `is_low_vaf_a` and
 `is_rescued`. The `is_low_vaf_a` and `is_low_vaf_b` pools are disjoint by
@@ -178,9 +189,27 @@ definition (VAF ranges do not overlap).
 
 ### Expected Counts
 
-**Stale — re-measure from rerun VCFs.** The previous tables (277k zero-shot,
-~60k rescued, 8.6k INDEL, etc.) were computed on the pre-rerun 61-sample label set
-and must not be quoted for the new cohort.
+Measured 2026-09-02 by `scripts/build_split_manifest.py` over the 63-sample
+working cohort (117,653,658 records scanned, 9,914,830 selected).
+
+- **Reserved pool total**: 445,114 selected variants (Somatic 7,064 /
+  Germline 240,078 / Reference 197,972).
+- **Somatic-restricted pooled tag counts**:
+
+| Tag | Count |
+|-----|-------|
+| `is_zero_shot` | 7,064 |
+| `is_low_vaf_a` | 146 |
+| `is_low_vaf_b` | 137 |
+| `is_low_dp` | 17 |
+| `is_rescued` | 197 |
+| `is_non_rescued` | 6,867 |
+| `is_indel` | 324 |
+
+The low_vaf_a / low_vaf_b / low_dp / rescued sub-pools are thin per-sample and
+must be evaluated pooled-only across the 5 reserved samples; low_dp is thin by
+construction because `is_low_dp` requires a present `DP_DNA_MEAN` (only
+DNA-detected variants qualify).
 
 ## Chromosome Train/Val/Test Split
 
@@ -197,19 +226,35 @@ Unrecognized chromosomes (e.g., `chrUn_*`, scaffolds) are assigned to train.
 
 ### Expected Counts
 
-**Stale — re-measure.** Previous split totals (train ~5.86M / val ~286k /
-test ~646k over 56 samples) predate the rerun labels and the 58-sample pool.
+Measured 2026-09-02 by `scripts/build_split_manifest.py` over the 63-sample
+working cohort (117,653,658 records scanned, 9,914,830 selected).
+
+| Split | Total | Somatic | Germline | Reference | Samples |
+|-------|-------|---------|----------|-----------|---------|
+| Train | 8,299,143 | 61,501 | 2,450,327 | 5,787,315 | 58 (WARN samples contribute 671,988) |
+| Val | 363,320 | 4,365 | 107,673 | 251,282 | 51 PASS |
+| Test | 807,253 | 4,945 | 224,626 | 577,682 | 51 PASS |
+
+Train class mix is 0.7% Somatic / 29.5% Germline / 69.7% Reference — class
+balancing is a trainer-side concern (class-ratio sampling), not a split-layer
+concern.
 
 ## Implementation Notes
 
-- Reserved-sample identification and tag logic are unchanged from
-  `neo_var` `reserve_downstream.py`; inputs change to:
-  - manifest: `examples/seq2neo/data/processed/sample_manifest_rerun.tsv`
-    (rows with non-empty `training_label_vcf`) instead of `sample_manifest.parquet`
-  - labels: the manifest's `training_label_vcf` paths per the provenance rules above
-- Output schema `split_assignments.parquet` gains `label_verdict` (str:
-  `PASS` / `WARN`; from the manifest's `label_qc_verdict`) alongside the
-  existing columns.
+- Inputs unchanged: `examples/seq2neo/data/processed/sample_manifest_rerun.tsv`
+  rows with non-empty `training_label_vcf`, whose per-sample label VCFs follow
+  the provenance rules above.
+- Outputs are the three artifacts in `data/processed/`, built by
+  `examples/seq2neo/scripts/build_split_manifest.py` (polars, multiprocessing,
+  ~70s for the full cohort; `--check` regenerates and diffs):
+  - `sample_split.tsv` — sample-level pools (`reserved` / `train_pool`)
+  - `selected_variants.parquet` — variant-level split + sub-pool tags +
+    `label_verdict` (from the manifest's `label_qc_verdict`), replacing the
+    `split_assignments.parquet` plan
+  - `split_manifest.provenance.txt` — input md5s, git sha, per-split per-FILTER
+    totals, thin-pool caveat
+- The FILTER whitelist `{Somatic, Germline, Reference}` is applied at build
+  time; downstream extraction never sees a non-whitelist row.
 - Excluded samples (4032/4081/4255) re-join only via the Stage 0 re-admission
   rule; if ever re-admitted, they join at their manifest `set_number` with the
   same assignment rules (evaluation pools only if PASS).
@@ -245,5 +290,7 @@ test ~646k over 56 samples) predate the rerun labels and the 58-sample pool.
   `examples/seq2neo/data/raw/md5sums.txt`, `merged.json` `r1_md5`/`r2_md5`
 - Identity adjudication: `neo_gate/contracts/G0_COHORT_MANIFEST.draft.csv`
 - Chromosome split: `neo_var/src/neo_var/data/split_dataset.py`
+- Split manifest build: `examples/seq2neo/scripts/build_split_manifest.py`
+- Split manifest design: `examples/seq2neo/docs/adr/0001-split-manifest-design.md`
 - Prior version of this strategy: `neo_var/docs/data_split_strategy.md`
 - Re-consensus runbook: `docs/RECONSENSUS_RERUN.md`

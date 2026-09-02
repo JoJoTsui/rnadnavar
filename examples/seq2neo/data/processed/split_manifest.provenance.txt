@@ -1,0 +1,26 @@
+seq2neo split manifest — provenance
+generated_at: 2026-09-02T06:44:43+00:00
+git_commit: c111a918eb760a5d46828effa7fed77459c21160
+input_manifest: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seq2neo/data/processed/sample_manifest_rerun.tsv
+input_manifest_md5: 30ec0474b47caa80db8ff09088daf68d
+fastq_md5sums: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seq2neo/data/raw/md5sums.txt
+fastq_md5sums_md5: ac2684640980cc8a2d401d94e309f675
+
+per-split per-FILTER totals (selected_variants.parquet):
+  split          Somatic    Germline   Reference       total
+  train           61,501   2,450,327   5,787,315   8,299,143
+  val              4,365     107,673     251,282     363,320
+  test             4,945     224,626     577,682     807,253
+  reserved         7,064     240,078     197,972     445,114
+
+reserved-pool Somatic-restricted sub-pool tag counts:
+  is_zero_shot: 7,064
+  is_low_vaf_a: 146
+  is_low_vaf_b: 137
+  is_low_dp: 17
+  is_rescued: 197
+  is_non_rescued: 6,867
+  is_indel: 324
+
+caveat: the low_vaf_a / low_vaf_b / low_dp / rescued sub-pools are thin per-sample (low_dp especially: is_low_dp requires a present DP_DNA_MEAN, so it only fires on variants also detected by DNA callers); they must be evaluated pooled-only across the 5 reserved samples, never per-sample.
+known_limitations: nuclear_only_chrM_dropped;pre_rule2_veto_zero_firings
