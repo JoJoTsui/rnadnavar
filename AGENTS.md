@@ -115,7 +115,7 @@ modules/
 The `bin/` directory contains two major Python packages and standalone scripts:
 
 **`bin/vcf_utils/`** — Core VCF operations library:
-- `io_utils.py` — VCF reading/writing with custom INFO fields (writes `CLASSIFICATION_RATIONALE`, per-caller `GT/DP/VAF/ALT_COUNT_BY_CALLER`, `RESCUE_PROMOTED`; output is 8-column VCF, no sample column)
+- `io_utils.py` — VCF reading/writing with custom INFO fields (writes `CLASSIFICATION_RATIONALE`, per-caller `GT/DP/VAF/ALT_COUNT_BY_CALLER`, `RESCUE_PROMOTED`, ensemble-confidence `ENS_SUPPORT`/`ENS_CONF_LO`/`ENS_CONF_HI` (consensus mode only); output is 8-column VCF, no sample column)
 - `aggregation.py` — Variant aggregation from multiple callers/modalities (tumor-sample-aware genotype/DP/AD/VAF extraction via `resolve_tumor_sample_index`; caller support counts only non-Artifact records above a min tumor alt-read floor)
 - `tagging.py` — Caller support and modality metadata tagging (`RESCUED`/`CROSS_MODALITY` computed from passed-as-Somatic records only)
 - `filters.py` — Filter normalization across callers

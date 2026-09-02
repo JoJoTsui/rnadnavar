@@ -74,6 +74,25 @@ Implemented in ../bin/vcf_utils/io_utils.py.
   - FILTERS_CATEGORY
 - PASSES_CONSENSUS is informational in INFO and does not independently override FILTER.
 
+## Ensemble confidence INFO fields
+Implemented in ../bin/vcf_utils/ensemble_confidence.py (`wilson_interval`), written
+by `write_union_vcf` in consensus mode only (rescue output is unchanged).
+
+Every consensus record carries three INFO fields with the 95% Wilson score
+confidence interval on the caller support fraction:
+
+- ENS_SUPPORT: support fraction as `k/n` (e.g. `2/3`)
+- ENS_CONF_LO: Wilson lower bound
+- ENS_CONF_HI: Wilson upper bound
+
+Semantics:
+- k = number of supporting callers (non-Artifact record clearing the min
+  alt-read floor — the same support set behind N_SUPPORT_CALLERS).
+- n = ALL callers configured for the invocation (every caller VCF passed to
+  run_consensus_vcf.py). A caller absent at the site counts as a non-support
+  vote; n is NOT just the callers with a record at the site.
+- Edge cases: n=0 -> fields not written; k=0 -> lower bound is 0.
+
 ## Verified naming examples from COO8801.shared
 - ../sequencing/aim_exp/rdv_test/output/COO8801.shared/consensus/COO8801DT_vs_COO8801DN/COO8801DT_vs_COO8801DN.consensus.vcf.gz
 - ../sequencing/aim_exp/rdv_test/output/COO8801.shared/consensus/COO8801RT_vs_COO8801DN/COO8801RT_vs_COO8801DN.consensus.vcf.gz
