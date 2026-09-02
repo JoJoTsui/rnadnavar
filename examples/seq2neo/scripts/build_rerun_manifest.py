@@ -26,6 +26,11 @@ Transformations vs the source manifest:
                              merge, fixed in d336c7f AFTER the cohort; Rule-2
                              common-AF/prior-artifact vetoes also post-date the
                              cohort — measured zero Rule-2 firings cohort-wide)
+      training_label_vcf   — RESOLVED label VCF for training: cleaned VCF for
+                             WARN samples, raw rerun VCF for the rest, EMPTY
+                             for status=useless samples. This is the column
+                             downstream split/extraction should consume; the
+                             other two VCF columns are provenance.
 
 Usage:
   python3 scripts/build_rerun_manifest.py            # write the TSV
@@ -70,7 +75,8 @@ EXCLUDED_SAMPLES = {
 
 KNOWN_LIMITATIONS = "nuclear_only_chrM_dropped;pre_rule2_veto_zero_firings"
 
-ADDED_COLUMNS = ["label_qc_verdict", "label_qc_cleaned_vcf", "known_limitations"]
+ADDED_COLUMNS = ["label_qc_verdict", "label_qc_cleaned_vcf", "training_label_vcf",
+                 "known_limitations"]
 
 
 def rescue_label_relpath(row: dict) -> Path:
@@ -122,6 +128,14 @@ def build_rows():
         row["label_qc_verdict"] = verdict
         row["label_qc_cleaned_vcf"] = (
             str(RSYNC_PREFIX / cleaned) if cleaned else "")
+        # Resolved training label: cleaned VCF for WARN, raw rerun VCF for
+        # PASS/unverdicted, empty for excluded samples.
+        if sid in EXCLUDED_SAMPLES:
+            row["training_label_vcf"] = ""
+        elif cleaned:
+            row["training_label_vcf"] = row["label_qc_cleaned_vcf"]
+        else:
+            row["training_label_vcf"] = row["rescue_vcf_path"]
         row["known_limitations"] = KNOWN_LIMITATIONS
         out_rows.append(row)
     return out_rows

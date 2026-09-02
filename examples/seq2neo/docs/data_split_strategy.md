@@ -22,9 +22,9 @@ partitioned into:
                                │
               ┌────────────────┴────────────────┐
               ▼                                 ▼
-    QC-suspect (3 samples)              Working cohort (63 samples)
+    Excluded (3 samples)                Working cohort (63 samples)
     4032 / 4081 / 4255                  56 PASS + 7 WARN
-    held out pending RCA                        │
+    RCA concluded — keep excluded               │
                                 ┌───────────────┴───────────────┐
                                 ▼                               ▼
                       Reserved (5 samples)              Remaining (58 samples)
@@ -38,33 +38,51 @@ partitioned into:
 
 ## Stage 0: Sample Selection (QC Gate) — Before Any Split
 
-Three samples are flagged **QC-suspect** and held out of training and evaluation
-pending a root-cause check (RCA). They are re-admitted only if they verify clean.
+Three samples are **excluded** from training and evaluation. The root-cause
+analysis they were gated on has concluded (`docs/RERUN_LABEL_ANOMALY_ANALYSIS.md`):
+4032's diff is a raw-rerun-vs-QC-cleaned artifact, and 4081/4255's clean baselines
+predate the 2026-03-18 germline rule, but all three remain TruthQC-suspect samples
+whose rerun labels are raw (un-QC'd). Decision: **keep excluded**; re-admission
+would require re-running their labels through `label_qc --apply` first.
 
 | sample_id | label_qc verdict | set | disease | status |
 |-----------|-----------------|-----|---------|--------|
-| PRJNA298376_4032 | FAIL (excluded from `training_manifest_65.tsv`) | — | — | gated on RCA |
-| PRJNA298376_4081 | PASS | 1 | colorectal cancer | gated on RCA |
-| PRJNA298376_4255 | WARN | 1 | colorectal cancer | gated on RCA |
+| PRJNA298330_4032 | FAIL | — | — | excluded (RCA concluded) |
+| PRJNA298376_4081 | PASS | 1 | colorectal cancer | excluded (RCA concluded) |
+| PRJNA298376_4255 | WARN | 1 | colorectal cancer | excluded (RCA concluded) |
 
-Rationale: excluding ~4.5% of the cohort permanently over an unexplained diff would
-be premature; including them blindly in a benchmark would be worse. The gate keeps
-them queryable while their labels are under suspicion.
+Note: 4081 kept a PASS gate verdict and 4255 a WARN verdict — the exclusion is the
+RCA decision layered on top of the gate, recorded as `status=useless` in
+`sample_manifest_rerun.tsv`. The gate verdict alone is not the inclusion rule.
 
-- **Training cohort**: the other 63 samples (56 PASS + 7 WARN).
-- **Re-admission**: a gated sample re-enters the cohort (at its manifest `set_number`
-  and split assignment) only after the RCA clears it; until then it appears in no
-  split and no reserved pool.
+- **Training cohort**: the other 63 samples (56 PASS + 7 WARN) — exactly the rows
+  with a non-empty `training_label_vcf` in `sample_manifest_rerun.tsv`.
+- **Re-admission**: only via a cleaned rerun label (`label_qc --apply`) and an
+  explicit manifest change; until then these samples appear in no split and no
+  reserved pool.
 - The remaining 7 WARN samples stay in the cohort but are **train-only** (see
   `label_verdict` rule below).
 
 ## Label Provenance
 
 Labels come from the reconsensus rerun, not the original pipeline VCFs. Source of
-truth: `examples/seq2neo/data/processed/training_manifest_65.tsv` (`label_vcf` column):
+truth: `examples/seq2neo/data/processed/sample_manifest_rerun.tsv`
+(`training_label_vcf` column — the resolved per-sample label; empty for the 3
+excluded samples). It resolves the verdict-dependent choice:
 
 - **PASS** → `output_reconsensus/<sample>/rescue/...rescued...filtered.vcf.stripped.vcf.gz`
 - **WARN** → `runs/label_qc/cohort66_apply/cleaned_vcf/<sample>.bgz.vcf.gz`
+
+(`training_manifest_65.tsv` encoded the same rule in a separate 65-row file and is
+**superseded** by the rerun manifest; kept in the repo for history only. All paths
+above live under the rsynced tree at
+`/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo`.)
+
+Cohort-wide label caveats (manifest `known_limitations` column): labels are
+nuclear-only (chrM records were dropped by the gnomAD scatter-gather; fixed in
+`d336c7f` after the cohort — ~500 records/sample incl. ~3 rescue-stage Somatics)
+and predate the Rule-2 common-AF/prior-artifact vetoes (zero Rule-2 firings
+measured cohort-wide, so no practical impact).
 
 The FILTER vocabulary is frozen (`{Somatic, Germline, Reference, Artifact,
 NoConsensus, RNAedit}`); extraction keeps the whitelist `{Somatic, Germline,
@@ -186,19 +204,21 @@ test ~646k over 56 samples) predate the rerun labels and the 58-sample pool.
 
 - Reserved-sample identification and tag logic are unchanged from
   `neo_var` `reserve_downstream.py`; inputs change to:
-  - manifest: `examples/seq2neo/data/processed/training_manifest_65.tsv`
-    (minus the 3 QC-suspect samples) instead of `sample_manifest.parquet`
-  - labels: rerun `label_vcf` paths per the provenance rules above
+  - manifest: `examples/seq2neo/data/processed/sample_manifest_rerun.tsv`
+    (rows with non-empty `training_label_vcf`) instead of `sample_manifest.parquet`
+  - labels: the manifest's `training_label_vcf` paths per the provenance rules above
 - Output schema `split_assignments.parquet` gains `label_verdict` (str:
-  `PASS` / `WARN`) alongside the existing columns.
-- Re-admitted RCA-cleared samples join the cohort at their manifest `set_number`
-  with the same assignment rules (evaluation pools only if PASS).
+  `PASS` / `WARN`; from the manifest's `label_qc_verdict`) alongside the
+  existing columns.
+- Excluded samples (4032/4081/4255) re-join only via the Stage 0 re-admission
+  rule; if ever re-admitted, they join at their manifest `set_number` with the
+  same assignment rules (evaluation pools only if PASS).
 
 ## Design Decisions
 
-1. **QC gate before split, not permanent exclusion.** 4032/4081/4255 are held out
-   pending root-cause analysis; re-admission is explicit and cheap because the gate
-   sits upstream of all split assignments.
+1. **QC gate before split, with RCA-concluded exclusions.** 4032/4081/4255 are
+   excluded per the concluded root-cause analysis; re-admission stays explicit and
+   cheap because the gate sits upstream of all split assignments.
 
 2. **5 samples reserved, not by set.** The 4 disease-based sets don't cleanly
    separate non-digestive from digestive cancers; per-sample reservation gives
@@ -219,7 +239,8 @@ test ~646k over 56 samples) predate the rerun labels and the 58-sample pool.
 
 ## References
 
-- Rerun labels: `examples/seq2neo/output_reconsensus/`, `data/processed/training_manifest_65.tsv`
+- Rerun labels: `examples/seq2neo/output_reconsensus/`, `data/processed/sample_manifest_rerun.tsv`
+  (`training_manifest_65.tsv` superseded)
 - FASTQ integrity: `neo_gate/contracts/G0_FASTQ_MD5_RESULTS.tsv`,
   `examples/seq2neo/data/raw/md5sums.txt`, `merged.json` `r1_md5`/`r2_md5`
 - Identity adjudication: `neo_gate/contracts/G0_COHORT_MANIFEST.draft.csv`
