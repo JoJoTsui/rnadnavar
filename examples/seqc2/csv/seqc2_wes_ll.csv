@@ -1,0 +1,3 @@
+patient,status,sample,lane,bam,bai
+WES_LL,0,WES_LL_N_1,LX,/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/WES/WES_LL_N_1.bwa.dedup.bam,/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/WES/WES_LL_N_1.bwa.dedup.bai
+WES_LL,1,WES_LL_T_1,LX,/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/WES/WES_LL_T_1.bwa.dedup.bam,/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/WES/WES_LL_T_1.bwa.dedup.bai
