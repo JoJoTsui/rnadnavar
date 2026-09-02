@@ -2,4 +2,5 @@
 output/
 comparison/
 work/
+runs/
 .nextflow*

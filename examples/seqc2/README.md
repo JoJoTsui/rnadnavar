@@ -9,9 +9,15 @@ Modeled on `examples/seq2neo/` (config copied and edited).
 ## Layout
 
 - `seqc2.shared.config` — Nextflow `-c` config. `input`/`outdir` are passed per run.
+- `config/runner.yaml` — execution config for the driver (env, paths, completion globs).
+  Defaults auto-resolve from the repo location; no edits needed on an rsynced copy.
 - `csv/seqc2_wes_ll.csv` — BAM samplesheet (`patient,status,sample,lane,bam,bai`).
-- `run_wes_ll.sh` — launch the pipeline for the WES_LL pair.
-- `scripts/` — benchmark tooling (compares caller/consensus VCFs against the SEQC2 truth).
+- `run_wes_ll.sh` — thin wrapper over the driver (same pattern as seq2neo's
+  `run_single.sh`).
+- `scripts/run_pipeline.py` — driver: builds and runs the micromamba/nextflow
+  command, tracks run state in `runs/run_state.json`, checks completion artifacts.
+- `scripts/run_benchmark.sh` + `aggregate_benchmark.py` — benchmark tooling
+  (compares caller/consensus VCFs against the SEQC2 truth).
 
 ## Input modes
 
@@ -30,9 +36,13 @@ Modeled on `examples/seq2neo/` (config copied and edited).
 ## Run
 
 ```bash
-bash run_wes_ll.sh                      # default outdir: ./output/seqc2.wes.ll
-bash run_wes_ll.sh /path/to/outdir      # custom outdir
+bash run_wes_ll.sh                      # run (resumes automatically)
+bash run_wes_ll.sh --dry-run            # print the nextflow command only
+bash run_wes_ll.sh --outdir /path/to/outdir
 ```
+
+The driver skips the run if the completion artifacts in `config/runner.yaml`
+(execution trace + consensus VCF) are already present in the outdir.
 
 ## Benchmark
 
