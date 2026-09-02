@@ -1,0 +1,5 @@
+# Pipeline + benchmark outputs (large, regenerable)
+output/
+comparison/
+work/
+.nextflow*

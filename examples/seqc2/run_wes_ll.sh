@@ -4,7 +4,9 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO="$(cd "$HERE/.." && pwd)"
+REPO="$(cd "$HERE/../.." && pwd)"
+
+[ -f "$REPO/main.nf" ] || { echo "ERROR: cannot locate main.nf at $REPO" >&2; exit 1; }
 
 INPUT="${INPUT:-$HERE/csv/seqc2_wes_ll.csv}"
 OUTDIR="${1:-${OUTDIR:-$HERE/output/seqc2.wes.ll}}"
