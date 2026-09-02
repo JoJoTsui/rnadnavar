@@ -54,6 +54,7 @@ Usage examples:
 
 import argparse
 import csv
+import gzip
 import hashlib
 import json
 import os
@@ -122,18 +123,26 @@ DEFAULTS = {
     "resume": True,
     "offline": True,
     "max_retries": 2,
-    # Generic completion artifacts: all must exist.
+    # Generic completion artifacts: all must exist. Strict final-deliverable
+    # check: the true label artifacts are the FILTERED VCFs (standard +
+    # stripped) for the consensus branches and the rescue branch; the
+    # intermediate *.rescued.vcf.gz alone is NOT completion (audit: stale-8).
     "completion_artifacts": [
         "**/pipeline_info/execution_trace*.txt",
+        "filtered/**/*.filtered.vcf.gz",
+        "filtered/**/*.filtered.vcf.stripped.vcf.gz",
+        "rescue/**/*.filtered.vcf.gz",
+        "rescue/**/*.filtered.vcf.stripped.vcf.gz",
     ],
     # Consensus artifacts: at least one must exist.
     "consensus_success_patterns": [
         "consensus/**/*.vcf.gz",
     ],
     # Rescue artifacts: at least one must exist for successful completion.
+    # No *.rescued.vcf.gz fallback: that intermediate is produced mid-chain,
+    # so its presence does not imply the run reached the label artifacts.
     "rescue_success_patterns": [
         "rescue/**/*.filtered.vcf.gz",
-        "rescue/**/*.rescued.vcf.gz",
     ],
 }
 
@@ -309,6 +318,39 @@ def save_state(path: Path, state: dict):
 # Completion check (strict)
 # ---------------------------------------------------------------------------
 
+# Standard BGZF end-of-file marker block (28 bytes). Published VCFs are
+# bgzf-compressed (all carry .tbi); a missing EOF block means the writer was
+# killed mid-stream (the cohort's dominant failure mode was OOM truncation).
+BGZF_EOF_BLOCK = bytes.fromhex(
+    "1f8b08040000000000ff" "0600" "4243" "0200" "1b00" "0300"
+    "00000000" "00000000"
+)
+
+
+def vcf_gz_sane(path: Path, min_records: int = 1) -> bool:
+    """Cheap integrity check for a bgzf VCF: plausible size, BGZF EOF marker,
+    readable header (#CHROM) and at least min_records data lines."""
+    try:
+        if path.stat().st_size < 1024:
+            return False
+        with open(path, "rb") as fh:
+            fh.seek(-28, os.SEEK_END)
+            if fh.read(28) != BGZF_EOF_BLOCK:
+                return False
+        saw_header = False
+        records = 0
+        with gzip.open(path, "rt") as fh:
+            for line in fh:
+                if line.startswith("#CHROM"):
+                    saw_header = True
+                elif not line.startswith("#"):
+                    records += 1
+                    if saw_header and records >= min_records:
+                        return True
+        return saw_header and records >= min_records
+    except (OSError, EOFError, UnicodeDecodeError):
+        return False
+
 
 def has_any_match(outdir: Path, patterns: list) -> bool:
     """outdir must exist AND at least one glob pattern must match ≥1 file."""
@@ -325,13 +367,19 @@ def has_all_matches(outdir: Path, patterns: list) -> bool:
 
 
 def evaluate_completion(outdir: Path, cfg: dict) -> tuple:
-    """Completion = generic artifacts + consensus VCF(s) + rescue VCF(s)."""
+    """Completion = generic artifacts + consensus VCF(s) + rescue VCF(s),
+    with an integrity check on every completion-artifact VCF so that
+    truncated/corrupt outputs from killed runs are not waved through."""
     if not has_all_matches(outdir, cfg["completion_artifacts"]):
         return False, "completion artifacts missing"
     if not has_any_match(outdir, cfg["consensus_success_patterns"]):
         return False, "consensus artifacts missing"
     if not has_any_match(outdir, cfg["rescue_success_patterns"]):
         return False, "rescue artifacts missing"
+    for pattern in cfg["completion_artifacts"]:
+        for f in outdir.glob(pattern):
+            if f.name.endswith(".vcf.gz") and not vcf_gz_sane(f):
+                return False, f"corrupt or truncated VCF: {f}"
     return True, ""
 
 

@@ -52,12 +52,23 @@ LOG_DIR = SEQ2NEO_ROOT / "runs" / "cohort_logs"
 WORK_DIR = SEQ2NEO_ROOT / "runs" / "cohort_work"
 
 
-def load_done_samples(state_path: Path) -> set:
-    """sample_ids marked succeeded in the (sequential) driver state file."""
-    if not state_path.exists():
-        return set()
-    state = json.loads(state_path.read_text())
-    return {sid for sid, rec in state.items() if rec.get("status") == "succeeded"}
+def load_done_samples(state_path: Path, extra_state_dirs: list = None) -> set:
+    """sample_ids marked succeeded in the (sequential) driver state file AND
+    in any per-group state files (runs/cohort_state/*.json) from previous
+    launcher invocations — otherwise relaunches re-partition samples that a
+    group driver already completed."""
+    done = set()
+    paths = [state_path] if state_path.exists() else []
+    for d in extra_state_dirs or []:
+        if d.exists():
+            paths += sorted(d.glob("*.json"))
+    for p in paths:
+        try:
+            state = json.loads(p.read_text())
+        except (json.JSONDecodeError, OSError):
+            continue
+        done |= {sid for sid, rec in state.items() if rec.get("status") == "succeeded"}
+    return done
 
 
 def partition(sample_ids: list, n_groups: int) -> list:
@@ -97,7 +108,7 @@ def main():
 
     cfg = rr.load_config(args.config, {})
     rows = rr.load_manifest(rr.resolve(cfg, "manifest_tsv"))
-    done = load_done_samples(rr.resolve(cfg, "state_file"))
+    done = load_done_samples(rr.resolve(cfg, "state_file"), extra_state_dirs=[STATE_DIR])
     remaining = [r["sample_id"] for r in rows if r["sample_id"] not in done]
     groups = partition(remaining, args.groups)
 
