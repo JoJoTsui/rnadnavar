@@ -63,3 +63,8 @@ examples/seq2neo/runs/cohort_work/
 examples/seq2neo/runs/streaming_validation/
 examples/seq2neo/runs/stale8_quarantine/
 examples/seq2neo/runs/label_qc_manifest*.tsv
+
+# Local regression and SEQC2 run artifacts
+/.artifacts/
+/.tmp/
+/examples/seqc2/data/ComprehensiveCancer.dna_manifest.20220908.3col.bed
