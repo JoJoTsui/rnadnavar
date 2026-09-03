@@ -1,9 +1,9 @@
 seq2neo split manifest — provenance
-generated_at: 2026-09-03T13:30:33+00:00
-git_commit: f4222c9d3f9b2628dd802c82c51698a6efd8ed50
+generated_at: 2026-09-03T13:56:14+00:00
+git_commit: aa8be996e747287cf96b2077154a5b9998dd8e11
 input_manifest: /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/data/processed/sample_manifest_rerun.tsv
 input_manifest_md5: 30ec0474b47caa80db8ff09088daf68d
-fastq_md5sums: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.worktrees/stats/examples/seq2neo/data/raw/md5sums.txt
+fastq_md5sums: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seq2neo/data/raw/md5sums.txt
 fastq_md5sums_md5: ac2684640980cc8a2d401d94e309f675
 
 per-split per-FILTER totals (selected_variants.parquet):
