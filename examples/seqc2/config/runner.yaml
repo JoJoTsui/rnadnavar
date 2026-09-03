@@ -13,12 +13,14 @@ main_nf:  ""        # default: <repo>/main.nf
 rdv_conf: ""        # default: <examples/seqc2>/seqc2.shared.config
 
 # ── Conda / Nextflow env ───────────────────────────────────────────────────
-nxf_conda_cachedir: /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/nf_conda_envs
+nxf_conda_cachedir: /t9k/mnt/joey/nf_conda_envs
 nxf_conda_usemamba: "true"
 micromamba_env: nextflow          # micromamba run -n <this>
 
 # ── Network proxy (leave empty to disable) ────────────────────────────────
-https_proxy: ""
+# Needed even for -offline runs: the nextflow launcher phones home for a
+# version check and hangs without network access on this host.
+https_proxy: "http://127.0.0.1:7890"
 
 # ── Data root (all relative paths below are anchored here) ────────────────
 # Code (scripts/) is in the repo; outputs go under seqc2_root.

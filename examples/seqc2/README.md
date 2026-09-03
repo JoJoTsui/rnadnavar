@@ -30,7 +30,7 @@ Modeled on `examples/seq2neo/` (config copied and edited).
 ## Data
 
 - BAMs: `/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/WES/`
-- Capture intervals: `.../seqc2/metadata/ComprehensiveCancer.dna_manifest.20220908.bed`
+- Capture intervals: `/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed`
 - Truth set (v1.2.1) + High-Confidence BED: `.../seqc2/truth/`
 
 ## Run

@@ -87,8 +87,8 @@ def build_command(cfg: dict, input_csv: Path, outdir: Path) -> list:
 def build_env(cfg: dict) -> dict:
     env = os.environ.copy()
     if cfg.get("https_proxy"):
-        env["HTTPS_PROXY"] = cfg["https_proxy"]
-        env["https_proxy"] = cfg["https_proxy"]
+        for var in ("HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"):
+            env[var] = cfg["https_proxy"]
     if cfg.get("nxf_conda_cachedir"):
         env["NXF_CONDA_CACHEDIR"] = cfg["nxf_conda_cachedir"]
     if cfg.get("nxf_conda_usemamba"):
