@@ -64,8 +64,9 @@ RCA decision layered on top of the gate, recorded as `status=useless` in
 - **Re-admission**: only via a cleaned rerun label (`label_qc --apply`) and an
   explicit manifest change; until then these samples appear in no split and no
   reserved pool.
-- The remaining 7 WARN samples stay in the cohort but are **train-only** (see
-  `label_verdict` rule below).
+- The remaining 7 WARN samples stay in the cohort and follow the same chromosome
+  assignment as PASS. They are retained for sensitivity analysis, not mixed into
+  the primary PASS evaluation metrics.
 
 ## Label Provenance
 
@@ -97,11 +98,13 @@ Reference}`.
 The variant-level manifest `selected_variants.parquet` (built by
 `scripts/build_split_manifest.py`) carries a `label_verdict` column (`PASS` / `WARN`).
 
-- **Evaluation pools — PASS only**: reserved sub-pools and the test split are built
-  exclusively from PASS-verdict samples.
-- **WARN → train**: the 7 remaining WARN samples (PRJNA298330_3948, PRJNA298376_3812,
+- **Primary evaluation — PASS only**: reserved sub-pools and the primary test/val
+  metrics use PASS-verdict samples.
+- **WARN sensitivity stratum**: the 7 remaining WARN samples (PRJNA298330_3948, PRJNA298376_3812,
   PRJNA298376_3948, PRJNA298376_3978, PRJNA298376_3995, PRJNA298376_4112,
-  PRJNA298376_4232) flow to train only, where cleaned-label noise does the least harm.
+  PRJNA298376_4232) follow the same map:
+  chr1 → test, chr21–22 → val, chr2–20 and other chromosomes → train. Their
+  metrics must be reported separately rather than pooled with PASS.
 - All 5 reserved samples are PASS, so this rule costs nothing in the reserved pool.
 
 ## Data Provenance (MD5 Pinning)
@@ -220,7 +223,7 @@ The remaining 58 samples are split using the **deepsomatic** strategy
 |-------|-------------|-------------|
 | Train | chr2–chr20 | 19 autosomes, majority of data |
 | Val | chr21–chr22 | 2 small autosomes |
-| Test | chr1 | largest autosome, **PASS-verdict samples only** |
+| Test | chr1 | largest autosome; primary metrics use PASS, WARN is sensitivity-only |
 
 Unrecognized chromosomes (e.g., `chrUn_*`, scaffolds) are assigned to train.
 
@@ -231,11 +234,11 @@ working cohort (117,653,658 records scanned, 9,914,830 selected).
 
 | Split | Total | Somatic | Germline | Reference | Samples |
 |-------|-------|---------|----------|-----------|---------|
-| Train | 8,299,143 | 61,501 | 2,450,327 | 5,787,315 | 58 (WARN samples contribute 671,988) |
-| Val | 363,320 | 4,365 | 107,673 | 251,282 | 51 PASS |
-| Test | 807,253 | 4,945 | 224,626 | 577,682 | 51 PASS |
+| Train | 8,208,976 | 60,211 | 2,410,764 | 5,738,001 | 58 (51 PASS + 7 WARN; WARN contributes 581,821) |
+| Val | 389,547 | 4,746 | 119,643 | 265,158 | 58 (51 PASS + 7 WARN) |
+| Test | 871,193 | 5,854 | 252,219 | 613,120 | 58 (51 PASS + 7 WARN) |
 
-Train class mix is 0.7% Somatic / 29.5% Germline / 69.7% Reference — class
+Train class mix is 0.7% Somatic / 29.4% Germline / 69.9% Reference — class
 balancing is a trainer-side concern (class-ratio sampling), not a split-layer
 concern.
 
@@ -269,8 +272,9 @@ concern.
    separate non-digestive from digestive cancers; per-sample reservation gives
    precise control. The reserved 5 span sets 3 and 4 and are all PASS.
 
-3. **Evaluation on PASS labels only.** WARN labels went through label_qc cleaning;
-   fine for training signal, not for benchmark ground truth.
+3. **PASS-primary evaluation with WARN sensitivity.** WARN labels went through
+   label_qc cleaning; they follow the chromosome map for leakage-free partitioning,
+   but their evaluation metrics remain a separate sensitivity stratum.
 
 4. **Option A identity handling.** MD5 evidence shows cross-project same-ID samples
    are distinct data; treating them as independent avoids shrinking the cohort on an

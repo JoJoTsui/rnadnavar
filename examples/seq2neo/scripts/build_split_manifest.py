@@ -325,9 +325,9 @@ def _process_sample(task: dict) -> dict:
 
             if is_reserved:
                 split = "reserved"
-            elif verdict == "WARN":
-                split = "train"
             else:
+                # WARN labels follow the DeepSomatic chromosome partition so
+                # chr1/21/22 cannot leak into the training split.
                 split = _CHROM_TO_SPLIT.get(norm, "train")
 
             cols["sample_id"].append(sid)
@@ -480,6 +480,11 @@ def _provenance_text(manifest_path: Path, totals: dict, tag_counts: dict,
         "DP_DNA_MEAN, so it only fires on variants also detected by DNA "
         "callers); they must be evaluated pooled-only across the 5 reserved "
         "samples, never per-sample.")
+    lines.append(
+        "verdict_split_rule: PASS and WARN use the same chromosome map "
+        "(chr1=test, chr21-22=val, chr2-20 and other chromosomes=train); "
+        "PASS is the primary evaluation stratum and WARN is sensitivity-only."
+    )
     lines.append(f"known_limitations: {known_limitations}")
     return "\n".join(lines) + "\n"
 

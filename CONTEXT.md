@@ -26,8 +26,8 @@ Domain terms for this repository. Glossary only — no implementation details or
 - **Selected variant** — a truth-label VCF record whose FILTER is in the whitelist {Somatic, Germline, Reference}; only selected variants enter dataset manifests. (NoConsensus, Artifact, RNAedit are excluded.)
 - **Sample pool** — the sample-level assignment: *reserved* (held out wholly for downstream evaluation) or *train pool*. For train-pool samples the real split is per-variant, by chromosome.
 - **Reserved pool** — 5 hardcoded non-digestive PASS samples spanning the disease folds, used for downstream evaluation (zero-shot and tag-defined sub-pools). Never used in training.
-- **Chromosome split (deepsomatic)** — per-variant assignment for PASS train-pool samples: chr1 → test, chr21–22 → val, chr2–20 → train, any other chromosome → train.
-- **Verdict routing** — WARN samples are train-only: all their selected variants go to train regardless of chromosome. Test and the reserved pool contain PASS-verdict samples only.
+- **Chromosome split (deepsomatic)** — per-variant assignment for PASS and WARN train-pool samples: chr1 → test, chr21–22 → val, chr2–20 → train, any other chromosome → train.
+- **Verdict routing** — PASS and WARN samples use the same chromosome split for non-reserved variants: chr1 → test, chr21–22 → val, and chr2–20/other chromosomes → train. PASS is the primary evaluation stratum; WARN is retained as a separate sensitivity stratum.
 - **Sub-pool tags** — per-variant booleans defining downstream evaluation subsets: is_zero_shot, is_low_vaf_a/b, is_low_dp, is_rescued, is_non_rescued, is_indel. Tags are derived from the truth-label VCF's own per-modality depth/VAF/rescue INFO fields.
 - **Split manifest** — the pair of artifacts recording pools, per-variant splits, tags, and label verdicts; the contract for downstream dataset validation and path tracking.
 
