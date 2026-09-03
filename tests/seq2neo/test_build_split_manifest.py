@@ -198,7 +198,7 @@ def test_duplicate_sample_id_fails(tmp_path, capsys):
 
 # ── split routing ────────────────────────────────────────────────────────────
 
-def test_warn_sample_all_train(tmp_path):
+def test_warn_sample_uses_chromosome_split(tmp_path):
     vcf = write_vcf(tmp_path / "W1.vcf.gz", [
         rec("chr1", 10, "A", "T", "Somatic"),    # would be test for PASS
         rec("chr21", 20, "A", "T", "Germline"),  # would be val for PASS
@@ -207,7 +207,8 @@ def test_warn_sample_all_train(tmp_path):
     _, outdir = build_cohort(tmp_path, [make_row("W1", "WARN", vcf)])
     df = read_parquet(outdir).filter(pl.col("sample_id") == "W1")
     assert df.height == 3
-    assert set(df["split"].to_list()) == {"train"}
+    by_pos = dict(zip(df["POS"].to_list(), df["split"].to_list()))
+    assert by_pos == {10: "test", 20: "val", 30: "val"}
     assert set(df["label_verdict"].to_list()) == {"WARN"}
 
 

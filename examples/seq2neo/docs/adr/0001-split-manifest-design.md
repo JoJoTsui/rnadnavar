@@ -7,13 +7,14 @@ script (`examples/seq2neo/scripts/build_split_manifest.py`) that streams the
 We deliberately did not port neo_var's `prepare-datasets` staging: its
 `reserve_downstream.py` / `split_dataset.py` are ~90% Lance tensor I/O, and
 the only portable core was the chromosome map, the reserved-ID list, and the
-tag predicates.
+tag predicates. Both PASS and WARN labels use the chromosome map; verdict is an
+evaluation stratum, not a reason to override chromosome assignment.
 
 ## Considered Options
 
 - **Drive neo_var's pipeline on a Lance export** — rejected: would require a
   tensor-extraction step just to produce split assignments, and neo_var's
-  code has no label-verdict concept (PASS-only evaluation, WARN routing).
+  code has no label-verdict concept (PASS-primary evaluation with WARN sensitivity).
 - **TSV for the variant-level manifest** — rejected: ~10M rows; parquet
   (polars, zstd) is the performance format. The sample-level table stays TSV
   for diffability.
@@ -23,8 +24,9 @@ tag predicates.
 
 ## Consequences
 
-- **WARN verdict ⇒ all variants train**, on every chromosome; test split and
-  the reserved pool are PASS-only. Val/test are verdict-pure by construction.
+- **PASS-primary evaluation with WARN sensitivity**: both verdicts use the chromosome
+  map, so WARN chr1/21/22 records go to test/val rather than train. PASS metrics
+  remain primary; WARN metrics are reported separately. The reserved pool is PASS-only.
 - **Tags are recomputed from label-VCF INFO fields**, not from neo_var's
   `variant_details/*.parquet`. `DP_DNA_MEAN` (caller-reported mean depth)
   stands in for neo_var's `BAM_DT_DP` (tumor-BAM pileup depth) in the
