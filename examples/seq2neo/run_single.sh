@@ -12,5 +12,8 @@ PATIENT=${PATIENT:-4060}
 
 python3 "$HERE/scripts/run_batch_from_json.py" \
     --config "$HERE/config/runner.yaml" \
+    --main-nf "$HERE/../../main.nf" \
+    --rdv-conf "$HERE/seq2neo.shared.config" \
     --project "$PROJECT" \
-    --patient "$PATIENT"
+    --patient "$PATIENT" \
+    "$@"

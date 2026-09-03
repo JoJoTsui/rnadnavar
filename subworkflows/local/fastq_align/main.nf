@@ -20,9 +20,15 @@ workflow FASTQ_ALIGN {
     versions = Channel.empty()
     reports = Channel.empty()
 
-    // Convert index and fasta to proper tuple format
-    index_tuple = index.map { idx -> 
-        def index_path = idx instanceof List ? idx[0] : idx
+    // Preserve a generated [meta, index] tuple. A user-supplied index is
+    // collected as [path], so unwrap only that single-path representation.
+    // Treating every List as [path] discarded the path from generated indices
+    // and handed the metadata map to the aligner as a file.
+    index_tuple = index.map { idx ->
+        if (idx instanceof List && idx.size() == 2 && idx[0] instanceof Map) {
+            return idx
+        }
+        def index_path = idx instanceof List && idx.size() == 1 ? idx[0] : idx
         [ [id:'index'], index_path ]
     }
     
