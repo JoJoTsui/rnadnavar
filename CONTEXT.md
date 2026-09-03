@@ -17,6 +17,12 @@ Domain terms for this repository. Glossary only — no implementation details or
 - **Consensus** — within-modality merging of per-caller VCFs using caller-support thresholds.
 - **Rescue** — cross-modality (DNA ↔ RNA) recovery of variants that failed or were missed in one modality.
 - **Truth label** — a final Somatic-filtered consensus/rescue VCF record used as a supervised training label for the downstream model. The model is a label consumer: label precision matters more than recall.
+- **Reference-compatible BAM** — an external BAM whose sequence dictionary has exactly the selected reference's contig names, lengths, and order. Off-reference contigs are outside the caller-input domain.
+- **Reference normalization** — the audited, provenance-preserving transformation of a safely compatible external BAM into a reference-compatible BAM before any caller.
+- **Caller input pair** — the single reference-compatible tumor/normal alignment pair shared by Mutect2, Strelka2, and DeepSomatic.
+- **Expected caller panel** — the complete caller set required for one sample/modality consensus. Missing, duplicate, or unexpected inputs make the panel incomplete rather than changing its size.
+- **Caller-detection support** — the `ENS_SUPPORT=k/n` count of expected callers whose records support the variant's existence. It is distinct from biological-class agreement and calibrated label confidence.
+- **DNA-only run** — a matched DNA tumor/normal run through DeepSomatic, Mutect2, Strelka2, normalization, and within-DNA consensus, with no RNA rescue branch.
 
 - **Re-consensus rerun** — forward-only regeneration of consensus and rescue VCFs for the whole cohort from the existing, read-only per-caller VCF outputs, using fixed pipeline code, written to a new output location. Original outputs are never modified.
 

@@ -1,5 +1,9 @@
 # Ensemble confidence as Wilson CI on caller support fraction, INFO-only
 
+Status: superseded by ADR-0003
+
+The decision below is retained as historical context.
+
 Consensus VCFs now annotate every record with an ensemble-confidence interval:
 `ENS_SUPPORT` (`k/n`), `ENS_CONF_LO`, `ENS_CONF_HI` — a 95% Wilson score
 interval on the caller support fraction, where k is the number of supporting

@@ -101,12 +101,29 @@
                     "description": "Saves output from Markduplicates & Baserecalibration as BAM file instead of CRAM",
                     "fa_icon": "fas fa-download"
                 },
-                "reorder_bam_contigs": {
+                "bam_dictionary_policy": {
+                    "type": "string",
+                    "enum": [
+                        "normalize",
+                        "strict"
+                    ],
+                    "description": "Sequence-dictionary policy for external BAM inputs at the variant-calling entry point",
+                    "help_text": "normalize audits every external BAM and uses Picard ReorderSam only for safe name/order differences; strict rejects every mismatch. Shared contig length conflicts are always fatal. FASTQ-derived BAMs bypass this policy.",
+                    "fa_icon": "fas fa-shield-alt",
+                    "default": "normalize"
+                },
+                "save_normalized_bam": {
                     "type": "boolean",
-                    "description": "Reorder BAM contigs to match reference dictionary",
-                    "help_text": "Enable this option if your BAM files contain contigs (e.g., viral sequences like CMV, HBV, HPV) that are not present in the reference genome. This will automatically detect mismatched contigs and use Picard ReorderSam to filter them out before variant calling.",
-                    "fa_icon": "fas fa-sort",
+                    "description": "Retain the intermediate reference-normalized BAM in addition to the converted CRAM and dictionary audit",
+                    "fa_icon": "fas fa-download",
                     "default": false
+                },
+                "reorder_bam_contigs": {
+                    "type": ["boolean", "null"],
+                    "description": "Deprecated alias for bam_dictionary_policy",
+                    "help_text": "Deprecated: true maps to normalize and false maps to strict.",
+                    "fa_icon": "fas fa-sort",
+                    "default": null
                 },
                 "rna": {
                     "type": "boolean",
@@ -709,6 +726,13 @@
                     "fa_icon": "fas fa-play",
                     "description": "Variant callers used to generate calls",
                     "help_text": "Name of variant calling tools separated by commans used to generate VCF/MAF input files."
+                },
+                "consensus_expected_callers": {
+                    "type": ["string", "null"],
+                    "default": null,
+                    "fa_icon": "fas fa-check-double",
+                    "description": "Explicit complete caller panel expected for each consensus sample and modality",
+                    "help_text": "Comma-separated active callers. Missing, duplicate, or unexpected VCFs fail instead of shrinking ENS_SUPPORT's denominator."
                 },
                 "remove_duplicates": {
                     "type": "boolean",

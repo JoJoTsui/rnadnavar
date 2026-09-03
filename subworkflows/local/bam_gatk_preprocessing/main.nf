@@ -20,6 +20,7 @@ include { CRAM_QC_MOSDEPTH_SAMTOOLS as CRAM_QC_RECAL           } from '../../loc
 include { SAMTOOLS_CONVERT as CRAM_TO_BAM_RECAL                } from '../../../modules/nf-core/samtools/convert/main'
 // Reorder BAM contigs to match reference (optional, for mismatched contigs)
 include { BAM_REORDER_CONTIGS                                  } from '../../local/bam_reorder_contigs/main'
+include { CHECK_CONTIGS as CHECK_EXTERNAL_CRAM_DICTIONARY      } from '../../../modules/local/check_contigs/main'
 
 
 workflow BAM_GATK_PREPROCESSING {
@@ -41,6 +42,7 @@ workflow BAM_GATK_PREPROCESSING {
     reports   = Channel.empty()
     versions  = Channel.empty()
     cram_variant_calling = Channel.empty()
+    dictionary_audits = Channel.empty()
     
     // Create mapped channels once - broadcast to all processes
     // fasta_fai is [path] list - create different formats for different consumers:
@@ -354,7 +356,17 @@ workflow BAM_GATK_PREPROCESSING {
             // cram_variant_calling contains either:
             // - input bams converted to crams, if started from step recal + skip BQSR
             // - input crams if started from step recal + skip BQSR
-            converted = BAM_TO_CRAM.out.cram.join(BAM_TO_CRAM.out.crai, failOnDuplicate: true, failOnMismatch: true)
+            // Join on meta.id (immutable string), not the meta map: meta is mutated
+            // in-place downstream (id = meta.sample) before this join's channels
+            // close, which corrupts the join buffer's hash keys and NPEs in
+            // Nextflow's JoinOp.checkRemainder (failOnDuplicate triggers it)
+            converted = BAM_TO_CRAM.out.cram
+                .map{ meta, cram -> [ meta.id, meta, cram ] }
+                .join(
+                    BAM_TO_CRAM.out.crai.map{ meta, crai -> [ meta.id, meta, crai ] },
+                    failOnDuplicate: true, failOnMismatch: true
+                )
+                .map{ id, cram_meta, cram, crai_meta, crai -> [ cram_meta, cram, crai ] }
             cram_variant_calling = Channel.empty().mix(
                 converted,
                 input_recal_convert.cram.map{ meta, cram, crai, table -> [ meta, cram, crai ] })
@@ -374,25 +386,54 @@ workflow BAM_GATK_PREPROCESSING {
             cram: it[0].data_type == "cram"
         }
 
-        // Optionally reorder BAM contigs to match reference (handles viral contigs mismatch)
-        if (params.reorder_bam_contigs) {
-            BAM_REORDER_CONTIGS(
-                input_variant_calling_convert.bam,
-                fasta.map{ meta, fa -> fa },
-                fasta_fai,
-                dict.map{ meta, d -> d }
-            )
-            versions = versions.mix(BAM_REORDER_CONTIGS.out.versions)
-            bam_for_conversion = BAM_REORDER_CONTIGS.out.bam
-        } else {
-            bam_for_conversion = input_variant_calling_convert.bam
+        // Reachable only for external alignments at step=variant_calling.
+        // BAMs created by the mapping branch never enter this boundary.
+        def dictionary_policy = params.bam_dictionary_policy ?: 'normalize'
+        if (params.reorder_bam_contigs != null) {
+            log.warn "Parameter --reorder_bam_contigs is deprecated; use --bam_dictionary_policy normalize|strict"
+            dictionary_policy = params.reorder_bam_contigs ? 'normalize' : 'strict'
         }
+        if (!(dictionary_policy in ['normalize', 'strict'])) {
+            error "Invalid --bam_dictionary_policy '${dictionary_policy}'; expected normalize or strict"
+        }
+
+        BAM_REORDER_CONTIGS(
+            input_variant_calling_convert.bam,
+            fasta.map{ meta, fa -> fa },
+            fasta_fai,
+            dict.map{ meta, d -> d },
+            dictionary_policy
+        )
+        versions = versions.mix(BAM_REORDER_CONTIGS.out.versions)
+        dictionary_audits = dictionary_audits.mix(BAM_REORDER_CONTIGS.out.audit)
+        bam_for_conversion = BAM_REORDER_CONTIGS.out.bam
+
+        // CRAM rewriting is deliberately unsupported. Validate exact
+        // compatibility and fail before any caller on mismatch.
+        CHECK_EXTERNAL_CRAM_DICTIONARY(
+            input_variant_calling_convert.cram,
+            fasta.map{ meta, fa -> fa },
+            fasta_fai,
+            dict.map{ meta, d -> d },
+            'strict',
+            'input'
+        )
+        versions = versions.mix(CHECK_EXTERNAL_CRAM_DICTIONARY.out.versions)
+        dictionary_audits = dictionary_audits.mix(CHECK_EXTERNAL_CRAM_DICTIONARY.out.audit)
+        validated_cram = CHECK_EXTERNAL_CRAM_DICTIONARY.out.alignment_with_status.map { meta, cram, crai, ignored -> [ meta, cram, crai ] }
 
         // BAM files first must be converted to CRAM files since from this step on we base everything on CRAM format
         BAM_TO_CRAM(bam_for_conversion, fasta, fasta_fai_for_convert)
         versions = versions.mix(BAM_TO_CRAM.out.versions)
-        converted = BAM_TO_CRAM.out.cram.join(BAM_TO_CRAM.out.crai, failOnDuplicate: true, failOnMismatch: true)
-        cram_variant_calling = Channel.empty().mix(converted, input_variant_calling_convert.cram)
+        // Join on meta.id (immutable string), not the meta map — see note above
+        converted = BAM_TO_CRAM.out.cram
+            .map{ meta, cram -> [ meta.id, meta, cram ] }
+            .join(
+                BAM_TO_CRAM.out.crai.map{ meta, crai -> [ meta.id, meta, crai ] },
+                failOnDuplicate: true, failOnMismatch: true
+            )
+            .map{ id, cram_meta, cram, crai_meta, crai -> [ cram_meta, cram, crai ] }
+        cram_variant_calling = Channel.empty().mix(converted, validated_cram)
 
     }
     // Remove lane from id (which is sample)
@@ -404,6 +445,7 @@ workflow BAM_GATK_PREPROCESSING {
                                                     [meta, cram, crai]}
 
     emit:
+    dictionary_audits       = dictionary_audits
     cram_variant_calling    = cram_variant_calling
     versions                = versions
     reports                 = reports

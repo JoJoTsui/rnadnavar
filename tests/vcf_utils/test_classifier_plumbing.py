@@ -135,6 +135,8 @@ def _run_consensus(tmp_path, mutect2_content, strelka_content, extra_args=None):
         str(out_prefix),
         "--output_format",
         "vcf",
+        "--expected_callers",
+        "mutect2,strelka",
     ] + (extra_args or [])
     result = subprocess.run(cmd, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr

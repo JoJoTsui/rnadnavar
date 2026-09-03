@@ -37,6 +37,12 @@ def argparser():
     parser.add_argument(
         "--input_dir", required=True, help="Directory containing input VCF files"
     )
+    parser.add_argument(
+        "--expected_callers",
+        required=True,
+        help="Comma-separated caller panel required for this sample/modality; "
+        "missing, duplicate, and unexpected caller VCFs are fatal",
+    )
     parser.add_argument("--out_prefix", required=True, help="Prefix for output files")
     parser.add_argument(
         "--snv_thr",
@@ -106,11 +112,32 @@ def main():
     # Find VCF files
     input_dir = Path(args.input_dir)
     vcf_files = {}
+    expected_callers = [
+        caller.strip().lower()
+        for caller in args.expected_callers.split(",")
+        if caller.strip()
+    ]
+    if not expected_callers:
+        print("ERROR: --expected_callers must contain at least one caller", file=sys.stderr)
+        sys.exit(2)
+    if len(expected_callers) != len(set(expected_callers)):
+        print(
+            f"ERROR: duplicate callers in expected panel: {args.expected_callers}",
+            file=sys.stderr,
+        )
+        sys.exit(2)
 
     print(f"Searching for VCF files in: {input_dir}")
     for vcf_path in sorted(input_dir.glob("*.vcf*")):
         if vcf_path.suffix in [".vcf", ".gz"] or vcf_path.name.endswith(".vcf.gz"):
-            caller = get_caller_name(str(vcf_path))
+            caller = get_caller_name(str(vcf_path)).lower()
+            if caller in vcf_files:
+                print(
+                    f"ERROR: duplicate VCFs discovered for caller {caller}: "
+                    f"{Path(vcf_files[caller]).name}, {vcf_path.name}",
+                    file=sys.stderr,
+                )
+                sys.exit(2)
             vcf_files[caller] = str(vcf_path)
             print(f"  - Found: {caller} -> {vcf_path.name}")
 
@@ -118,19 +145,34 @@ def main():
         print(f"ERROR: No VCF files found in {input_dir}")
         sys.exit(1)
 
+    actual_callers = set(vcf_files)
+    expected_set = set(expected_callers)
+    missing = sorted(expected_set - actual_callers)
+    unexpected = sorted(actual_callers - expected_set)
+    if missing or unexpected:
+        print(
+            "ERROR: caller panel is incomplete or inconsistent; "
+            f"expected={expected_callers}, actual={sorted(actual_callers)}, "
+            f"missing={missing}, unexpected={unexpected}",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
     # Input validation
     if args.snv_thr <= 0 or args.indel_thr <= 0:
         print("ERROR: Consensus thresholds must be > 0")
         sys.exit(1)
 
-    if len(vcf_files) < max(args.snv_thr, args.indel_thr):
+    if len(expected_callers) < max(args.snv_thr, args.indel_thr):
         print(
-            f"WARNING: Only {len(vcf_files)} VCF files found, but thresholds require {max(args.snv_thr, args.indel_thr)}"
+            f"ERROR: expected caller panel has {len(expected_callers)} callers, "
+            f"but thresholds require {max(args.snv_thr, args.indel_thr)}",
+            file=sys.stderr,
         )
-        print("Some variants may not meet consensus thresholds")
+        sys.exit(2)
 
     print(
-        f"\nProcessing {len(vcf_files)} VCF files with callers: {', '.join(vcf_files.keys())}"
+        f"\nProcessing complete caller panel: {', '.join(expected_callers)}"
     )
     print(f"SNV consensus threshold: {args.snv_thr}")
     print(f"Indel consensus threshold: {args.indel_thr}")
@@ -160,14 +202,14 @@ def main():
 
     from vcf_utils.io_utils import open_union_vcf, union_contig_order
 
-    all_callers = list(vcf_files.keys())
+    all_callers = expected_callers
 
     # Template header and sample name from the first VCF.
     # Note (audit M8a, ticket 07): sample_name is no longer written to the
     # output — the output header carries no sample column because records
     # carry no FORMAT/sample data. It is still parsed here for API
     # compatibility with open_union_vcf/write_union_vcf and --sample_name.
-    template_header = VCF(next(iter(vcf_files.values())))
+    template_header = VCF(vcf_files[expected_callers[0]])
     sample_name = (
         template_header.samples[0] if template_header.samples else None
     )

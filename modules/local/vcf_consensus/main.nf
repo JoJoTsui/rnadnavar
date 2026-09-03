@@ -8,7 +8,7 @@ process VCF_CONSENSUS {
         'biocontainers/mulled-v2-629aec3ba267b06a1efc3ec454c0f09e134f6ee2:3b083bb5eae6e491b8579589b070fa29afbea2a1-0' }"
 
     input:
-    tuple val(meta), path(vcfs), path(tbis), val(callers)
+    tuple val(meta), path(vcfs), path(tbis), val(callers), val(expected_callers)
 
     output:
     tuple val(meta), path("*.consensus.vcf.gz"), path("*.consensus.vcf.gz.tbi"), emit: vcf
@@ -41,6 +41,7 @@ process VCF_CONSENSUS {
     
     run_consensus_vcf.py \\
         --input_dir inputs/ \\
+        --expected_callers ${expected_callers.join(',')} \
         --out_prefix ${prefix}.consensus \\
         --snv_thr ${snv_thr} \\
         --indel_thr ${indel_thr}

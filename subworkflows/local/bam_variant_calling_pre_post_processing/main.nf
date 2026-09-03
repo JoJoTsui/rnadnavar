@@ -80,6 +80,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     cram_variant_calling = BAM_GATK_PREPROCESSING.out.cram_variant_calling
     versions             = versions.mix(BAM_GATK_PREPROCESSING.out.versions)
     reports              = reports.mix(BAM_GATK_PREPROCESSING.out.reports)
+    dictionary_audits    = BAM_GATK_PREPROCESSING.out.dictionary_audits
     cram_variant_calling.dump(tag:"cram_variant_calling1")
     // VARIANT CALLING
     BAM_VARIANT_CALLING(
@@ -224,4 +225,5 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     vcf_normalized              = vcf_normalized  // Individual caller VCFs for second rescue
     versions                    = versions  // channel: [ versions.yml ]
     reports                     = reports
+    dictionary_audits           = dictionary_audits
 }

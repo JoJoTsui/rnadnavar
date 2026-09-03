@@ -1,11 +1,8 @@
-"""Tests for per-variant ensemble confidence annotation in consensus VCF output.
+"""Tests for descriptive caller support and complete caller-panel validation.
 
-Semantics under test: ENS_SUPPORT / ENS_CONF_LO / ENS_CONF_HI carry the 95%
-Wilson score confidence interval on the caller support fraction k/n, where
-k = supporting callers (non-Artifact record clearing the min alt-read floor)
-and n = ALL callers configured for the invocation (a caller absent at the
-site counts as a non-support vote). Consensus mode only — rescue output is
-unchanged.
+ENS_SUPPORT is k supporting callers out of the explicit expected panel n.
+Missing, duplicate, and unexpected caller files are errors. The removed Wilson
+fields are not label-confidence probabilities and must not reappear.
 
 Run with: .venv/bin/python -m pytest tests/vcf_utils/test_ensemble_confidence.py -v
 """
@@ -22,43 +19,9 @@ _BIN_DIR = Path(__file__).resolve().parent.parent.parent / "bin"
 if str(_BIN_DIR) not in sys.path:
     sys.path.insert(0, str(_BIN_DIR))
 
-from vcf_utils.ensemble_confidence import wilson_interval
 from vcf_utils.io_utils import create_output_header
 
 BIN_DIR = Path(__file__).resolve().parents[2] / "bin"
-
-
-class TestWilsonInterval:
-    """Wilson score math (z = 1.96, 95% interval)."""
-
-    def test_full_support(self):
-        lo, hi = wilson_interval(3, 3)
-        assert lo == pytest.approx(0.4385, abs=1e-3)
-        assert hi == pytest.approx(1.0, abs=1e-9)
-
-    def test_partial_support(self):
-        lo, hi = wilson_interval(2, 3)
-        assert lo == pytest.approx(0.2077, abs=1e-3)
-        assert hi == pytest.approx(0.9385, abs=1e-3)
-
-    def test_zero_support_lower_bound_is_zero(self):
-        lo, hi = wilson_interval(0, 3)
-        assert lo == 0.0
-        assert hi == pytest.approx(0.5615, abs=1e-3)
-
-    def test_single_support(self):
-        lo, hi = wilson_interval(1, 3)
-        assert lo == pytest.approx(0.0615, abs=1e-3)
-        assert hi == pytest.approx(0.7923, abs=1e-3)
-
-    def test_no_callers_returns_none(self):
-        assert wilson_interval(0, 0) is None
-        assert wilson_interval(2, 0) is None
-
-    def test_bounds_clamped_to_unit_interval(self):
-        for k in range(0, 6):
-            lo, hi = wilson_interval(k, 5)
-            assert 0.0 <= lo <= hi <= 1.0
 
 
 # --- Writer integration ---------------------------------------------------
@@ -130,6 +93,8 @@ def consensus_vcf(tmp_path_factory):
         str(BIN_DIR / "run_consensus_vcf.py"),
         "--input_dir",
         str(input_dir),
+        "--expected_callers",
+        "mutect2,strelka,deepsomatic",
         "--out_prefix",
         str(out_prefix),
         "--output_format",
@@ -144,33 +109,79 @@ def _records_by_pos(vcf_path):
     return {v.POS: v for v in VCF(vcf_path)}
 
 
-class TestEnsembleConfidenceInfo:
-    """End-to-end: run_consensus_vcf.py annotates ENS_* on every record."""
+class TestEnsembleSupportInfo:
+    """End-to-end descriptive support over the explicit three-caller panel."""
 
     def test_support_fraction_counts_absent_caller_as_non_support(self, consensus_vcf):
         records = _records_by_pos(consensus_vcf)
         assert records[1000].INFO.get("ENS_SUPPORT") == "2/3"
         assert records[2000].INFO.get("ENS_SUPPORT") == "3/3"
 
-    def test_interval_bounds_match_wilson(self, consensus_vcf):
-        records = _records_by_pos(consensus_vcf)
-        for pos, (k, n) in [(1000, (2, 3)), (2000, (3, 3))]:
-            lo, hi = wilson_interval(k, n)
-            assert float(records[pos].INFO.get("ENS_CONF_LO")) == pytest.approx(
-                round(lo, 4), abs=1e-6
-            )
-            assert float(records[pos].INFO.get("ENS_CONF_HI")) == pytest.approx(
-                round(hi, 4), abs=1e-6
-            )
-
-    def test_header_declares_ens_fields(self, consensus_vcf):
+    def test_header_declares_only_descriptive_support(self, consensus_vcf):
         header = str(VCF(consensus_vcf).raw_header)
-        for field in ("ENS_SUPPORT", "ENS_CONF_LO", "ENS_CONF_HI"):
-            assert f"ID={field}" in header
+        assert "ID=ENS_SUPPORT" in header
+        assert "ID=ENS_CONF_LO" not in header
+        assert "ID=ENS_CONF_HI" not in header
+
+
+def _run_panel(tmp_path, files, expected):
+    input_dir = tmp_path / "panel"
+    input_dir.mkdir()
+    for name, content in files:
+        _write_vcf(input_dir, name, content)
+    out_prefix = tmp_path / "panel.consensus"
+    return subprocess.run(
+        [
+            sys.executable,
+            str(BIN_DIR / "run_consensus_vcf.py"),
+            "--input_dir", str(input_dir),
+            "--expected_callers", expected,
+            "--out_prefix", str(out_prefix),
+            "--output_format", "vcf",
+            "--snv_thr", "2",
+            "--indel_thr", "2",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+
+class TestCallerPanelValidation:
+    def test_missing_caller_is_fatal(self, tmp_path):
+        result = _run_panel(
+            tmp_path,
+            [("s.mutect2.variants.vcf", MUTECT2_VCF),
+             ("s.strelka.variants.vcf", STRELKA_VCF)],
+            "mutect2,strelka,deepsomatic",
+        )
+        assert result.returncode == 2
+        assert "missing=['deepsomatic']" in result.stderr
+
+    def test_unexpected_caller_is_fatal(self, tmp_path):
+        result = _run_panel(
+            tmp_path,
+            [("s.mutect2.variants.vcf", MUTECT2_VCF),
+             ("s.strelka.variants.vcf", STRELKA_VCF),
+             ("s.deepsomatic.variants.vcf", DEEPSOMATIC_VCF)],
+            "mutect2,strelka",
+        )
+        assert result.returncode == 2
+        assert "unexpected=['deepsomatic']" in result.stderr
+
+    def test_duplicate_caller_file_is_fatal(self, tmp_path):
+        result = _run_panel(
+            tmp_path,
+            [("s.mutect2.variants.vcf", MUTECT2_VCF),
+             ("other.mutect2.variants.vcf", MUTECT2_VCF),
+             ("s.strelka.variants.vcf", STRELKA_VCF)],
+            "mutect2,strelka",
+        )
+        assert result.returncode == 2
+        assert "duplicate VCFs discovered for caller mutect2" in result.stderr
 
 
 class TestRescueHeaderUnchanged:
-    """Rescue mode (include_rescue_fields=True) must not gain ENS_* fields."""
+    """Rescue mode remains free of consensus-only support fields."""
 
     def _header_info_ids(self, tmp_path, include_rescue_fields):
         template_path = _write_vcf(tmp_path, "template.vcf", MUTECT2_VCF)
@@ -180,9 +191,10 @@ class TestRescueHeaderUnchanged:
         )
         return set(header.info.keys())
 
-    def test_consensus_header_has_ens_fields(self, tmp_path):
+    def test_consensus_header_has_descriptive_support(self, tmp_path):
         info_ids = self._header_info_ids(tmp_path, include_rescue_fields=False)
-        assert {"ENS_SUPPORT", "ENS_CONF_LO", "ENS_CONF_HI"} <= info_ids
+        assert "ENS_SUPPORT" in info_ids
+        assert not {"ENS_CONF_LO", "ENS_CONF_HI"} & info_ids
 
     def test_rescue_header_has_no_ens_fields(self, tmp_path):
         info_ids = self._header_info_ids(tmp_path, include_rescue_fields=True)

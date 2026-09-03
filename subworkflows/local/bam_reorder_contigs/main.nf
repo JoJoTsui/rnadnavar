@@ -1,12 +1,9 @@
-//
-// BAM_REORDER_CONTIGS: Check and optionally reorder BAM contigs to match reference
-//
-// This subworkflow checks if BAM/CRAM files have contigs not present in the reference
-// and reorders them using Picard ReorderSam if needed.
-//
+// BAM_REORDER_CONTIGS: Validate and, when safe, normalize an external BAM to
+// the exact selected reference sequence dictionary.
 
-include { CHECK_CONTIGS      } from '../../../modules/local/check_contigs/main'
-include { PICARD_REORDERSAM  } from '../../../modules/local/picard_reordersam/main'
+include { CHECK_CONTIGS as CHECK_INPUT_DICTIONARY      } from '../../../modules/local/check_contigs/main'
+include { CHECK_CONTIGS as CHECK_NORMALIZED_DICTIONARY } from '../../../modules/local/check_contigs/main'
+include { PICARD_REORDERSAM                            } from '../../../modules/local/picard_reordersam/main'
 
 workflow BAM_REORDER_CONTIGS {
     take:
@@ -14,43 +11,54 @@ workflow BAM_REORDER_CONTIGS {
     fasta         // channel: path(fasta)
     fasta_fai     // channel: path(fai)
     dict          // channel: path(dict)
+    policy        // value: normalize | strict
 
     main:
     versions = Channel.empty()
 
-    // Check if BAM contigs match reference
-    CHECK_CONTIGS(
+    CHECK_INPUT_DICTIONARY(
         bam,
         fasta,
         fasta_fai,
-        dict
+        dict,
+        policy,
+        'input'
     )
-    versions = versions.mix(CHECK_CONTIGS.out.versions)
+    versions = versions.mix(CHECK_INPUT_DICTIONARY.out.versions)
 
-    // Branch based on whether reordering is needed
-    bam_branched = CHECK_CONTIGS.out.bam_with_status.branch { meta, bam_file, bai_file, needs_reorder ->
-        needs_reorder: needs_reorder == "true"
+    bam_branched = CHECK_INPUT_DICTIONARY.out.alignment_with_status.branch { meta, bam_file, bai_file, needs_normalization ->
+        needs_normalization: needs_normalization == "true"
             return [ meta, bam_file, bai_file ]
-        no_reorder: needs_reorder == "false"
+        compatible: needs_normalization == "false"
             return [ meta, bam_file, bai_file ]
     }
 
-    // Reorder BAMs that need it
     PICARD_REORDERSAM(
-        bam_branched.needs_reorder,
+        bam_branched.needs_normalization,
         fasta,
         fasta_fai,
         dict
     )
     versions = versions.mix(PICARD_REORDERSAM.out.versions)
 
-    // Combine reordered and non-reordered BAMs
-    bam_out = Channel.empty().mix(
+    CHECK_NORMALIZED_DICTIONARY(
         PICARD_REORDERSAM.out.bam,
-        bam_branched.no_reorder
+        fasta,
+        fasta_fai,
+        dict,
+        'strict',
+        'normalized'
     )
+    versions = versions.mix(CHECK_NORMALIZED_DICTIONARY.out.versions)
+
+    bam_out = Channel.empty().mix(
+        CHECK_NORMALIZED_DICTIONARY.out.alignment_with_status.map { meta, bam_file, bai_file, ignored -> [ meta, bam_file, bai_file ] },
+        bam_branched.compatible
+    )
+    audits = CHECK_INPUT_DICTIONARY.out.audit.mix(CHECK_NORMALIZED_DICTIONARY.out.audit)
 
     emit:
-    bam      = bam_out      // channel: [ meta, bam, bai ]
-    versions = versions     // channel: [ versions.yml ]
+    bam      = bam_out       // channel: [ meta, bam, bai ]
+    audit    = audits        // channel: [ meta, dictionary_audit.json ]
+    versions = versions      // channel: [ versions.yml ]
 }

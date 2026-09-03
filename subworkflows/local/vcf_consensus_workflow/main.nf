@@ -21,81 +21,63 @@ workflow VCF_CONSENSUS_WORKFLOW {
                         ((params.tools && params.tools.split(",").contains("consensus")))) ||
                         realignment) {
 
-        // Determine expected caller count for grouping
-        def ncallers_expected
-        
-        if (realignment || (params.step in ['consensus', 'annotate','filtering', 'rna_filtering'] &&
-                           params.tools && params.tools.split(',').contains("realignment"))) {
-            // Realignment mode uses default callers
-            def tools_list = params.defaultvariantcallers.split(',').toList()
-            ncallers_expected = tools_list.unique().size()
-        } else if (params.tools) {
-            // Extract actual variant caller names from tools parameter
-            def tools_list = params.tools.split(',').toList().findAll { it in ['sage', 'strelka', 'mutect2', 'deepsomatic'] }
-            if (tools_list.size() > 0) {
-                ncallers_expected = tools_list.unique().size()
-            } else {
-                // Tools specified but no caller names found - use dynamic grouping
-                // This happens when starting from VCFs with --tools containing workflow steps
-                ncallers_expected = 0
-            }
+        def active_callers = ['mutect2', 'strelka', 'deepsomatic']
+        def expected_callers
+        if (params.consensus_expected_callers) {
+            expected_callers = params.consensus_expected_callers.split(',')
+                .collect { it.trim().toLowerCase() }
+                .findAll { it }
         } else {
-            // No tools specified - use dynamic grouping
-            ncallers_expected = 0
+            def configured = (realignment ||
+                (params.step in ['consensus', 'annotate', 'filtering', 'rna_filtering'] &&
+                 params.tools && params.tools.split(',').contains('realignment')))
+                ? params.defaultvariantcallers
+                : params.tools
+            expected_callers = (configured ?: params.defaultvariantcallers ?: '')
+                .split(',')
+                .collect { it.trim().toLowerCase() }
+                .findAll { it in active_callers }
         }
+        if (!expected_callers || expected_callers.size() != expected_callers.unique().size()) {
+            error "Consensus requires a non-empty, duplicate-free expected caller panel; got ${expected_callers}"
+        }
+        def unsupported_callers = expected_callers.findAll { !(it in active_callers) }
+        if (unsupported_callers) {
+            error "Unsupported callers in consensus expected panel: ${unsupported_callers}; active callers are ${active_callers}"
+        }
+        expected_callers = expected_callers.unique()
+        def ncallers_expected = expected_callers.size()
 
-        // Align grouping pattern with MAF consensus: two maps then groupTuple
+        // Group to channel close, then validate the full configured panel.
+        // A fixed-size groupKey can silently suppress incomplete groups.
         vcf_grouped = vcf_annotated
             .map { meta, vcf, tbi ->
                 // Normalize tbi: some upstream code may wrap tbi in a singleton list
                 def tbiFile = (tbi instanceof List && tbi.size()==1) ? tbi[0] : tbi
                 // Reduce meta to essential fields and tag data_type
-                def metaReduced = meta.subMap('id','patient','status') + [data_type:'vcf', ncallers: ncallers_expected]
+                def metaReduced = meta.subMap('id','patient','status') +
+                    [data_type:'vcf', ncallers: ncallers_expected, expected_callers: expected_callers]
                 [ metaReduced, vcf, tbiFile, (meta.variantcaller ?: 'unknown') ]
             }
             .map { metaReduced, vcf, tbiFile, variantcaller ->
-                // Use groupKey only when we know the expected size (> 0)
-                // Otherwise use regular grouping key for dynamic grouping
-                if (ncallers_expected > 0) {
-                    def key = groupKey(metaReduced.subMap('id','patient','status') + [ncallers: ncallers_expected], ncallers_expected)
-                    [ key, vcf, tbiFile, variantcaller ]
-                } else {
-                    // Dynamic grouping - just use the metadata as key
-                    [ metaReduced.subMap('id','patient','status') + [ncallers: 0], vcf, tbiFile, variantcaller ]
-                }
+                def key = metaReduced.subMap('id','patient','status') +
+                    [ncallers: ncallers_expected, expected_callers: expected_callers]
+                [ key, vcf, tbiFile, variantcaller.toString().toLowerCase() ]
             }
             .groupTuple() // [metaGrouped, [vcf...], [tbi...], [caller...]]
             .map { metaGrouped, vcfs, tbis, callers ->
-                // Extract metadata - handle both GroupKey and regular Map
-                def metaMutable
-                if (metaGrouped instanceof nextflow.extension.GroupKey) {
-                    // GroupKey from fixed-size grouping
-                    metaMutable = metaGrouped.getGroupTarget() instanceof Map ? 
-                                  metaGrouped.getGroupTarget().clone() : 
-                                  [id: metaGrouped.id, patient: metaGrouped.patient, status: metaGrouped.status, ncallers: metaGrouped.ncallers]
-                } else {
-                    // Regular Map from dynamic grouping
-                    metaMutable = metaGrouped instanceof Map ? metaGrouped.clone() : [:]
+                def metaMutable = metaGrouped.clone()
+                def actual = callers.collect { it.toLowerCase() }
+                def duplicates = actual.findAll { caller -> actual.count(caller) > 1 }.unique()
+                def missing = expected_callers - actual
+                def unexpected = actual - expected_callers
+                if (duplicates || missing || unexpected || actual.size() != expected_callers.size()) {
+                    error "Consensus caller panel mismatch id=${metaMutable.id} status=${metaMutable.status} " +
+                        "expected=${expected_callers} actual=${actual} missing=${missing} " +
+                        "unexpected=${unexpected} duplicates=${duplicates}"
                 }
-                
-                // Check for caller count mismatch
-                def expected_ncallers = metaMutable.ncallers ?: 0
-                def actual_ncallers = callers.size()
-                
-                if (expected_ncallers == 0) {
-                    // Dynamic grouping mode - accept whatever callers are present
-                    metaMutable.ncallers = actual_ncallers
-                } else if (expected_ncallers != actual_ncallers) {
-                    // Mismatch detected - warn but continue
-                    metaMutable.ncallers_expected = expected_ncallers
-                    metaMutable.ncallers = actual_ncallers
-                    println "[CONSENSUS WARN] Caller count mismatch id=${metaMutable.id} expected=${expected_ncallers} actual=${actual_ncallers}" 
-                } else {
-                    // Expected matches actual - all good
-                    metaMutable.ncallers = actual_ncallers
-                }
-                
-                [ metaMutable, vcfs, tbis, callers ]
+                metaMutable.ncallers = expected_callers.size()
+                [ metaMutable, vcfs, tbis, actual, expected_callers ]
             }
 
         vcf_grouped.dump(tag:"vcf_grouped_for_consensus")
@@ -114,7 +96,7 @@ workflow VCF_CONSENSUS_WORKFLOW {
             // Separate DNA and RNA caller VCFs from grouped input
             dna_caller_vcfs = vcf_grouped
                 .filter { it[0].status <= 1 }
-                .flatMap { meta, vcfs, tbis, callers ->
+                .flatMap { meta, vcfs, tbis, callers, expected ->
                     vcfs.indices.collect { i ->
                         [meta, vcfs[i], tbis[i], callers[i]]
                     }
@@ -122,7 +104,7 @@ workflow VCF_CONSENSUS_WORKFLOW {
             
             rna_caller_vcfs = vcf_grouped
                 .filter { it[0].status == 2 }
-                .flatMap { meta, vcfs, tbis, callers ->
+                .flatMap { meta, vcfs, tbis, callers, expected ->
                     vcfs.indices.collect { i ->
                         [meta, vcfs[i], tbis[i], callers[i]]
                     }

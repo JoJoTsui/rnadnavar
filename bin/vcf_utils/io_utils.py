@@ -248,8 +248,6 @@ def create_output_header(
         - VC_CONSENSUS: Consensus biological classification
         - CLASSIFICATION_RATIONALE: Why the final FILTER was assigned
         - ENS_SUPPORT: Caller support fraction k/n (consensus mode only)
-        - ENS_CONF_LO/ENS_CONF_HI: Wilson 95% interval on the support
-          fraction (consensus mode only)
 
     INFO Fields Added (Rescue, when include_rescue_fields=True):
         - MODALITIES: Modalities where variant was detected
@@ -447,9 +445,9 @@ def create_output_header(
         "Whether the RNA consensus record passed as Somatic (YES/NO)",
     )
 
-    # Ensemble confidence (consensus mode only): Wilson score interval on the
-    # caller support fraction k/n, where n is ALL callers configured for the
-    # invocation (absent-at-site callers count as non-support votes)
+    # Descriptive caller-detection support (consensus mode only). The
+    # denominator is the explicit expected panel; absent-at-site callers are
+    # non-support votes.
     if not include_rescue_fields:
         add_info_safe(
             new_header,
@@ -457,20 +455,6 @@ def create_output_header(
             "1",
             "String",
             "Caller support fraction k/n: k supporting callers out of n configured callers",
-        )
-        add_info_safe(
-            new_header,
-            "ENS_CONF_LO",
-            "1",
-            "Float",
-            "Wilson score 95% confidence interval lower bound on the caller support fraction",
-        )
-        add_info_safe(
-            new_header,
-            "ENS_CONF_HI",
-            "1",
-            "Float",
-            "Wilson score 95% confidence interval upper bound on the caller support fraction",
         )
 
     # Quality aggregation
@@ -791,10 +775,9 @@ def write_union_vcf(
         - Special chromosome handling: X=23, Y=24, M/MT=25
         - FILTER field is set based on unified filter computation
         - NoConsensus filter is added for variants not passing consensus threshold
-        - Consensus mode (modality_map=None) also annotates ENS_SUPPORT (k/n),
-          ENS_CONF_LO and ENS_CONF_HI: the Wilson score 95% interval on the
-          caller support fraction, with n = len(all_callers) (callers absent
-          at the site count as non-support votes)
+        - Consensus mode (modality_map=None) annotates descriptive ENS_SUPPORT
+          (k/n), with n = the explicit expected caller panel. Callers absent at
+          the site count as non-support votes.
         - Progress is printed every 10,000 variants
         - When modality_map is provided, caller names are prefixed with modality
         - When include_non_canonical=False, only canonical chromosomes in output header
@@ -825,7 +808,6 @@ def write_union_vcf(
 
     import pysam
 
-    from vcf_utils.ensemble_confidence import wilson_interval
 
     close_on_exit = vcf_out is None
     if close_on_exit:
@@ -962,18 +944,17 @@ def write_union_vcf(
             "|".join(prefixed_support_callers) if prefixed_support_callers else "."
         )
 
-        # Ensemble confidence (consensus mode only): Wilson score 95% interval
-        # on the caller support fraction k/n. n is ALL callers configured for
-        # the invocation (all_callers); a caller absent at the site counts as
-        # a non-support vote. Rescue output is intentionally unchanged.
+        # Descriptive support (consensus mode only). The expected panel is
+        # supplied independently of discovered files, so missing inputs cannot
+        # flatter k/n.
         if not modality_map:
             n_configured = len(all_callers)
             k_support = len(set(supporting_callers_in_variant))
-            ens_interval = wilson_interval(k_support, n_configured)
-            if ens_interval is not None:
-                record.info["ENS_SUPPORT"] = f"{k_support}/{n_configured}"
-                record.info["ENS_CONF_LO"] = round(ens_interval[0], 4)
-                record.info["ENS_CONF_HI"] = round(ens_interval[1], 4)
+            if k_support > n_configured:
+                raise ValueError(
+                    f"support count {k_support} exceeds expected panel size {n_configured}"
+                )
+            record.info["ENS_SUPPORT"] = f"{k_support}/{n_configured}"
 
         # Add consensus support tracking
         if consensus_callers_in_variant:

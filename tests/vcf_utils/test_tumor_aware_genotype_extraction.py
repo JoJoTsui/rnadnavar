@@ -247,6 +247,8 @@ class TestConsensusCliAggregates:
             str(out_prefix),
             "--output_format",
             "vcf",
+            "--expected_callers",
+            "mutect2,strelka",
             "--snv_thr",
             "2",
             "--indel_thr",
