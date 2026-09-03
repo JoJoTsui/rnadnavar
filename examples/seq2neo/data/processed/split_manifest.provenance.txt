@@ -1,16 +1,16 @@
 seq2neo split manifest — provenance
-generated_at: 2026-09-02T06:44:43+00:00
-git_commit: c111a918eb760a5d46828effa7fed77459c21160
-input_manifest: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seq2neo/data/processed/sample_manifest_rerun.tsv
+generated_at: 2026-09-03T13:30:33+00:00
+git_commit: f4222c9d3f9b2628dd802c82c51698a6efd8ed50
+input_manifest: /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/data/processed/sample_manifest_rerun.tsv
 input_manifest_md5: 30ec0474b47caa80db8ff09088daf68d
-fastq_md5sums: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seq2neo/data/raw/md5sums.txt
+fastq_md5sums: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.worktrees/stats/examples/seq2neo/data/raw/md5sums.txt
 fastq_md5sums_md5: ac2684640980cc8a2d401d94e309f675
 
 per-split per-FILTER totals (selected_variants.parquet):
   split          Somatic    Germline   Reference       total
-  train           61,501   2,450,327   5,787,315   8,299,143
-  val              4,365     107,673     251,282     363,320
-  test             4,945     224,626     577,682     807,253
+  train           60,211   2,410,764   5,738,001   8,208,976
+  val              4,746     119,643     265,158     389,547
+  test             5,854     252,219     613,120     871,193
   reserved         7,064     240,078     197,972     445,114
 
 reserved-pool Somatic-restricted sub-pool tag counts:
@@ -23,4 +23,5 @@ reserved-pool Somatic-restricted sub-pool tag counts:
   is_indel: 324
 
 caveat: the low_vaf_a / low_vaf_b / low_dp / rescued sub-pools are thin per-sample (low_dp especially: is_low_dp requires a present DP_DNA_MEAN, so it only fires on variants also detected by DNA callers); they must be evaluated pooled-only across the 5 reserved samples, never per-sample.
+verdict_split_rule: PASS and WARN use the same chromosome map (chr1=test, chr21-22=val, chr2-20 and other chromosomes=train); PASS is the primary evaluation stratum and WARN is sensitivity-only.
 known_limitations: nuclear_only_chrM_dropped;pre_rule2_veto_zero_firings
