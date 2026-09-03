@@ -2,7 +2,7 @@
 # Benchmark pipeline VCFs against the SEQC2 truth set using som.py (hap.py family).
 #
 # Compares, for a tumor-normal pair run produced by run_wes_ll.sh:
-#   consensus   (FILTER == Somatic only — the label contract)
+#   consensus   (FILTER == Somatic only, converted to PASS for som.py)
 #   mutect2     (PASS records of *.mutect2.filtered.vcf.gz)
 #   deepsomatic (PASS records of *.deepsomatic.vcf.gz)
 #   strelka     (PASS records of *.strelka.variants.vcf.gz)
@@ -31,6 +31,7 @@ SEQ2C="${SEQ2C_ROOT:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2}"
 TRUTH_SNV="${TRUTH_SNV:-$SEQ2C/truth/high-confidence_sSNV_in_HC_regions_v1.2.1.vcf.gz}"
 TRUTH_INDEL="${TRUTH_INDEL:-$SEQ2C/truth/high-confidence_sINDEL_in_HC_regions_v1.2.1.vcf.gz}"
 HC_BED="${HC_BED:-$SEQ2C/truth/High-Confidence_Regions_v1.2.bed}"
+TARGET_BED="${TARGET_BED:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed}"
 FA="${FASTA:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta}"
 HAPPY_ENV="${HAPPY_ENV:-happy}"
 
@@ -39,8 +40,9 @@ C_VCF="$OUTDIR/consensus/$PAIR/$PAIR.consensus.vcf.gz"
 M2_VCF="$OUTDIR/variant_calling/mutect2/$PAIR/$PAIR.mutect2.filtered.vcf.gz"
 DS_VCF="$OUTDIR/variant_calling/deepsomatic/$PAIR/$PAIR.deepsomatic.vcf.gz"
 S2_VCF="$OUTDIR/variant_calling/strelka/$PAIR/$PAIR.strelka.variants.vcf.gz"
+CLAIR_VCF="${CLAIR_VCF:-}"
 
-for f in "$C_VCF" "$M2_VCF" "$DS_VCF" "$S2_VCF" "$TRUTH_SNV" "$TRUTH_INDEL" "$HC_BED" "$FA"; do
+for f in "$C_VCF" "$M2_VCF" "$DS_VCF" "$S2_VCF" "$TRUTH_SNV" "$TRUTH_INDEL" "$HC_BED" "$TARGET_BED" "$FA"; do
     [ -f "$f" ] || { echo "ERROR: missing input: $f" >&2; exit 1; }
 done
 
@@ -53,12 +55,12 @@ if [ ! -f "$TRUTH.tbi" ]; then
     tabix -p vcf "$TRUTH"
 fi
 
-# 2. Consensus query: keep FILTER == Somatic only (predicted positives).
-#    som.py counts non-PASS query records only with -P, so pre-filter + -P.
+# 2. Consensus query: keep FILTER == Somatic only, then rewrite FILTER to PASS
+#    in a benchmark-only copy. The production VCF remains unchanged.
 C_SOM="$OD/$PAIR.consensus.somatic.vcf.gz"
 if [ ! -f "$C_SOM.tbi" ]; then
-    echo ">> Pre-filtering consensus to FILTER == Somatic"
-    bcftools view -i 'FILTER="Somatic"' "$C_VCF" -Oz -o "$C_SOM"
+    echo ">> Preparing PASS-only consensus benchmark VCF"
+    bcftools view -i 'FILTER="Somatic"' "$C_VCF" | awk 'BEGIN{OFS="\t"} /^#/{print; next} {$7="PASS"; print}' | bgzip -c > "$C_SOM"
     bcftools index -t "$C_SOM"
 fi
 
@@ -68,20 +70,28 @@ run_som() {  # <name> <query> <extra som.py args...>
     micromamba run -n "$HAPPY_ENV" som.py \
         "$TRUTH" "$query" \
         -R "$HC_BED" \
+        -T "$TARGET_BED" \
         -o "$OD/$name" \
         -r "$FA" -N "$@"
 }
 
 # 3. Per-query benchmark runs (caller VCFs: PASS records only, som.py default)
-run_som consensus "$C_SOM" -P
+run_som consensus "$C_SOM"
 run_som mutect2 "$M2_VCF"
 run_som deepsomatic "$DS_VCF"
 run_som strelka "$S2_VCF"
 
+QUERIES=(consensus mutect2 deepsomatic strelka)
+if [ -n "$CLAIR_VCF" ]; then
+    [ -f "$CLAIR_VCF" ] || { echo "ERROR: missing Clair input: $CLAIR_VCF" >&2; exit 1; }
+    run_som clair "$CLAIR_VCF"
+    QUERIES+=(clair)
+fi
+
 # 4. Aggregate metrics into one comparison table
 python3 "$HERE/aggregate_benchmark.py" \
     --metrics-dir "$OD" \
-    --queries consensus mutect2 deepsomatic strelka \
+    --queries "${QUERIES[@]}" \
     --output "$OD/$PAIR.benchmark_comparison.csv"
 
 echo ">> Done. Table: $OD/$PAIR.benchmark_comparison.csv"

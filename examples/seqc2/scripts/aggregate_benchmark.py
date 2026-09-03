@@ -2,8 +2,8 @@
 """Aggregate som.py metrics.json outputs into one benchmark comparison table.
 
 For each query name Q, reads <metrics-dir>/Q.metrics.json (som.py native table
-format: each metric has values = [SNV, INDEL, records]) and emits one row per
-(query, variant_type) with TP/FP/FN/Precision/Recall/F1.
+format: each metric includes a type row (som.py may emit any order) and emits
+one row each for SNP, INDEL, and records per query.
 
 Stdlib only. Example:
     python3 aggregate_benchmark.py --metrics-dir comparison/WES_LL_T_1_vs_WES_LL_N_1 \
@@ -17,8 +17,8 @@ import json
 import sys
 from pathlib import Path
 
-# som.py metrics.json rows are ordered [SNV, INDEL, records(=all)]
-TYPE_LABELS = ["snv", "indel", "all"]
+# som.py commonly emits rows as [indels, SNVs, records]; prefer its explicit type row.
+TYPE_LABELS = ["snp", "indel", "records"]
 METRIC_IDS = ("tp", "fp", "fn", "precision", "recall")
 
 
@@ -48,18 +48,36 @@ def parse_metrics_json(path):
         raise ValueError(f"{path}: missing metric ids: {missing}")
 
     n_rows = len(per_metric["tp"])
-    # Prefer explicit column labels when som.py provides them; else positional.
-    columns = doc["metrics"][0].get("columns")
-    if columns and len(columns) == n_rows:
-        def _norm(c):
-            c = str(c).lower()
-            if c in ("records", "total", "all"):
-                return "all"
-            return "snv" if c in ("snp", "snv") else c
-        labels = [_norm(c) for c in columns]
+    # Resolve rows by som.py's semantic type labels, never by row position.
+    # This permanently avoids the historical SNV/INDEL order mismatch.
+    def _norm(c):
+        key = str(c).strip().lower()
+        if key in ("snp", "snv", "snvs", "snp/indel"):
+            return "snp"
+        if key in ("indel", "indels"):
+            return "indel"
+        if key in ("records", "record", "total", "all"):
+            return "records"
+        return key
+
+    n_rows = len(per_metric["tp"])
+    metrics = doc["metrics"][0]
+    type_row = next((item for item in metrics.get("data", [])
+                     if item.get("id") == "type"), None)
+    columns = metrics.get("columns")
+    labels_raw = None
+    if type_row and len(type_row.get("values", [])) == n_rows:
+        labels_raw = type_row["values"]
+    elif columns and len(columns) == n_rows:
+        labels_raw = columns
+    elif n_rows == len(TYPE_LABELS):
+        raise ValueError(f"{path}: missing som.py type labels; refusing positional mapping")
     else:
-        labels = TYPE_LABELS if n_rows == 3 else (
-            TYPE_LABELS[: n_rows - 1] + ["all"] if n_rows > 1 else ["all"])
+        raise ValueError(f"{path}: cannot determine variant-type labels")
+
+    labels = [_norm(c) for c in labels_raw]
+    if len(set(labels)) != len(labels) or any(label not in TYPE_LABELS for label in labels):
+        raise ValueError(f"{path}: invalid or duplicate variant-type labels: {labels}")
 
     rows = {}
     for i, label in enumerate(labels):
@@ -74,7 +92,8 @@ def parse_metrics_json(path):
         _, _, f1 = prf(tp, fp, fn)
         rows[label] = dict(tp=tp, fp=fp, fn=fn,
                            precision=precision, recall=recall, f1=f1)
-    return rows
+    # Stable output order, independent of som.py's row order.
+    return {label: rows[label] for label in TYPE_LABELS if label in rows}
 
 
 def main(argv=None):
