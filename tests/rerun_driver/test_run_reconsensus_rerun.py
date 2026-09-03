@@ -136,12 +136,9 @@ def test_dry_run_prints_plan_and_writes_nothing(fake_cohort, tmp_path):
 
 def test_dry_run_reports_missing_inputs(fake_cohort, tmp_path):
     manifest, rows = fake_cohort
-    # remove one caller VCF from the first sample
-    victim = next(
-        (Path(rows[0]["base_output_dir"]) / rows[0]["dir_name"]).rglob(
-            "*.deepsomatic.vcf.gz"
-        )
-    )
+    # Select the asserted modality explicitly; filesystem traversal order is
+    # not a contract and may return the RNA file first.
+    victim = Path(rr.locate_caller_vcfs(rows[0])["dna_deepsomatic"])
     victim.unlink()
     res = run_driver(
         "--manifest", str(manifest),
