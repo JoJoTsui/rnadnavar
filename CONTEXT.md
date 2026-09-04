@@ -10,6 +10,10 @@ Domain terms for this repository. Glossary only — no implementation details or
 ## Samples and data
 
 - **DN / DT / RT** — the three modalities of one patient: DNA normal (sample status 0), DNA tumor (status 1), RNA tumor (status 2).
+- **DN/DT/RT FASTQ triplet** — one paired-end raw-read input for each of DN, DT, and RT: three biological input rows and six FASTQ files. _Avoid_: “three FASTQs,” which confuses sample roles with file count.
+- **Pooled RT sample** — one logical RNA-tumor sample formed from explicitly identified RNA library repeats while retaining each repeat's provenance. It is not evidence that the libraries came from the same extraction or aliquot as the DNA samples.
+- **RNA library repeat** — an independently prepared RNA-seq library for the same biological sample. It remains distinct from a sequencing lane so duplicate handling and provenance preserve the library boundary.
+- **Cell-line-matched hybrid benchmark** — an integrated DNA/RNA analysis whose inputs represent the same cell-line identities but are not proven to share a specimen, extraction, or aliquot. Its rescue output is benchmark evidence, not specimen-matched training truth.
 - **seq2neo cohort** — the 66-patient WES + RNA-seq cohort assembled from SRA projects PRJNA298376, PRJNA298330, PRJNA298310, partitioned into 4 disease-exclusive cross-validation folds. Its pipeline outputs are the training labels for the downstream model.
 
 ## Pipeline concepts
@@ -23,6 +27,12 @@ Domain terms for this repository. Glossary only — no implementation details or
 - **Expected caller panel** — the complete caller set required for one sample/modality consensus. Missing, duplicate, or unexpected inputs make the panel incomplete rather than changing its size.
 - **Caller-detection support** — the `ENS_SUPPORT=k/n` count of expected callers whose records support the variant's existence. It is distinct from biological-class agreement and calibrated label confidence.
 - **DNA-only run** — a matched DNA tumor/normal run through DeepSomatic, Mutect2, Strelka2, normalization, and within-DNA consensus, with no RNA rescue branch.
+- **Hybrid-ingress run** — one patient analysis whose modalities enter from different preparation stages, such as caller-ready DN/DT alignments together with raw RT reads, and converge before variant calling. _Avoid_: mixed-input run, which does not say that the inputs begin at different stages.
+- **Caller-ready alignment** — an indexed, coordinate-sorted alignment whose sample identity, preparation state, and reference compatibility are sufficient for direct variant calling without implicit remapping or duplicate marking.
+- **Input stage** — the declared preparation state at which an input enters the pipeline: raw reads, an alignment intended for remapping, or a caller-ready alignment. It is independent of whether the containing file is FASTQ, BAM, or CRAM.
+- **Hybrid input manifest** — a samplesheet in which every row explicitly declares its input stage so multiple preparation stages can coexist without inference. _Avoid_: partially staged manifest.
+- **Ingress provenance** — the auditable record of how each source input reached the caller-ready boundary, including its identity, preparation stage, reference decision, and library relationship.
+- **Shared callable region** — the genomic region in which DNA and RNA evidence are intentionally compared for integrated consensus and rescue labels.
 
 - **Re-consensus rerun** — forward-only regeneration of consensus and rescue VCFs for the whole cohort from the existing, read-only per-caller VCF outputs, using fixed pipeline code, written to a new output location. Original outputs are never modified.
 

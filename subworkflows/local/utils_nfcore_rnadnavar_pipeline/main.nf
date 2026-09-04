@@ -97,11 +97,15 @@ workflow PIPELINE_INITIALISATION {
 
     params.input_restart = retrieveInput((!params.build_only_index && !input), params.step, params.outdir)
 
-    ch_from_samplesheet = params.build_only_index
-        ? Channel.empty()
+    def sample_rows = params.build_only_index
+        ? []
         : input
-            ? Channel.fromList(samplesheetToList(input, "${projectDir}/assets/schema_input.json"))
-            : Channel.fromList(samplesheetToList(params.input_restart, "${projectDir}/assets/schema_input.json"))
+            ? samplesheetToList(input, "${projectDir}/assets/schema_input.json")
+            : samplesheetToList(params.input_restart, "${projectDir}/assets/schema_input.json")
+
+    // Validate the complete manifest before creating a channel or launching any process.
+    validateHybridManifest(sample_rows)
+    ch_from_samplesheet = Channel.fromList(sample_rows)
 
     SAMPLESHEET_TO_CHANNEL(ch_from_samplesheet)
 
@@ -348,4 +352,56 @@ def validateMeta(meta, required_keys = ['id', 'patient', 'status']) {
     }
     
     return true
+}
+
+
+// Validate the optional hybrid-ingress contract while preserving legacy manifests.
+def validateHybridManifest(rows) {
+    if (!rows) return
+    def staged = rows.collect { it[0]?.input_stage?.toString()?.trim() }.findAll { it }
+    if (!staged) return
+    if (staged.size() != rows.size()) {
+        error("Hybrid input manifest is partially staged: every row must declare input_stage when any row does (raw_reads, raw_alignment, or caller_ready).")
+    }
+    def validStages = ['raw_reads', 'raw_alignment', 'caller_ready'] as Set
+    def errors = []
+    rows.eachWithIndex { row, idx ->
+        def meta = row[0] ?: [:]
+        def stage = meta.input_stage?.toString()?.trim()
+        if (!(stage in validStages)) errors << "row ${idx + 1}: invalid input_stage '${stage}'"
+        def fq1 = row[1]
+        def fq2 = row[2]
+        def cram = row[4]
+        def crai = row[5]
+        def bam = row[6]
+        def bai = row[7]
+        def hasFastq = fq1 || fq2
+        def hasBam = bam || bai
+        def hasCram = cram || crai
+        def payloads = [hasFastq, hasBam, hasCram].count { it }
+        if (payloads != 1) errors << "row ${idx + 1} (${meta.sample ?: 'unknown'}): exactly one complete FASTQ, BAM, or CRAM payload is required"
+        if (hasFastq && (!fq1 || !fq2)) errors << "row ${idx + 1}: FASTQ payload requires both fastq_1 and fastq_2"
+        if (hasBam && (!bam || !bai)) errors << "row ${idx + 1}: BAM payload requires bam and bai"
+        if (hasCram && (!cram || !crai)) errors << "row ${idx + 1}: CRAM payload requires cram and crai"
+        [[fq1, fq2], [bam, bai], [cram, crai]].flatten().findAll { it }.each { path ->
+            if (!(path instanceof java.io.File) && !(path instanceof java.nio.file.Path)) path = file(path.toString())
+            if (!path.exists()) errors << "row ${idx + 1}: input file does not exist: ${path}"
+        }
+        if (stage == 'raw_reads' && !hasFastq) errors << "row ${idx + 1}: raw_reads requires a FASTQ payload"
+        if (stage in ['raw_alignment', 'caller_ready'] && !(hasBam || hasCram)) errors << "row ${idx + 1}: ${stage} requires a BAM/BAI or CRAM/CRAI payload"
+    }
+    rows.groupBy { it[0]?.patient }.each { patient, patientRows ->
+        def byStatus = patientRows.groupBy { it[0]?.status as Integer }
+        [0: 'DN', 1: 'DT', 2: 'RT'].each { status, label ->
+            def matches = byStatus[status] ?: []
+            if (matches.size() != 1 && !(status == 2 && matches.size() > 1)) errors << "patient ${patient}: expected exactly one ${label} logical sample"
+            if (status == 2 && matches.size() > 1) {
+                def libraries = matches.collect { it[0]?.library?.toString()?.trim() }
+                if (libraries.any { !it } || libraries.toSet().size() != libraries.size()) errors << "patient ${patient}: multi-library RT rows require unique non-blank library values"
+                def samples = matches.collect { it[0]?.sample?.toString() }.toSet()
+                if (samples.size() != 1) errors << "patient ${patient}: all RT libraries must share one logical sample"
+            }
+        }
+    }
+    if (errors) error("Invalid hybrid input manifest:\n - " + errors.unique().join("\n - "))
 }

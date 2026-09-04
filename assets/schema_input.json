@@ -37,16 +37,15 @@
                 "anyOf": [
                     {
                         "type": "string",
-                        "pattern": "^\\S+\\.f(ast)?q\\.gz$"
+                        "pattern": "^\\S+\\.f(ast)?q\\.gz$",
+                        "format": "file-path",
+                        "exists": true
                     },
                     {
                         "type": "string",
                         "maxLength": 0
                     }
                 ],
-                "format": "file-path",
-                "exists": true,
-                "pattern": "^([\\S\\s]*\\/)?[^\\s\\/]+\\.f(ast)?q\\.gz$",
                 "errorMessage": "FastQ file for reads 1 must be provided, cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'"
             },
             "fastq_2": {
@@ -54,105 +53,105 @@
                 "anyOf": [
                     {
                         "type": "string",
-                        "pattern": "^\\S+\\.f(ast)?q\\.gz$"
+                        "pattern": "^\\S+\\.f(ast)?q\\.gz$",
+                        "format": "file-path",
+                        "exists": true
                     },
                     {
                         "type": "string",
                         "maxLength": 0
                     }
-                ],
-                "format": "file-path",
-                "exists": true
+                ]
             },
             "table": {
                 "errorMessage": "Recalibration table cannot contain spaces and must have extension '.table'",
                 "anyOf": [
                     {
                         "type": "string",
-                        "pattern": "^\\S+\\.table$"
+                        "pattern": "^\\S+\\.table$",
+                        "format": "file-path",
+                        "exists": true
                     },
                     {
                         "type": "string",
                         "maxLength": 0
                     }
-                ],
-                "format": "file-path",
-                "exists": true
+                ]
             },
             "cram": {
                 "errorMessage": "CRAM file cannot contain spaces and must have extension '.cram'",
                 "anyOf": [
                     {
                         "type": "string",
-                        "pattern": "^\\S+\\.cram$"
+                        "pattern": "^\\S+\\.cram$",
+                        "format": "file-path",
+                        "exists": true
                     },
                     {
                         "type": "string",
                         "maxLength": 0
                     }
-                ],
-                "format": "file-path",
-                "exists": true
+                ]
             },
             "crai": {
                 "errorMessage": "CRAM index file cannot contain spaces and must have extension '.crai'",
                 "anyOf": [
                     {
                         "type": "string",
-                        "pattern": "^\\S+\\.crai$"
+                        "pattern": "^\\S+\\.crai$",
+                        "format": "file-path",
+                        "exists": true
                     },
                     {
                         "type": "string",
                         "maxLength": 0
                     }
-                ],
-                "format": "file-path",
-                "exists": true
+                ]
             },
             "bam": {
                 "errorMessage": "BAM file cannot contain spaces and must have extension '.bam'",
                 "anyOf": [
                     {
                         "type": "string",
-                        "pattern": "^\\S+\\.bam$"
+                        "pattern": "^\\S+\\.bam$",
+                        "format": "file-path",
+                        "exists": true
                     },
                     {
                         "type": "string",
                         "maxLength": 0
                     }
-                ],
-                "format": "file-path",
-                "exists": true
+                ]
             },
             "bai": {
                 "errorMessage": "BAM index file cannot contain spaces and must have extension '.bai'",
                 "anyOf": [
                     {
                         "type": "string",
-                        "pattern": "^\\S+\\.bai$"
+                        "pattern": "^\\S+\\.bai$",
+                        "format": "file-path",
+                        "exists": true
                     },
                     {
                         "type": "string",
                         "maxLength": 0
                     }
-                ],
-                "format": "file-path",
-                "exists": true
+                ]
             },
             "vcf": {
                 "errorMessage": "VCF file for reads 1 cannot contain spaces and must have extension '.vcf' or '.vcf.gz'",
                 "anyOf": [
                     {
                         "type": "string",
-                        "pattern": "^\\S+\\.vcf(\\.gz)?$"
+                        "pattern": "^\\S+\\.vcf(\\.gz)?$",
+                        "format": "file-path",
+                        "exists": true
                     },
                     {
                         "type": "string",
                         "maxLength": 0
                     }
-                ],
-                "format": "file-path",
-                "exists": true
+                ]
             },
             "variantcaller": {
                 "type": "string"
@@ -162,19 +161,33 @@
                 "anyOf": [
                     {
                         "type": "string",
-                        "pattern": "^\\S+\\.maf$"
+                        "pattern": "^\\S+\\.maf$",
+                        "format": "file-path",
+                        "exists": true
                     },
                     {
                         "type": "string",
                         "maxLength": 0
                     }
-                ],
-                "format": "file-path",
-                "exists": true
+                ]
             },
             "normal_id": {
                 "type": "string",
                 "meta": ["normal_id"]
+            },
+            "input_stage": {
+                "anyOf": [
+                    {"type": "string", "enum": ["raw_reads", "raw_alignment", "caller_ready"]},
+                    {"type": "string", "maxLength": 0}
+                ],
+                "meta": ["input_stage"]
+            },
+            "library": {
+                "anyOf": [
+                    {"type": "string", "pattern": "^\\S+$"},
+                    {"type": "string", "maxLength": 0}
+                ],
+                "meta": ["library"]
             }
         },
         "required": ["patient", "sample"]
