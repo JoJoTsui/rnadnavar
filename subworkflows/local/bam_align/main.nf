@@ -68,8 +68,8 @@ workflow BAM_ALIGN {
         // BAM-to-FASTQ conversion and all read remapping. BAMs are converted to
         // CRAM once so the downstream caller contract remains canonical.
         caller_ready_cram = Channel.empty()
-        caller_ready_bam = input_sample_type.caller_ready_bam.map { meta, bam, bai -> [meta, bam, bai] }
-        caller_ready_cram_input = input_sample_type.caller_ready_cram.map { meta, cram, crai -> [meta, cram, crai] }
+        caller_ready_bam = input_sample_type.caller_ready_bam.map { row -> [row[0], row[1], row[2]] }
+        caller_ready_cram_input = input_sample_type.caller_ready_cram.map { row -> [row[0], row[1], row[2]] }
         BAM_TO_CRAM_MAPPING(caller_ready_bam, fasta, fasta_fai)
         versions = versions.mix(BAM_TO_CRAM_MAPPING.out.versions)
         caller_ready_cram = caller_ready_cram.mix(BAM_TO_CRAM_MAPPING.out.cram.join(BAM_TO_CRAM_MAPPING.out.crai, failOnDuplicate: true, failOnMismatch: true))
