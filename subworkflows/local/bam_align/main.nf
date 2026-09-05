@@ -67,14 +67,12 @@ workflow BAM_ALIGN {
         // Caller-ready alignments are already validated by preflight and bypass
         // BAM-to-FASTQ conversion and all read remapping. BAMs are converted to
         // CRAM once so the downstream caller contract remains canonical.
-        caller_ready_cram = Channel.empty()
-        caller_ready_bam = input_sample_type.caller_ready_bam.map { row -> [row[0], row[1], row[2]] }
-        caller_ready_cram_input = input_sample_type.caller_ready_cram.map { row -> [row[0], row[1], row[2]] }
-        BAM_TO_CRAM_MAPPING(caller_ready_bam, fasta, fasta_fai.map { fai -> [[id: 'fai'], fai[0]] })
-        versions = versions.mix(BAM_TO_CRAM_MAPPING.out.versions)
-        caller_ready_cram = caller_ready_cram.mix(BAM_TO_CRAM_MAPPING.out.cram.join(BAM_TO_CRAM_MAPPING.out.crai, failOnDuplicate: true, failOnMismatch: true))
-        caller_ready_cram = caller_ready_cram.mix(caller_ready_cram_input)
-            .map { meta, cram, crai -> [meta + [data_type: 'cram'], cram, crai] }
+        caller_ready_bam = input_sample_type.caller_ready_bam.map { row -> [row[0] + [data_type: 'bam'], row[1], row[2]] }
+        caller_ready_cram_input = input_sample_type.caller_ready_cram.map { row -> [row[0] + [data_type: 'cram'], row[1], row[2]] }
+        // Keep caller-ready alignments in their original indexed form. The
+        // downstream caller contract accepts BAM or CRAM and this avoids any
+        // rewrite of user-owned inputs.
+        caller_ready_cram = Channel.empty().mix(caller_ready_bam, caller_ready_cram_input)
 
         // Gather fastq (inputed or converted)
         // Theorically this could work on mixed input (fastq for one sample and bam for another)
