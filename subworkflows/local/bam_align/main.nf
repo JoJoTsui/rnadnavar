@@ -274,5 +274,6 @@ workflow BAM_ALIGN {
     bam_mapped       = bam_mapped      // for preprocessing
     cram_mapped      = cram_mapped     // for preprocessing
     reports          = reports
+    dictionary_audits = BAM_REORDER_CONTIGS.out.audit
     versions         = versions
 }
