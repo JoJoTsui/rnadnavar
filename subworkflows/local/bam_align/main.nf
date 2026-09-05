@@ -12,6 +12,7 @@ include { FASTQ_ALIGN                                   } from '../fastq_align/m
 include { FASTQ_ALIGN_STAR                              } from '../../nf-core/fastq_align_star/main'
 // Merge and index BAM files (optional)
 include { BAM_MERGE_INDEX_SAMTOOLS                      } from '../bam_merge_index_samtools/main'
+include { BAM_REORDER_CONTIGS                           } from '../bam_reorder_contigs/main'
 include { SAMTOOLS_CONVERT as BAM_TO_CRAM_MAPPING       } from '../../../modules/nf-core/samtools/convert/main'
 // Create samplesheets to restart from mapping
 include { CHANNEL_ALIGN_CREATE_CSV                      } from '../channel_align_create_csv/main'
@@ -30,6 +31,7 @@ workflow BAM_ALIGN {
     gtf
     fasta
     fasta_fai
+    dict
     input_sample
 
     main:
@@ -69,10 +71,21 @@ workflow BAM_ALIGN {
         // CRAM once so the downstream caller contract remains canonical.
         caller_ready_bam = input_sample_type.caller_ready_bam.map { row -> [row[0] + [data_type: 'bam'], row[1], row[2]] }
         caller_ready_cram_input = input_sample_type.caller_ready_cram.map { row -> [row[0] + [data_type: 'cram'], row[1], row[2]] }
-        // Keep caller-ready alignments in their original indexed form. The
-        // downstream caller contract accepts BAM or CRAM and this avoids any
-        // rewrite of user-owned inputs.
-        caller_ready_cram = Channel.empty().mix(caller_ready_bam, caller_ready_cram_input)
+        // Reuse the DNA-only external-alignment dictionary audit. Incompatible
+        // dictionaries are normalized or rejected according to policy; no
+        // caller-ready input silently falls back to read remapping.
+        BAM_REORDER_CONTIGS(
+            caller_ready_bam,
+            fasta.map { meta, fa -> fa },
+            fasta_fai,
+            dict.map { meta, d -> d },
+            params.bam_dictionary_policy ?: 'normalize'
+        )
+        versions = versions.mix(BAM_REORDER_CONTIGS.out.versions)
+        caller_ready_cram = Channel.empty().mix(
+            BAM_REORDER_CONTIGS.out.bam.map { meta, bam, bai -> [meta + [data_type: 'bam'], bam, bai] },
+            caller_ready_cram_input
+        )
 
         // Gather fastq (inputed or converted)
         // Theorically this could work on mixed input (fastq for one sample and bam for another)
