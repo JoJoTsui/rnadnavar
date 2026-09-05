@@ -1,0 +1,24 @@
+main_nf: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/main.nf
+rdv_conf: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/seqc2.hybrid.shared.config
+nxf_conda_cachedir: /t9k/mnt/joey/nf_conda_envs
+nxf_conda_usemamba: "true"
+micromamba_env: nextflow
+https_proxy: "http://127.0.0.1:7890"
+seqc2_root: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid
+input_csv: csv/seqc2_wes_ll_hybrid.csv
+outdir: output/seqc2.wes.ll.hybrid.pooling_fix
+state_file: runs/pooling_fix_state.json
+resume: true
+offline: true
+# DNA-only output must never satisfy hybrid completion.
+completion_artifacts:
+  - "pipeline_info/execution_trace*.txt"
+  - "variant_calling/deepsomatic/WES_LL_T_1_vs_WES_LL_N_1/*.deepsomatic.vcf.gz"
+  - "variant_calling/mutect2/WES_LL_T_1_vs_WES_LL_N_1/*.mutect2.filtered.vcf.gz"
+  - "variant_calling/strelka/WES_LL_T_1_vs_WES_LL_N_1/*.strelka.variants.vcf.gz"
+  - "variant_calling/deepsomatic/WES_LL_RT_1_vs_WES_LL_N_1/*.deepsomatic.vcf.gz"
+  - "variant_calling/mutect2/WES_LL_RT_1_vs_WES_LL_N_1/*.mutect2.filtered.vcf.gz"
+  - "variant_calling/strelka/WES_LL_RT_1_vs_WES_LL_N_1/*.strelka.variants.vcf.gz"
+  - "consensus/WES_LL_T_1_vs_WES_LL_N_1/*.consensus.vcf.gz"
+  - "consensus/WES_LL_RT_1_vs_WES_LL_N_1/*.consensus.vcf.gz"
+  - "rescue/**/*.rescued.vcf.gz"

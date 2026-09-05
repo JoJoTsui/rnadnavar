@@ -161,11 +161,12 @@ workflow BAM_ALIGN {
         // This is needed to group reads from the same sample together using groupKey to avoid stalling the workflow
         // when reads from different samples are mixed together
         reads_for_alignment.map { meta, reads ->
-                [ meta.subMap('patient', 'sample', 'status'), reads ]
+                [ meta.subMap('patient', 'sample', 'status'), reads, meta.library ]
             }
             .groupTuple()
-            .map { meta, reads ->
-                meta + [ n_fastq: reads.size() ] // We can drop the FASTQ files now that we know how many there are
+            .map { meta, reads, libraries ->
+                meta + [ n_fastq: reads.size() ] +
+                    (libraries.any { it } ? [libraries: libraries.findAll { it }.unique().sort()] : [:])
             }
             .set { reads_grouping_key }
 
@@ -187,21 +188,27 @@ workflow BAM_ALIGN {
         // Grouping the bams from the same samples not to stall the workflow
         bam_mapped_dna = FASTQ_ALIGN.out.bam
             .combine(reads_grouping_key) // Creates a tuple of [ meta, bam, reads_grouping_key ]
-            .filter { meta1, _bam, meta2 -> meta1.sample == meta2.sample }
+            .filter { meta1, _bam, meta2 -> meta1.subMap('patient', 'sample', 'status') == meta2.subMap('patient', 'sample', 'status') }
             // Add n_fastq and other variables to meta
             .map { meta1, bam, meta2 ->
                 [ meta1 + meta2, bam ]
             }
-            // Manipulate meta map to remove old fields and add new ones
+            // Lane/library identify contributors, not pools. Shared libraries
+            // provenance is supplied by reads_grouping_key above.
             .map { meta, bam ->
-                [ meta - meta.subMap('id', 'read_group', 'data_type', 'num_lanes', 'read_group', 'size') + [ data_type: 'bam', id: meta.sample ], bam ]
+                [ meta - meta.subMap('id', 'read_group', 'data_type', 'num_lanes', 'size', 'lane', 'library') + [ data_type: 'bam', id: meta.sample ], bam ]
             }
             // Create groupKey from meta map
             .map { meta, bam ->
                 [ groupKey( meta, meta.n_fastq), bam ]
             }
             // Group
-            .groupTuple()
+            .groupTuple(remainder: true)
+            .map { key, bams ->
+                def meta = key.getGroupTarget()
+                if (bams.size() != meta.n_fastq) error "Incomplete alignment pool ${meta.patient}/${meta.sample}: expected ${meta.n_fastq} BAMs, received ${bams.size()}"
+                [meta, bams.sort(false) { it.toString() }]
+            }
 
         bam_mapped_dna.dump(tag:"bam_mapped_dna")
         reads_for_alignment_status.rna.dump(tag:"reads_for_alignment_status.rna")
@@ -219,21 +226,27 @@ workflow BAM_ALIGN {
         )
         // Grouping the bams from the same samples not to stall the workflow
         bam_mapped_rna = FASTQ_ALIGN_STAR.out.bam.combine(reads_grouping_key) // Creates a tuple of [ meta, bam, reads_grouping_key ]
-            .filter { meta1, _bam, meta2 -> meta1.sample == meta2.sample }
+            .filter { meta1, _bam, meta2 -> meta1.subMap('patient', 'sample', 'status') == meta2.subMap('patient', 'sample', 'status') }
             // Add n_fastq and other variables to meta
             .map { meta1, bam, meta2 ->
                 [ meta1 + meta2, bam ]
             }
-            // Manipulate meta map to remove old fields and add new ones
+            // Lane/library identify contributors, not pools. Shared libraries
+            // provenance is supplied by reads_grouping_key above.
             .map { meta, bam ->
-                [ meta - meta.subMap('id', 'read_group', 'data_type', 'num_lanes', 'read_group', 'size') + [ data_type: 'bam', id: meta.sample ], bam ]
+                [ meta - meta.subMap('id', 'read_group', 'data_type', 'num_lanes', 'size', 'lane', 'library') + [ data_type: 'bam', id: meta.sample ], bam ]
             }
             // Create groupKey from meta map
             .map { meta, bam ->
                 [ groupKey( meta, meta.n_fastq), bam ]
             }
             // Group
-            .groupTuple()
+            .groupTuple(remainder: true)
+            .map { key, bams ->
+                def meta = key.getGroupTarget()
+                if (bams.size() != meta.n_fastq) error "Incomplete alignment pool ${meta.patient}/${meta.sample}: expected ${meta.n_fastq} BAMs, received ${bams.size()}"
+                [meta, bams.sort(false) { it.toString() }]
+            }
         bam_mapped_rna.dump(tag:"bam_mapped_rna")
         // Gather QC reports
         reports           = reports.mix(FASTQ_ALIGN_STAR.out.stats.collect{it[1]}.ifEmpty([]))

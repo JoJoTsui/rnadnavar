@@ -358,7 +358,9 @@ def validateMeta(meta, required_keys = ['id', 'patient', 'status']) {
 // Validate the optional hybrid-ingress contract while preserving legacy manifests.
 def validateHybridManifest(rows) {
     if (!rows) return
-    def staged = rows.collect { it[0]?.input_stage?.toString()?.trim() }.findAll { it }
+    // nf-schema represents an absent optional metadata field as an empty list.
+    // Test emptiness before string conversion: [].toString() is the truthy '[]'.
+    def staged = rows.collect { (it[0]?.input_stage ?: '').toString().trim() }.findAll { it }
     if (!staged) return
     if (staged.size() != rows.size()) {
         error("Hybrid input manifest is partially staged: every row must declare input_stage when any row does (raw_reads, raw_alignment, or caller_ready).")
@@ -396,7 +398,7 @@ def validateHybridManifest(rows) {
             def matches = byStatus[status] ?: []
             if (matches.size() != 1 && !(status == 2 && matches.size() > 1)) errors << "patient ${patient}: expected exactly one ${label} logical sample"
             if (status == 2 && matches.size() > 1) {
-                def libraries = matches.collect { it[0]?.library?.toString()?.trim() }
+                def libraries = matches.collect { (it[0]?.library ?: '').toString().trim() }
                 if (libraries.any { !it } || libraries.toSet().size() != libraries.size()) errors << "patient ${patient}: multi-library RT rows require unique non-blank library values"
                 def samples = matches.collect { it[0]?.sample?.toString() }.toSet()
                 if (samples.size() != 1) errors << "patient ${patient}: all RT libraries must share one logical sample"

@@ -30,13 +30,14 @@ workflow  SAMPLESHEET_TO_CHANNEL{
 
                 def flowcell   = sanitizeRGValue(flowcellLaneFromFastq(fastq_1))
                 def sample_san = sanitizeRGValue(meta.sample)
+                def library_san = sanitizeRGValue(meta.input_stage && meta.library ? meta.library : meta.sample)
                 def lane_san   = sanitizeRGValue(meta.lane)
                 def fasta_san  = sanitizeRGValue(params.fasta)
                 def platform_san = sanitizeRGValue(params.seq_platform)
                 // Don't use a random element for ID, it breaks resuming
-                def read_group = "\"@RG\\tID:${flowcell}.${sample_san}.${lane_san}\\t${CN}PU:${lane_san}\\tSM:${sample_san}\\tLB:${sample_san}\\tDS:${fasta_san}\\tPL:${platform_san}\""
+                def read_group = "\"@RG\\tID:${flowcell}.${sample_san}.${lane_san}\\t${CN}PU:${lane_san}\\tSM:${sample_san}\\tLB:${library_san}\\tDS:${fasta_san}\\tPL:${platform_san}\""
                 if (meta.status >= 2) { // STAR does not need '@RG'
-                    read_group  = "ID:${flowcell}.${sample_san}.${lane_san} ${CN}PU:${lane_san} SM:${sample_san} LB:${sample_san} DS:${fasta_san} PL:${platform_san}"
+                    read_group  = "ID:${flowcell}.${sample_san}.${lane_san} ${CN}PU:${lane_san} SM:${sample_san} LB:${library_san} DS:${fasta_san} PL:${platform_san}"
                 }
                 meta           = meta + [num_lanes: num_lanes.toInteger(), read_group: read_group.toString(), data_type: 'fastq', size: 1]
 
