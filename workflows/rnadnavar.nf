@@ -138,7 +138,6 @@ workflow RNADNAVAR {
 
     reports = reports.mix(BAM_ALIGN.out.reports)
     versions = versions.mix(BAM_ALIGN.out.versions)
-    reports = reports.mix(BAM_ALIGN.out.dictionary_audits)
     // RNA editing parameters
     rediportal_vcf          = params.rediportal_vcf ? Channel.fromPath(params.rediportal_vcf).collect() : Channel.empty()
     rediportal_tbi          = params.rediportal_tbi ? Channel.fromPath(params.rediportal_tbi).collect() : Channel.empty()
