@@ -51,7 +51,9 @@ workflow BAM_ALIGN {
 
         // Figure out if input is bam or fastq
         input_sample_type = input_sample.branch{
-            bam:   it[0].data_type == "bam"
+            caller_ready_bam: it[0].input_stage == "caller_ready" && it[0].data_type == "bam"
+            caller_ready_cram: it[0].input_stage == "caller_ready" && it[0].data_type == "cram"
+            bam:   it[0].data_type == "bam" && it[0].input_stage != "caller_ready"
             fastq: it[0].data_type == "fastq"
         }
         // QC & TRIM
@@ -61,6 +63,16 @@ workflow BAM_ALIGN {
             [ [ id:"fasta" ], [] ], // fasta
             [ [ id:'null' ], [] ],  // fasta_fai
             interleave_input)
+
+        // Caller-ready alignments are already validated by preflight and bypass
+        // BAM-to-FASTQ conversion and all read remapping. BAMs are converted to
+        // CRAM once so the downstream caller contract remains canonical.
+        caller_ready_cram = Channel.empty()
+        BAM_TO_CRAM_MAPPING(input_sample_type.caller_ready_bam, fasta, fasta_fai)
+        versions = versions.mix(BAM_TO_CRAM_MAPPING.out.versions)
+        caller_ready_cram = caller_ready_cram.mix(BAM_TO_CRAM_MAPPING.out.cram.join(BAM_TO_CRAM_MAPPING.out.crai, failOnDuplicate: true, failOnMismatch: true))
+        caller_ready_cram = caller_ready_cram.mix(input_sample_type.caller_ready_cram)
+            .map { meta, cram, crai -> [meta + [data_type: 'cram'], cram, crai] }
 
         // Gather fastq (inputed or converted)
         // Theorically this could work on mixed input (fastq for one sample and bam for another)
@@ -217,6 +229,7 @@ workflow BAM_ALIGN {
 
         // mix dna and rna in one channel
         bam_mapped = bam_mapped_dna.mix(bam_mapped_rna)
+        cram_mapped = caller_ready_cram
 
         // gatk4 markduplicates can handle multiple bams as input, so no need to merge/index here
         // Except if and only if skipping markduplicates or saving mapped bams

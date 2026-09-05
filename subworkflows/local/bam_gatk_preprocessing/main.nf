@@ -379,6 +379,14 @@ workflow BAM_GATK_PREPROCESSING {
         cram_variant_calling = cram_applybqsr
     }
 
+    // Caller-ready alignments supplied during a mapping run bypass all DNA/RNA
+    // preprocessing. They are already audited inputs and join the canonical
+    // caller-ready CRAM channel alongside newly processed raw-read alignments.
+    if (params.step == 'mapping' && cram_mapped) {
+        cram_variant_calling = Channel.empty().mix(cram_variant_calling, cram_mapped)
+            .map { meta, cram, crai -> [meta + [data_type: 'cram'], cram, crai] }
+    }
+
 
     if ((params.step == 'variant_calling' || (params.step in ['consensus', 'annotate','norm','filtering', 'rna_filtering'] && params.tools && params.tools.split(',').contains("realignment"))) && !realignment) {
         input_variant_calling_convert = input_sample.branch{
