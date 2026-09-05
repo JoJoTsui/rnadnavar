@@ -91,20 +91,25 @@ workflow BAM_VARIANT_CALLING {
                 cram_variant_calling_status_normal = cram_variant_calling_status.normal
             }
 
-            // Tumor - normal pairs
-            // Use cross to combine normal with all tumor samples, i.e. multi tumor samples from recurrences
-            cram_variant_calling_pair = cram_variant_calling_normal_to_cross.cross(cram_variant_calling_pair_to_cross)
-                .map { normal, tumor ->
+            // Tumor-normal pairs are modality-specific. Keep DNA (status=1)
+            // and RNA (status=2) as separate caller inputs so each modality
+            // receives its own Mutect2, Strelka2, and DeepSomatic panel.
+            def build_modality_pairs = { tumor_status ->
+                cram_variant_calling_normal_to_cross.cross(
+                    cram_variant_calling_pair_to_cross.filter { it[1].status == tumor_status }
+                ).map { normal, tumor ->
                     def meta = [:]
-
                     meta.id         = "${tumor[1].id}_vs_${normal[1].sample}".toString()
                     meta.normal_id  = normal[1].sample
                     meta.patient    = normal[0]
                     meta.status     = tumor[1].status
                     meta.tumor_id   = tumor[1].sample
-
                     [ meta, normal[2], normal[3], tumor[2], tumor[3] ]
                 }
+            }
+            cram_variant_calling_pair = Channel.empty()
+                .mix(build_modality_pairs(1))
+                .mix(build_modality_pairs(2))
 
             cram_variant_calling_pair.dump(tag:"cram_variant_calling_pair")
 
