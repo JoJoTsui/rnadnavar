@@ -241,11 +241,11 @@ workflow RNADNAVAR {
 
         // === Step 1: Prepare realignment (extract reads + HISAT2) ===
         if (mode == 'vcf') {
-            // VCF-based realignment: use RNA consensus VCF as input
-            // Include both main consensus VCFs and rescue VCFs
+            // VCF-based realignment: use every RNA consensus record as a candidate.
+            // Do not add DNA-only or rescue-only candidates: that would change the
+            // accepted candidate policy rather than merely reassessing RNA evidence.
             vcf_for_realignment = BAM_PROCESSING.out.vcf
-                .mix(BAM_PROCESSING.out.vcf_rescue)
-                .filter { it[0].status == 2 }  // RNA samples only
+                .filter { it[0].status == 2 }
                 .map { meta, vcf, tbi -> [meta, vcf, tbi] }
 
             // Filter CRAM to match VCF filtering - RNA samples only for realignment

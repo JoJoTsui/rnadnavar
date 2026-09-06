@@ -49,6 +49,8 @@ DEFAULTS = {
         "**/pipeline_info/execution_trace*.txt",
         "consensus/**/*.consensus.vcf.gz",
     ],
+    "preflight_validator": [],
+    "completion_validator": [],
 }
 
 
@@ -96,11 +98,24 @@ def build_env(cfg: dict) -> dict:
     return env
 
 
-def is_complete(outdir: Path, artifacts: list) -> bool:
-    """outdir must exist AND every artifact glob must match >=1 file."""
+def run_validator(command: list, outdir: Path, input_csv: Path | None = None) -> bool:
+    """Run an optional contract validator without exposing its output on success."""
+    if not command:
+        return True
+    substitutions = {"outdir": str(outdir)}
+    if input_csv is not None:
+        substitutions["input_csv"] = str(input_csv)
+    cmd = [str(part).format(**substitutions) for part in command]
+    return subprocess.run(cmd, text=True).returncode == 0
+
+
+def is_complete(outdir: Path, artifacts: list, cfg: dict | None = None) -> bool:
+    """Require published artifacts and an optional final-artifact validator."""
     if not outdir.exists():
         return False
-    return all(list(outdir.glob(p)) for p in artifacts)
+    if not all(list(outdir.glob(p)) for p in artifacts):
+        return False
+    return run_validator((cfg or {}).get("completion_validator", []), outdir)
 
 
 def main():
@@ -134,7 +149,7 @@ def main():
     key = input_csv.stem
     state = json.loads(state_path.read_text()) if state_path.exists() else {}
 
-    if is_complete(outdir, cfg["completion_artifacts"]):
+    if is_complete(outdir, cfg["completion_artifacts"], cfg):
         print(f"[SKIP]  {key}  already complete (artifacts present in {outdir})")
         return
 
@@ -148,13 +163,16 @@ def main():
     if dry_run:
         return
 
+    if not run_validator(cfg.get("preflight_validator", []), outdir, input_csv):
+        sys.exit("ERROR: preflight validation failed; no Nextflow tasks were launched")
+
     state[key] = {"status": "running", "started": datetime.now().isoformat()}
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(json.dumps(state, indent=2))
 
     try:
         subprocess.run(cmd, env=build_env(cfg), check=True)
-        if is_complete(outdir, cfg["completion_artifacts"]):
+        if is_complete(outdir, cfg["completion_artifacts"], cfg):
             state[key] = {"status": "succeeded",
                           "finished": datetime.now().isoformat()}
             print(f"[OK]    {key}")

@@ -45,34 +45,39 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             validated_cram = reads_to_realign.filter { meta, cram, crai -> validateMeta(meta) }
 
             // === STEP 2: SAMPLE FILTERING ===
-            // Filter samples: RNA (status=2) and DNA normal (status=0) only
-            // Exclude DNA tumor (status=1)
+            // Candidates and extracted reads must both be the same logical RNA
+            // sample. DNA normal is supplied later for second-pass calling.
             
             vcf_to_realign = validated_vcf.branch{
-                                        norealign: it[0].status == 1
-                                        realign:   it[0].status == 2 || it[0].status == 0
+                                        norealign: it[0].status != 2
+                                        realign:   it[0].status == 2
             }
 
             reads_to_realign_branch = validated_cram.branch{
-                                        norealign: it[0].status == 1
-                                        realign:   it[0].status == 2 || it[0].status == 0
+                                        norealign: it[0].status != 2
+                                        realign:   it[0].status == 2
             }
 
             // === STEP 3: CHANNEL JOIN ===
-            // Use basic channel join - both VCF and CRAM are now filtered to RNA samples (status=2)
-            // Ensure we join by patient ID
+            // Pair by patient *and* logical RNA sample. Patient-only joins can
+            // cross-pair pooled or multi-sample RNA evidence. The manifest ingress
+            // validates cardinality before processes are launched; failOnDuplicate
+            // makes an unexpected duplicate a workflow error instead of an arbitrary
+            // selection.
             
-            // Prepare VCF for join: [patient, meta, vcf, tbi]
+            // Prepare VCF for join: [patient, sample, meta, vcf, tbi]
             vcf_keyed = vcf_to_realign.realign
-                .map { meta, vcf, tbi -> [meta.patient, meta, vcf, tbi] }
+                .map { meta, vcf, tbi -> [meta.patient, meta.sample, meta, vcf, tbi] }
             
-            // Prepare CRAM for join: [patient, meta, cram, crai]
+            // Prepare CRAM for join: [patient, sample, meta, cram, crai]
             cram_keyed = reads_to_realign_branch.realign
-                .map { meta, cram, crai -> [meta.patient, meta, cram, crai] }
+                .map { meta, cram, crai -> [meta.patient, meta.sample, meta, cram, crai] }
             
-            // Join
-            joined_data = cram_keyed.join(vcf_keyed, by: 0)
-                .map { patient, cram_meta, cram, crai, vcf_meta, vcf, tbi ->
+            joined_data = cram_keyed.join(vcf_keyed, by: [0, 1], failOnDuplicate: true, remainder: true)
+                .map { patient, sample, cram_meta, cram, crai, vcf_meta, vcf, tbi ->
+                    if (!cram_meta || !vcf_meta || !cram || !crai || !vcf || !tbi) {
+                        error("Realignment pairing requires one RNA CRAM and one candidate VCF for ${patient}/${sample}")
+                    }
                     // Merge metadata safely
                     def merged_meta = cram_meta + [
                         vcf_id: vcf_meta.id,
