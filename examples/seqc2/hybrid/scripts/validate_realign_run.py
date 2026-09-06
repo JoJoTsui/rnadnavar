@@ -38,6 +38,10 @@ FINAL_VCF = (
 )
 
 
+class ZeroCandidates(ValueError):
+    """The first-pass candidate set was validly empty, not missing or corrupt."""
+
+
 def fail(message: str) -> None:
     raise ValueError(message)
 
@@ -174,6 +178,8 @@ def validate_trace(path: Path) -> None:
     if failed:
         fail("execution trace contains failed tasks")
     names = "\n".join(" ".join((row.get("process", ""), row.get("name", ""))).upper() for row in rows)
+    if "VCF2BED" not in names:
+        raise ZeroCandidates("no RT consensus candidates reached realignment")
     missing = [label for label, patterns in SECOND_PASS_PROCESSES.items()
                if not any(pattern in names for pattern in patterns)]
     if missing:
@@ -231,6 +237,9 @@ def main() -> int:
             preflight(args.samplesheet, args.fasta, args.hisat2_dir, args.splicesites)
         else:
             complete(args.outdir)
+    except ZeroCandidates as error:
+        print(f"ZERO_CANDIDATES: {error}", file=sys.stderr)
+        return 3
     except ValueError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1

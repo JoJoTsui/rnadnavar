@@ -8,6 +8,7 @@ seqc2_root: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid
 input_csv: csv/seqc2_wes_ll_hybrid.csv
 outdir: output/seqc2.wes.ll.hybrid.realign.full
 state_file: runs/realign_full_state.json
+provenance_file: runs/realign_full_provenance.json
 resume: true
 offline: true
 preflight_validator:

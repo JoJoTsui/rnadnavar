@@ -18,6 +18,7 @@ Usage:
 import argparse
 import json
 import os
+import hashlib
 import subprocess
 import sys
 from datetime import datetime
@@ -51,6 +52,7 @@ DEFAULTS = {
     ],
     "preflight_validator": [],
     "completion_validator": [],
+    "provenance_file": "",
 }
 
 
@@ -98,15 +100,15 @@ def build_env(cfg: dict) -> dict:
     return env
 
 
-def run_validator(command: list, outdir: Path, input_csv: Path | None = None) -> bool:
+def run_validator(command: list, outdir: Path, input_csv: Path | None = None) -> int:
     """Run an optional contract validator without exposing its output on success."""
     if not command:
-        return True
+        return 0
     substitutions = {"outdir": str(outdir)}
     if input_csv is not None:
         substitutions["input_csv"] = str(input_csv)
     cmd = [str(part).format(**substitutions) for part in command]
-    return subprocess.run(cmd, text=True).returncode == 0
+    return subprocess.run(cmd, text=True).returncode
 
 
 def is_complete(outdir: Path, artifacts: list, cfg: dict | None = None) -> bool:
@@ -115,7 +117,35 @@ def is_complete(outdir: Path, artifacts: list, cfg: dict | None = None) -> bool:
         return False
     if not all(list(outdir.glob(p)) for p in artifacts):
         return False
-    return run_validator((cfg or {}).get("completion_validator", []), outdir)
+    return run_validator((cfg or {}).get("completion_validator", []), outdir) == 0
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def write_provenance(cfg: dict, input_csv: Path, outdir: Path) -> None:
+    if not cfg.get("provenance_file"):
+        return
+    trace = sorted((outdir / "pipeline_info").glob("execution_trace*.txt"), key=lambda p: p.stat().st_mtime)
+    cached = 0
+    if trace:
+        cached = sum(1 for line in trace[-1].read_text().splitlines()[1:] if "\tCACHED\t" in line)
+    data = {
+        "input": {"path": str(input_csv), "sha256": sha256(input_csv)},
+        "configuration": {"path": cfg["rdv_conf"], "sha256": sha256(Path(cfg["rdv_conf"]))},
+        "code": {"main_nf": cfg["main_nf"], "sha256": sha256(Path(cfg["main_nf"]))},
+        "outdir": str(outdir), "trace": str(trace[-1]) if trace else None,
+        "cached_tasks": cached,
+        "completion_artifacts": {pattern: [str(p) for p in outdir.glob(pattern)] for pattern in cfg["completion_artifacts"]},
+    }
+    path = resolve(cfg, "provenance_file")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2) + "\n")
 
 
 def main():
@@ -163,7 +193,7 @@ def main():
     if dry_run:
         return
 
-    if not run_validator(cfg.get("preflight_validator", []), outdir, input_csv):
+    if run_validator(cfg.get("preflight_validator", []), outdir, input_csv) != 0:
         sys.exit("ERROR: preflight validation failed; no Nextflow tasks were launched")
 
     state[key] = {"status": "running", "started": datetime.now().isoformat()}
@@ -172,9 +202,16 @@ def main():
 
     try:
         subprocess.run(cmd, env=build_env(cfg), check=True)
+        validator_status = run_validator(cfg.get("completion_validator", []), outdir)
+        if validator_status == 3:
+            state[key] = {"status": "zero_candidates", "finished": datetime.now().isoformat()}
+            write_provenance(cfg, input_csv, outdir)
+            print(f"[ZERO]  {key}  no candidates reached realignment")
+            sys.exit(3)
         if is_complete(outdir, cfg["completion_artifacts"], cfg):
             state[key] = {"status": "succeeded",
                           "finished": datetime.now().isoformat()}
+            write_provenance(cfg, input_csv, outdir)
             print(f"[OK]    {key}")
         else:
             state[key] = {"status": "failed",
