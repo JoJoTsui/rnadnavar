@@ -3,6 +3,7 @@
 #
 # Compares, for a tumor-normal pair run produced by run_wes_ll.sh:
 #   consensus   (FILTER == Somatic only, converted to PASS for som.py)
+#   rescue      (optional RESCUE_VCF; Somatic records converted to PASS)
 #   mutect2     (PASS records of *.mutect2.filtered.vcf.gz)
 #   deepsomatic (PASS records of *.deepsomatic.vcf.gz)
 #   strelka     (PASS records of *.strelka.variants.vcf.gz)
@@ -16,6 +17,7 @@
 #   PIPELINE_OUTDIR  default: <examples/seqc2>/output/seqc2.wes.ll
 #   PAIR             default: WES_LL_T_1_vs_WES_LL_N_1
 #   COMPARE_DIR      default: <examples/seqc2>/comparison/<PAIR>
+#   RESCUE_VCF       optional cross-modality rescue VCF to benchmark as rescue
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -41,6 +43,7 @@ M2_VCF="$OUTDIR/variant_calling/mutect2/$PAIR/$PAIR.mutect2.filtered.vcf.gz"
 DS_VCF="$OUTDIR/variant_calling/deepsomatic/$PAIR/$PAIR.deepsomatic.vcf.gz"
 S2_VCF="$OUTDIR/variant_calling/strelka/$PAIR/$PAIR.strelka.variants.vcf.gz"
 CLAIR_VCF="${CLAIR_VCF:-}"
+RESCUE_VCF="${RESCUE_VCF:-}"
 
 for f in "$C_VCF" "$M2_VCF" "$DS_VCF" "$S2_VCF" "$TRUTH_SNV" "$TRUTH_INDEL" "$HC_BED" "$TARGET_BED" "$FA"; do
     [ -f "$f" ] || { echo "ERROR: missing input: $f" >&2; exit 1; }
@@ -86,6 +89,22 @@ if [ -n "$CLAIR_VCF" ]; then
     [ -f "$CLAIR_VCF" ] || { echo "ERROR: missing Clair input: $CLAIR_VCF" >&2; exit 1; }
     run_som clair "$CLAIR_VCF"
     QUERIES+=(clair)
+fi
+
+# Optional cross-modality rescue query. Rescue VCFs use EnsembleVar's biological
+# FILTER vocabulary, so benchmark only Somatic records in a PASS-only copy.
+if [ -n "$RESCUE_VCF" ]; then
+    [ -f "$RESCUE_VCF" ] || { echo "ERROR: missing rescue input: $RESCUE_VCF" >&2; exit 1; }
+    RESCUE_SOM="$OD/rescue.somatic.vcf.gz"
+    if [ ! -f "$RESCUE_SOM.tbi" ]; then
+        echo ">> Preparing PASS-only rescue benchmark VCF"
+        bcftools view -i 'FILTER="Somatic"' "$RESCUE_VCF" \
+            | awk 'BEGIN{OFS="\t"} /^#/{print; next} {$7="PASS"; print}' \
+            | bgzip -c > "$RESCUE_SOM"
+        bcftools index -t "$RESCUE_SOM"
+    fi
+    run_som rescue "$RESCUE_SOM"
+    QUERIES+=(rescue)
 fi
 
 # 4. Aggregate metrics into one comparison table
