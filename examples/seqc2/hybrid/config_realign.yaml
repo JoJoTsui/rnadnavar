@@ -6,7 +6,7 @@ micromamba_env: nextflow
 https_proxy: "http://127.0.0.1:7890"
 seqc2_root: /tmp/rnadnavar-seqc2-review/examples/seqc2/hybrid
 input_csv: csv/seqc2_wes_ll_hybrid.csv
-outdir: output/seqc2.wes.ll.hybrid.realign.full
+outdir: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.artifacts/c008801.realign.full
 state_file: runs/realign_full_state.json
 provenance_file: runs/realign_full_provenance.json
 resume: true
