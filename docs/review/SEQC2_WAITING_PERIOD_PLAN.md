@@ -72,3 +72,6 @@ DeepSomatic label artifact readiness: label generation now deduplicates by norma
 
 
 Scoring provenance handoff: the benchmark scorer now accepts an optional `seqc2-artifact-provenance.v1` manifest and binds its digest and stage metadata into the machine-readable report. This connects provenance and scoring for bounded comparisons; complete caller/BAM/database identity and normalization/region cache contracts remain open.
+
+
+Label-admission correction: DeepSomatic-based starting labels now retain only explicit PASS records; unknown (`.`) and rejected FILTER values are excluded rather than treated as affirmative PASS. Verified RNA additions remain separately admitted. Header/reference/sample compatibility and full workflow integration remain open.
