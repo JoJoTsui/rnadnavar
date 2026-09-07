@@ -56,31 +56,3 @@ No new ADR is needed for reversible work ordering. Existing glossary definitions
 Ticket 05 recovery helper: the numeric identifier and mixed-singleton output defects above are repaired. CLI regression fixtures verify exact mate-suffix removal, synchronized paired outputs, separate singleton outputs, duplicate selected-name rejection, and malformed/truncated FASTQ rejection before outputs are created. Tests: `tests/seqc2/test_read_pair_recovery.py`.
 
 This does not complete ticket 05. Library-scoped candidate extraction, propagation of original FASTQs through both ingress modes, read-length accounting and the indexed second-round demonstration remain outstanding. The CLI requires its caller to supply IDs and FASTQs from the same library; a supplied library string alone cannot prove that relationship.
-
-Ticket 02 numeric controls: module defaults now apply only to absent values, preserving explicit zero floors/minima and allowing invalid zero SNV/indel thresholds to reach CLI validation. The opt-in local fixture `tests/seqc2/test_consensus_module_controls.py` executes actual consensus and rescue processes on tiny synthetic VCFs with containers disabled, checks commands and indexed outputs, and distinguishes default versus zero-floor support and labels. It does not validate root-parameter aliases/conflicts or claim ticket 02 complete.
-
-Validation for recovery commit `c08228a`: documented Python suite excluding the two vcf_stats directories completed with 233 passed, 2 skipped and 27 warnings. Two-axis review found no hard documented-standard violations; spec review confirmed the outstanding ticket 05 integration, library provenance and read-length requirements above.
-
-
-Policy-selection readiness: the development selector now fails closed on empty or mismatched baselines, undeclared/missing required slices, duplicate slices, nonfinite or out-of-range metrics, malformed partitions and invalid minimum deltas. The held-out evaluator validates frozen slice binding and recomputes per-slice gates from the frozen baseline, ignoring supplied gate booleans. Public CLI fixtures cover qualified, no-policy, missing-policy, malformed and regression cases. This establishes engineering behavior only; real development and held-out evidence remain deferred.
-
-
-Benchmark scorer readiness: the scorer now accepts a separate baseline selector (default PASS), records query/baseline/truth selector identities and baseline checksums, and retains explicit stage/domain fields. This covers selector separation and basic provenance for small comparisons; region enforcement, normalization diagnostics, cache invalidation and full artifact-lineage checks remain open.
-
-
-DeepSomatic label artifact readiness: label generation now deduplicates by normalized allele identity, sorts records deterministically, rejects malformed VCF rows/verification JSON, and optionally produces bgzip/tabix indexed output. The public fixture covers retained DeepSomatic calls, verified additions and duplicate sites. Workflow invocation, robust header normalization, evidence-based removals and final-rescue integration remain open.
-
-
-Scoring provenance handoff: the benchmark scorer now accepts an optional `seqc2-artifact-provenance.v1` manifest and binds its digest and stage metadata into the machine-readable report. This connects provenance and scoring for bounded comparisons; complete caller/BAM/database identity and normalization/region cache contracts remain open.
-
-
-Label-admission correction: DeepSomatic-based starting labels now retain only explicit PASS records; unknown (`.`) and rejected FILTER values are excluded rather than treated as affirmative PASS. Verified RNA additions remain separately admitted. Header/reference/sample compatibility and full workflow integration remain open.
-
-
-Final review corrections: label starting-set admission requires FILTER exactly `PASS`, excluding compound/rejected/unknown filters. Benchmark scoring now rejects a provenance manifest whose artifact SHA-256 differs from the scored calls.
-
-
-Scorer robustness correction: diagnostic scores may omit provenance only while stage remains `unknown`; any declared stage requires a provenance manifest whose artifact digest matches the calls file. Malformed manifest objects fail through the CLI parser.
-
-
-Final stage-binding correction: when a benchmark declares a stage, the provenance manifest must declare the same stage. Diagnostic scoring may remain stage `unknown` without a manifest.
