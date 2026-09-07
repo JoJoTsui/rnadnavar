@@ -50,14 +50,23 @@ def test_label_builder_deduplicates_sorts_and_indexes_output(tmp_path):
 def test_scorer_binds_provenance_manifest(tmp_path):
  truth=tmp_path/'truth.vcf'; calls=tmp_path/'calls.vcf'; provenance=tmp_path/'provenance.json'; out=tmp_path/'score.json'
  write_vcf(truth,['1\t10\t.\tA\tG\t.\tPASS\t.']); write_vcf(calls,['1\t10\t.\tA\tG\t.\tSomatic\t.'])
- provenance.write_text(json.dumps({'schema':'seqc2-artifact-provenance.v1','artifact':{'sha256':'abc'},'stage':'final_second_rescue'}))
+ import hashlib
+ provenance.write_text(json.dumps({'schema':'seqc2-artifact-provenance.v1','artifact':{'sha256':hashlib.sha256(calls.read_bytes()).hexdigest()},'stage':'final_second_rescue'}))
  subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/score_label_artifact.py'),'--truth',str(truth),'--calls',str(calls),'--provenance',str(provenance),'--out',str(out)],check=True)
  result=json.loads(out.read_text()); assert result['provenance_sha256']; assert result['provenance']['stage']=='final_second_rescue'
 
 
 def test_label_builder_excludes_unknown_deepsomatic_filter(tmp_path):
     ds=tmp_path/'ds.vcf'; out=tmp_path/'labels.vcf'
-    write_vcf(ds,['1\t10\t.\tA\tG\t.\t.\t.','1\t20\t.\tC\tT\t.\tLowQual\t.'])
+    write_vcf(ds,['1\t10\t.\tA\tG\t.\t.\t.','1\t15\t.\tA\tT\t.\tLowQual;PASS\t.','1\t20\t.\tC\tT\t.\tLowQual\t.'])
     subprocess.run([sys.executable,str(ROOT/'bin/build_deepsomatic_labels.py'),'--deepsomatic-vcf',str(ds),'--out',str(out)],check=True)
     records=[line for line in out.read_text().splitlines() if line and not line.startswith('#')]
     assert records == []
+
+
+def test_scorer_rejects_unrelated_provenance(tmp_path):
+    truth=tmp_path/'truth.vcf'; calls=tmp_path/'calls.vcf'; provenance=tmp_path/'provenance.json'; out=tmp_path/'score.json'
+    write_vcf(truth,['1\t10\t.\tA\tG\t.\tPASS\t.']); write_vcf(calls,['1\t10\t.\tA\tG\t.\tSomatic\t.'])
+    provenance.write_text(json.dumps({'schema':'seqc2-artifact-provenance.v1','artifact':{'sha256':'wrong'}}))
+    result=subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/score_label_artifact.py'),'--truth',str(truth),'--calls',str(calls),'--provenance',str(provenance),'--out',str(out)],capture_output=True,text=True)
+    assert result.returncode != 0 and 'sha256' in result.stderr.lower()
