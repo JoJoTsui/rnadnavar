@@ -28,7 +28,7 @@ process FILTER_HISAT_SPLICESITES_AUDITED {
     awk 'BEGIN{FS="\\t"} FNR==NR { contig[\$1]=1; next } NF >= 1 && !(\$1 in contig) { n++ } END { print n+0 }' ${fai} ${splicesites} >> ${prefix}.splice_sites.audit.tsv
 
     cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
+    "FILTER_HISAT_SPLICESITES_AUDITED":
         awk: coreutils
     END_VERSIONS
     """

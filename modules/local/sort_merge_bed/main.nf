@@ -17,7 +17,7 @@ process SORT_MERGE_BED_AUDITED {
       > ${prefix}.bed
 
     cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
+    "SORT_MERGE_BED_AUDITED":
         sort: coreutils
     END_VERSIONS
     """
