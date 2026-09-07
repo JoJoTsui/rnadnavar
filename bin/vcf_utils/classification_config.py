@@ -210,3 +210,16 @@ def parse_caller_name(caller_path_or_name):
     if "/" in caller_path_or_name:
         return os.path.basename(caller_path_or_name).split(".")[0]
     return caller_path_or_name
+
+
+def validate_thresholds(values):
+    """Validate and normalize consensus/rescue controls before execution."""
+    required = ("snv_thr", "indel_thr", "min_alt_support",
+                "rescue_min_dna_callers", "rescue_min_rna_callers")
+    for key in required:
+        if key in values and values[key] is not None and int(values[key]) < 0:
+            raise ValueError(f"{key} must be >= 0")
+    for key in ("snv_thr", "indel_thr"):
+        if key in values and int(values[key]) == 0:
+            raise ValueError(f"{key} must be > 0")
+    return dict(values)
