@@ -45,3 +45,11 @@ def test_label_builder_deduplicates_sorts_and_indexes_output(tmp_path):
     assert [line.split('\t')[1] for line in records] == ['10','20','30']
     assert sum(line.split('\t')[1]=='30' for line in records)==1
     assert (Path(str(out)+'.tbi')).is_file()
+
+
+def test_scorer_binds_provenance_manifest(tmp_path):
+ truth=tmp_path/'truth.vcf'; calls=tmp_path/'calls.vcf'; provenance=tmp_path/'provenance.json'; out=tmp_path/'score.json'
+ write_vcf(truth,['1\t10\t.\tA\tG\t.\tPASS\t.']); write_vcf(calls,['1\t10\t.\tA\tG\t.\tSomatic\t.'])
+ provenance.write_text(json.dumps({'schema':'seqc2-artifact-provenance.v1','artifact':{'sha256':'abc'},'stage':'final_second_rescue'}))
+ subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/score_label_artifact.py'),'--truth',str(truth),'--calls',str(calls),'--provenance',str(provenance),'--out',str(out)],check=True)
+ result=json.loads(out.read_text()); assert result['provenance_sha256']; assert result['provenance']['stage']=='final_second_rescue'

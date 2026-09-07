@@ -69,3 +69,6 @@ Benchmark scorer readiness: the scorer now accepts a separate baseline selector 
 
 
 DeepSomatic label artifact readiness: label generation now deduplicates by normalized allele identity, sorts records deterministically, rejects malformed VCF rows/verification JSON, and optionally produces bgzip/tabix indexed output. The public fixture covers retained DeepSomatic calls, verified additions and duplicate sites. Workflow invocation, robust header normalization, evidence-based removals and final-rescue integration remain open.
+
+
+Scoring provenance handoff: the benchmark scorer now accepts an optional `seqc2-artifact-provenance.v1` manifest and binds its digest and stage metadata into the machine-readable report. This connects provenance and scoring for bounded comparisons; complete caller/BAM/database identity and normalization/region cache contracts remain open.
