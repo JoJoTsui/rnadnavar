@@ -66,3 +66,6 @@ Policy-selection readiness: the development selector now fails closed on empty o
 
 
 Benchmark scorer readiness: the scorer now accepts a separate baseline selector (default PASS), records query/baseline/truth selector identities and baseline checksums, and retains explicit stage/domain fields. This covers selector separation and basic provenance for small comparisons; region enforcement, normalization diagnostics, cache invalidation and full artifact-lineage checks remain open.
+
+
+DeepSomatic label artifact readiness: label generation now deduplicates by normalized allele identity, sorts records deterministically, rejects malformed VCF rows/verification JSON, and optionally produces bgzip/tabix indexed output. The public fixture covers retained DeepSomatic calls, verified additions and duplicate sites. Workflow invocation, robust header normalization, evidence-based removals and final-rescue integration remain open.

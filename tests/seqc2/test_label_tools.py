@@ -32,3 +32,16 @@ def test_scorer_accepts_distinct_baseline_selector(tmp_path):
  write_vcf(calls,['1\t10\t.\tA\tG\t.\tSomatic\t.'])
  subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/score_label_artifact.py'),'--truth',str(truth),'--calls',str(calls),'--baseline',str(base),'--baseline-label','PASS','--out',str(out)],check=True)
  result=json.loads(out.read_text()); assert result['selectors']['baseline']=='PASS'; assert result['baseline_calls_sha256']
+
+
+def test_label_builder_deduplicates_sorts_and_indexes_output(tmp_path):
+    ds=tmp_path/'ds.vcf'; rna=tmp_path/'rna.vcf'; ver=tmp_path/'verification.json'; out=tmp_path/'labels.vcf.gz'
+    write_vcf(ds,['1\t30\t.\tG\tA\t.\tPASS\t.','1\t10\t.\tA\tG\t.\tPASS\t.'])
+    write_vcf(rna,['1\t30\t.\tG\tA\t.\t.\t.','1\t20\t.\tC\tT\t.\t.\t.'])
+    ver.write_text(json.dumps({'results':[{'chrom':'1','pos':20,'ref':'C','alt':'T','status':'confirmed','tumor_alt':5,'normal_alt':0}]}))
+    subprocess.run([sys.executable,str(ROOT/'bin/build_deepsomatic_labels.py'),'--deepsomatic-vcf',str(ds),'--rna-nominations',str(rna),'--verification-json',str(ver),'--out',str(out),'--index'],check=True)
+    import gzip
+    records=[line for line in gzip.open(out,'rt') if line and not line.startswith('#')]
+    assert [line.split('\t')[1] for line in records] == ['10','20','30']
+    assert sum(line.split('\t')[1]=='30' for line in records)==1
+    assert (Path(str(out)+'.tbi')).is_file()
