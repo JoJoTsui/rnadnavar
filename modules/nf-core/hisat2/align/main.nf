@@ -36,7 +36,13 @@ process HISAT2_ALIGN {
     if (meta.single_end) {
         def unaligned = params.save_unaligned ? "--un-gz ${prefix}.unmapped.fastq.gz" : ''
         """
-        INDEX=`find -L ./ -name "*.1.ht2" | sed 's/\\.1.ht2\$//'`
+        INDEXES=`find -L ./ -type f -name "*.1.ht2" -o -type f -name "*.1.ht2l" | sed -E 's/\\.([1-8])\\.ht2l?\$//' | sort -u`
+        INDEX_COUNT=`printf '%s\\n' "\$INDEXES" | sed '/^\$/d' | wc -l`
+        if [ "\$INDEX_COUNT" -ne 1 ]; then echo "Expected exactly one complete HISAT2 index basename, found \$INDEX_COUNT" >&2; exit 2; fi
+        INDEX="\$INDEXES"
+        for SUFFIX in 1 2 3 4 5 6 7 8; do
+            if [ ! -f "\$INDEX.\$SUFFIX.ht2" ] && [ ! -f "\$INDEX.\$SUFFIX.ht2l" ]; then echo "Incomplete HISAT2 index: missing \$INDEX.\$SUFFIX.ht2 or .ht2l" >&2; exit 2; fi
+        done
         hisat2 \\
             -x \$INDEX \\
             -U $reads \\
@@ -58,7 +64,13 @@ process HISAT2_ALIGN {
     } else {
         def unaligned = params.save_unaligned ? "--un-conc-gz ${prefix}.unmapped.fastq.gz" : ''
         """
-        INDEX=`find -L ./ -name "*.1.ht2" | sed 's/\\.1.ht2\$//'`
+        INDEXES=`find -L ./ -type f -name "*.1.ht2" -o -type f -name "*.1.ht2l" | sed -E 's/\\.([1-8])\\.ht2l?\$//' | sort -u`
+        INDEX_COUNT=`printf '%s\\n' "\$INDEXES" | sed '/^\$/d' | wc -l`
+        if [ "\$INDEX_COUNT" -ne 1 ]; then echo "Expected exactly one complete HISAT2 index basename, found \$INDEX_COUNT" >&2; exit 2; fi
+        INDEX="\$INDEXES"
+        for SUFFIX in 1 2 3 4 5 6 7 8; do
+            if [ ! -f "\$INDEX.\$SUFFIX.ht2" ] && [ ! -f "\$INDEX.\$SUFFIX.ht2l" ]; then echo "Incomplete HISAT2 index: missing \$INDEX.\$SUFFIX.ht2 or .ht2l" >&2; exit 2; fi
+        done
         hisat2 \\
             -x \$INDEX \\
             -1 ${reads[0]} \\

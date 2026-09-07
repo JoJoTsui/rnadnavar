@@ -1,0 +1,5 @@
+name: filter_hisat_splicesites
+channels:
+  - conda-forge
+dependencies:
+  - gawk

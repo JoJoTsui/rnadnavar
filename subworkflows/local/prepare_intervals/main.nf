@@ -11,6 +11,7 @@ include { CREATE_INTERVALS_BED                                   } from '../../.
 include { GATK4_INTERVALLISTTOBED                                } from '../../../modules/nf-core/gatk4/intervallisttobed'
 include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_SPLIT    } from '../../../modules/nf-core/tabix/bgziptabix'
 include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_COMBINED } from '../../../modules/nf-core/tabix/bgziptabix'
+include { SORT_MERGE_BED } from '../../../modules/local/sort_merge_bed'
 
 workflow PREPARE_INTERVALS {
     take:
@@ -136,10 +137,14 @@ workflow PREPARE_REALIGNMENT_INTERVALS {
     versions = Channel.empty()
 
     // Merge all BEDs into one
-    ch_merged_bed = bed_channel
+    ch_unsorted_bed = bed_channel
         .map { meta, bed -> bed }
-        .collectFile(name: 'realigned_intervals.bed', sort: true)
+        .collectFile(name: 'realigned_intervals.input.bed', sort: false)
         .map { file -> [[id:'realigned_intervals'], file] }
+
+    SORT_MERGE_BED(ch_unsorted_bed)
+    ch_merged_bed = SORT_MERGE_BED.out.bed
+    versions = versions.mix(SORT_MERGE_BED.out.versions)
 
     // Index
     TABIX_BGZIPTABIX_INTERVAL_COMBINED(ch_merged_bed)

@@ -27,6 +27,7 @@ include { TABIX_TABIX as TABIX_KNOWN_SNPS        } from '../../../modules/nf-cor
 include { TABIX_TABIX as TABIX_PON               } from '../../../modules/nf-core/tabix/tabix/main'
 include { HISAT2_EXTRACTSPLICESITES              } from '../../../modules/nf-core/hisat2/extractsplicesites/main'
 include { HISAT2_BUILD                           } from '../../../modules/nf-core/hisat2/build/main'
+include { FILTER_HISAT_SPLICESITES               } from '../../../modules/local/filter_hisat_splicesites'
 
 workflow PREPARE_GENOME {
     take:
@@ -145,7 +146,10 @@ workflow PREPARE_GENOME {
         // HISAT2 not necessary if second pass skipped
         if ((params.tools && params.tools.split(',').contains("realignment"))){
             if (params.splicesites) {
-                ch_splicesites  = Channel.fromPath(params.splicesites).collect().map{ it -> [ [ id:'null' ], it ]}
+                supplied_splicesites = Channel.fromPath(params.splicesites).collect().map{ files -> [ [ id:'splice_sites' ], files[0] ] }
+                FILTER_HISAT_SPLICESITES(supplied_splicesites.combine(SAMTOOLS_FAIDX.out.fai.map{ meta, fai -> fai }))
+                ch_splicesites = FILTER_HISAT_SPLICESITES.out.splicesites
+                versions = versions.mix(FILTER_HISAT_SPLICESITES.out.versions)
             } else{
                 HISAT2_EXTRACTSPLICESITES ( ch_gtf )
                 ch_splicesites  = HISAT2_EXTRACTSPLICESITES.out.txt
@@ -153,7 +157,7 @@ workflow PREPARE_GENOME {
             }
 
             if (params.hisat2_index) {
-                ch_hisat2_index  = Channel.fromPath(params.hisat2_index).collect().map{it -> [ [ id:"hisat2_index" ], it ]}
+                ch_hisat2_index  = Channel.fromPath(params.hisat2_index).collect().map{files -> [ [ id:"hisat2_index" ], files ]}
             } else{
                 HISAT2_BUILD (
                                 fasta,

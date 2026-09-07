@@ -31,5 +31,5 @@ completion_validator:
   - "{outdir}"
 completion_artifacts:
   - "pipeline_info/execution_trace*.txt"
-  - "vcf_realignment/rescue/WES_LL_RT_1_vs_WES_LL_N_1/WES_LL_RT_1_vs_WES_LL_N_1.rescue.filtered.stripped.vep.vcf.gz"
-  - "vcf_realignment/rescue/WES_LL_RT_1_vs_WES_LL_N_1/WES_LL_RT_1_vs_WES_LL_N_1.rescue.filtered.stripped.vep.vcf.gz.tbi"
+  - "vcf_realignment/rescue/*/*.rescue.filtered.stripped.vep.vcf.gz"
+  - "vcf_realignment/rescue/*/*.rescue.filtered.stripped.vep.vcf.gz.tbi"

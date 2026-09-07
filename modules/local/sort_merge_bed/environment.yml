@@ -1,0 +1,5 @@
+name: sort_merge_bed
+channels:
+  - conda-forge
+dependencies:
+  - coreutils

@@ -33,8 +33,7 @@ SECOND_PASS_ARTIFACTS = (
     "vcf_realignment/rescue/**/*.rescued.vcf.gz",
 )
 FINAL_VCF = (
-    "vcf_realignment/rescue/WES_LL_RT_1_vs_WES_LL_N_1/"
-    "WES_LL_RT_1_vs_WES_LL_N_1.rescue.filtered.stripped.vep.vcf.gz"
+    "vcf_realignment/rescue/*/*.rescue.filtered.stripped.vep.vcf.gz"
 )
 
 
@@ -148,9 +147,15 @@ def validate_bam_dictionary(rows: list[dict[str, str]], reference: dict[str, int
 
 
 def validate_hisat2_resources(directory: Path, splicesites: Path) -> None:
-    indexes = sorted(directory.glob("*.ht2"))
-    if len(indexes) != 8 or any(index.stat().st_size == 0 for index in indexes):
-        fail(f"HISAT2 directory must contain eight non-empty .ht2 indexes: {directory}")
+    candidates = sorted(directory.glob("*.1.ht2")) + sorted(directory.glob("*.1.ht2l"))
+    basenames = {path.name.rsplit(".1.", 1)[0] for path in candidates}
+    if len(basenames) != 1:
+        fail(f"HISAT2 directory must contain one index basename, found {sorted(basenames)}")
+    prefix = next(iter(basenames))
+    suffixes = [directory / f"{prefix}.{number}.ht2" for number in range(1, 9)]
+    suffixes_l = [directory / f"{prefix}.{number}.ht2l" for number in range(1, 9)]
+    if not all(path.is_file() and path.stat().st_size > 0 for path in suffixes) and not all(path.is_file() and path.stat().st_size > 0 for path in suffixes_l):
+        fail(f"HISAT2 directory must contain one complete non-empty .ht2 or .ht2l set: {directory}")
     if not splicesites.is_file() or splicesites.stat().st_size == 0:
         fail(f"HISAT2 splice-site file is missing or empty: {splicesites}")
 
@@ -195,11 +200,15 @@ def validate_trace(path: Path) -> None:
                if not any(pattern in names for pattern in patterns)]
     if missing:
         fail("second-pass process groups missing: " + ", ".join(missing))
-    non_realign = [label for label, patterns in SECOND_PASS_PROCESSES.items()
-                   if label not in {"candidate extraction", "HISAT2"}
-                   and not any(f"{pattern}_REALIGN" in names for pattern in patterns)]
-    if non_realign:
-        fail("second-pass realigned process groups missing: " + ", ".join(non_realign))
+    # The realignment branch is a workflow scope, not a process-name suffix.
+    # Require successful task rows under that scope instead of inventing a
+    # `_REALIGN` naming convention that Nextflow never emits.
+    realign_rows = [row for row in rows if "RNA_REALIGNMENT_WORKFLOW" in
+                    (row.get("process", "") + row.get("name", "")).upper()
+                    or "SECOND_RESCUE_WORKFLOW" in
+                    (row.get("process", "") + row.get("name", "")).upper()]
+    if not realign_rows:
+        fail("realignment workflow scope is missing from execution trace")
 
 
 def validate_final_vcf(path: Path) -> None:
@@ -229,7 +238,10 @@ def complete(outdir: Path) -> None:
     missing = [pattern for pattern in SECOND_PASS_ARTIFACTS if not list(outdir.glob(pattern))]
     if missing:
         fail("second-pass artifacts missing: " + ", ".join(missing))
-    validate_final_vcf(outdir / FINAL_VCF)
+    final_vcfs = list(outdir.glob(FINAL_VCF))
+    if len(final_vcfs) != 1:
+        fail(f"expected exactly one annotated rescue VCF, found {len(final_vcfs)}")
+    validate_final_vcf(final_vcfs[0])
 
 
 def main() -> int:
