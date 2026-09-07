@@ -10,12 +10,12 @@ def keys(path, target='Somatic'):
   for l in fh:
    if l.startswith('#'): continue
    f=l.rstrip().split('\t')
-   if len(f)>=8 and target.upper() in {x.upper() for x in f[6].split(';')}: out.add((f[0],int(f[1]),f[3].upper(),f[4].upper()))
+   if len(f)>=8 and (target is None or target.upper() in {x.upper() for x in f[6].split(';')}): out.add((f[0],int(f[1]),f[3].upper(),f[4].upper()))
  return out
 def typ(k): return 'SNV' if len(k[2])==len(k[3])==1 else 'indel'
 def main():
  ap=argparse.ArgumentParser(); ap.add_argument('--truth',required=True); ap.add_argument('--calls',required=True); ap.add_argument('--out',required=True); ap.add_argument('--label',default='Somatic'); ap.add_argument('--domain',default='declared'); ap.add_argument('--baseline')
- a=ap.parse_args(); t=keys(a.truth); c=keys(a.calls,a.label); baseline=keys(a.baseline,a.label) if a.baseline else set(); rows=[]
+ a=ap.parse_args(); t=keys(a.truth,None); c=keys(a.calls,a.label); baseline=keys(a.baseline,a.label) if a.baseline else set(); rows=[]
  for kind in ('SNV','indel'):
   tt={x for x in t if typ(x)==kind}; cc={x for x in c if typ(x)==kind}; tp=len(tt&cc); fp=len(cc-tt); fn=len(tt-cc)
   bt={x for x in baseline if typ(x)==kind}; gained=cc-bt; removed=bt-cc
