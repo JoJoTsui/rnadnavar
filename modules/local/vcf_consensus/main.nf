@@ -20,9 +20,9 @@ process VCF_CONSENSUS {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def snv_thr = task.ext.snv_thr ?: 2
-    def indel_thr = task.ext.indel_thr ?: 2
-    def min_alt_support = task.ext.min_alt_support ?: 3
+    def snv_thr = task.ext.snv_thr != null ? task.ext.snv_thr : 2
+    def indel_thr = task.ext.indel_thr != null ? task.ext.indel_thr : 2
+    def min_alt_support = task.ext.min_alt_support != null ? task.ext.min_alt_support : 3
 
     """
     mkdir -p inputs
