@@ -53,3 +53,11 @@ def test_scorer_binds_provenance_manifest(tmp_path):
  provenance.write_text(json.dumps({'schema':'seqc2-artifact-provenance.v1','artifact':{'sha256':'abc'},'stage':'final_second_rescue'}))
  subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/score_label_artifact.py'),'--truth',str(truth),'--calls',str(calls),'--provenance',str(provenance),'--out',str(out)],check=True)
  result=json.loads(out.read_text()); assert result['provenance_sha256']; assert result['provenance']['stage']=='final_second_rescue'
+
+
+def test_label_builder_excludes_unknown_deepsomatic_filter(tmp_path):
+    ds=tmp_path/'ds.vcf'; out=tmp_path/'labels.vcf'
+    write_vcf(ds,['1\t10\t.\tA\tG\t.\t.\t.','1\t20\t.\tC\tT\t.\tLowQual\t.'])
+    subprocess.run([sys.executable,str(ROOT/'bin/build_deepsomatic_labels.py'),'--deepsomatic-vcf',str(ds),'--out',str(out)],check=True)
+    records=[line for line in out.read_text().splitlines() if line and not line.startswith('#')]
+    assert records == []
