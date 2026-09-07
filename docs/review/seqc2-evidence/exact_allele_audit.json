@@ -1,0 +1,349 @@
+{
+  "DNA": {
+    "source": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.pooling_fix/consensus/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.consensus.vcf.gz",
+    "total": 1091,
+    "exactTP": 985,
+    "chr1_exactTP": 127,
+    "chr1_total": 138,
+    "bad_pass": {
+      "nonmatch": 10,
+      "TP": 12
+    }
+  },
+  "RT": {
+    "source": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.pooling_fix/consensus/WES_LL_RT_1_vs_WES_LL_N_1/WES_LL_RT_1_vs_WES_LL_N_1.consensus.vcf.gz",
+    "total": 926,
+    "exactTP": 315,
+    "chr1_exactTP": 40,
+    "chr1_total": 97,
+    "bad_pass": {
+      "nonmatch": 27,
+      "TP": 8
+    }
+  },
+  "rescue": {
+    "source": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.pooling_fix/rescue/WES_LL_T_1_vs_WES_LL_N_1_rescued_WES_LL_RT_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1_rescued_WES_LL_RT_1_vs_WES_LL_N_1.filtered.vcf.gz",
+    "total": 1716,
+    "exactTP": 1002,
+    "chr1_exactTP": 129,
+    "chr1_total": 197,
+    "bad_pass": {
+      "nonmatch": 33,
+      "TP": 11
+    }
+  },
+  "DS": {
+    "source": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.pooling_fix/variant_calling/deepsomatic/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.deepsomatic.vcf.gz",
+    "total": 1083,
+    "exactTP": 1048,
+    "chr1_exactTP": 126,
+    "chr1_total": 130,
+    "bad_pass": {}
+  },
+  "rescue_vs_DNA": {
+    "add": 625,
+    "add_exactTP": 17,
+    "drop": 0,
+    "drop_exactTP": 0,
+    "add_metadata": [
+      [
+        [
+          "nonmatch",
+          [
+            "CLASSIFICATION_RATIONALE=rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx3",
+            "PASSES_CONSENSUS_RNA=YES",
+            "RESCUE_PROMOTED=NO",
+            "CROSS_MODALITY=NO"
+          ]
+        ],
+        90
+      ],
+      [
+        [
+          "nonmatch",
+          [
+            "CLASSIFICATION_RATIONALE=rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2+Referencex1",
+            "PASSES_CONSENSUS_RNA=YES",
+            "RESCUE_PROMOTED=NO",
+            "CROSS_MODALITY=NO"
+          ]
+        ],
+        222
+      ],
+      [
+        [
+          "exactTP",
+          [
+            "CLASSIFICATION_RATIONALE=rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2+Artifactx1",
+            "PASSES_CONSENSUS_RNA=YES",
+            "RESCUE_PROMOTED=NO",
+            "CROSS_MODALITY=NO"
+          ]
+        ],
+        4
+      ],
+      [
+        [
+          "exactTP",
+          [
+            "CLASSIFICATION_RATIONALE=rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2+Referencex1",
+            "PASSES_CONSENSUS_RNA=YES",
+            "RESCUE_PROMOTED=NO",
+            "CROSS_MODALITY=NO"
+          ]
+        ],
+        6
+      ],
+      [
+        [
+          "nonmatch",
+          [
+            "CLASSIFICATION_RATIONALE=rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2+Artifactx1",
+            "PASSES_CONSENSUS_RNA=YES",
+            "RESCUE_PROMOTED=NO",
+            "CROSS_MODALITY=NO"
+          ]
+        ],
+        188
+      ],
+      [
+        [
+          "nonmatch",
+          [
+            "CLASSIFICATION_RATIONALE=rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2+Germlinex1",
+            "PASSES_CONSENSUS_RNA=YES",
+            "RESCUE_PROMOTED=NO",
+            "CROSS_MODALITY=NO"
+          ]
+        ],
+        61
+      ],
+      [
+        [
+          "nonmatch",
+          [
+            "CLASSIFICATION_RATIONALE=rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2",
+            "PASSES_CONSENSUS_RNA=YES",
+            "RESCUE_PROMOTED=NO",
+            "CROSS_MODALITY=NO"
+          ]
+        ],
+        44
+      ],
+      [
+        [
+          "exactTP",
+          [
+            "CLASSIFICATION_RATIONALE=rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:Referencex1|rna_votes:Somaticx3",
+            "PASSES_CONSENSUS_DNA=NO",
+            "PASSES_CONSENSUS_RNA=YES",
+            "RESCUE_PROMOTED=NO",
+            "CROSS_MODALITY=NO"
+          ]
+        ],
+        1
+      ],
+      [
+        [
+          "nonmatch",
+          [
+            "CLASSIFICATION_RATIONALE=rule:rescue_promotion|class:Somatic|dna_consensus:none|rna_consensus:none|dna_votes:Somaticx1|rna_votes:Somaticx1",
+            "PASSES_CONSENSUS_DNA=NO",
+            "PASSES_CONSENSUS_RNA=NO",
+            "RESCUE_PROMOTED=YES",
+            "CROSS_MODALITY=YES"
+          ]
+        ],
+        2
+      ],
+      [
+        [
+          "exactTP",
+          [
+            "CLASSIFICATION_RATIONALE=rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx3",
+            "PASSES_CONSENSUS_RNA=YES",
+            "RESCUE_PROMOTED=NO",
+            "CROSS_MODALITY=NO"
+          ]
+        ],
+        2
+      ],
+      [
+        [
+          "exactTP",
+          [
+            "CLASSIFICATION_RATIONALE=rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:none|rna_votes:Somaticx2",
+            "PASSES_CONSENSUS_RNA=YES",
+            "RESCUE_PROMOTED=NO",
+            "CROSS_MODALITY=NO"
+          ]
+        ],
+        3
+      ],
+      [
+        [
+          "exactTP",
+          [
+            "CLASSIFICATION_RATIONALE=rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:Referencex1|rna_votes:Somaticx2",
+            "PASSES_CONSENSUS_DNA=NO",
+            "PASSES_CONSENSUS_RNA=YES",
+            "RESCUE_PROMOTED=NO",
+            "CROSS_MODALITY=NO"
+          ]
+        ],
+        1
+      ],
+      [
+        [
+          "nonmatch",
+          [
+            "CLASSIFICATION_RATIONALE=rule:rna_consensus_only|class:Somatic|dna_consensus:none|rna_consensus:Somatic|dna_votes:Referencex1|rna_votes:Somaticx2+Referencex1",
+            "PASSES_CONSENSUS_DNA=NO",
+            "PASSES_CONSENSUS_RNA=YES",
+            "RESCUE_PROMOTED=NO",
+            "CROSS_MODALITY=NO"
+          ]
+        ],
+        1
+      ]
+    ]
+  },
+  "DNA_vs_DS": {
+    "add": 88,
+    "add_exactTP": 8,
+    "drop": 80,
+    "drop_exactTP": 71,
+    "add_metadata": [
+      [
+        [
+          "nonmatch",
+          [
+            "CLASSIFICATION_RATIONALE=rule:majority|class:Somatic|votes:Somaticx2+Referencex1|callers:3|threshold:2",
+            "RESCUE_PROMOTED=NO"
+          ]
+        ],
+        80
+      ],
+      [
+        [
+          "exactTP",
+          [
+            "CLASSIFICATION_RATIONALE=rule:majority|class:Somatic|votes:Somaticx2+Referencex1|callers:3|threshold:2",
+            "RESCUE_PROMOTED=NO"
+          ]
+        ],
+        7
+      ],
+      [
+        [
+          "exactTP",
+          [
+            "CLASSIFICATION_RATIONALE=rule:majority|class:Somatic|votes:Somaticx2+Germlinex1|callers:3|threshold:2",
+            "RESCUE_PROMOTED=NO"
+          ]
+        ],
+        1
+      ]
+    ]
+  },
+  "RT_vs_DNA": {
+    "add": 639,
+    "add_exactTP": 28,
+    "drop": 804,
+    "drop_exactTP": 698,
+    "add_metadata": [
+      [
+        [
+          "nonmatch",
+          [
+            "CLASSIFICATION_RATIONALE=rule:majority|class:Somatic|votes:Somaticx3|callers:3|threshold:2",
+            "RESCUE_PROMOTED=NO"
+          ]
+        ],
+        90
+      ],
+      [
+        [
+          "nonmatch",
+          [
+            "CLASSIFICATION_RATIONALE=rule:majority|class:Somatic|votes:Somaticx2+Artifactx1|callers:3|threshold:2",
+            "RESCUE_PROMOTED=NO"
+          ]
+        ],
+        189
+      ],
+      [
+        [
+          "nonmatch",
+          [
+            "CLASSIFICATION_RATIONALE=rule:majority|class:Somatic|votes:Somaticx2+Referencex1|callers:3|threshold:2",
+            "RESCUE_PROMOTED=NO"
+          ]
+        ],
+        224
+      ],
+      [
+        [
+          "exactTP",
+          [
+            "CLASSIFICATION_RATIONALE=rule:majority|class:Somatic|votes:Somaticx2+Artifactx1|callers:3|threshold:2",
+            "RESCUE_PROMOTED=NO"
+          ]
+        ],
+        8
+      ],
+      [
+        [
+          "exactTP",
+          [
+            "CLASSIFICATION_RATIONALE=rule:majority|class:Somatic|votes:Somaticx2+Referencex1|callers:3|threshold:2",
+            "RESCUE_PROMOTED=NO"
+          ]
+        ],
+        9
+      ],
+      [
+        [
+          "nonmatch",
+          [
+            "CLASSIFICATION_RATIONALE=rule:majority|class:Somatic|votes:Somaticx2+Germlinex1|callers:3|threshold:2",
+            "RESCUE_PROMOTED=NO"
+          ]
+        ],
+        61
+      ],
+      [
+        [
+          "exactTP",
+          [
+            "CLASSIFICATION_RATIONALE=rule:majority|class:Somatic|votes:Somaticx3|callers:3|threshold:2",
+            "RESCUE_PROMOTED=NO"
+          ]
+        ],
+        4
+      ],
+      [
+        [
+          "nonmatch",
+          [
+            "CLASSIFICATION_RATIONALE=rule:majority|class:Somatic|votes:Somaticx2|callers:2|threshold:2",
+            "RESCUE_PROMOTED=NO"
+          ]
+        ],
+        47
+      ],
+      [
+        [
+          "exactTP",
+          [
+            "CLASSIFICATION_RATIONALE=rule:majority|class:Somatic|votes:Somaticx2|callers:2|threshold:2",
+            "RESCUE_PROMOTED=NO"
+          ]
+        ],
+        7
+      ]
+    ]
+  },
+  "truth_chr1": 259,
+  "method": "Exact CHROM/POS/REF/ALT dictionary sets; BED membership uses POS-1 point within HC and target. Does not normalize haplotypes; differs som.py around overlapping indel boundaries. Not replacement official metrics."
+}

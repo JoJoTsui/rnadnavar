@@ -22,6 +22,7 @@ process VCF_CONSENSUS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     def snv_thr = task.ext.snv_thr ?: 2
     def indel_thr = task.ext.indel_thr ?: 2
+    def min_alt_support = task.ext.min_alt_support ?: 3
 
     """
     mkdir -p inputs
@@ -44,7 +45,8 @@ process VCF_CONSENSUS {
         --expected_callers ${expected_callers.join(',')} \
         --out_prefix ${prefix}.consensus \\
         --snv_thr ${snv_thr} \\
-        --indel_thr ${indel_thr}
+        --indel_thr ${indel_thr} \\
+        --min_alt_support ${min_alt_support} ${args}
     
     # Compress and index
     # bgzip -c ${prefix}.consensus.vcf > ${prefix}.consensus.vcf.gz
