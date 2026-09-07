@@ -67,13 +67,27 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             
             // Prepare VCF for join: [patient, sample, meta, vcf, tbi]
             vcf_keyed = vcf_to_realign.realign
-                .map { meta, vcf, tbi -> [meta.patient, meta.sample, meta, vcf, tbi] }
+                .map { meta, vcf, tbi ->
+                    // Caller/consensus metadata carries the tumor-normal pair ID,
+                    // not the alignment's sample key. Resolve it at this boundary
+                    // without changing metadata (and caches) across all callers.
+                    def pair = (meta.id ?: '').toString().split('_vs_', -1)
+                    def sample = meta.sample ?: meta.tumor_id
+                    if (!sample) {
+                        if (pair.size() != 2 || !pair[0] || !pair[1]) {
+                            error("Realignment candidate requires an explicit RNA sample or an unambiguous tumor_vs_normal ID: ${meta.id}")
+                        }
+                        sample = pair[0]
+                    }
+                    def candidate_meta = meta + [sample: sample]
+                    [meta.patient, sample, candidate_meta, vcf, tbi]
+                }
             
             // Prepare CRAM for join: [patient, sample, meta, cram, crai]
             cram_keyed = reads_to_realign_branch.realign
                 .map { meta, cram, crai -> [meta.patient, meta.sample, meta, cram, crai] }
             
-            joined_data = cram_keyed.join(vcf_keyed, by: [0, 1], failOnDuplicate: true, remainder: true)
+            joined_data = cram_keyed.join(vcf_keyed, by: [0, 1], failOnDuplicate: true, failOnMismatch: true)
                 .map { patient, sample, cram_meta, cram, crai, vcf_meta, vcf, tbi ->
                     if (!cram_meta || !vcf_meta || !cram || !crai || !vcf || !tbi) {
                         error("Realignment pairing requires one RNA CRAM and one candidate VCF for ${patient}/${sample}")
@@ -101,11 +115,13 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
 
             VCF2BED(vcf_to_bed_input)
             versions = versions.mix(VCF2BED.out.versions)
-            bed = VCF2BED.out.bed
+            // An existing header-only VCF is a valid zero-candidate result.
+            // Publish its empty BED as evidence, but do not extract/align reads.
+            bed = VCF2BED.out.bed.filter { meta, candidate_bed -> candidate_bed.size() > 0 }
 
             // === STEP 5: READ ID EXTRACTION ===
             // Extract read IDs using BED from VCF2BED
-            cram_to_extract = VCF2BED.out.bed.map { meta, bed -> 
+            cram_to_extract = bed.map { meta, bed ->
                 // Reconstruct file objects
                 def cram_file = file(meta.cram_path)
                 def crai_file = file(meta.crai_path)

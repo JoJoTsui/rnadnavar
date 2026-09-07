@@ -244,7 +244,7 @@ workflow RNADNAVAR {
             // VCF-based realignment: use every RNA consensus record as a candidate.
             // Do not add DNA-only or rescue-only candidates: that would change the
             // accepted candidate policy rather than merely reassessing RNA evidence.
-            vcf_for_realignment = BAM_PROCESSING.out.vcf
+            vcf_for_realignment = BAM_PROCESSING.out.vcf_consensus
                 .filter { it[0].status == 2 }
                 .map { meta, vcf, tbi -> [meta, vcf, tbi] }
 

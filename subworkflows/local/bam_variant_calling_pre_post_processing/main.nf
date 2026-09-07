@@ -218,6 +218,7 @@ workflow BAM_VARIANT_CALLING_PRE_POST_PROCESSING {
     cram_variant_calling        = cram_variant_calling
     maf                         = filtered_maf  // Empty if MAF workflow disabled
     vcf                         = filtered_vcf
+    vcf_consensus               = vcf_consensus  // All consensus records for realignment candidates
     vcf_stripped                = filtered_vcf_stripped
     vcf_rescue                  = filtered_rescue_vcf
     vcf_rescue_stripped         = filtered_rescue_vcf_stripped

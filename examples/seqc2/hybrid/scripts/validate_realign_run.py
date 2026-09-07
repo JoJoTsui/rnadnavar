@@ -179,7 +179,18 @@ def validate_trace(path: Path) -> None:
         fail("execution trace contains failed tasks")
     names = "\n".join(" ".join((row.get("process", ""), row.get("name", ""))).upper() for row in rows)
     if "VCF2BED" not in names:
-        raise ZeroCandidates("no RT consensus candidates reached realignment")
+        fail("candidate extraction is missing; absence is not evidence of zero candidates")
+    candidate_rows = [row for row in rows if "VCF2BED" in
+                      (row.get("process", "") + row.get("name", "")).upper()]
+    if any(row.get("status", "").upper() not in {"COMPLETED", "CACHED"} for row in candidate_rows):
+        fail("candidate extraction did not complete successfully")
+    candidate_dir = path.parent.parent / "vcf_realignment" / "vcf2bed"
+    candidate_beds = list(candidate_dir.glob("*/*.bed"))
+    if (len(candidate_beds) == len(candidate_rows)
+            and all(bed.stat().st_size == 0 for bed in candidate_beds)):
+        if "HISAT2_ALIGN" in names:
+            fail("empty candidate BED contradicts executed HISAT2 alignment")
+        raise ZeroCandidates("RT consensus was converted successfully to an empty candidate BED")
     missing = [label for label, patterns in SECOND_PASS_PROCESSES.items()
                if not any(pattern in names for pattern in patterns)]
     if missing:

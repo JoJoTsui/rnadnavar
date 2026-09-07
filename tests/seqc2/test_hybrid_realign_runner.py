@@ -52,7 +52,7 @@ def test_hybrid_realign_config_requires_the_second_round_artifact():
         ROOT / "examples/seqc2/hybrid/config_realign.yaml", {}
     )
 
-    assert "realignment" in config["rdv_conf"]
+    assert Path(config["rdv_conf"]).name == "seqc2.hybrid.realign.config"
     assert any("vcf_realignment/rescue" in artifact
                for artifact in config["completion_artifacts"])
     assert config["completion_validator"]
