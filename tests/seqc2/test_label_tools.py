@@ -52,7 +52,7 @@ def test_scorer_binds_provenance_manifest(tmp_path):
  write_vcf(truth,['1\t10\t.\tA\tG\t.\tPASS\t.']); write_vcf(calls,['1\t10\t.\tA\tG\t.\tSomatic\t.'])
  import hashlib
  provenance.write_text(json.dumps({'schema':'seqc2-artifact-provenance.v1','artifact':{'sha256':hashlib.sha256(calls.read_bytes()).hexdigest()},'stage':'final_second_rescue'}))
- subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/score_label_artifact.py'),'--truth',str(truth),'--calls',str(calls),'--provenance',str(provenance),'--out',str(out)],check=True)
+ subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/score_label_artifact.py'),'--truth',str(truth),'--calls',str(calls),'--provenance',str(provenance),'--stage','final_second_rescue','--out',str(out)],check=True)
  result=json.loads(out.read_text()); assert result['provenance_sha256']; assert result['provenance']['stage']=='final_second_rescue'
 
 
@@ -77,3 +77,12 @@ def test_scorer_requires_provenance_for_declared_stage(tmp_path):
     write_vcf(truth,['1\t10\t.\tA\tG\t.\tPASS\t.']); write_vcf(calls,['1\t10\t.\tA\tG\t.\tSomatic\t.'])
     result=subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/score_label_artifact.py'),'--truth',str(truth),'--calls',str(calls),'--stage','final_second_rescue','--out',str(out)],capture_output=True,text=True)
     assert result.returncode != 0 and 'provenance' in result.stderr.lower()
+
+
+def test_scorer_rejects_provenance_stage_mismatch(tmp_path):
+    truth=tmp_path/'truth.vcf'; calls=tmp_path/'calls.vcf'; provenance=tmp_path/'provenance.json'; out=tmp_path/'score.json'
+    write_vcf(truth,['1\t10\t.\tA\tG\t.\tPASS\t.']); write_vcf(calls,['1\t10\t.\tA\tG\t.\tSomatic\t.'])
+    import hashlib
+    provenance.write_text(json.dumps({'schema':'seqc2-artifact-provenance.v1','artifact':{'sha256':hashlib.sha256(calls.read_bytes()).hexdigest()},'stage':'first_rescue'}))
+    result=subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/score_label_artifact.py'),'--truth',str(truth),'--calls',str(calls),'--provenance',str(provenance),'--stage','final_second_rescue','--out',str(out)],capture_output=True,text=True)
+    assert result.returncode != 0 and 'stage' in result.stderr.lower()

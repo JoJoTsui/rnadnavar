@@ -81,3 +81,6 @@ Final review corrections: label starting-set admission requires FILTER exactly `
 
 
 Scorer robustness correction: diagnostic scores may omit provenance only while stage remains `unknown`; any declared stage requires a provenance manifest whose artifact digest matches the calls file. Malformed manifest objects fail through the CLI parser.
+
+
+Final stage-binding correction: when a benchmark declares a stage, the provenance manifest must declare the same stage. Diagnostic scoring may remain stage `unknown` without a manifest.

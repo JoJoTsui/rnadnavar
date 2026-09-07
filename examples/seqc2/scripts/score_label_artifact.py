@@ -25,6 +25,7 @@ def main():
   expected=artifact['sha256']
   actual=hashlib.sha256(Path(a.calls).read_bytes()).hexdigest()
   if expected != actual: ap.error('--provenance artifact sha256 does not match --calls')
+  if provenance.get('stage') != a.stage: ap.error('--provenance stage does not match --stage')
  c=keys(a.calls,a.label); baseline=keys(a.baseline,a.baseline_label) if a.baseline else set(); rows=[]
  for kind in ('SNV','indel'):
   tt={x for x in t if typ(x)==kind}; cc={x for x in c if typ(x)==kind}; tp=len(tt&cc); fp=len(cc-tt); fn=len(tt-cc)
