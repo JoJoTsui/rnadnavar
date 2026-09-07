@@ -37,8 +37,11 @@ workflow PREPARE_REFERENCE_AND_INTERVALS {
     // Keep a complete HISAT2 resource in one tuple. Collecting mapped tuples
     // flattens the eight index files and makes the consumer bind only the
     // first file; splice sites have the same tuple contract.
-    hisat2_index           = params.fasta                   ? params.hisat2_index               ? Channel.fromPath(params.hisat2_index).collect().map{ files -> [ [id:'ht_idx'], files ] } : PREPARE_GENOME.out.hisat2_index : []
-    splicesites            = params.fasta                   ? params.splicesites                ? Channel.fromPath(params.splicesites).collect().map{ files -> [ [id:'splice_sites'], files ] } : PREPARE_GENOME.out.splicesites           : []
+    // PREPARE_GENOME owns supplied/generated HISAT2 resources, including
+    // reference-compatible splice auditing. Reuse those canonical tuples so
+    // explicit paths cannot bypass validation at this outer boundary.
+    hisat2_index           = params.fasta                   ? PREPARE_GENOME.out.hisat2_index : []
+    splicesites            = params.fasta                   ? PREPARE_GENOME.out.splicesites : []
     dict                   = params.dict                    ? Channel.fromPath(params.dict).map{ it -> [ [id:'dict'], it ] }.collect()                             : PREPARE_GENOME.out.dict
     fasta_fai              = params.fasta                   ? params.fasta_fai                  ? Channel.fromPath(params.fasta_fai).collect()                     : PREPARE_GENOME.out.fasta_fai             : []
     dbsnp_tbi              = params.dbsnp                   ? params.dbsnp_tbi                  ? Channel.fromPath(params.dbsnp_tbi).collect()                     : PREPARE_GENOME.out.dbsnp_tbi             : Channel.value([])
