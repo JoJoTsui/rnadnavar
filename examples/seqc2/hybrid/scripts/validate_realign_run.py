@@ -239,13 +239,17 @@ def validate_final_vcf(path: Path) -> None:
 
 
 def complete(outdir: Path) -> None:
-    validate_trace(latest_trace(outdir))
+    trace = latest_trace(outdir)
+    validate_trace(trace)
     missing = [pattern for pattern in SECOND_PASS_ARTIFACTS if not list(outdir.glob(pattern))]
     if missing:
         fail("second-pass artifacts missing: " + ", ".join(missing))
     final_vcfs = list(outdir.glob(FINAL_VCF))
     if len(final_vcfs) != 1:
         fail(f"expected exactly one annotated rescue VCF, found {len(final_vcfs)}")
+    trace_text = trace.read_text()
+    if final_vcfs[0].parent.name not in trace_text:
+        fail("final rescue identity is not present in the current execution trace")
     validate_final_vcf(final_vcfs[0])
 
 
