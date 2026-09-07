@@ -104,3 +104,14 @@ def test_hisat2_resource_validator_rejects_mixed_or_incomplete_sets(tmp_path):
 
     with pytest.raises(ValueError, match="one complete"):
         validator.validate_hisat2_resources(tmp_path, splice)
+
+
+def test_hisat2_resource_validator_rejects_mixed_index_formats(tmp_path):
+    for suffix in range(1, 9):
+        (tmp_path / f"assembly.{suffix}.ht2").write_bytes(b"index")
+        (tmp_path / f"other.{suffix}.ht2l").write_bytes(b"index")
+    splice = tmp_path / "splice.txt"
+    splice.write_text("chr1\t1\t5\t+\n")
+
+    with pytest.raises(ValueError, match="mixes"):
+        validator.validate_hisat2_resources(tmp_path, splice)

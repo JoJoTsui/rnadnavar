@@ -138,7 +138,7 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             versions = versions.mix(VALIDATE_READ_IDS.out.versions)
 
             // === STEP 6: ENHANCED CRAM TO BAM CONVERSION ===
-            cram_to_convert = VALIDATE_READ_IDS.out.read_ids.map { meta, readsid -> 
+            cram_to_convert = VALIDATE_READ_IDS.out.read_ids.map { meta, readsid ->
                 def cram_file = file(meta.cram_path)
                 def crai_file = file(meta.crai_path)
                 def enhanced_meta = meta + [readsid_path: readsid.toString()]

@@ -42,6 +42,9 @@ process HISAT2_ALIGN {
         def unaligned = params.save_unaligned ? "--un-gz ${prefix}.unmapped.fastq.gz" : ''
         """
         INDEXES=`find -L ./ -type f -name "*.1.ht2" -o -type f -name "*.1.ht2l" | sed -E 's/\\.([1-8])\\.ht2l?\$//' | sort -u`
+        SMALL_INDEXES=`find -L ./ -type f -name "*.1.ht2" | wc -l`
+        LARGE_INDEXES=`find -L ./ -type f -name "*.1.ht2l" | wc -l`
+        if [ "\$SMALL_INDEXES" -gt 0 ] && [ "\$LARGE_INDEXES" -gt 0 ]; then echo "HISAT2 index mixes .ht2 and .ht2l formats" >&2; exit 2; fi
         INDEX_COUNT=`printf '%s\\n' "\$INDEXES" | sed '/^\$/d' | wc -l`
         if [ "\$INDEX_COUNT" -ne 1 ]; then echo "Expected exactly one complete HISAT2 index basename, found \$INDEX_COUNT" >&2; exit 2; fi
         INDEX="\$INDEXES"
@@ -70,6 +73,9 @@ process HISAT2_ALIGN {
         def unaligned = params.save_unaligned ? "--un-conc-gz ${prefix}.unmapped.fastq.gz" : ''
         """
         INDEXES=`find -L ./ -type f -name "*.1.ht2" -o -type f -name "*.1.ht2l" | sed -E 's/\\.([1-8])\\.ht2l?\$//' | sort -u`
+        SMALL_INDEXES=`find -L ./ -type f -name "*.1.ht2" | wc -l`
+        LARGE_INDEXES=`find -L ./ -type f -name "*.1.ht2l" | wc -l`
+        if [ "\$SMALL_INDEXES" -gt 0 ] && [ "\$LARGE_INDEXES" -gt 0 ]; then echo "HISAT2 index mixes .ht2 and .ht2l formats" >&2; exit 2; fi
         INDEX_COUNT=`printf '%s\\n' "\$INDEXES" | sed '/^\$/d' | wc -l`
         if [ "\$INDEX_COUNT" -ne 1 ]; then echo "Expected exactly one complete HISAT2 index basename, found \$INDEX_COUNT" >&2; exit 2; fi
         INDEX="\$INDEXES"

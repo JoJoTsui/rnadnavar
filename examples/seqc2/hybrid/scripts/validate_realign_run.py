@@ -148,7 +148,11 @@ def validate_bam_dictionary(rows: list[dict[str, str]], reference: dict[str, int
 
 
 def validate_hisat2_resources(directory: Path, splicesites: Path) -> None:
-    candidates = sorted(directory.glob("*.1.ht2")) + sorted(directory.glob("*.1.ht2l"))
+    small = sorted(directory.glob("*.1.ht2"))
+    large = sorted(directory.glob("*.1.ht2l"))
+    if small and large:
+        fail(f"HISAT2 index mixes .ht2 and .ht2l formats: {directory}")
+    candidates = small or large
     basenames = {path.name.rsplit(".1.", 1)[0] for path in candidates}
     if len(basenames) != 1:
         fail(f"HISAT2 directory must contain one index basename, found {sorted(basenames)}")
