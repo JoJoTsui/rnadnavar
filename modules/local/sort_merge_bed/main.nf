@@ -2,8 +2,6 @@ process SORT_MERGE_BED {
     tag "$meta.id"
     label 'process_single'
 
-    conda "${moduleDir}/environment.yml"
-
     input:
     tuple val(meta), path(input)
 

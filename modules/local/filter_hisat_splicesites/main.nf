@@ -1,8 +1,6 @@
 process FILTER_HISAT_SPLICESITES {
     tag "$meta.id"
     label 'process_single'
-    conda "${moduleDir}/environment.yml"
-
     input:
     tuple val(meta), path(splicesites), path(fai)
 

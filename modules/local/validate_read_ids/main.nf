@@ -1,8 +1,6 @@
 process VALIDATE_READ_IDS {
     tag "$meta.id"
     label 'process_single'
-    conda "${moduleDir}/environment.yml"
-
     input:
     tuple val(meta), path(read_ids)
 
