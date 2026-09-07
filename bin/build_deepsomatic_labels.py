@@ -33,7 +33,7 @@ def main():
                 key=(f[0],f[1],f[3].upper(),f[4].upper()); ev=verified.get(key)
                 if not ev: continue
                 f[6]='Somatic'; f[7]=f[7]+('; ' if f[7] not in ('','.','') else '')+'CLASSIFICATION_RATIONALE=rule:verified_dna_rna_nomination|class:Somatic|tumor_alt:%s|normal_alt:%s' % (ev.get('tumor_alt'),ev.get('normal_alt'))
-            rows.append('\t'.join(f)+'\n')
+                rows.append('\t'.join(f)+'\n')
     out=Path(args.out); out.parent.mkdir(parents=True,exist_ok=True)
     if str(out).endswith('.gz'):
         with gzip.open(out,'wt') as fh: fh.writelines(rows)
