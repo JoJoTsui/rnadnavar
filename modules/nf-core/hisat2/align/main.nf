@@ -32,7 +32,12 @@ process HISAT2_ALIGN {
         strandedness = meta.single_end ? '--rna-strandness R' : '--rna-strandness RF'
     }
     ss = "$splicesites" ? "--known-splicesite-infile $splicesites" : ''
-    def seq_center = params.seq_center ? "--rg-id ${prefix} --rg SM:$prefix --rg CN:${params.seq_center.replaceAll('\\s','_')}" : "--rg-id ${prefix} --rg SM:$prefix"
+    // A pooled RT sample remains one logical HISAT2 alignment, but its
+    // contributing libraries must remain auditable in the read group.  The
+    // ingress metadata carries the sorted unique library IDs from BAM_ALIGN.
+    def library_ids = meta.libraries ?: (meta.library ? [meta.library] : [prefix])
+    def library_tag = library_ids.collect { it.toString().replaceAll('\\s', '_') }.join('+')
+    def seq_center = params.seq_center ? "--rg-id ${prefix} --rg SM:$prefix --rg LB:${library_tag} --rg CN:${params.seq_center.replaceAll('\\s','_')}" : "--rg-id ${prefix} --rg SM:$prefix --rg LB:${library_tag}"
     if (meta.single_end) {
         def unaligned = params.save_unaligned ? "--un-gz ${prefix}.unmapped.fastq.gz" : ''
         """
