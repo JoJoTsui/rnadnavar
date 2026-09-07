@@ -63,3 +63,6 @@ Validation for recovery commit `c08228a`: documented Python suite excluding the 
 
 
 Policy-selection readiness: the development selector now fails closed on empty or mismatched baselines, undeclared/missing required slices, duplicate slices, nonfinite or out-of-range metrics, malformed partitions and invalid minimum deltas. The held-out evaluator validates frozen slice binding and recomputes per-slice gates from the frozen baseline, ignoring supplied gate booleans. Public CLI fixtures cover qualified, no-policy, missing-policy, malformed and regression cases. This establishes engineering behavior only; real development and held-out evidence remain deferred.
+
+
+Benchmark scorer readiness: the scorer now accepts a separate baseline selector (default PASS), records query/baseline/truth selector identities and baseline checksums, and retains explicit stage/domain fields. This covers selector separation and basic provenance for small comparisons; region enforcement, normalization diagnostics, cache invalidation and full artifact-lineage checks remain open.
