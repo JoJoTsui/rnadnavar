@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 # Import unified configuration
-from vcf_utils.classification_config import DEFAULT_THRESHOLDS
+from vcf_utils.classification_config import DEFAULT_THRESHOLDS, validate_thresholds
 
 
 def argparser():
@@ -158,6 +158,11 @@ def find_vcf_files(directory):
 def main():
     """Main rescue workflow."""
     args = argparser()
+    try:
+        validate_thresholds(vars(args))
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(2)
 
     print("=" * 80)
     print("Cross-Modality VCF Rescue")
