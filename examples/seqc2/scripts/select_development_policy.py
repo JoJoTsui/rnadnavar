@@ -57,6 +57,9 @@ def _candidate_rows(candidate, required):
         by[key] = row
         _metric(row.get("precision"), f"candidate {key} precision")
         _metric(row.get("recall"), f"candidate {key} recall")
+    extra = [key for key in by if key not in required]
+    if extra:
+        raise ValueError("candidate contains undeclared extra slices: " + ", ".join(sorted(extra)))
     missing = [key for key in required if key not in by]
     if missing:
         raise ValueError("candidate is missing required slices: " + ", ".join(missing))
@@ -87,7 +90,7 @@ def main():
             decisions.append({"policy": candidate["policy"], "qualifies": not failures, "failures": failures})
     except (OSError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))
-    qualified = [decision for decision in decisions if decision["qualifies"]]
+    qualified = sorted((decision for decision in decisions if decision["qualifies"]), key=lambda decision: json.dumps(decision["policy"], sort_keys=True, separators=(",", ":")))
     result = {
         "status": "qualified" if qualified else "no_qualifying_policy",
         "development_only": True,
