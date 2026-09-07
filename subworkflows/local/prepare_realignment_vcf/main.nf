@@ -74,15 +74,22 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
                 .map { meta, cram, crai -> [meta.patient, meta.sample, meta, cram, crai] }
             
             joined_data = cram_keyed.join(vcf_keyed, by: [0, 1], failOnDuplicate: true, remainder: true)
-                .map { patient, sample, cram_meta, cram, crai, vcf_meta, vcf, tbi ->
+                .map { row ->
+                    // `remainder:true` emits shorter rows for an unmatched
+                    // side; use one list argument so the diagnostic remains
+                    // actionable instead of failing with a closure-arity error.
+                    def patient = row.size() > 0 ? row[0] : 'unknown'
+                    def sample = row.size() > 1 ? row[1] : 'unknown'
+                    def cram_meta = row.size() > 2 ? row[2] : null
+                    def cram = row.size() > 3 ? row[3] : null
+                    def crai = row.size() > 4 ? row[4] : null
+                    def vcf_meta = row.size() > 5 ? row[5] : null
+                    def vcf = row.size() > 6 ? row[6] : null
+                    def tbi = row.size() > 7 ? row[7] : null
                     if (!cram_meta || !vcf_meta || !cram || !crai || !vcf || !tbi) {
-                        error("Realignment pairing requires one RNA CRAM and one candidate VCF for ${patient}/${sample}")
+                        error("Realignment pairing requires one RNA CRAM and one candidate VCF for ${patient}/${sample}; joined fields=${row.size()}")
                     }
-                    // Merge metadata safely
-                    def merged_meta = cram_meta + [
-                        vcf_id: vcf_meta.id,
-                        vcf_sample: vcf_meta.sample
-                    ]
+                    def merged_meta = cram_meta + [vcf_id: vcf_meta.id, vcf_sample: vcf_meta.sample]
                     [merged_meta, cram, crai, vcf, tbi]
                 }
 
