@@ -39,6 +39,26 @@ Domain terms for this repository. Glossary only — no implementation details or
 
 - **Re-consensus rerun** — forward-only regeneration of consensus and rescue VCFs for the whole cohort from the existing, read-only per-caller VCF outputs, using fixed pipeline code, written to a new output location. Original outputs are never modified.
 
+**Training-label artifact**:
+The rescue output combining DNA evidence with realigned RNA tumor evidence, or its subsequent re-consensus/QC derivative, selected as the source of downstream training labels. First-round rescue is an intermediate diagnostic output.
+
+**RNA-nominated candidate**:
+A variant site nominated by RNA evidence for assessment using DNA tumor and matched-normal evidence. Nomination alone does not establish a Somatic training label.
+_Avoid_: Rescued somatic variant for a site whose DNA verification remains unresolved.
+
+## Benchmark interpretation
+
+**Benchmark domain**:
+The declared genomic region and variant classes over which a truth set and a query callset are compared. Scores from different domains answer different questions.
+_Avoid_: Whole-genome benchmark when only target regions were evaluated.
+
+**Incremental rescue yield**:
+The true-positive fraction among variants newly admitted by rescue relative to the chosen baseline in the same benchmark domain. Variants lost from that baseline are accounted for separately.
+_Avoid_: Rescue accuracy when only the overall final-callset precision was measured.
+
+**Paired error transition**:
+The change in a variant's inclusion and truth status between two callsets evaluated against the same truth and domain. It distinguishes recovered true variants, new false positives, lost true variants, and removed false positives.
+
 ## Split and downstream-task concepts
 
 - **Working cohort** — the 63 samples eligible for dataset splitting: rows of the rerun sample manifest with a non-empty training label VCF (56 PASS + 7 WARN). The 3 `useless` samples are never split.

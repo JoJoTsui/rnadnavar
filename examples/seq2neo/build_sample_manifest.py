@@ -102,9 +102,8 @@ def _locate_bam_file(base_dir: str, dir_name: str, bam_type: str) -> str | None:
             os.path.join(base_dir, dir_name, "preprocessing", "mapped", f"*{suffix}", "*.sorted.bam"),
             os.path.join(base_dir, dir_name, "preprocessing", "mapped", f"*{suffix}", "*.bam"),
         ]
-    else:  # RT
+    else:  # RT: training lineage requires the realignment-stage BAM.
         search_paths = [
-            os.path.join(base_dir, dir_name, "preprocessing", "mapped", f"*{suffix}", "*.bam"),
             os.path.join(base_dir, dir_name, "vcf_realignment", "preprocessing", "mapped", f"*{suffix}", "*.bam"),
         ]
 
@@ -177,8 +176,10 @@ def build_manifest(samples: list[dict]) -> list[dict]:
 
         # Completeness: rescue VCF + at least one BAM + at least one caller VCF
         has_rescue = os.path.isfile(rescue_vcf_path)
-        has_bam = any(v for v in bam_paths.values())
-        has_caller = any(v for v in caller_paths.values())
+        has_bam = all(v for v in bam_paths.values())
+        has_caller = all(v for v in caller_paths.values())
+        # A training row is complete only when the final rescue artifact,
+        # realigned RT BAM, and the complete six-caller lineage are present.
         is_complete = has_rescue and has_bam and has_caller
 
         if is_complete:
@@ -199,6 +200,8 @@ def build_manifest(samples: list[dict]) -> list[dict]:
             "dir_name": dir_name,
             "vcf_prefix": vcf_prefix,
             "rescue_vcf_path": rescue_vcf_path,
+            "label_stage": "realigned_second_rescue" if has_rescue else "missing_final_rescue",
+            "lineage_verified": bool(has_rescue and bam_paths.get("bam_rt") and has_caller),
             "is_complete": is_complete,
         }
         row.update(bam_paths)

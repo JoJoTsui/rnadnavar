@@ -1,0 +1,1223 @@
+[
+  {
+    "path": "examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/consensus.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "50",
+        "fp": "4",
+        "fn": "45",
+        "precision": "0.9259259259259259",
+        "recall": "0.5263157894736842"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "1219",
+        "fp": "13",
+        "fn": "986",
+        "precision": "0.989448051948052",
+        "recall": "0.5528344671201814"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "1269",
+        "fp": "17",
+        "fn": "1031",
+        "precision": "0.9867807153965785",
+        "recall": "0.5517391304347826"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/WES_IL_T_1_vs_WES_IL_N_1.consensus.somatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/consensus -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/deepsomatic.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "53",
+        "fp": "3",
+        "fn": "42",
+        "precision": "0.9464285714285714",
+        "recall": "0.5578947368421052"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "1312",
+        "fp": "18",
+        "fn": "893",
+        "precision": "0.9864661654135338",
+        "recall": "0.5950113378684807"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "1365",
+        "fp": "21",
+        "fn": "935",
+        "precision": "0.9848484848484849",
+        "recall": "0.5934782608695652"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wes.il/variant_calling/deepsomatic/WES_IL_T_1_vs_WES_IL_N_1/WES_IL_T_1_vs_WES_IL_N_1.deepsomatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/deepsomatic -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/mutect2.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "45",
+        "fp": "7",
+        "fn": "50",
+        "precision": "0.8653846153846154",
+        "recall": "0.47368421052631576"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "1113",
+        "fp": "16",
+        "fn": "1092",
+        "precision": "0.9858281665190434",
+        "recall": "0.5047619047619047"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "1158",
+        "fp": "39",
+        "fn": "1142",
+        "precision": "0.9674185463659147",
+        "recall": "0.5034782608695653"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wes.il/variant_calling/mutect2/WES_IL_T_1_vs_WES_IL_N_1/WES_IL_T_1_vs_WES_IL_N_1.mutect2.filtered.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/mutect2 -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/no_target/consensus.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "1625",
+        "tp": "50",
+        "fp": "4",
+        "fn": "1575",
+        "precision": "0.9259259259259259",
+        "recall": "0.03076923076923077"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "39447",
+        "tp": "1219",
+        "fp": "13",
+        "fn": "38228",
+        "precision": "0.989448051948052",
+        "recall": "0.030902223236241033"
+      },
+      {
+        "type": "records",
+        "total.truth": "41072",
+        "tp": "1269",
+        "fp": "17",
+        "fn": "39803",
+        "precision": "0.9867807153965785",
+        "recall": "0.030896961433580054"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/WES_IL_T_1_vs_WES_IL_N_1.consensus.somatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -o examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/no_target/consensus -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/no_target/deepsomatic.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "1625",
+        "tp": "53",
+        "fp": "3",
+        "fn": "1572",
+        "precision": "0.9464285714285714",
+        "recall": "0.032615384615384616"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "39447",
+        "tp": "1312",
+        "fp": "18",
+        "fn": "38135",
+        "precision": "0.9864661654135338",
+        "recall": "0.03325981696960478"
+      },
+      {
+        "type": "records",
+        "total.truth": "41072",
+        "tp": "1365",
+        "fp": "21",
+        "fn": "39707",
+        "precision": "0.9848484848484849",
+        "recall": "0.033234320218153486"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wes.il/variant_calling/deepsomatic/WES_IL_T_1_vs_WES_IL_N_1/WES_IL_T_1_vs_WES_IL_N_1.deepsomatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -o examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/no_target/deepsomatic -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/no_target/mutect2.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "1625",
+        "tp": "45",
+        "fp": "7",
+        "fn": "1580",
+        "precision": "0.8653846153846154",
+        "recall": "0.027692307692307693"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "39447",
+        "tp": "1113",
+        "fp": "16",
+        "fn": "38334",
+        "precision": "0.9858281665190434",
+        "recall": "0.028215073389611378"
+      },
+      {
+        "type": "records",
+        "total.truth": "41072",
+        "tp": "1158",
+        "fp": "39",
+        "fn": "39914",
+        "precision": "0.9674185463659147",
+        "recall": "0.028194390338917023"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wes.il/variant_calling/mutect2/WES_IL_T_1_vs_WES_IL_N_1/WES_IL_T_1_vs_WES_IL_N_1.mutect2.filtered.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -o examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/no_target/mutect2 -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/no_target/strelka.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "1625",
+        "tp": "49",
+        "fp": "45",
+        "fn": "1576",
+        "precision": "0.5212765957446809",
+        "recall": "0.030153846153846153"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "39447",
+        "tp": "1224",
+        "fp": "1634",
+        "fn": "38223",
+        "precision": "0.4282715185444367",
+        "recall": "0.03102897558749715"
+      },
+      {
+        "type": "records",
+        "total.truth": "41072",
+        "tp": "1273",
+        "fp": "1679",
+        "fn": "39799",
+        "precision": "0.4312330623306233",
+        "recall": "0.030994351382937282"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wes.il/variant_calling/strelka/WES_IL_T_1_vs_WES_IL_N_1/WES_IL_T_1_vs_WES_IL_N_1.strelka.variants.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -o examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/no_target/strelka -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/strelka.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "49",
+        "fp": "45",
+        "fn": "46",
+        "precision": "0.5212765957446809",
+        "recall": "0.5157894736842106"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "1224",
+        "fp": "1634",
+        "fn": "981",
+        "precision": "0.4282715185444367",
+        "recall": "0.5551020408163265"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "1273",
+        "fp": "1679",
+        "fn": "1027",
+        "precision": "0.4312330623306233",
+        "recall": "0.5534782608695652"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wes.il/variant_calling/strelka/WES_IL_T_1_vs_WES_IL_N_1/WES_IL_T_1_vs_WES_IL_N_1.strelka.variants.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_IL_T_1_vs_WES_IL_N_1/strelka -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_bed/clair.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "0",
+        "fp": "0",
+        "fn": "95",
+        "precision": "0.0",
+        "recall": "0.0"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "236",
+        "fp": "576",
+        "fn": "1969",
+        "precision": "0.29064039408866993",
+        "recall": "0.10702947845804989"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "236",
+        "fp": "576",
+        "fn": "2064",
+        "precision": "0.29064039408866993",
+        "recall": "0.10260869565217391"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/clairs/ClairS/examples/seqc2/output/clairs.ilmn_ssrs.WES_LL/output.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_bed/clair -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_bed/consensus.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "0",
+        "fp": "0",
+        "fn": "95",
+        "precision": "0.0",
+        "recall": "0.0"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "0",
+        "fp": "0",
+        "fn": "2205",
+        "precision": "0.0",
+        "recall": "0.0"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "0",
+        "fp": "0",
+        "fn": "2300",
+        "precision": "0.0",
+        "recall": "0.0"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.consensus.somatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_bed/consensus -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_bed/deepsomatic.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "41",
+        "fp": "76",
+        "fn": "54",
+        "precision": "0.3504273504273504",
+        "recall": "0.43157894736842106"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "1007",
+        "fp": "1368",
+        "fn": "1198",
+        "precision": "0.424",
+        "recall": "0.45668934240362813"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "1048",
+        "fp": "1444",
+        "fn": "1252",
+        "precision": "0.420545746388443",
+        "recall": "0.45565217391304347"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wes.ll/variant_calling/deepsomatic/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.deepsomatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_bed/deepsomatic -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_bed/mutect2.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "32",
+        "fp": "38",
+        "fn": "63",
+        "precision": "0.45714285714285713",
+        "recall": "0.3368421052631579"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "906",
+        "fp": "462",
+        "fn": "1299",
+        "precision": "0.6622807017543859",
+        "recall": "0.4108843537414966"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "938",
+        "fp": "516",
+        "fn": "1362",
+        "precision": "0.6451169188445667",
+        "recall": "0.4078260869565217"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wes.ll/variant_calling/mutect2/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.mutect2.filtered.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_bed/mutect2 -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_bed/strelka.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "38",
+        "fp": "227",
+        "fn": "57",
+        "precision": "0.14339622641509434",
+        "recall": "0.4"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "944",
+        "fp": "3396",
+        "fn": "1261",
+        "precision": "0.21751152073732719",
+        "recall": "0.42811791383219955"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "982",
+        "fp": "3623",
+        "fn": "1318",
+        "precision": "0.21324647122692725",
+        "recall": "0.42695652173913046"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wes.ll/variant_calling/strelka/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.strelka.variants.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_bed/strelka -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_targets/clair.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "0",
+        "fp": "0",
+        "fn": "95",
+        "precision": "0.0",
+        "recall": "0.0"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "236",
+        "fp": "0",
+        "fn": "1969",
+        "precision": "1.0",
+        "recall": "0.10702947845804989"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "236",
+        "fp": "0",
+        "fn": "2064",
+        "precision": "1.0",
+        "recall": "0.10260869565217391"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/clairs/ClairS/examples/seqc2/output/clairs.ilmn_ssrs.WES_LL/output.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_targets/clair -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_targets/consensus.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "0",
+        "fp": "0",
+        "fn": "95",
+        "precision": "0.0",
+        "recall": "0.0"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "0",
+        "fp": "0",
+        "fn": "2205",
+        "precision": "0.0",
+        "recall": "0.0"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "0",
+        "fp": "0",
+        "fn": "2300",
+        "precision": "0.0",
+        "recall": "0.0"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.consensus.somatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_targets/consensus -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_targets/consensus_generic.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "0",
+        "fp": "0",
+        "fn": "95",
+        "precision": "0.0",
+        "recall": "0.0"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "0",
+        "fp": "0",
+        "fn": "2205",
+        "precision": "0.0",
+        "recall": "0.0"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "0",
+        "fp": "0",
+        "fn": "2300",
+        "precision": "0.0",
+        "recall": "0.0"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.consensus.somatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_targets/consensus_generic -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N --feature-table generic"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_targets/deepsomatic.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "41",
+        "fp": "4",
+        "fn": "54",
+        "precision": "0.9111111111111111",
+        "recall": "0.43157894736842106"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "1007",
+        "fp": "34",
+        "fn": "1198",
+        "precision": "0.9673390970220941",
+        "recall": "0.45668934240362813"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "1048",
+        "fp": "38",
+        "fn": "1252",
+        "precision": "0.9650092081031307",
+        "recall": "0.45565217391304347"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wes.ll/variant_calling/deepsomatic/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.deepsomatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_targets/deepsomatic -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_targets/mutect2.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "32",
+        "fp": "4",
+        "fn": "63",
+        "precision": "0.8888888888888888",
+        "recall": "0.3368421052631579"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "906",
+        "fp": "147",
+        "fn": "1299",
+        "precision": "0.8603988603988604",
+        "recall": "0.4108843537414966"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "938",
+        "fp": "164",
+        "fn": "1362",
+        "precision": "0.8511796733212341",
+        "recall": "0.4078260869565217"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wes.ll/variant_calling/mutect2/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.mutect2.filtered.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_targets/mutect2 -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_targets/strelka.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "38",
+        "fp": "41",
+        "fn": "57",
+        "precision": "0.4810126582278481",
+        "recall": "0.4"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "944",
+        "fp": "1524",
+        "fn": "1261",
+        "precision": "0.3824959481361426",
+        "recall": "0.42811791383219955"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "982",
+        "fp": "1565",
+        "fn": "1318",
+        "precision": "0.3855516293678838",
+        "recall": "0.42695652173913046"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wes.ll/variant_calling/strelka/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.strelka.variants.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/capture_targets/strelka -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/clair.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "0",
+        "fp": "0",
+        "fn": "95",
+        "precision": "0.0",
+        "recall": "0.0"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "236",
+        "fp": "0",
+        "fn": "1969",
+        "precision": "1.0",
+        "recall": "0.10702947845804989"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "236",
+        "fp": "0",
+        "fn": "2064",
+        "precision": "1.0",
+        "recall": "0.10260869565217391"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/clairs/ClairS/examples/seqc2/output/clairs.ilmn_ssrs.WES_LL/output.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/clair -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/consensus.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "35",
+        "fp": "1",
+        "fn": "60",
+        "precision": "0.9722222222222222",
+        "recall": "0.3684210526315789"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "950",
+        "fp": "106",
+        "fn": "1255",
+        "precision": "0.8996212121212122",
+        "recall": "0.4308390022675737"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "985",
+        "fp": "107",
+        "fn": "1315",
+        "precision": "0.902014652014652",
+        "recall": "0.4282608695652174"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.consensus.somatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/consensus -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/deepsomatic.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "41",
+        "fp": "4",
+        "fn": "54",
+        "precision": "0.9111111111111111",
+        "recall": "0.43157894736842106"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "1007",
+        "fp": "34",
+        "fn": "1198",
+        "precision": "0.9673390970220941",
+        "recall": "0.45668934240362813"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "1048",
+        "fp": "38",
+        "fn": "1252",
+        "precision": "0.9650092081031307",
+        "recall": "0.45565217391304347"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/output/seqc2.wes.ll/variant_calling/deepsomatic/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.deepsomatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/deepsomatic -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/mutect2.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "32",
+        "fp": "4",
+        "fn": "63",
+        "precision": "0.8888888888888888",
+        "recall": "0.3368421052631579"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "906",
+        "fp": "147",
+        "fn": "1299",
+        "precision": "0.8603988603988604",
+        "recall": "0.4108843537414966"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "938",
+        "fp": "164",
+        "fn": "1362",
+        "precision": "0.8511796733212341",
+        "recall": "0.4078260869565217"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/output/seqc2.wes.ll/variant_calling/mutect2/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.mutect2.filtered.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/mutect2 -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/strelka.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "38",
+        "fp": "41",
+        "fn": "57",
+        "precision": "0.4810126582278481",
+        "recall": "0.4"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "944",
+        "fp": "1524",
+        "fn": "1261",
+        "precision": "0.3824959481361426",
+        "recall": "0.42811791383219955"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "982",
+        "fp": "1565",
+        "fn": "1318",
+        "precision": "0.3855516293678838",
+        "recall": "0.42695652173913046"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/output/seqc2.wes.ll/variant_calling/strelka/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.strelka.variants.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/WES_LL_T_1_vs_WES_LL_N_1/strelka -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WGS_IL_T_1_vs_WGS_IL_N_1/consensus.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "73",
+        "fp": "4",
+        "fn": "22",
+        "precision": "0.948051948051948",
+        "recall": "0.7684210526315789"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "2058",
+        "fp": "1",
+        "fn": "147",
+        "precision": "0.9995143273433705",
+        "recall": "0.9333333333333333"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "2131",
+        "fp": "5",
+        "fn": "169",
+        "precision": "0.9976591760299626",
+        "recall": "0.9265217391304348"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WGS_IL_T_1_vs_WGS_IL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/comparison/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.consensus.somatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WGS_IL_T_1_vs_WGS_IL_N_1/consensus -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WGS_IL_T_1_vs_WGS_IL_N_1/deepsomatic.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "85",
+        "fp": "11",
+        "fn": "10",
+        "precision": "0.8854166666666666",
+        "recall": "0.8947368421052632"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "2083",
+        "fp": "8",
+        "fn": "122",
+        "precision": "0.9961740793878527",
+        "recall": "0.944671201814059"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "2168",
+        "fp": "19",
+        "fn": "132",
+        "precision": "0.9913122999542753",
+        "recall": "0.9426086956521739"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WGS_IL_T_1_vs_WGS_IL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wgs.il/variant_calling/deepsomatic/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.deepsomatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WGS_IL_T_1_vs_WGS_IL_N_1/deepsomatic -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WGS_IL_T_1_vs_WGS_IL_N_1/mutect2.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "37",
+        "fp": "8",
+        "fn": "58",
+        "precision": "0.8222222222222222",
+        "recall": "0.3894736842105263"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "1645",
+        "fp": "0",
+        "fn": "560",
+        "precision": "1.0",
+        "recall": "0.746031746031746"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "1682",
+        "fp": "34",
+        "fn": "618",
+        "precision": "0.9801864801864801",
+        "recall": "0.731304347826087"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WGS_IL_T_1_vs_WGS_IL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wgs.il/variant_calling/mutect2/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WGS_IL_T_1_vs_WGS_IL_N_1/mutect2 -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/comparison/WGS_IL_T_1_vs_WGS_IL_N_1/strelka.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "74",
+        "fp": "13",
+        "fn": "21",
+        "precision": "0.8505747126436781",
+        "recall": "0.7789473684210526"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "2092",
+        "fp": "110",
+        "fn": "113",
+        "precision": "0.9500454132606722",
+        "recall": "0.9487528344671202"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "2166",
+        "fp": "123",
+        "fn": "134",
+        "precision": "0.9462647444298821",
+        "recall": "0.9417391304347826"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py examples/seqc2/comparison/WGS_IL_T_1_vs_WGS_IL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz examples/seqc2/output/seqc2.wgs.il/variant_calling/strelka/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.strelka.variants.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o examples/seqc2/comparison/WGS_IL_T_1_vs_WGS_IL_N_1/strelka -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/consensus.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "3",
+        "fp": "26",
+        "fn": "92",
+        "precision": "0.10344827586206896",
+        "recall": "0.031578947368421054"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "312",
+        "fp": "585",
+        "fn": "1893",
+        "precision": "0.34782608695652173",
+        "recall": "0.1414965986394558"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "315",
+        "fp": "611",
+        "fn": "1985",
+        "precision": "0.34017278617710583",
+        "recall": "0.13695652173913042"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/WES_LL_RT_1_vs_WES_LL_N_1.consensus.somatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/consensus -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/deepsomatic.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "5",
+        "fp": "40",
+        "fn": "90",
+        "precision": "0.1111111111111111",
+        "recall": "0.05263157894736842"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "300",
+        "fp": "639",
+        "fn": "1905",
+        "precision": "0.3194888178913738",
+        "recall": "0.1360544217687075"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "305",
+        "fp": "679",
+        "fn": "1995",
+        "precision": "0.3099593495934959",
+        "recall": "0.13260869565217392"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.pooling_fix/variant_calling/deepsomatic/WES_LL_RT_1_vs_WES_LL_N_1/WES_LL_RT_1_vs_WES_LL_N_1.deepsomatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/deepsomatic -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/mutect2.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "2",
+        "fp": "41",
+        "fn": "93",
+        "precision": "0.046511627906976744",
+        "recall": "0.021052631578947368"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "213",
+        "fp": "526",
+        "fn": "1992",
+        "precision": "0.2882273342354533",
+        "recall": "0.09659863945578231"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "215",
+        "fp": "595",
+        "fn": "2085",
+        "precision": "0.2654320987654321",
+        "recall": "0.09347826086956522"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.pooling_fix/variant_calling/mutect2/WES_LL_RT_1_vs_WES_LL_N_1/WES_LL_RT_1_vs_WES_LL_N_1.mutect2.filtered.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/mutect2 -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/rescue.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "35",
+        "fp": "28",
+        "fn": "60",
+        "precision": "0.5555555555555556",
+        "recall": "0.3684210526315789"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "967",
+        "fp": "687",
+        "fn": "1238",
+        "precision": "0.5846432889963724",
+        "recall": "0.4385487528344671"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "1002",
+        "fp": "715",
+        "fn": "1298",
+        "precision": "0.5835760046592895",
+        "recall": "0.4356521739130435"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/rescue.somatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/rescue -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/strelka.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "4",
+        "fp": "358",
+        "fn": "91",
+        "precision": "0.011049723756906077",
+        "recall": "0.042105263157894736"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "371",
+        "fp": "4929",
+        "fn": "1834",
+        "precision": "0.07",
+        "recall": "0.16825396825396827"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "375",
+        "fp": "5287",
+        "fn": "1925",
+        "precision": "0.06623101377605087",
+        "recall": "0.16304347826086957"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.pooling_fix/variant_calling/strelka/WES_LL_RT_1_vs_WES_LL_N_1/WES_LL_RT_1_vs_WES_LL_N_1.strelka.variants.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/strelka -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/hybrid/comparison/WES_LL_T_1_vs_WES_LL_N_1/consensus.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "35",
+        "fp": "1",
+        "fn": "60",
+        "precision": "0.9722222222222222",
+        "recall": "0.3684210526315789"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "950",
+        "fp": "106",
+        "fn": "1255",
+        "precision": "0.8996212121212122",
+        "recall": "0.4308390022675737"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "985",
+        "fp": "107",
+        "fn": "1315",
+        "precision": "0.902014652014652",
+        "recall": "0.4282608695652174"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.consensus.somatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_T_1_vs_WES_LL_N_1/consensus -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/hybrid/comparison/WES_LL_T_1_vs_WES_LL_N_1/deepsomatic.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "41",
+        "fp": "4",
+        "fn": "54",
+        "precision": "0.9111111111111111",
+        "recall": "0.43157894736842106"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "1007",
+        "fp": "34",
+        "fn": "1198",
+        "precision": "0.9673390970220941",
+        "recall": "0.45668934240362813"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "1048",
+        "fp": "38",
+        "fn": "1252",
+        "precision": "0.9650092081031307",
+        "recall": "0.45565217391304347"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.pooling_fix/variant_calling/deepsomatic/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.deepsomatic.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_T_1_vs_WES_LL_N_1/deepsomatic -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/hybrid/comparison/WES_LL_T_1_vs_WES_LL_N_1/mutect2.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "32",
+        "fp": "4",
+        "fn": "63",
+        "precision": "0.8888888888888888",
+        "recall": "0.3368421052631579"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "906",
+        "fp": "147",
+        "fn": "1299",
+        "precision": "0.8603988603988604",
+        "recall": "0.4108843537414966"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "938",
+        "fp": "164",
+        "fn": "1362",
+        "precision": "0.8511796733212341",
+        "recall": "0.4078260869565217"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.pooling_fix/variant_calling/mutect2/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.mutect2.filtered.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_T_1_vs_WES_LL_N_1/mutect2 -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  },
+  {
+    "path": "examples/seqc2/hybrid/comparison/WES_LL_T_1_vs_WES_LL_N_1/strelka.stats.csv",
+    "rows": [
+      {
+        "type": "indels",
+        "total.truth": "95",
+        "tp": "38",
+        "fp": "41",
+        "fn": "57",
+        "precision": "0.4810126582278481",
+        "recall": "0.4"
+      },
+      {
+        "type": "SNVs",
+        "total.truth": "2205",
+        "tp": "944",
+        "fp": "1524",
+        "fn": "1261",
+        "precision": "0.3824959481361426",
+        "recall": "0.42811791383219955"
+      },
+      {
+        "type": "records",
+        "total.truth": "2300",
+        "tp": "982",
+        "fp": "1565",
+        "fn": "1318",
+        "precision": "0.3855516293678838",
+        "recall": "0.42695652173913046"
+      }
+    ],
+    "command": "/t9k/mnt/joey/micromamba/envs/happy/bin/som.py /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.pooling_fix/variant_calling/strelka/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.strelka.variants.vcf.gz -R /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed -T /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed -o /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/WES_LL_T_1_vs_WES_LL_N_1/strelka -r /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta -N"
+  }
+]

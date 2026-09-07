@@ -1,5 +1,5 @@
 main_nf: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/main.nf
-rdv_conf: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/seqc2.hybrid.realign.config
+rdv_conf: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/seqc2.hybrid.realignment.config
 nxf_conda_cachedir: /t9k/mnt/joey/nf_conda_envs
 nxf_conda_usemamba: "true"
 micromamba_env: nextflow
