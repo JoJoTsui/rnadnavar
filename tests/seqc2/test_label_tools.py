@@ -70,3 +70,10 @@ def test_scorer_rejects_unrelated_provenance(tmp_path):
     provenance.write_text(json.dumps({'schema':'seqc2-artifact-provenance.v1','artifact':{'sha256':'wrong'}}))
     result=subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/score_label_artifact.py'),'--truth',str(truth),'--calls',str(calls),'--provenance',str(provenance),'--out',str(out)],capture_output=True,text=True)
     assert result.returncode != 0 and 'sha256' in result.stderr.lower()
+
+
+def test_scorer_requires_provenance_for_declared_stage(tmp_path):
+    truth=tmp_path/'truth.vcf'; calls=tmp_path/'calls.vcf'; out=tmp_path/'score.json'
+    write_vcf(truth,['1\t10\t.\tA\tG\t.\tPASS\t.']); write_vcf(calls,['1\t10\t.\tA\tG\t.\tSomatic\t.'])
+    result=subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/score_label_artifact.py'),'--truth',str(truth),'--calls',str(calls),'--stage','final_second_rescue','--out',str(out)],capture_output=True,text=True)
+    assert result.returncode != 0 and 'provenance' in result.stderr.lower()
