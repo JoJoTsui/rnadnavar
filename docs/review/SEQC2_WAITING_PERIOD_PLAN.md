@@ -75,3 +75,6 @@ Scoring provenance handoff: the benchmark scorer now accepts an optional `seqc2-
 
 
 Label-admission correction: DeepSomatic-based starting labels now retain only explicit PASS records; unknown (`.`) and rejected FILTER values are excluded rather than treated as affirmative PASS. Verified RNA additions remain separately admitted. Header/reference/sample compatibility and full workflow integration remain open.
+
+
+Final review corrections: label starting-set admission requires FILTER exactly `PASS`, excluding compound/rejected/unknown filters. Benchmark scoring now rejects a provenance manifest whose artifact SHA-256 differs from the scored calls.

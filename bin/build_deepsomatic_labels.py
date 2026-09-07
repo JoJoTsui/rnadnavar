@@ -44,7 +44,7 @@ def main():
     args = parser.parse_args()
     try:
         headers, records = read_records(args.deepsomatic_vcf)
-        records = {variant_key: fields for variant_key, fields in records.items() if "PASS" in {item.upper() for item in fields[6].split(";")}}
+        records = {variant_key: fields for variant_key, fields in records.items() if fields[6].upper() == "PASS"}
         verified = {}
         if args.verification_json:
             data = json.loads(Path(args.verification_json).read_text())
