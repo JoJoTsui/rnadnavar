@@ -10,6 +10,8 @@ outdir: output/seqc2.wes.ll.hybrid.realign.full
 state_file: runs/realign_full_state.json
 provenance_file: runs/realign_full_provenance.json
 resume: true
+step: mapping
+tools: deepsomatic,mutect2,strelka,norm,consensus,rescue,filtering,rna_filtering,realignment
 offline: true
 preflight_validator:
   - /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python
