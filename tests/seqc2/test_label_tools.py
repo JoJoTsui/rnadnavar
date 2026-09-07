@@ -1,0 +1,25 @@
+import gzip, importlib.util, json, subprocess, sys
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[2]
+def load(name,path):
+ s=importlib.util.spec_from_file_location(name,ROOT/path); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
+def write_vcf(path, rows):
+ text='##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n'+''.join(r+'\n' for r in rows)
+ if str(path).endswith('.gz'):
+  with gzip.open(path,'wt') as f:f.write(text)
+ else:path.write_text(text)
+def test_label_builder_keeps_all_verified_nominations(tmp_path):
+ m=load('labels','bin/build_deepsomatic_labels.py'); ds=tmp_path/'ds.vcf'; rna=tmp_path/'rna.vcf'; out=tmp_path/'out.vcf'
+ write_vcf(ds,['1\t10\t.\tA\tG\t.\tPASS\t.'])
+ write_vcf(rna,['1\t20\t.\tC\tT\t.\t.\t.','1\t30\t.\tG\tA\t.\t.\t.'])
+ ver=tmp_path/'verification.json'; ver.write_text(json.dumps({'results':[{'chrom':'1','pos':20,'ref':'C','alt':'T','status':'confirmed','tumor_alt':5,'normal_alt':0},{'chrom':'1','pos':30,'ref':'G','alt':'A','status':'confirmed','tumor_alt':4,'normal_alt':0}]}))
+ subprocess.run([sys.executable,str(ROOT/'bin/build_deepsomatic_labels.py'),'--deepsomatic-vcf',str(ds),'--rna-nominations',str(rna),'--verification-json',str(ver),'--out',str(out)],check=True)
+ body=out.read_text(); assert sum(1 for line in body.splitlines() if line and not line.startswith('#') and line.split('\t')[6]=='Somatic')==3
+
+def test_scorer_reports_variant_types_and_transitions(tmp_path):
+ truth=tmp_path/'truth.vcf'; base=tmp_path/'base.vcf'; calls=tmp_path/'calls.vcf'; out=tmp_path/'score.json'
+ write_vcf(truth,['1\t10\t.\tA\tG\t.\tPASS\t.','1\t20\t.\tA\tAT\t.\tPASS\t.'])
+ write_vcf(base,['1\t10\t.\tA\tG\t.\tSomatic\t.'])
+ write_vcf(calls,['1\t10\t.\tA\tG\t.\tSomatic\t.','1\t30\t.\tC\tT\t.\tSomatic\t.'])
+ subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/score_label_artifact.py'),'--truth',str(truth),'--calls',str(calls),'--baseline',str(base),'--out',str(out)],check=True)
+ rows={r['variant_type']:r for r in json.loads(out.read_text())['rows']}; assert rows['SNV']['gained_fp']==1; assert rows['indel']['fn']==1
