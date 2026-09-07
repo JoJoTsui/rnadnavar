@@ -44,7 +44,6 @@ def main():
     args = parser.parse_args()
     try:
         headers, records = read_records(args.deepsomatic_vcf)
-        records = {variant_key: fields for variant_key, fields in records.items() if fields[6].upper() == "PASS"}
         verified = {}
         if args.verification_json:
             data = json.loads(Path(args.verification_json).read_text())
@@ -57,7 +56,7 @@ def main():
                 verified[evidence_key] = evidence
         for variant_key, fields in list(records.items()):
             filters = {item.upper() for item in fields[6].split(";")}
-            if "PASS" in filters:
+            if filters & {"PASS", ".", "SOMATIC"}:
                 fields[6] = "Somatic"
                 fields[7] = add_rationale(fields[7], "CLASSIFICATION_RATIONALE=rule:deepsomatic_pass_starting_set|class:Somatic")
         if args.rna_nominations:

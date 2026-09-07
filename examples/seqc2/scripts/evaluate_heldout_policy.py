@@ -16,7 +16,10 @@ def validate_bound(frozen, held):
     required = frozen.get("required_slices")
     if not isinstance(required, list) or not required:
         raise ValueError("frozen policy has no required slices")
-    expected_partition = frozen.get("partitions", {}).get("holdout")
+    partitions = frozen.get("partitions")
+    if not isinstance(partitions, dict) or not partitions.get("holdout"):
+        raise ValueError("frozen policy has no holdout partition identity")
+    expected_partition = partitions["holdout"]
     if held.get("partition") != expected_partition:
         raise ValueError("held-out partition does not match frozen holdout identity")
     if held.get("required_slices") != required:
