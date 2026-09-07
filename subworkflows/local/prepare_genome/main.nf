@@ -27,7 +27,7 @@ include { TABIX_TABIX as TABIX_KNOWN_SNPS        } from '../../../modules/nf-cor
 include { TABIX_TABIX as TABIX_PON               } from '../../../modules/nf-core/tabix/tabix/main'
 include { HISAT2_EXTRACTSPLICESITES              } from '../../../modules/nf-core/hisat2/extractsplicesites/main'
 include { HISAT2_BUILD                           } from '../../../modules/nf-core/hisat2/build/main'
-include { FILTER_HISAT_SPLICESITES               } from '../../../modules/local/filter_hisat_splicesites'
+include { FILTER_HISAT_SPLICESITES_AUDITED as FILTER_HISAT_SPLICESITES } from '../../../modules/local/filter_hisat_splicesites'
 
 workflow PREPARE_GENOME {
     take:

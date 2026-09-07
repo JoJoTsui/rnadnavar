@@ -1,4 +1,4 @@
-process VALIDATE_READ_IDS {
+process VALIDATE_READ_IDS_AUDITED {
     tag "$meta.id"
     label 'process_single'
     input:

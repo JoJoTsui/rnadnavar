@@ -11,7 +11,7 @@ include { CREATE_INTERVALS_BED                                   } from '../../.
 include { GATK4_INTERVALLISTTOBED                                } from '../../../modules/nf-core/gatk4/intervallisttobed'
 include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_SPLIT    } from '../../../modules/nf-core/tabix/bgziptabix'
 include { TABIX_BGZIPTABIX as TABIX_BGZIPTABIX_INTERVAL_COMBINED } from '../../../modules/nf-core/tabix/bgziptabix'
-include { SORT_MERGE_BED } from '../../../modules/local/sort_merge_bed'
+include { SORT_MERGE_BED_AUDITED as SORT_MERGE_BED } from '../../../modules/local/sort_merge_bed'
 
 workflow PREPARE_INTERVALS {
     take:

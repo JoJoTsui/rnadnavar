@@ -14,7 +14,7 @@ include { FASTQ_ALIGN_HISAT2                            } from '../../nf-core/fa
 
 // OPTIMIZATION COMPONENTS: Sanitization, validation, and error handling
 include { ENHANCED_CRAM2BAM_CONVERSION                  } from '../enhanced_cram2bam_conversion/main'
-include { VALIDATE_READ_IDS                            } from '../../../modules/local/validate_read_ids/main'
+include { VALIDATE_READ_IDS_AUDITED as VALIDATE_READ_IDS } from '../../../modules/local/validate_read_ids/main'
 include { validateMeta                                  } from '../utils_nfcore_rnadnavar_pipeline/main'
 
 

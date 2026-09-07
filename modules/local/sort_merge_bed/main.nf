@@ -1,4 +1,4 @@
-process SORT_MERGE_BED {
+process SORT_MERGE_BED_AUDITED {
     tag "$meta.id"
     label 'process_single'
 

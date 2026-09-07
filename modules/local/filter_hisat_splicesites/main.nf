@@ -1,4 +1,4 @@
-process FILTER_HISAT_SPLICESITES {
+process FILTER_HISAT_SPLICESITES_AUDITED {
     tag "$meta.id"
     label 'process_single'
     input:
