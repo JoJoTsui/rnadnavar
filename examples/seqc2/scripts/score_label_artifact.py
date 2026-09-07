@@ -16,10 +16,13 @@ def typ(k): return 'SNV' if len(k[2])==len(k[3])==1 else 'indel'
 def main():
  ap=argparse.ArgumentParser(); ap.add_argument('--truth',required=True); ap.add_argument('--calls',required=True); ap.add_argument('--out',required=True); ap.add_argument('--label',default='Somatic'); ap.add_argument('--baseline-label',default='PASS'); ap.add_argument('--domain',default='declared'); ap.add_argument('--stage',default='unknown'); ap.add_argument('--baseline'); ap.add_argument('--provenance')
  a=ap.parse_args(); t=keys(a.truth,None); provenance=None
+ if a.stage != 'unknown' and not a.provenance: ap.error('--provenance is required when --stage is declared')
  if a.provenance:
   provenance=json.loads(Path(a.provenance).read_text())
   if not isinstance(provenance,dict): ap.error('--provenance must contain a JSON object')
-  expected=provenance.get('artifact',{}).get('sha256')
+  artifact=provenance.get('artifact')
+  if not isinstance(artifact,dict) or not isinstance(artifact.get('sha256'),str): ap.error('--provenance artifact.sha256 is required')
+  expected=artifact['sha256']
   actual=hashlib.sha256(Path(a.calls).read_bytes()).hexdigest()
   if expected != actual: ap.error('--provenance artifact sha256 does not match --calls')
  c=keys(a.calls,a.label); baseline=keys(a.baseline,a.baseline_label) if a.baseline else set(); rows=[]

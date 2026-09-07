@@ -78,3 +78,6 @@ Label-admission correction: DeepSomatic-based starting labels now retain only ex
 
 
 Final review corrections: label starting-set admission requires FILTER exactly `PASS`, excluding compound/rejected/unknown filters. Benchmark scoring now rejects a provenance manifest whose artifact SHA-256 differs from the scored calls.
+
+
+Scorer robustness correction: diagnostic scores may omit provenance only while stage remains `unknown`; any declared stage requires a provenance manifest whose artifact digest matches the calls file. Malformed manifest objects fail through the CLI parser.
