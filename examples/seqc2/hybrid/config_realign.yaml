@@ -14,7 +14,7 @@ step: mapping
 tools: deepsomatic,mutect2,strelka,norm,consensus,rescue,filtering,rna_filtering,realignment
 offline: true
 preflight_validator:
-  - /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.worktrees/seqc2-integration/.venv/bin/python
+  - /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python
   - /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.worktrees/seqc2-integration/examples/seqc2/hybrid/scripts/validate_realign_run.py
   - preflight
   - --samplesheet
@@ -26,7 +26,7 @@ preflight_validator:
   - --splicesites
   - /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/hisat2/genes.splice_sites.txt
 completion_validator:
-  - /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.worktrees/seqc2-integration/.venv/bin/python
+  - /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python
   - /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.worktrees/seqc2-integration/examples/seqc2/hybrid/scripts/validate_realign_run.py
   - complete
   - --outdir
