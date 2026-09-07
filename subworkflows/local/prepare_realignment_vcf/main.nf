@@ -14,6 +14,7 @@ include { FASTQ_ALIGN_HISAT2                            } from '../../nf-core/fa
 
 // OPTIMIZATION COMPONENTS: Sanitization, validation, and error handling
 include { ENHANCED_CRAM2BAM_CONVERSION                  } from '../enhanced_cram2bam_conversion/main'
+include { VALIDATE_READ_IDS                            } from '../../../modules/local/validate_read_ids/main'
 include { validateMeta                                  } from '../utils_nfcore_rnadnavar_pipeline/main'
 
 
@@ -131,8 +132,13 @@ workflow BAM_EXTRACT_READS_HISAT2_ALIGN_VCF {
             SAMTOOLS_EXTRACT_READ_IDS(cram_to_extract, fasta)
             versions = versions.mix(SAMTOOLS_EXTRACT_READ_IDS.out.versions)
 
+            // Non-empty candidates with no usable paired reads are an input
+            // failure, not a valid zero-candidate outcome.
+            VALIDATE_READ_IDS(SAMTOOLS_EXTRACT_READ_IDS.out.read_ids)
+            versions = versions.mix(VALIDATE_READ_IDS.out.versions)
+
             // === STEP 6: ENHANCED CRAM TO BAM CONVERSION ===
-            cram_to_convert = SAMTOOLS_EXTRACT_READ_IDS.out.read_ids.map { meta, readsid -> 
+            cram_to_convert = VALIDATE_READ_IDS.out.read_ids.map { meta, readsid -> 
                 def cram_file = file(meta.cram_path)
                 def crai_file = file(meta.crai_path)
                 def enhanced_meta = meta + [readsid_path: readsid.toString()]
