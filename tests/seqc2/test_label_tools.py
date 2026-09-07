@@ -22,4 +22,13 @@ def test_scorer_reports_variant_types_and_transitions(tmp_path):
  write_vcf(base,['1\t10\t.\tA\tG\t.\tSomatic\t.'])
  write_vcf(calls,['1\t10\t.\tA\tG\t.\tSomatic\t.','1\t30\t.\tC\tT\t.\tSomatic\t.'])
  subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/score_label_artifact.py'),'--truth',str(truth),'--calls',str(calls),'--baseline',str(base),'--out',str(out)],check=True)
- rows={r['variant_type']:r for r in json.loads(out.read_text())['rows']}; assert rows['SNV']['gained_fp']==1; assert rows['indel']['fn']==1
+ scored=json.loads(out.read_text()); rows={r['variant_type']:r for r in scored['rows']}; assert rows['SNV']['gained_fp']==1; assert rows['indel']['fn']==1; assert scored['selectors']=={'truth':'all_records','calls':'Somatic','baseline':'PASS'}; assert scored['baseline_sha256']
+
+
+def test_scorer_accepts_distinct_baseline_selector(tmp_path):
+ truth=tmp_path/'truth.vcf'; base=tmp_path/'base.vcf'; calls=tmp_path/'calls.vcf'; out=tmp_path/'score.json'
+ write_vcf(truth,['1\t10\t.\tA\tG\t.\tPASS\t.'])
+ write_vcf(base,['1\t10\t.\tA\tG\t.\tPASS\t.'])
+ write_vcf(calls,['1\t10\t.\tA\tG\t.\tSomatic\t.'])
+ subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/score_label_artifact.py'),'--truth',str(truth),'--calls',str(calls),'--baseline',str(base),'--baseline-label','PASS','--out',str(out)],check=True)
+ result=json.loads(out.read_text()); assert result['selectors']['baseline']=='PASS'; assert result['baseline_calls_sha256']
