@@ -15,6 +15,7 @@ from pathlib import Path
 
 SECOND_PASS_PROCESSES = {
     "candidate extraction": ("VCF2BED",),
+    "paired-read validation": ("VALIDATE_READ_IDS",),
     "HISAT2": ("FASTQ_ALIGN_HISAT2",),
     "Mutect2": ("MUTECT2",),
     "Strelka2": ("STRELKA",),
