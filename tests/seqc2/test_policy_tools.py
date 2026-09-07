@@ -35,14 +35,27 @@ def test_policy_selector_rejects_nonfinite_metric(tmp_path):
 
 def test_heldout_recomputes_gates_instead_of_trusting_flags(tmp_path):
  frozen={'status':'qualified','frozen_policy':{'x':1},'required_slices':['WES-LL:SNV'],'partitions':{'development':'dev','holdout':'holdout'},'min_delta':0.0,'baseline':{'WES-LL:SNV':{'precision':.9,'recall':.8}}}
- held={'required_slices':['WES-LL:SNV'],'rows':[{'pair':'WES-LL','variant_type':'SNV','precision':.89,'recall':.81,'precision_gate':True,'recall_gate':True}]}
+ held={'partition':'holdout','required_slices':['WES-LL:SNV'],'rows':[{'pair':'WES-LL','variant_type':'SNV','precision':.89,'recall':.81,'precision_gate':True,'recall_gate':True}]}
  f=tmp_path/'f.json'; m=tmp_path/'m.json'; o=tmp_path/'o.json'; f.write_text(json.dumps(frozen)); m.write_text(json.dumps(held))
  subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/evaluate_heldout_policy.py'),'--frozen',str(f),'--metrics',str(m),'--out',str(o)],check=True)
  result=json.loads(o.read_text()); assert result['status']=='complete'; assert result['rows'][0]['accepted'] is False; assert result['rows'][0]['precision_gate'] is False
 
 def test_heldout_rejects_unbound_or_incomplete_slices(tmp_path):
  frozen={'status':'qualified','frozen_policy':{'x':1},'required_slices':['WES-LL:SNV'],'partitions':{'development':'dev','holdout':'holdout'},'min_delta':0.0,'baseline':{'WES-LL:SNV':{'precision':.9,'recall':.8}}}
- held={'required_slices':['WES-IL:SNV'],'rows':[]}
+ held={'partition':'holdout','required_slices':['WES-IL:SNV'],'rows':[]}
  f=tmp_path/'f.json'; m=tmp_path/'m.json'; o=tmp_path/'o.json'; f.write_text(json.dumps(frozen)); m.write_text(json.dumps(held))
  result=subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/evaluate_heldout_policy.py'),'--frozen',str(f),'--metrics',str(m),'--out',str(o)],capture_output=True,text=True)
  assert result.returncode != 0 and 'slice' in result.stderr.lower()
+
+
+def test_policy_selector_rejects_extra_slice_and_orders_qualifiers(tmp_path):
+ base={'required_slices':['WES-LL:SNV'],'partitions':{'development':'dev','holdout':'holdout'},'baseline':{'WES-LL:SNV':{'precision':.9,'recall':.8}},'candidates':[{'policy':{'name':'z'},'rows':[{'pair':'WES-LL','variant_type':'SNV','precision':.91,'recall':.81},{'pair':'WES-IL','variant_type':'SNV','precision':.99,'recall':.99}]},{'policy':{'name':'a'},'rows':[{'pair':'WES-LL','variant_type':'SNV','precision':.91,'recall':.81}]}]}
+ result, _ = run_selector(tmp_path, base)
+ assert result.returncode != 0 and 'extra' in result.stderr.lower()
+
+def test_heldout_rejects_wrong_partition(tmp_path):
+ frozen={'status':'qualified','frozen_policy':{'x':1},'required_slices':['WES-LL:SNV'],'partitions':{'development':'dev','holdout':'holdout'},'min_delta':0.0,'baseline':{'WES-LL:SNV':{'precision':.9,'recall':.8}}}
+ held={'partition':'development','required_slices':['WES-LL:SNV'],'rows':[{'pair':'WES-LL','variant_type':'SNV','precision':.91,'recall':.81}]}
+ f=tmp_path/'f.json'; m=tmp_path/'m.json'; o=tmp_path/'o.json'; f.write_text(json.dumps(frozen)); m.write_text(json.dumps(held))
+ result=subprocess.run([sys.executable,str(ROOT/'examples/seqc2/scripts/evaluate_heldout_policy.py'),'--frozen',str(f),'--metrics',str(m),'--out',str(o)],capture_output=True,text=True)
+ assert result.returncode != 0 and 'partition' in result.stderr.lower()

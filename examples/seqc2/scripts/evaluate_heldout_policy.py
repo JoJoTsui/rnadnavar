@@ -16,6 +16,9 @@ def validate_bound(frozen, held):
     required = frozen.get("required_slices")
     if not isinstance(required, list) or not required:
         raise ValueError("frozen policy has no required slices")
+    expected_partition = frozen.get("partitions", {}).get("holdout")
+    if held.get("partition") != expected_partition:
+        raise ValueError("held-out partition does not match frozen holdout identity")
     if held.get("required_slices") != required:
         raise ValueError("held-out required slices do not match frozen policy")
     baseline = frozen.get("baseline")
@@ -34,6 +37,9 @@ def validate_bound(frozen, held):
         by[key] = row
         metric(row.get("precision"), f"held-out {key} precision")
         metric(row.get("recall"), f"held-out {key} recall")
+    extra = [key for key in by if key not in required]
+    if extra:
+        raise ValueError("held-out metrics contain undeclared extra slices: " + ", ".join(sorted(extra)))
     missing = [key for key in required if key not in by]
     if missing:
         raise ValueError("held-out metrics are missing required slices: " + ", ".join(missing))
