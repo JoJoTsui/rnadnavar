@@ -40,7 +40,7 @@ def test_aggregate_genotypes_keeps_caller_af_distinct_from_ad():
 
 def test_multiallelic_alt_support_uses_all_alternates():
     result = aggregate_genotypes(
-        {"caller": {"GT": "1/2", "DP": 30, "AD": "10,3,7", "VAF": None, "GQ": 50}},
+        {"caller": {"GT": "1/2", "ALT_INDICES": [1, 2], "DP": 30, "AD": "10,3,7", "VAF": None, "GQ": 50}},
         ["caller"],
     )
     assert result["alt_count_by_caller"] == [7]

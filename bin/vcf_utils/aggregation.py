@@ -184,7 +184,9 @@ def extract_genotype_info(variant, caller, sample_idx=0):
         "DP": None,
         "AD": None,
         "VAF": None,
+        "VAF_SOURCE": None,
         "GQ": None,
+        "ALT_INDICES": [],
     }
 
     try:
@@ -210,6 +212,7 @@ def extract_genotype_info(variant, caller, sample_idx=0):
                     phased = len(gt) > 2 and bool(gt[2])
                     sep = "|" if phased else "/"
                     info["GT"] = f"{a1}{sep}{a2}"
+                    info["ALT_INDICES"] = sorted({a for a in (gt[0], gt[1]) if isinstance(a, int) and a > 0})
         except Exception:
             pass
 
@@ -246,6 +249,7 @@ def extract_genotype_info(variant, caller, sample_idx=0):
                     val = float(val.replace("%", "")) / 100.0
                 try:
                     info["VAF"] = float(val)
+                    info["VAF_SOURCE"] = "reported"
                 except Exception:
                     pass
                 break
@@ -360,9 +364,10 @@ def extract_genotype_info(variant, caller, sample_idx=0):
             try:
                 ad_values = [int(x) for x in info["AD"].split(",")]
                 if len(ad_values) >= 2 and sum(ad_values) > 0:
-                    # For multi-ALT records retain caller AF when present;
-                    # otherwise use total non-reference support, never ALT1 only.
-                    info["VAF"] = sum(ad_values[1:]) / sum(ad_values)
+                    indices = info.get("ALT_INDICES") or [1]
+                    selected = [ad_values[i] for i in indices if i < len(ad_values)]
+                    info["VAF"] = sum(selected) / sum(ad_values) if selected else None
+                    info["VAF_SOURCE"] = "derived"
             except Exception:
                 pass
 
@@ -415,7 +420,9 @@ def tumor_alt_count_from_genotype(genotype_info):
         values = [int(x) for x in str(ad).split(",")]
     except (ValueError, TypeError):
         return None
-    return max(values[1:]) if len(values) > 1 else None
+    indices = genotype_info.get("ALT_INDICES") or [1]
+    selected = [values[i] for i in indices if i < len(values)]
+    return max(selected) if selected else None
 
 
 def _counts_toward_support(variant_data, min_alt_support):
@@ -764,6 +771,19 @@ def read_variants_from_vcf(
                     classification = "Artifact"
 
         # Create variant data
+        source_evidence = {}
+        for evidence_key in (
+            "GT_BY_CALLER", "DP_BY_CALLER", "AD_BY_CALLER", "VAF_BY_CALLER",
+            "VAF_SOURCE_BY_CALLER", "NORMAL_GT_BY_CALLER",
+            "NORMAL_DP_BY_CALLER", "NORMAL_AD_BY_CALLER", "NORMAL_VAF_BY_CALLER",
+        ):
+            try:
+                value = variant.INFO.get(evidence_key)
+            except Exception:
+                value = None
+            if value not in (None, "", "."):
+                source_evidence[evidence_key] = str(value)
+
         data = {
             "CHROM": variant.CHROM,
             "POS": variant.POS,
@@ -782,6 +802,7 @@ def read_variants_from_vcf(
                 if normal_sample_idx is not None
                 else None
             ),
+            "source_evidence": source_evidence,
             "id": variant.ID if variant.ID else None,
         }
 

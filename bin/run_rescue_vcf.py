@@ -198,9 +198,17 @@ def main():
         import json
         with verification_path.open() as fh:
             verification_doc = json.load(fh)
+        allowed_statuses = {"confirmed", "rejected", "inconclusive"}
         for row in verification_doc.get("results", []):
             key = ":".join(str(row.get(k, "")) for k in ("chrom", "pos", "ref", "alt"))
-            verification[key] = row.get("status", "inconclusive")
+            status = row.get("status", "inconclusive")
+            if status not in allowed_statuses:
+                print(f"Error: invalid verification status {status!r} for {key}", file=sys.stderr)
+                sys.exit(2)
+            if key in verification:
+                print(f"Error: duplicate verification key: {key}", file=sys.stderr)
+                sys.exit(2)
+            verification[key] = status
         print(f"Loaded DNA verification outcomes: {len(verification)}")
 
     # Input validation
@@ -433,11 +441,10 @@ def main():
             min_alt_support=args.min_alt_support,
         )
 
-        if verification:
+        if args.verification_json is not None:
             for data in variant_data.values():
                 key = ":".join(str(data.get(k, "")) for k in ("CHROM", "POS", "REF", "ALT"))
-                if key in verification:
-                    data["dna_verification_status"] = verification[key]
+                data["dna_verification_status"] = verification.get(key, "inconclusive")
 
         for data in variant_data.values():
             tag_variant_with_modality(data, modality_map)

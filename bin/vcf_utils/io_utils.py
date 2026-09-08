@@ -523,6 +523,13 @@ def create_output_header(
         "String",
         "VAF values from each caller with modality prefix (format: MODALITY_caller:VAF|...)",
     )
+    add_info_safe(
+        new_header,
+        "VAF_SOURCE_BY_CALLER",
+        ".",
+        "String",
+        "VAF provenance by caller: reported or derived (caller:source|...)",
+    )
 
     # Tumor alt-read count aggregation (tumor sample of each caller VCF)
     add_info_safe(
@@ -566,6 +573,13 @@ def create_output_header(
         ".",
         "String",
         "Normal-sample caller-reported VAF by caller; '.' means unavailable (caller:VAF|...)",
+    )
+    add_info_safe(
+        new_header,
+        "SOURCE_EVIDENCE",
+        ".",
+        "String",
+        "Serialized caller evidence retained when re-reading sampleless consensus VCFs",
     )
     add_info_safe(
         new_header,
@@ -1377,6 +1391,14 @@ def write_union_vcf(
                         prefixed_vaf_by_caller.append(f"{prefixed_caller}:{vaf_val}")
             if prefixed_vaf_by_caller:
                 record.info["VAF_BY_CALLER"] = "|".join(prefixed_vaf_by_caller)
+            vaf_source_by_caller = []
+            for i, caller in enumerate(data["callers"]):
+                if not is_consensus_caller(caller):
+                    prefixed_caller = prefix_caller(caller, modality_map)
+                    genotype = data.get("genotypes", {}).get(caller) or {}
+                    vaf_source_by_caller.append(f"{prefixed_caller}:{genotype.get('VAF_SOURCE') or '.'}")
+            if vaf_source_by_caller:
+                record.info["VAF_SOURCE_BY_CALLER"] = "|".join(vaf_source_by_caller)
 
         # Add tumor alt-read counts with modality prefix - EXCLUDE consensus.
         # Consumed by the RaVeX filtering stage (min_alt_reads), since this
@@ -1425,6 +1447,16 @@ def write_union_vcf(
                 values.append(f"{prefixed_caller}:{value}")
             if values:
                 record.info[info_key] = "|".join(values)
+        # Consensus-only rescue may be given a sampleless VCF. Preserve the
+        # original serialized caller evidence instead of silently dropping it.
+        source_evidence = data.get("source_evidence", {})
+        if source_evidence:
+            record.info["SOURCE_EVIDENCE"] = "|".join(
+                f"{key}:{value}" for key, value in sorted(source_evidence.items())
+            )
+            for key, value in source_evidence.items():
+                if key in record.header.info and key not in record.info:
+                    record.info[key] = value
         record.info["EVIDENCE_SCHEMA"] = "paired-v1"
 
         # Write record
