@@ -35,6 +35,7 @@ Domain terms for this repository. Glossary only — no implementation details or
 - **Ingress provenance** — the auditable record of how each source input reached the caller-ready boundary, including its identity, preparation stage, reference decision, and library relationship.
 - **Shared callable region** — the genomic region in which DNA and RNA evidence are intentionally compared for integrated consensus and rescue labels.
 - **RNA realignment** — a second alignment of selected RNA reads to reassess variant evidence independently of their first alignment. It is distinct from reference normalization of external DNA alignments.
+- **Realignment candidate locus** — a genomic location selected for reassessment using RNA reads. Being a candidate does not imply a Somatic classification or selection as a training label.
 - **Second-round rescue** — cross-modality rescue combining first-round DNA consensus with consensus from realigned RNA reads. It is distinct from first-round rescue using the initial RNA alignment.
 
 - **Re-consensus rerun** — forward-only regeneration of consensus and rescue VCFs for the whole cohort from the existing, read-only per-caller VCF outputs, using fixed pipeline code, written to a new output location. Original outputs are never modified.
