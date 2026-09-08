@@ -14,7 +14,7 @@ process VALIDATE_READ_IDS {
     test -s ${read_ids} || { echo "nonempty realignment candidates yielded zero usable paired read IDs for ${meta.id}" >&2; exit 2; }
     cp ${read_ids} ${prefix}.read_ids.txt
     cat <<-END_VERSIONS > versions.yml
-    "\${task.process}":
+    "${task.process}":
         coreutils: bundled
     END_VERSIONS
     """

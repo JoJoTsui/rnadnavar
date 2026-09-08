@@ -17,7 +17,7 @@ process SORT_MERGE_BED {
       > ${prefix}.bed
 
     cat <<-END_VERSIONS > versions.yml
-    "\${task.process}":
+    "${task.process}":
         sort: coreutils
     END_VERSIONS
     """
