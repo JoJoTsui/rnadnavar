@@ -30,9 +30,9 @@ SECOND_PASS_PROCESSES = {
 }
 
 SECOND_PASS_ARTIFACTS = (
-    "vcf_realignment/**/**.deepsomatic.vcf.gz",
-    "vcf_realignment/**/**.mutect2.filtered.vcf.gz",
-    "vcf_realignment/**/**.strelka.variants.vcf.gz",
+    "vcf_realignment/**/*.deepsomatic.vcf.gz",
+    "vcf_realignment/**/*.mutect2.filtered.vcf.gz",
+    "vcf_realignment/**/*.strelka.variants.vcf.gz",
     "vcf_realignment/consensus/**/*.consensus.vcf.gz",
     "vcf_realignment/rescue/**/*.rescued.vcf.gz",
 )
