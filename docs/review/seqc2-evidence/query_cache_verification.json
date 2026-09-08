@@ -1,0 +1,23 @@
+{
+  "method": "Read gzipped records; keep production FILTER Somatic and rewrite to PASS; compare SHA256 of full transformed record stream against saved PASS benchmark record stream, excluding headers.",
+  "matches": [
+    {
+      "query": "hybrid/comparison/WES_LL_T_1_vs_WES_LL_N_1/*consensus.somatic.vcf.gz",
+      "source": "hybrid/output/seqc2.wes.ll.hybrid.pooling_fix/consensus/WES_LL_T_1_vs_WES_LL_N_1/*.consensus.vcf.gz",
+      "records": 2511,
+      "sha256": "d8dd87659a444b422887373fd46c0230192ff588bb9b642298a1ddcabc7142d8"
+    },
+    {
+      "query": "hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/*consensus.somatic.vcf.gz",
+      "source": "hybrid/output/seqc2.wes.ll.hybrid.pooling_fix/consensus/WES_LL_RT_1_vs_WES_LL_N_1/*.consensus.vcf.gz",
+      "records": 1293,
+      "sha256": "85cc63a8d70535826564ea1e868fe9ad5b1c63934bbdbfe5294c6a2fac2d79a1"
+    },
+    {
+      "query": "hybrid/comparison/WES_LL_RT_1_vs_WES_LL_N_1/rescue.somatic.vcf.gz",
+      "source": "hybrid/output/seqc2.wes.ll.hybrid.pooling_fix/rescue/*/*.filtered.vcf.gz",
+      "records": 3015,
+      "sha256": "db196c89f7c5569ee71575a098d1add3d7e3a47bb862478f80513dc0abd37777"
+    }
+  ]
+}

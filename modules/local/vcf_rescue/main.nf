@@ -24,8 +24,13 @@ process VCF_RESCUE {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def snv_thr = task.ext.snv_thr ?: 2
-    def indel_thr = task.ext.indel_thr ?: 2
+    def snv_thr = task.ext.snv_thr != null ? task.ext.snv_thr : 2
+    def indel_thr = task.ext.indel_thr != null ? task.ext.indel_thr : 2
+    def min_alt_support = task.ext.min_alt_support != null ? task.ext.min_alt_support : 3
+    def disable_promotion = task.ext.disable_rescue_promotion ? '--disable_rescue_promotion' : ''
+    def rescue_min_dna = task.ext.rescue_min_dna_callers != null ? task.ext.rescue_min_dna_callers : 1
+    def rescue_min_rna = task.ext.rescue_min_rna_callers != null ? task.ext.rescue_min_rna_callers : 1
+    def rescue_veto = task.ext.rescue_veto ?: 'dna'
     
     // Build DNA caller VCF arguments
     def dna_vcf_args = ""
@@ -47,7 +52,11 @@ process VCF_RESCUE {
         ${rna_vcf_args} \\
         --out_prefix ${prefix}.rescued \\
         --snv_thr ${snv_thr} \\
-        --indel_thr ${indel_thr}
+        --indel_thr ${indel_thr} \\
+        --min_alt_support ${min_alt_support} \\
+        --rescue_min_dna_callers ${rescue_min_dna} \\
+        --rescue_min_rna_callers ${rescue_min_rna} \\
+        --rescue_veto ${rescue_veto} ${disable_promotion} ${args}
     
     tabix -p vcf ${prefix}.rescued.vcf.gz
     

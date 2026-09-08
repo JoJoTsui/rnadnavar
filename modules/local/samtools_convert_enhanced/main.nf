@@ -82,7 +82,7 @@ process SAMTOOLS_CONVERT_ENHANCED {
     fi
     
     # Check input file size
-    input_size=\$(stat -c%s "${input}")
+    input_size=\$(stat -Lc%s "${input}")
     echo "Input file size: \${input_size} bytes" >> ${validation_log}
     
     if [[ \${input_size} -lt 1000 ]]; then
@@ -101,7 +101,7 @@ process SAMTOOLS_CONVERT_ENHANCED {
             exit 1
         fi
         
-        index_size=\$(stat -c%s "${index}")
+        index_size=\$(stat -Lc%s "${index}")
         echo "Index file size: \${index_size} bytes" >> ${validation_log}
     fi
     
@@ -117,7 +117,7 @@ process SAMTOOLS_CONVERT_ENHANCED {
             exit 1
         fi
         
-        fasta_size=\$(stat -c%s "${fasta}")
+        fasta_size=\$(stat -Lc%s "${fasta}")
         echo "Reference FASTA size: \${fasta_size} bytes" >> ${validation_log}
     fi
     
@@ -132,7 +132,7 @@ process SAMTOOLS_CONVERT_ENHANCED {
             exit 1
         fi
         
-        fai_size=\$(stat -c%s "${fai}")
+        fai_size=\$(stat -Lc%s "${fai}")
         echo "Reference FASTA index size: \${fai_size} bytes" >> ${validation_log}
     fi
     
@@ -184,7 +184,7 @@ process SAMTOOLS_CONVERT_ENHANCED {
         
         # Check if partial output was created
         if [[ -f "${prefix}.${output_ext}" ]]; then
-            partial_size=\$(stat -c%s "${prefix}.${output_ext}")
+            partial_size=\$(stat -Lc%s "${prefix}.${output_ext}")
             echo "Partial output file created: \${partial_size} bytes" >> ${validation_log}
             rm -f "${prefix}.${output_ext}"  # Clean up partial file
         fi
@@ -204,7 +204,7 @@ process SAMTOOLS_CONVERT_ENHANCED {
     fi
     
     # Check output file size
-    output_size=\$(stat -c%s "${prefix}.${output_ext}")
+    output_size=\$(stat -Lc%s "${prefix}.${output_ext}")
     echo "Output file size: \${output_size} bytes" >> ${validation_log}
     
     if [[ \${output_size} -lt 1000 ]]; then
@@ -244,7 +244,7 @@ process SAMTOOLS_CONVERT_ENHANCED {
             exit 1
         fi
         
-        index_size=\$(stat -c%s "${prefix}.${output_ext}.${index_ext}")
+        index_size=\$(stat -Lc%s "${prefix}.${output_ext}.${index_ext}")
         echo "Index file size: \${index_size} bytes" >> ${validation_log}
         
         echo "Index creation completed successfully" >> ${validation_log}

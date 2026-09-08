@@ -20,7 +20,7 @@ from vcf_utils.aggregation import aggregate_variants, read_variants_from_vcf
 from vcf_utils.chromosome_utils import get_canonical_chromosome_list
 
 # Import unified configuration
-from vcf_utils.classification_config import DEFAULT_THRESHOLDS
+from vcf_utils.classification_config import DEFAULT_THRESHOLDS, validate_thresholds
 
 # Import I/O utilities
 from vcf_utils.io_utils import get_caller_name, write_union_vcf
@@ -108,6 +108,11 @@ def argparser():
 
 def main():
     args = argparser()
+    try:
+        validate_thresholds(vars(args))
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(2)
 
     # Find VCF files
     input_dir = Path(args.input_dir)

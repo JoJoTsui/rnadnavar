@@ -1,19 +1,21 @@
-main_nf: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/main.nf
-rdv_conf: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/seqc2.hybrid.realign.config
+main_nf: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.worktrees/seqc2-integration/main.nf
+rdv_conf: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.worktrees/seqc2-integration/examples/seqc2/hybrid/seqc2.hybrid.realignment.config
 nxf_conda_cachedir: /t9k/mnt/joey/nf_conda_envs
 nxf_conda_usemamba: "true"
 micromamba_env: nextflow
 https_proxy: "http://127.0.0.1:7890"
-seqc2_root: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid
+seqc2_root: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.worktrees/seqc2-integration/examples/seqc2/hybrid
 input_csv: csv/seqc2_wes_ll_hybrid.csv
-outdir: output/seqc2.wes.ll.hybrid.realign.full
+outdir: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.artifacts/c008801.realign.full
 state_file: runs/realign_full_state.json
 provenance_file: runs/realign_full_provenance.json
 resume: true
+step: mapping
+tools: deepsomatic,mutect2,strelka,norm,consensus,rescue,filtering,rna_filtering,realignment
 offline: true
 preflight_validator:
   - /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python
-  - /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/scripts/validate_realign_run.py
+  - /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.worktrees/seqc2-integration/examples/seqc2/hybrid/scripts/validate_realign_run.py
   - preflight
   - --samplesheet
   - "{input_csv}"
@@ -25,7 +27,7 @@ preflight_validator:
   - /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/hisat2/genes.splice_sites.txt
 completion_validator:
   - /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python
-  - /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/scripts/validate_realign_run.py
+  - /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.worktrees/seqc2-integration/examples/seqc2/hybrid/scripts/validate_realign_run.py
   - complete
   - --outdir
   - "{outdir}"

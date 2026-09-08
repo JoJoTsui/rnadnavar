@@ -121,8 +121,10 @@ class UnifiedVariantClassifier:
         """
         # Get individual caller classifications (exclude consensus callers)
         individual_filters = []
+        observed_filters = [f for f in variant_data.get("filters_normalized", [])]
+        eligible = variant_data.get("support_callers")
         for i, caller in enumerate(variant_data["callers"]):
-            if not caller.endswith("_consensus"):
+            if not caller.endswith("_consensus") and (eligible is None or caller in eligible):
                 if i < len(variant_data["filters_normalized"]):
                     individual_filters.append(variant_data["filters_normalized"][i])
 
@@ -149,7 +151,11 @@ class UnifiedVariantClassifier:
             )
 
         if caller_count < required_threshold:
-            # Not enough callers
+            # Preserve an explicit all-Artifact outcome even when no record is
+            # eligible to vote; this is a substantive negative classification,
+            # not an affirmative consensus vote.
+            if observed_filters and all(label == "Artifact" for label in observed_filters):
+                return "Artifact", rationale("all_observed_artifact", "Artifact")
             return "NoConsensus", rationale("insufficient_callers", "NoConsensus")
 
         # Find the most frequent classification(s)
@@ -244,7 +250,10 @@ class UnifiedVariantClassifier:
                 elif "RNA" in caller.upper():
                     rna_consensus_label = label
             else:
-                # Collect individual callers
+                # Collect only eligible callers for vote-dependent decisions.
+                # Observed records remain available in the aggregate metadata.
+                if variant_data.get("support_callers") is not None and caller not in variant_data["support_callers"]:
+                    continue
                 individual_callers.append(caller)
                 if i < len(variant_data["filters_normalized"]):
                     individual_filters.append(variant_data["filters_normalized"][i])

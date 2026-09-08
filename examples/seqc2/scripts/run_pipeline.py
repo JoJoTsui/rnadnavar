@@ -80,6 +80,10 @@ def build_command(cfg: dict, input_csv: Path, outdir: Path) -> list:
     cmd += ["nextflow", "run", cfg["main_nf"], "-c", cfg["rdv_conf"]]
     cmd += ["--input", str(input_csv)]
     cmd += ["--outdir", str(outdir)]
+    if cfg.get("step"):
+        cmd += ["--step", str(cfg["step"])]
+    if cfg.get("tools"):
+        cmd += ["--tools", str(cfg["tools"])]
     if cfg.get("offline"):
         cmd.append("-offline")
     if cfg.get("resume"):

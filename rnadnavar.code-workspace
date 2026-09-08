@@ -29,6 +29,9 @@
 		},
 		{
 			"path": "../../../../../WorkSpace/data/ngs/xuzhenyu/pipeline/neo_var"
+		},
+		{
+			"path": "../../set_somatic"
 		}
 	],
 	"settings": {
