@@ -14,17 +14,17 @@ from pathlib import Path
 
 
 SECOND_PASS_PROCESSES = {
-    "candidate extraction": ("VCF2BED",),
-    "paired-read validation": ("VALIDATE_READ_IDS",),
-    "HISAT2": ("FASTQ_ALIGN_HISAT2",),
-    "Mutect2": ("MUTECT2",),
-    "Strelka2": ("STRELKA",),
-    "DeepSomatic": ("DEEPSOMATIC",),
-    "RNA consensus": ("VCF_CONSENSUS",),
-    "second rescue": ("SECOND_RESCUE_WORKFLOW",),
-    "RNA editing": ("RNA_EDITING_ANNOTATION",),
-    "COSMIC/gnomAD": ("COSMIC_GNOMAD_ANNOTATION",),
-    "VEP": ("ENSEMBLVEP_VEP",),
+    "candidate extraction": ("PREPARE_REALIGNMENT_VCF", "VCF2BED"),
+    "paired-read validation": ("PREPARE_REALIGNMENT_VCF", "VALIDATE_READ_IDS"),
+    "HISAT2": ("PREPARE_REALIGNMENT_VCF", "HISAT2_ALIGN"),
+    "Mutect2": ("RNA_REALIGNMENT_WORKFLOW", "MUTECT2_PAIRED"),
+    "Strelka2": ("RNA_REALIGNMENT_WORKFLOW", "STRELKA_SOMATIC"),
+    "DeepSomatic": ("RNA_REALIGNMENT_WORKFLOW", "DEEPSOMATIC"),
+    "RNA consensus": ("RNA_REALIGNMENT_WORKFLOW", "VCF_CONSENSUS"),
+    "second rescue": ("SECOND_RESCUE_WORKFLOW", "VCF_RESCUE"),
+    "RNA editing": ("SECOND_RESCUE_WORKFLOW", "RNA_EDITING_ANNOTATION"),
+    "COSMIC/gnomAD": ("SECOND_RESCUE_WORKFLOW", "COSMIC_GNOMAD_ANNOTATION"),
+    "VEP": ("SECOND_RESCUE_WORKFLOW", "ENSEMBLVEP_VEP"),
 }
 SECOND_PASS_ARTIFACTS = (
     "vcf_realignment/**/**.deepsomatic.vcf.gz",
@@ -179,6 +179,13 @@ def latest_trace(outdir: Path) -> Path:
     return traces[-1]
 
 
+def matches_process(row: dict[str, str], scope: str, leaf: str) -> bool:
+    # Strip the display tag so a sample name cannot satisfy a process match.
+    name = row.get("process") or row.get("name", "")
+    parts = name.split(" (", 1)[0].upper().split(":")
+    return scope in parts[:-1] and parts[-1] == leaf
+
+
 def validate_trace(path: Path) -> None:
     with path.open(newline="") as handle:
         rows = list(csv.DictReader(handle, delimiter="\t"))
@@ -201,19 +208,16 @@ def validate_trace(path: Path) -> None:
         if "HISAT2_ALIGN" in names:
             fail("empty candidate BED contradicts executed HISAT2 alignment")
         raise ZeroCandidates("RT consensus was converted successfully to an empty candidate BED")
-    missing = [label for label, patterns in SECOND_PASS_PROCESSES.items()
-               if not any(pattern in names for pattern in patterns)]
+    groups = {label: [row for row in rows if matches_process(row, *target)]
+              for label, target in SECOND_PASS_PROCESSES.items()}
+    missing = [label for label, matches in groups.items() if not matches]
     if missing:
         fail("second-pass process groups missing: " + ", ".join(missing))
-    # The realignment branch is a workflow scope, not a process-name suffix.
-    # Require successful task rows under that scope instead of inventing a
-    # `_REALIGN` naming convention that Nextflow never emits.
-    realign_rows = [row for row in rows if "RNA_REALIGNMENT_WORKFLOW" in
-                    (row.get("process", "") + row.get("name", "")).upper()
-                    or "SECOND_RESCUE_WORKFLOW" in
-                    (row.get("process", "") + row.get("name", "")).upper()]
-    if not realign_rows:
-        fail("realignment workflow scope is missing from execution trace")
+    incomplete = [label for label, matches in groups.items()
+                  if any(row.get("status", "").upper() not in {"COMPLETED", "CACHED"}
+                         for row in matches)]
+    if incomplete:
+        fail("second-pass process groups did not complete successfully: " + ", ".join(incomplete))
 
 
 def validate_final_vcf(path: Path) -> None:
@@ -223,13 +227,27 @@ def validate_final_vcf(path: Path) -> None:
     if not index.is_file() or index.stat().st_size == 0:
         fail(f"final VCF index is missing or empty: {index}")
     try:
+        chrom = ""
+        csq_header = False
         with gzip.open(path, "rt") as handle:
-            header = [line.rstrip("\n") for line in handle if line.startswith("#")]
-    except OSError as error:
+            for number, line in enumerate(handle, 1):
+                if line.startswith("##INFO=<ID=CSQ,"):
+                    csq_header = 'Type=String' in line and 'Format:' in line
+                if line.startswith("#CHROM\t"):
+                    chrom = line.rstrip("\n")
+                elif not line.startswith("#"):
+                    fields = line.rstrip("\n").split("\t")
+                    if len(fields) != 8:
+                        fail(f"final VCF record {number} violates the stripped eight-column contract")
+                    csq = [item[4:] for item in fields[7].split(";") if item.startswith("CSQ=")]
+                    if len(csq) != 1 or csq[0] in {"", "."}:
+                        fail(f"final VCF record {number} lacks VEP CSQ annotation")
+    except (OSError, EOFError, UnicodeError) as error:
         fail(f"final VCF is not readable gzip: {error}")
-    chrom = next((line for line in header if line.startswith("#CHROM")), "")
     if len(chrom.split("\t")) != 8:
         fail("final VCF must retain the stripped eight-column contract")
+    if not csq_header:
+        fail("final VCF lacks a VEP CSQ INFO header with its annotation format")
     tabix = shutil.which("tabix")
     if not tabix:
         fail("tabix is required to validate the final VCF index")
@@ -247,9 +265,13 @@ def complete(outdir: Path) -> None:
     final_vcfs = list(outdir.glob(FINAL_VCF))
     if len(final_vcfs) != 1:
         fail(f"expected exactly one annotated rescue VCF, found {len(final_vcfs)}")
-    trace_text = trace.read_text()
-    if final_vcfs[0].parent.name not in trace_text:
-        fail("final rescue identity is not present in the current execution trace")
+    with trace.open(newline="") as handle:
+        vep_rows = [row for row in csv.DictReader(handle, delimiter="\t")
+                    if matches_process(row, *SECOND_PASS_PROCESSES["VEP"])
+                    and row.get("status", "").upper() in {"COMPLETED", "CACHED"}]
+    if not any(row.get("name", "").partition(" (")[2].removesuffix(")")
+               == final_vcfs[0].parent.name for row in vep_rows):
+        fail("final rescue identity is not present in a successful second-rescue VEP task")
     validate_final_vcf(final_vcfs[0])
 
 

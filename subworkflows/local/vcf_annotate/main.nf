@@ -25,10 +25,17 @@ workflow VCF_ANNOTATE {
 
     if (params.tools && params.tools.split(',').contains('vep') || realignment) {
 
+            // These are required process values. Empty channels silently suppress
+            // every VEP task, including mandatory second-rescue annotation.
+            for (name in ['vep_genome', 'vep_species', 'vep_cache_version']) {
+                if (!params[name] || !params[name].toString().trim()) {
+                    error "VEP annotation requires --${name}; set it to match the installed VEP cache."
+                }
+            }
             fasta = (params.vep_include_fasta) ? fasta.map{ _meta, fa -> [ [ id:fa.baseName ], fa ] } : [[id: 'null'], []]
-            vep_cache_version  = params.vep_cache_version  ?: Channel.empty()
-            vep_genome         = params.vep_genome         ?: Channel.empty()
-            vep_species        = params.vep_species        ?: Channel.empty()
+            vep_cache_version  = params.vep_cache_version
+            vep_genome         = params.vep_genome
+            vep_species        = params.vep_species
             // vep_cache          = params.vep_cache    ? params.use_annotation_cache_keys ? Channel.fromPath("${params.vep_cache}/${params.vep_cache_version}_${params.vep_genome}").collect() : Channel.fromPath(params.vep_cache).collect()    : []
 
             vep_extra_files = []
