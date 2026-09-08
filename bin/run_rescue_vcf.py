@@ -130,6 +130,12 @@ def argparser():
         default=None,
         help="Optional DNA tumor/normal verification manifest keyed by chrom:pos:ref:alt",
     )
+    parser.add_argument(
+        "--alignment-round",
+        choices=["first", "realignment"],
+        default="first",
+        help="Alignment round represented by this rescue output",
+    )
 
     # Chromosome filtering
     parser.add_argument(
@@ -440,6 +446,10 @@ def main():
             args.indel_thr,
             min_alt_support=args.min_alt_support,
         )
+
+        for data in variant_data.values():
+            data["alignment_round"] = args.alignment_round
+            data["evidence_correlation"] = "correlated_reassessment" if args.alignment_round == "realignment" else "independent_input_round"
 
         if args.verification_json is not None:
             for data in variant_data.values():

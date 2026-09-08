@@ -606,6 +606,20 @@ def create_output_header(
     )
     add_info_safe(
         new_header,
+        "ALIGNMENT_ROUND",
+        "1",
+        "String",
+        "Evidence alignment round: first or realignment",
+    )
+    add_info_safe(
+        new_header,
+        "EVIDENCE_CORRELATION",
+        "1",
+        "String",
+        "Whether realignment is a correlated reassessment of the same reads",
+    )
+    add_info_safe(
+        new_header,
         "DNA_VERIFICATION",
         "1",
         "String",
@@ -1230,6 +1244,10 @@ def write_union_vcf(
         # Cross-modality promotion tag (audit M1): the site failed
         # within-modality consensus but individual DNA+RNA callers agreed on
         # Somatic
+        if data.get("alignment_round"):
+            record.info["ALIGNMENT_ROUND"] = data["alignment_round"]
+        if data.get("evidence_correlation"):
+            record.info["EVIDENCE_CORRELATION"] = data["evidence_correlation"]
         if data.get("dna_verification_status"):
             record.info["DNA_VERIFICATION"] = data["dna_verification_status"]
         record.info["RESCUE_PROMOTED"] = (

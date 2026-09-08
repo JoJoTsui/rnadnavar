@@ -32,6 +32,7 @@ process VCF_RESCUE {
     def rescue_min_rna = task.ext.rescue_min_rna_callers != null ? task.ext.rescue_min_rna_callers : 1
     def rescue_veto = task.ext.rescue_veto ?: 'dna'
     def verification_arg = task.ext.verification_json ? "--verification-json ${task.ext.verification_json}" : ''
+    def alignment_round = task.ext.alignment_round ?: 'first'
     
     // Build DNA caller VCF arguments
     def dna_vcf_args = ""
@@ -57,7 +58,7 @@ process VCF_RESCUE {
         --min_alt_support ${min_alt_support} \\
         --rescue_min_dna_callers ${rescue_min_dna} \\
         --rescue_min_rna_callers ${rescue_min_rna} \\
-        --rescue_veto ${rescue_veto} ${disable_promotion} ${verification_arg} ${args}
+        --rescue_veto ${rescue_veto} --alignment-round ${alignment_round} ${disable_promotion} ${verification_arg} ${args}
     
     tabix -p vcf ${prefix}.rescued.vcf.gz
     
