@@ -360,7 +360,9 @@ def extract_genotype_info(variant, caller, sample_idx=0):
             try:
                 ad_values = [int(x) for x in info["AD"].split(",")]
                 if len(ad_values) >= 2 and sum(ad_values) > 0:
-                    info["VAF"] = ad_values[1] / sum(ad_values)
+                    # For multi-ALT records retain caller AF when present;
+                    # otherwise use total non-reference support, never ALT1 only.
+                    info["VAF"] = sum(ad_values[1:]) / sum(ad_values)
             except Exception:
                 pass
 
@@ -413,7 +415,7 @@ def tumor_alt_count_from_genotype(genotype_info):
         values = [int(x) for x in str(ad).split(",")]
     except (ValueError, TypeError):
         return None
-    return values[1] if len(values) > 1 else None
+    return max(values[1:]) if len(values) > 1 else None
 
 
 def _counts_toward_support(variant_data, min_alt_support):

@@ -491,6 +491,13 @@ def create_output_header(
         "String",
         "Depth values from each caller with modality prefix (format: MODALITY_caller:DP|...)",
     )
+    add_info_safe(
+        new_header,
+        "AD_BY_CALLER",
+        ".",
+        "String",
+        "Tumor-sample allele depths including all alternate alleles (caller:ref,alt1,...|...)",
+    )
 
     # VAF aggregation
     add_info_safe(
@@ -1323,6 +1330,16 @@ def write_union_vcf(
                         prefixed_dp_by_caller.append(f"{prefixed_caller}:{dp_val}")
             if prefixed_dp_by_caller:
                 record.info["DP_BY_CALLER"] = "|".join(prefixed_dp_by_caller)
+
+            prefixed_ad_by_caller = []
+            for i, caller in enumerate(data["callers"]):
+                if not is_consensus_caller(caller):
+                    prefixed_caller = prefix_caller(caller, modality_map)
+                    genotype = data.get("genotypes", {}).get(caller) or {}
+                    ad_val = genotype.get("AD") or "."
+                    prefixed_ad_by_caller.append(f"{prefixed_caller}:{ad_val}")
+            if prefixed_ad_by_caller:
+                record.info["AD_BY_CALLER"] = "|".join(prefixed_ad_by_caller)
 
         # Add VAF statistics with modality prefix - EXCLUDE consensus
         if agg["vaf_values"]:
