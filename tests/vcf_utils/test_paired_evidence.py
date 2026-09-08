@@ -1,6 +1,7 @@
 from vcf_utils.classification import compute_unified_classification_rescue
 from vcf_utils.aggregation import (
     aggregate_genotypes,
+    aggregate_variants,
     resolve_normal_sample_index,
     resolve_tumor_sample_index,
 )
@@ -58,3 +59,19 @@ def test_unverified_rna_only_nomination_is_not_somatic():
     assert compute_unified_classification_rescue(
         data, {"RNA_consensus": "RNA"}, snv_threshold=2, indel_threshold=2
     ) == "NoConsensus"
+
+
+def test_source_evidence_survives_aggregation():
+    variants = {
+        "chr1:10:A:G": {
+            "CHROM": "chr1", "POS": 10, "REF": "A", "ALT": "G",
+            "is_snv": True, "caller": "DNA_consensus",
+            "filter_original": "Somatic", "filter_normalized": "Somatic",
+            "filter_category": "Somatic", "quality": 50.0,
+            "genotype": {"GT": "0/1", "DP": 10, "AD": "8,2", "VAF": 0.2},
+            "normal_genotype": None, "source_evidence": {"GT_BY_CALLER": "DNA_mutect2:0/1"},
+            "id": None, "classification": "Somatic",
+        }
+    }
+    out = aggregate_variants([("DNA_consensus", variants, "DNA")], 1, 1, min_alt_support=0)
+    assert out["chr1:10:A:G"]["source_evidence"]["GT_BY_CALLER"] == "DNA_mutect2:0/1"
