@@ -23,6 +23,7 @@ process VCF_CONSENSUS {
     def snv_thr = task.ext.snv_thr != null ? task.ext.snv_thr : 2
     def indel_thr = task.ext.indel_thr != null ? task.ext.indel_thr : 2
     def min_alt_support = task.ext.min_alt_support != null ? task.ext.min_alt_support : 3
+    def preserve_baseline_callers = task.ext.preserve_baseline_callers ?: ''
 
     """
     mkdir -p inputs
@@ -46,7 +47,8 @@ process VCF_CONSENSUS {
         --out_prefix ${prefix}.consensus \\
         --snv_thr ${snv_thr} \\
         --indel_thr ${indel_thr} \\
-        --min_alt_support ${min_alt_support} ${args}
+        --min_alt_support ${min_alt_support} \
+        --preserve-baseline-callers '${preserve_baseline_callers}' ${args}
     
     # Compress and index
     # bgzip -c ${prefix}.consensus.vcf > ${prefix}.consensus.vcf.gz

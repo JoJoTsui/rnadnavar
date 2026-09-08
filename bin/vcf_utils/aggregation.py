@@ -802,7 +802,8 @@ def read_variants_from_vcf(
 
 
 def aggregate_variants(
-    variant_collections, snv_threshold=2, indel_threshold=2, min_alt_support=None
+    variant_collections, snv_threshold=2, indel_threshold=2, min_alt_support=None,
+    preserve_baseline_callers=None,
 ):
     """
     Aggregate variants from multiple collections.
@@ -882,6 +883,8 @@ def aggregate_variants(
         >>> rescue_aggregated = aggregate_variants(collections, snv_threshold=1, indel_threshold=1)
     """
     from collections import defaultdict
+
+    preserve_baseline_callers = {str(c).lower() for c in (preserve_baseline_callers or set())}
 
     if min_alt_support is None:
         from vcf_utils.classification_config import DEFAULT_THRESHOLDS
@@ -964,5 +967,12 @@ def aggregate_variants(
 
         # Aggregate genotype information
         data["gt_aggregated"] = aggregate_genotypes(data["genotypes"], data["callers"])
+        data["preserve_baseline"] = any(
+            str(c).lower() in preserve_baseline_callers
+            and i < len(data["filters_normalized"])
+            and data["filters_normalized"][i] == "Somatic"
+            and c in data["support_callers"]
+            for i, c in enumerate(data["callers"])
+        )
 
     return dict(aggregated)

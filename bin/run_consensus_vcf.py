@@ -64,6 +64,11 @@ def argparser():
         "consensus support (0 disables the floor)",
     )
     parser.add_argument(
+        "--preserve-baseline-callers",
+        default="",
+        help="Optional comma-separated caller names whose Somatic support is retained; opt-in only",
+    )
+    parser.add_argument(
         "--output_format",
         choices=["vcf", "vcf.gz", "bcf"],
         default="vcf.gz",
@@ -122,6 +127,18 @@ def main():
         for caller in args.expected_callers.split(",")
         if caller.strip()
     ]
+    preserve_baseline_callers = {
+        caller.strip().lower()
+        for caller in args.preserve_baseline_callers.split(",")
+        if caller.strip()
+    }
+    unknown_baseline = preserve_baseline_callers - set(expected_callers)
+    if unknown_baseline:
+        print(
+            f"ERROR: --preserve-baseline-callers contains callers outside expected panel: {sorted(unknown_baseline)}",
+            file=sys.stderr,
+        )
+        sys.exit(2)
     if not expected_callers:
         print("ERROR: --expected_callers must contain at least one caller", file=sys.stderr)
         sys.exit(2)
@@ -181,6 +198,7 @@ def main():
     )
     print(f"SNV consensus threshold: {args.snv_thr}")
     print(f"Indel consensus threshold: {args.indel_thr}")
+    print(f"Baseline preservation callers: {sorted(preserve_baseline_callers) or 'none (legacy default)'}")
     if args.exclude_refcall:
         print("Excluding RefCall variants")
     if args.exclude_germline:
@@ -274,6 +292,7 @@ def main():
             snv_threshold=args.snv_thr,
             indel_threshold=args.indel_thr,
             min_alt_support=args.min_alt_support,
+            preserve_baseline_callers=preserve_baseline_callers,
         )
 
         chunk_stats = compute_consensus_statistics(

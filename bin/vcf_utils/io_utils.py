@@ -425,6 +425,13 @@ def create_output_header(
     # Consensus flags
     add_info_safe(
         new_header,
+        "PRESERVE_BASELINE",
+        "1",
+        "String",
+        "Whether an opt-in qualified baseline caller preserved Somatic classification",
+    )
+    add_info_safe(
+        new_header,
         "PASSES_CONSENSUS",
         "1",
         "String",
@@ -1148,6 +1155,7 @@ def write_union_vcf(
 
         # Add consensus flag for informational purposes (but don't override FILTER)
         # The FILTER field is now set by the classification functions above
+        record.info["PRESERVE_BASELINE"] = "YES" if data.get("preserve_baseline", False) else "NO"
         record.info["PASSES_CONSENSUS"] = "YES" if data["passes_consensus"] else "NO"
 
         # Note: We no longer override FILTER here because the classification functions
