@@ -572,7 +572,14 @@ def create_output_header(
         "NORMAL_VAF_BY_CALLER",
         ".",
         "String",
-        "Normal-sample caller-reported VAF by caller; '.' means unavailable (caller:VAF|...)",
+        "Normal-sample VAF by caller; reported/derived provenance is paired with the value",
+    )
+    add_info_safe(
+        new_header,
+        "NORMAL_VAF_SOURCE_BY_CALLER",
+        ".",
+        "String",
+        "Normal-sample VAF provenance by caller: reported or derived",
     )
     add_info_safe(
         new_header,
@@ -1447,6 +1454,16 @@ def write_union_vcf(
                 values.append(f"{prefixed_caller}:{value}")
             if values:
                 record.info[info_key] = "|".join(values)
+        normal_vaf_sources = []
+        for caller in data["callers"]:
+            if is_consensus_caller(caller):
+                continue
+            genotype = normal_by_caller.get(caller) or {}
+            normal_vaf_sources.append(
+                f"{prefix_caller(caller, modality_map)}:{genotype.get('VAF_SOURCE') or '.'}"
+            )
+        if normal_vaf_sources:
+            record.info["NORMAL_VAF_SOURCE_BY_CALLER"] = "|".join(normal_vaf_sources)
         # Consensus-only rescue may be given a sampleless VCF. Preserve the
         # original serialized caller evidence instead of silently dropping it.
         source_evidence = data.get("source_evidence", {})

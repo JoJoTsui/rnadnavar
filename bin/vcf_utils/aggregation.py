@@ -448,6 +448,11 @@ def _counts_toward_support(variant_data, min_alt_support):
     """
     if variant_data.get("classification") == "Artifact":
         return False
+    genotype = variant_data.get("genotype") or {}
+    if len(genotype.get("ALT_INDICES") or []) > 1:
+        # A joint multi-ALT record is retained for provenance but cannot cast a
+        # scalar support vote without decomposition into allele-specific rows.
+        return False
     alt_count = tumor_alt_count_from_genotype(variant_data.get("genotype"))
     if alt_count is not None and min_alt_support and alt_count < min_alt_support:
         return False
@@ -776,6 +781,7 @@ def read_variants_from_vcf(
             "GT_BY_CALLER", "DP_BY_CALLER", "AD_BY_CALLER", "VAF_BY_CALLER",
             "VAF_SOURCE_BY_CALLER", "NORMAL_GT_BY_CALLER",
             "NORMAL_DP_BY_CALLER", "NORMAL_AD_BY_CALLER", "NORMAL_VAF_BY_CALLER",
+            "NORMAL_VAF_SOURCE_BY_CALLER",
         ):
             try:
                 value = variant.INFO.get(evidence_key)
@@ -928,6 +934,7 @@ def aggregate_variants(
             "qualities": [],
             "genotypes": {},
             "normal_genotypes": {},
+            "source_evidence": {},
             "ids": [],
             "support_callers": set(),
         }
@@ -975,6 +982,11 @@ def aggregate_variants(
             # Store genotype information
             data["genotypes"][caller_name] = variant_data["genotype"]
             data["normal_genotypes"][caller_name] = variant_data.get("normal_genotype")
+            for key, value in variant_data.get("source_evidence", {}).items():
+                if key not in data["source_evidence"]:
+                    data["source_evidence"][key] = value
+                elif data["source_evidence"][key] != value:
+                    data["source_evidence"][key] += "||" + value
 
     # Apply consensus thresholds and aggregate genotypes
     for vkey, data in aggregated.items():
