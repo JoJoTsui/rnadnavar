@@ -124,6 +124,12 @@ def argparser():
         help="Only merge DNA and RNA consensus VCFs (no individual callers). "
         "This ensures final counts do not exceed DNA + RNA consensus counts.",
     )
+    parser.add_argument(
+        "--verification-json",
+        type=str,
+        default=None,
+        help="Optional DNA tumor/normal verification manifest keyed by chrom:pos:ref:alt",
+    )
 
     # Chromosome filtering
     parser.add_argument(
@@ -182,6 +188,20 @@ def main():
             f"Error: RNA consensus VCF not found: {rna_consensus_path}", file=sys.stderr
         )
         sys.exit(1)
+
+    verification = {}
+    if args.verification_json:
+        verification_path = Path(args.verification_json)
+        if not verification_path.exists():
+            print(f"Error: verification manifest not found: {verification_path}", file=sys.stderr)
+            sys.exit(1)
+        import json
+        with verification_path.open() as fh:
+            verification_doc = json.load(fh)
+        for row in verification_doc.get("results", []):
+            key = ":".join(str(row.get(k, "")) for k in ("chrom", "pos", "ref", "alt"))
+            verification[key] = row.get("status", "inconclusive")
+        print(f"Loaded DNA verification outcomes: {len(verification)}")
 
     # Input validation
     if args.snv_thr <= 0 or args.indel_thr <= 0:
@@ -412,6 +432,12 @@ def main():
             args.indel_thr,
             min_alt_support=args.min_alt_support,
         )
+
+        if verification:
+            for data in variant_data.values():
+                key = ":".join(str(data.get(k, "")) for k in ("CHROM", "POS", "REF", "ALT"))
+                if key in verification:
+                    data["dna_verification_status"] = verification[key]
 
         for data in variant_data.values():
             tag_variant_with_modality(data, modality_map)

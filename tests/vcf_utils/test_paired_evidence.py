@@ -1,3 +1,4 @@
+from vcf_utils.classification import compute_unified_classification_rescue
 from vcf_utils.aggregation import (
     aggregate_genotypes,
     resolve_normal_sample_index,
@@ -43,3 +44,17 @@ def test_multiallelic_alt_support_uses_all_alternates():
         ["caller"],
     )
     assert result["alt_count_by_caller"] == [7]
+
+
+def test_unverified_rna_only_nomination_is_not_somatic():
+    data = {
+        "callers": ["RNA_consensus"],
+        "filters_normalized": ["Somatic"],
+        "caller_modality_map": {"RNA_consensus": "RNA"},
+        "is_snv": True,
+        "support_callers": {"RNA_consensus"},
+        "dna_verification_status": "inconclusive",
+    }
+    assert compute_unified_classification_rescue(
+        data, {"RNA_consensus": "RNA"}, snv_threshold=2, indel_threshold=2
+    ) == "NoConsensus"

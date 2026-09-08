@@ -533,6 +533,22 @@ def compute_unified_classification_rescue(
         str: Unified biological classification; or tuple
             (classification, rationale) when with_rationale=True
     """
+    # Optional DNA verification gates RNA-only promotion. Existing DNA-supported
+    # calls are unaffected, and omission of the manifest preserves legacy behavior.
+    verification_status = variant_data.get("dna_verification_status")
+    if verification_status and verification_status != "confirmed":
+        dna_somatic = any(
+            i < len(variant_data.get("filters_normalized", []))
+            and variant_data.get("caller_modality_map", {}).get(c) == "DNA"
+            and variant_data["filters_normalized"][i] == "Somatic"
+            for i, c in enumerate(variant_data.get("callers", []))
+        )
+        if not dna_somatic:
+            rationale = (
+                f"rule:dna_verification|class:NoConsensus|status:{verification_status}"
+            )
+            return ("NoConsensus", rationale) if with_rationale else "NoConsensus"
+
     if snv_threshold is None and indel_threshold is None and rescue_config is None:
         # Delegate to the global unified classifier instance (lazy initialization)
         classifier = _get_unified_classifier()

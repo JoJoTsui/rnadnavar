@@ -585,6 +585,13 @@ def create_output_header(
     )
     add_info_safe(
         new_header,
+        "DNA_VERIFICATION",
+        "1",
+        "String",
+        "DNA tumor/normal verification outcome: confirmed, rejected, or inconclusive",
+    )
+    add_info_safe(
+        new_header,
         "RESCUE_PROMOTED",
         "1",
         "String",
@@ -1202,6 +1209,8 @@ def write_union_vcf(
         # Cross-modality promotion tag (audit M1): the site failed
         # within-modality consensus but individual DNA+RNA callers agreed on
         # Somatic
+        if data.get("dna_verification_status"):
+            record.info["DNA_VERIFICATION"] = data["dna_verification_status"]
         record.info["RESCUE_PROMOTED"] = (
             "YES" if data.get("rescue_promoted", False) else "NO"
         )
