@@ -146,18 +146,32 @@ workflow PREPARE_GENOME {
         // HISAT2 not necessary if second pass skipped
         if ((params.tools && params.tools.split(',').contains("realignment"))){
             if (params.splicesites) {
-                supplied_splicesites = Channel.fromPath(params.splicesites).collect().map{ files -> [ [ id:'splice_sites' ], files[0] ] }
-                FILTER_HISAT_SPLICESITES(supplied_splicesites.combine(SAMTOOLS_FAIDX.out.fai.map{ meta, fai -> fai }))
+                // FAIDX is skipped when an existing FAI is supplied. Audit the
+                // effective index, rather than depending only on its producer.
+                audit_fai = params.fasta_fai
+                    ? Channel.fromPath(params.fasta_fai, checkIfExists: true)
+                    : SAMTOOLS_FAIDX.out.fai.map{ meta, fai -> fai }
+                audit_fai = audit_fai.collect().map { files ->
+                    if (files.size() != 1) error('Splice-site audit requires exactly one reference FAI')
+                    files[0]
+                }.ifEmpty { error('Splice-site audit requires a reference FAI') }
+                supplied_splicesites = Channel.fromPath(params.splicesites, checkIfExists: true).collect().map { files ->
+                    if (files.size() != 1) error('Splice-site audit requires exactly one supplied splice-site file')
+                    [ [ id:'splice_sites' ], files[0] ]
+                }
+                FILTER_HISAT_SPLICESITES(supplied_splicesites.combine(audit_fai))
                 ch_splicesites = FILTER_HISAT_SPLICESITES.out.splicesites
+                    .ifEmpty { error('Splice-site audit emitted no resource') }.first()
                 versions = versions.mix(FILTER_HISAT_SPLICESITES.out.versions)
             } else{
                 HISAT2_EXTRACTSPLICESITES ( ch_gtf )
                 ch_splicesites  = HISAT2_EXTRACTSPLICESITES.out.txt
+                    .ifEmpty { error('Splice-site extraction emitted no resource') }.first()
                 versions = versions.mix(HISAT2_EXTRACTSPLICESITES.out.versions)
             }
 
             if (params.hisat2_index) {
-                ch_hisat2_index  = Channel.fromPath(params.hisat2_index).collect().map{files -> [ [ id:"hisat2_index" ], files ]}
+                ch_hisat2_index  = Channel.fromPath(params.hisat2_index, checkIfExists: true).collect().map{files -> [ [ id:"hisat2_index" ], files ]}
             } else{
                 HISAT2_BUILD (
                                 fasta,
@@ -165,6 +179,7 @@ workflow PREPARE_GENOME {
                                 ch_splicesites
                             )
                 ch_hisat2_index = HISAT2_BUILD.out.index
+                    .ifEmpty { error('HISAT2 index generation emitted no resource') }.first()
                 versions = versions.mix(HISAT2_BUILD.out.versions)
             }
         } else {
