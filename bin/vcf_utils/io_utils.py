@@ -525,6 +525,41 @@ def create_output_header(
         "Integer",
         "Maximum tumor alt-read count across callers",
     )
+    add_info_safe(
+        new_header,
+        "NORMAL_GT_BY_CALLER",
+        ".",
+        "String",
+        "Normal-sample genotype by caller; '.' means unavailable (caller:GT|...)",
+    )
+    add_info_safe(
+        new_header,
+        "NORMAL_DP_BY_CALLER",
+        ".",
+        "String",
+        "Normal-sample depth by caller; '.' means unavailable (caller:DP|...)",
+    )
+    add_info_safe(
+        new_header,
+        "NORMAL_AD_BY_CALLER",
+        ".",
+        "String",
+        "Normal-sample allele depths by caller; '.' means unavailable (caller:AD|...)",
+    )
+    add_info_safe(
+        new_header,
+        "NORMAL_VAF_BY_CALLER",
+        ".",
+        "String",
+        "Normal-sample caller-reported VAF by caller; '.' means unavailable (caller:VAF|...)",
+    )
+    add_info_safe(
+        new_header,
+        "EVIDENCE_SCHEMA",
+        "1",
+        "String",
+        "Versioned paired caller evidence serialization contract",
+    )
 
     # Rescue indicator
     add_info_safe(
@@ -1329,6 +1364,34 @@ def write_union_vcf(
                         prefixed_alt_by_caller.append(f"{prefixed_caller}:{alt_val}")
             if prefixed_alt_by_caller:
                 record.info["ALT_COUNT_BY_CALLER"] = "|".join(prefixed_alt_by_caller)
+
+        # Preserve paired normal evidence without adding a FORMAT/sample column.
+        # A missing normal sample is explicit as '.', never inferred from tumor.
+        normal_by_caller = data.get("normal_genotypes", {})
+        normal_fields = {
+            "NORMAL_GT_BY_CALLER": "GT",
+            "NORMAL_DP_BY_CALLER": "DP",
+            "NORMAL_AD_BY_CALLER": "AD",
+            "NORMAL_VAF_BY_CALLER": "VAF",
+        }
+        for info_key, genotype_key in normal_fields.items():
+            values = []
+            for i, caller in enumerate(data["callers"]):
+                if is_consensus_caller(caller):
+                    continue
+                prefixed_caller = prefix_caller(caller, modality_map)
+                genotype = normal_by_caller.get(caller)
+                value = "." if not genotype else genotype.get(genotype_key)
+                if value is None:
+                    value = "."
+                elif genotype_key == "VAF":
+                    value = f"{value:.4f}"
+                else:
+                    value = str(value)
+                values.append(f"{prefixed_caller}:{value}")
+            if values:
+                record.info[info_key] = "|".join(values)
+        record.info["EVIDENCE_SCHEMA"] = "paired-v1"
 
         # Write record
         vcf_out.write(record)

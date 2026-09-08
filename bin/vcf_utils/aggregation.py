@@ -101,6 +101,21 @@ def resolve_tumor_sample_index(samples, caller, normal_sample=None):
     return 0
 
 
+def resolve_normal_sample_index(samples, caller, normal_sample=None):
+    """Resolve the normal sample index without inventing tumor-only evidence."""
+    if not samples or len(samples) < 2:
+        return None
+    if normal_sample and normal_sample in samples:
+        return samples.index(normal_sample)
+    for i, sample in enumerate(samples):
+        if "normal" in sample.lower():
+            return i
+    if len(samples) == 2:
+        tumor_idx = resolve_tumor_sample_index(samples, caller, normal_sample)
+        return 1 - tumor_idx
+    return None
+
+
 def _normal_sample_from_header(raw_header):
     """
     Extract the sample name declared by a ``##normal_sample=<name>`` header
@@ -672,6 +687,7 @@ def read_variants_from_vcf(
     # ##normal_sample header is ground truth and takes priority over heuristics.
     normal_sample = _normal_sample_from_header(vcf.raw_header)
     tumor_sample_idx = resolve_tumor_sample_index(vcf.samples, caller_name, normal_sample)
+    normal_sample_idx = resolve_normal_sample_index(vcf.samples, caller_name, normal_sample)
 
     # Import chromosome filtering
     from vcf_utils.chromosome_utils import is_canonical_chromosome
@@ -759,6 +775,11 @@ def read_variants_from_vcf(
             else normalize_filter(filter_str),
             "quality": float(variant.QUAL) if variant.QUAL is not None else None,
             "genotype": extract_genotype_info(variant, caller_name, tumor_sample_idx),
+            "normal_genotype": (
+                extract_genotype_info(variant, caller_name, normal_sample_idx)
+                if normal_sample_idx is not None
+                else None
+            ),
             "id": variant.ID if variant.ID else None,
         }
 
@@ -880,6 +901,7 @@ def aggregate_variants(
             "filters_category": [],
             "qualities": [],
             "genotypes": {},
+            "normal_genotypes": {},
             "ids": [],
             "support_callers": set(),
         }
@@ -926,6 +948,7 @@ def aggregate_variants(
 
             # Store genotype information
             data["genotypes"][caller_name] = variant_data["genotype"]
+            data["normal_genotypes"][caller_name] = variant_data.get("normal_genotype")
 
     # Apply consensus thresholds and aggregate genotypes
     for vkey, data in aggregated.items():
