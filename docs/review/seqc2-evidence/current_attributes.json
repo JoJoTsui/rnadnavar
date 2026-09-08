@@ -1,0 +1,107 @@
+{
+  "duplicates": {
+    "dna": [],
+    "ds": [],
+    "first": [],
+    "mutect": [],
+    "second": [],
+    "strelka": [],
+    "truth": []
+  },
+  "fn": {
+    "dna": {
+      "absent_all_dna_callers": 1106,
+      "caller_pass": 104,
+      "caller_present_none_pass": 104,
+      "labels": {
+        "ABSENT": 1106,
+        "Artifact": 94,
+        "NoConsensus": 48,
+        "Reference": 66
+      }
+    },
+    "first": {
+      "absent_all_dna_callers": 1091,
+      "caller_pass": 104,
+      "caller_present_none_pass": 102,
+      "labels": {
+        "ABSENT": 937,
+        "Artifact": 148,
+        "Germline": 5,
+        "NoConsensus": 131,
+        "Reference": 76
+      }
+    },
+    "second": {
+      "absent_all_dna_callers": 1091,
+      "caller_pass": 104,
+      "caller_present_none_pass": 102,
+      "labels": {
+        "ABSENT": 958,
+        "Artifact": 145,
+        "Germline": 5,
+        "NoConsensus": 120,
+        "Reference": 69
+      }
+    }
+  },
+  "gnomad": {
+    "first": {
+      "nonmatch:<.001": 341,
+      "nonmatch:>=.001": 8,
+      "nonmatch:>=.01": 16,
+      "nonmatch:unknown": 173,
+      "truth:<.001": 300,
+      "truth:>=.001": 2,
+      "truth:>=.01": 1,
+      "truth:unknown": 699
+    },
+    "second": {
+      "nonmatch:<.001": 229,
+      "nonmatch:>=.001": 5,
+      "nonmatch:>=.01": 7,
+      "nonmatch:unknown": 266,
+      "truth:<.001": 301,
+      "truth:>=.001": 2,
+      "truth:>=.01": 1,
+      "truth:unknown": 698
+    }
+  },
+  "method": "Read-only exact-allele diagnostic, not normalized benchmark scoring.\n\nPrints JSON; merges BED intervals and uses POS-1 membership.\nUnsplit multi-ALT records and indel representations limit exact attribution.\n",
+  "sources": {
+    "dna": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.realign.full/consensus/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.consensus.vcf.gz",
+    "ds": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.realign.full/variant_calling/deepsomatic/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.deepsomatic.vcf.gz",
+    "first": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.realign.full/rescue/WES_LL_T_1_vs_WES_LL_N_1_rescued_WES_LL_RT_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1_rescued_WES_LL_RT_1_vs_WES_LL_N_1.filtered.vcf.gz",
+    "mutect": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.realign.full/variant_calling/mutect2/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.mutect2.filtered.vcf.gz",
+    "second": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.realign.full/vcf_realignment/rescue/WES_LL_T_1_vs_WES_LL_N_1_rescued_WES_LL_RT_1_realign_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1_rescued_WES_LL_RT_1_realign_vs_WES_LL_N_1.rescue.filtered.stripped.vep.vcf.gz",
+    "strelka": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wes.ll.hybrid.realign.full/variant_calling/strelka/WES_LL_T_1_vs_WES_LL_N_1/WES_LL_T_1_vs_WES_LL_N_1.strelka.variants.vcf.gz",
+    "truth": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/comparison/comprehensive_realign/WES_LL_T_1_vs_WES_LL_N_1/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz"
+  },
+  "transitions": {
+    "dna->first": {
+      "added_nonmatch": 432,
+      "added_truth": 17,
+      "lost_truth": 0,
+      "removed_nonmatch": 0
+    },
+    "dna->second": {
+      "added_nonmatch": 401,
+      "added_truth": 17,
+      "lost_truth": 0,
+      "removed_nonmatch": 0
+    },
+    "ds->dna": {
+      "added_nonmatch": 80,
+      "added_truth": 8,
+      "lost_truth": 71,
+      "removed_nonmatch": 9
+    },
+    "first->second": {
+      "added_nonmatch": 325,
+      "added_truth": 2,
+      "lost_truth": 2,
+      "removed_nonmatch": 356
+    }
+  },
+  "truth_distinct": 2299
+}
