@@ -992,7 +992,6 @@ def aggregate_variants(
             str(c).lower() in preserve_baseline_callers
             and i < len(data["filters_normalized"])
             and data["filters_normalized"][i] == "Somatic"
-            and c in data["support_callers"]
             for i, c in enumerate(data["callers"])
         )
 
