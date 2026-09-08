@@ -471,11 +471,10 @@ def compute_unified_classification_consensus(
         str: Unified biological classification; or tuple
             (classification, rationale) when with_rationale=True
     """
-    # Opt-in DeepSomatic-preserving policy. This never weakens the existing
-    # support floor: only a caller already classified Somatic and counted as a
-    # support vote can preserve its label.
+    # Opt-in DeepSomatic-preserving policy. This is a baseline-retention rule,
+    # distinct from eligible consensus support and therefore reported as such.
     if variant_data.get("preserve_baseline"):
-        rationale = "rule:preserve_baseline|class:Somatic|qualified_caller_support:YES"
+        rationale = "rule:preserve_baseline|class:Somatic|baseline_somatic:YES"
         return ("Somatic", rationale) if with_rationale else "Somatic"
 
     # Create classifier with custom thresholds (lazy import to avoid circular refs)

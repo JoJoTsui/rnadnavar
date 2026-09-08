@@ -448,6 +448,8 @@ def _counts_toward_support(variant_data, min_alt_support):
     """
     if variant_data.get("classification") == "Artifact":
         return False
+    if variant_data.get("is_multiallelic"):
+        return False
     genotype = variant_data.get("genotype") or {}
     if len(genotype.get("ALT_INDICES") or []) > 1:
         # A joint multi-ALT record is retained for provenance but cannot cast a
@@ -796,6 +798,7 @@ def read_variants_from_vcf(
             "REF": variant.REF,
             "ALT": ",".join(variant.ALT) if variant.ALT else ".",
             "is_snv": is_snv(variant.REF, variant.ALT),
+            "is_multiallelic": bool(variant.ALT and len(variant.ALT) > 1),
             "caller": caller_name,
             "filter_original": filter_str,
             "filter_normalized": normalize_filter_value(classification)
@@ -925,6 +928,7 @@ def aggregate_variants(
             "REF": None,
             "ALT": None,
             "is_snv": None,
+            "is_multiallelic": False,
             "callers": [],
             "modalities": [],
             "caller_modality_map": {},
@@ -952,6 +956,7 @@ def aggregate_variants(
                 data["REF"] = variant_data["REF"]
                 data["ALT"] = variant_data["ALT"]
                 data["is_snv"] = variant_data["is_snv"]
+                data["is_multiallelic"] = variant_data.get("is_multiallelic", False)
 
             # Store caller-specific information. A caller's record only counts
             # toward consensus support if the caller itself did not reject it
