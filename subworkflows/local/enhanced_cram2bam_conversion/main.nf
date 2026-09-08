@@ -100,6 +100,14 @@ workflow ENHANCED_CRAM2BAM_CONVERSION {
                 if (meta.data_type) {
                     safe_meta.data_type = meta.data_type
                 }
+                // HISAT2 consumes strand and library provenance after conversion.
+                // Keep only these plain metadata fields; do not copy channels/files.
+                ['strandedness', 'library', 'input_stage'].each { key ->
+                    if (meta[key]) safe_meta[key] = meta[key].toString()
+                }
+                if (meta.libraries) {
+                    safe_meta.libraries = meta.libraries.collect { it.toString() }
+                }
                 // Preserve path fields needed for downstream processing
                 if (meta.readsid_path) {
                     safe_meta.readsid_path = meta.readsid_path

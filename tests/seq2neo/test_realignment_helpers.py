@@ -68,3 +68,29 @@ def test_conversion_sizes_follow_staged_symlinks(tmp_path):
     result = subprocess.run(['bash', '-eu', '-c', command + '\nprintf "%s" "$input_size"'],
                             capture_output=True, text=True, check=True)
     assert int(result.stdout) == target.stat().st_size
+
+
+@pytest.mark.parametrize('extra', [
+    {},
+    {'strandedness': 'reverse', 'library': 'RT_lib', 'input_stage': 'raw_reads'},
+    {'strandedness': 'forward', 'libraries': ['RT_A', 'RT_B']},
+])
+def test_realignment_conversion_preserves_hisat_metadata(tmp_path, extra):
+    source = (ROOT / 'subworkflows/local/enhanced_cram2bam_conversion/main.nf').read_text()
+    mapping = source.split('.map { meta, cram, crai ->', 1)[1].split(
+        '// Skip reference file validation', 1)[0]
+    meta = dict(id='RT', patient='P', sample='RT', status=2, single_end=False,
+                data_type='cram', readsid_path='reads.txt', **extra)
+    result = run_nextflow(tmp_path, '''
+workflow {
+    def rows = new groovy.json.JsonSlurper().parseText(params.rows)
+    Channel.fromList(rows).map { meta, cram, crai ->
+''' + mapping + '''
+    .view { meta, cram, crai -> 'META=' + groovy.json.JsonOutput.toJson(meta) }
+}
+''', [[meta, 'RT.cram', 'RT.cram.crai']])
+    assert result.returncode == 0, result.stdout + result.stderr
+    observed = json.loads(next(line[5:] for line in result.stdout.splitlines()
+                               if line.startswith('META=')))
+    for key, value in meta.items():
+        assert observed.get(key) == value, (key, observed)

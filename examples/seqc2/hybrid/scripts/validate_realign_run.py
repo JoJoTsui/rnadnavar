@@ -13,19 +13,22 @@ from collections import defaultdict
 from pathlib import Path
 
 
+# Require the actual process in its own workflow scope, not a substring
+# supplied by a first-pass caller or an enclosing subworkflow name.
 SECOND_PASS_PROCESSES = {
-    "candidate extraction": ("VCF2BED",),
-    "paired-read validation": ("VALIDATE_READ_IDS",),
-    "HISAT2": ("FASTQ_ALIGN_HISAT2",),
-    "Mutect2": ("MUTECT2",),
-    "Strelka2": ("STRELKA",),
-    "DeepSomatic": ("DEEPSOMATIC",),
-    "RNA consensus": ("VCF_CONSENSUS",),
-    "second rescue": ("SECOND_RESCUE_WORKFLOW",),
-    "RNA editing": ("RNA_EDITING_ANNOTATION",),
-    "COSMIC/gnomAD": ("COSMIC_GNOMAD_ANNOTATION",),
-    "VEP": ("ENSEMBLVEP_VEP",),
+    "candidate extraction": ("PREPARE_REALIGNMENT_VCF", "VCF2BED"),
+    "paired-read validation": ("PREPARE_REALIGNMENT_VCF", "VALIDATE_READ_IDS"),
+    "HISAT2": ("PREPARE_REALIGNMENT_VCF", "HISAT2_ALIGN"),
+    "Mutect2": ("RNA_REALIGNMENT_WORKFLOW", "MUTECT2_PAIRED"),
+    "Strelka2": ("RNA_REALIGNMENT_WORKFLOW", "STRELKA_SOMATIC"),
+    "DeepSomatic": ("RNA_REALIGNMENT_WORKFLOW", "DEEPSOMATIC"),
+    "RNA consensus": ("RNA_REALIGNMENT_WORKFLOW", "VCF_CONSENSUS"),
+    "second rescue": ("SECOND_RESCUE_WORKFLOW", "VCF_RESCUE"),
+    "RNA editing": ("SECOND_RESCUE_WORKFLOW", "RNA_EDITING_ANNOTATION"),
+    "COSMIC/gnomAD": ("SECOND_RESCUE_WORKFLOW", "COSMIC_GNOMAD_ANNOTATION"),
+    "VEP": ("SECOND_RESCUE_WORKFLOW", "ENSEMBLVEP_VEP"),
 }
+
 SECOND_PASS_ARTIFACTS = (
     "vcf_realignment/**/**.deepsomatic.vcf.gz",
     "vcf_realignment/**/**.mutect2.filtered.vcf.gz",
@@ -201,19 +204,22 @@ def validate_trace(path: Path) -> None:
         if "HISAT2_ALIGN" in names:
             fail("empty candidate BED contradicts executed HISAT2 alignment")
         raise ZeroCandidates("RT consensus was converted successfully to an empty candidate BED")
-    missing = [label for label, patterns in SECOND_PASS_PROCESSES.items()
-               if not any(pattern in names for pattern in patterns)]
+    missing = []
+    for label, (scope, process) in SECOND_PASS_PROCESSES.items():
+        matches = []
+        for row in rows:
+            qualified = (row.get("process") or row.get("name", "")).upper()
+            parts = qualified.split(" (", 1)[0].split(":")
+            if scope in parts[:-1] and parts[-1] == process:
+                matches.append(row)
+        if not matches or any(
+            row.get("status", "").upper() not in {"COMPLETED", "CACHED"}
+            or row.get("exit", "").strip() not in {"", "0"}
+            for row in matches
+        ):
+            missing.append(label)
     if missing:
-        fail("second-pass process groups missing: " + ", ".join(missing))
-    # The realignment branch is a workflow scope, not a process-name suffix.
-    # Require successful task rows under that scope instead of inventing a
-    # `_REALIGN` naming convention that Nextflow never emits.
-    realign_rows = [row for row in rows if "RNA_REALIGNMENT_WORKFLOW" in
-                    (row.get("process", "") + row.get("name", "")).upper()
-                    or "SECOND_RESCUE_WORKFLOW" in
-                    (row.get("process", "") + row.get("name", "")).upper()]
-    if not realign_rows:
-        fail("realignment workflow scope is missing from execution trace")
+        fail("second-pass process groups missing or unsuccessful: " + ", ".join(missing))
 
 
 def validate_final_vcf(path: Path) -> None:

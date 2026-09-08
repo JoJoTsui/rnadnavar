@@ -119,7 +119,8 @@ def test_legacy_schema_empty_stage_is_not_a_hybrid_manifest(tmp_path):
 
 
 @pytest.mark.parametrize("staged", [False, True])
-def test_samplesheet_library_tags(tmp_path, staged):
+@pytest.mark.parametrize("realignment", [False, True])
+def test_samplesheet_library_tags(tmp_path, staged, realignment):
     fastq = tmp_path / "reads.fastq.gz"
     with gzip.open(fastq, "wt") as handle:
         handle.write("@instrument:run:flowcell:1:tile:x:y\nA\n+\nI\n")
@@ -130,20 +131,34 @@ def test_samplesheet_library_tags(tmp_path, staged):
                     library=f"{sample}_lib" if staged else [])
         rows.append([meta, str(fastq), str(fastq)] + [[] for _ in range(8)])
     module = ROOT / "subworkflows/local/samplesheet_to_channel/main.nf"
+    alignment = (ROOT / "subworkflows/local/bam_align/main.nf").read_text()
+    ingress = "input_sample_type = input_sample.branch{" + alignment.split(
+        "input_sample_type = input_sample.branch{", 1)[1].split("// QC & TRIM", 1)[0]
+    routing = "reads_for_alignment_status = reads_for_alignment.branch{" + alignment.split(
+        "reads_for_alignment_status = reads_for_alignment.branch{", 1)[1].split("//  DNA mapping", 1)[0]
+    tools = "'mutect2,strelka,deepsomatic,consensus,rescue,realignment'" if realignment else "null"
     result = run_nextflow(tmp_path,
         "params.step='mapping'\nparams.aligner='bwa-mem'\nparams.dbsnp='fixture'\n"
-        "params.tools=null\nparams.fasta='ref.fa'\nparams.seq_platform='ILLUMINA'\n"
+        f"params.tools={tools}\nparams.fasta='ref.fa'\nparams.seq_platform='ILLUMINA'\n"
         f"include {{ SAMPLESHEET_TO_CHANNEL }} from '{module}'\n"
         "workflow {\n"
         "def rows = new JsonSlurper().parseText(params.rows)\n"
         "SAMPLESHEET_TO_CHANNEL(Channel.fromList(rows).map { row -> "
         "[row[0], file(row[1]), file(row[2])] + row.drop(3) })\n"
         "SAMPLESHEET_TO_CHANNEL.out.input_sample.toList().view { items -> "
-        "'TAGS=' + JsonOutput.toJson(items.collect { it[0] }) }\n}\n", rows)
+        "'TAGS=' + JsonOutput.toJson(items.collect { it[0] }) }\n"
+        "input_sample = SAMPLESHEET_TO_CHANNEL.out.input_sample\n"
+        + ingress + "\nreads_for_alignment = input_sample_type.fastq\n" + routing + "\n"
+        "reads_for_alignment_status.dna.toList().view { 'DNA=' + JsonOutput.toJson(it.collect { it[0].sample }.sort()) }\n"
+        "reads_for_alignment_status.rna.toList().view { 'RNA=' + JsonOutput.toJson(it.collect { it[0].sample }.sort()) }\n"
+        "input_sample_type.caller_ready_bam.toList().view { 'BYPASS=' + it.size() }\n}\n", rows)
     assert result.returncode == 0, result.stdout + result.stderr
     metas = json.loads(next(line.split("=", 1)[1] for line in result.stdout.splitlines()
                             if line.startswith("TAGS=")))
     assert len(metas) == 3
+    assert 'DNA=["DN","DT"]' in result.stdout
+    assert 'RNA=["RT"]' in result.stdout
+    assert 'BYPASS=0' in result.stdout
     for meta in metas:
         library = meta["sample"] + ("_lib" if staged else "")
         assert f"LB:{library}" in meta["read_group"]

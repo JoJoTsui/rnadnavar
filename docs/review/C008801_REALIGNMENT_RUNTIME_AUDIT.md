@@ -65,3 +65,28 @@ Small test artifacts are under `.artifacts/realignment-audit/` in the persistent
 Final validation: `micromamba run -n nextflow /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python -m pytest tests/seq2neo/test_realignment_helpers.py tests/seqc2/test_hybrid_realign_validation.py -q --basetemp .artifacts/realignment-audit/verified` completed with **15 passed in 25.78s**. `git diff --check` passed.
 
 The last live process check showed four `bcftools annotate` workers on different chromosomes with active CPU use, including workers launched after earlier chromosomes completed. The gnomAD task is making progress. This does not remove the independently reproduced empty splice-site channel in the already parsed full run.
+
+## Follow-up review: preserve the original DN/DT/RT FASTQ workflow
+
+The original three-sample workflow (paired DN, DT and RT: six FASTQ files) is a required compatibility contract. Legacy samplesheets remain valid without `input_stage` or `library`. DNA reads must still route to DNA alignment, RNA reads to STAR, and callers must receive DT/DN and RT/DN pairs. Enabling optional realignment must not redirect original FASTQs into the caller-ready alignment bypass or impose hybrid-runner preflight requirements on ordinary Nextflow invocation.
+
+### RTA-11 — strand/library metadata lost before HISAT2 (P1, repaired)
+
+`ENHANCED_CRAM2BAM_CONVERSION` rebuilt metadata using a small field list that omitted `strandedness`, `library`, `libraries` and `input_stage`. The HISAT2 module uses strand and library fields to form `--rna-strandness` and its read group. A production-map fixture reproduced loss for reverse/single-library and forward/pooled-library metadata, while a legacy row without those fields remained valid.
+
+The conversion boundary now preserves those plain fields, copying library lists as strings. This prevents loss of information that is already present; it does not establish per-read library recovery or restore metadata lost earlier. No modification was made to the shared FASTQ mapping, sample parsing, trimming, pooling or caller-pairing implementation.
+
+### RTA-08 update — incorrect second-pass completion acceptance (P1, partly repaired)
+
+Eight fixtures removed a required second-pass process and substituted its successful first-pass counterpart. All eight incorrectly passed before the fix; a RUNNING second-pass DeepSomatic row also incorrectly passed. The validator now requires the exact process leaf in the appropriate preparation, RNA-realignment or second-rescue workflow scope, and successful COMPLETED/CACHED status with exit 0 when recorded. Both completed and cached positive fixtures pass. This validator belongs to the explicit hybrid-realignment runner and does not gate the ordinary FASTQ workflow.
+
+Per-sample/per-interval completeness and immutable binding of every published artifact to the current task remain open; successful scoped process presence alone does not prove those stronger contracts.
+
+### Compatibility and regression evidence
+
+- Initial existing suites: `tests/seq2neo/test_alignment_pooling.py`, `test_realignment_pairing.py`, `test_realignment_helpers.py`: **27 passed, 1 skipped** in 150.19s. The only skip was the optional runner-config test because the repository venv lacks PyYAML. That exact check subsequently ran with the system interpreter (which already provides PyYAML): **1 passed**.
+- Expanded ingress regression: the real `SAMPLESHEET_TO_CHANNEL` module feeds the production BAM_ALIGN input-type and modality branch operators. Four combinations of legacy/staged metadata and realignment off/on all pass. They assert two DNA samples, one RNA sample, no caller-ready bypass, all sample identities and expected read-group library/sample tags. **4 passed** in 29.36s.
+- Updated helper/validator suites: **29 passed** in 39.49s. Before the fixes the targeted additions produced **11 failures, 3 passes**: two metadata losses, eight first-pass substitutions, and one unfinished second-pass task.
+- Test artifacts are persistent under `.artifacts/realignment-audit/{fastq-compatibility,legacy-route,runner-config,second-review-red,second-review-green}`. No second full mapping/calling run was launched.
+
+These tests verify the exercised ingress, metadata, channel and validation contracts. They do not replace a completed realignment smoke run or a new end-to-end legacy FASTQ run. The ongoing C008801 run has completed its original raw-read alignment/calling stages and still provides the real-input evidence recorded above.

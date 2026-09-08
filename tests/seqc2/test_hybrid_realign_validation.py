@@ -115,3 +115,58 @@ def test_hisat2_resource_validator_rejects_mixed_index_formats(tmp_path):
 
     with pytest.raises(ValueError, match="mixes"):
         validator.validate_hisat2_resources(tmp_path, splice)
+
+
+def complete_trace(tmp_path, missing=None, status='COMPLETED'):
+    """First-pass rows must never stand in for missing second-pass callers."""
+    groups = [
+        'PREPARE_REALIGNMENT_VCF:VCF2BED',
+        'PREPARE_REALIGNMENT_VCF:VALIDATE_READ_IDS',
+        'PREPARE_REALIGNMENT_VCF:FASTQ_ALIGN_HISAT2:HISAT2_ALIGN',
+        'RNA_REALIGNMENT_WORKFLOW:BAM_VARIANT_CALLING:MUTECT2_PAIRED',
+        'RNA_REALIGNMENT_WORKFLOW:BAM_VARIANT_CALLING:STRELKA_SOMATIC',
+        'RNA_REALIGNMENT_WORKFLOW:BAM_VARIANT_CALLING:DEEPSOMATIC',
+        'RNA_REALIGNMENT_WORKFLOW:VCF_CONSENSUS_WORKFLOW:VCF_CONSENSUS',
+        'SECOND_RESCUE_WORKFLOW:VCF_RESCUE_WORKFLOW:VCF_RESCUE',
+        'SECOND_RESCUE_WORKFLOW:VCF_RESCUE_POST_PROCESSING:RNA_EDITING_ANNOTATION',
+        'SECOND_RESCUE_WORKFLOW:VCF_RESCUE_POST_PROCESSING:COSMIC_GNOMAD_ANNOTATION',
+        'SECOND_RESCUE_WORKFLOW:VCF_ANNOTATE:ENSEMBLVEP_VEP',
+    ]
+    rows = [(name, status) for name in groups if name != missing]
+    if missing:
+        rows.append(('BAM_PROCESSING:' + missing.split(':')[-1], 'COMPLETED'))
+    path = tmp_path / 'pipeline_info/trace.txt'
+    path.parent.mkdir()
+    path.write_text('name\tstatus\n' + ''.join(f'{name} (RT_vs_DN)\t{state}\n' for name, state in rows))
+    bed = tmp_path / 'vcf_realignment/vcf2bed/RT/RT.bed'
+    bed.parent.mkdir(parents=True)
+    bed.write_text('chr1\t10\t20\n')
+    return path
+
+
+@pytest.mark.parametrize('stage', [
+    'RNA_REALIGNMENT_WORKFLOW:BAM_VARIANT_CALLING:MUTECT2_PAIRED',
+    'RNA_REALIGNMENT_WORKFLOW:BAM_VARIANT_CALLING:STRELKA_SOMATIC',
+    'RNA_REALIGNMENT_WORKFLOW:BAM_VARIANT_CALLING:DEEPSOMATIC',
+    'RNA_REALIGNMENT_WORKFLOW:VCF_CONSENSUS_WORKFLOW:VCF_CONSENSUS',
+    'SECOND_RESCUE_WORKFLOW:VCF_RESCUE_WORKFLOW:VCF_RESCUE',
+    'SECOND_RESCUE_WORKFLOW:VCF_RESCUE_POST_PROCESSING:RNA_EDITING_ANNOTATION',
+    'SECOND_RESCUE_WORKFLOW:VCF_RESCUE_POST_PROCESSING:COSMIC_GNOMAD_ANNOTATION',
+    'SECOND_RESCUE_WORKFLOW:VCF_ANNOTATE:ENSEMBLVEP_VEP',
+])
+def test_first_pass_cannot_substitute_for_second_pass(tmp_path, stage):
+    with pytest.raises(ValueError, match='second-pass'):
+        validator.validate_trace(complete_trace(tmp_path, missing=stage))
+
+
+@pytest.mark.parametrize('status', ['COMPLETED', 'CACHED'])
+def test_complete_second_pass_accepts_success_and_cache(tmp_path, status):
+    validator.validate_trace(complete_trace(tmp_path, status=status))
+
+
+def test_second_pass_named_but_unfinished_fails(tmp_path):
+    path = complete_trace(tmp_path)
+    path.write_text(path.read_text().replace('DEEPSOMATIC (RT_vs_DN)\tCOMPLETED',
+                                             'DEEPSOMATIC (RT_vs_DN)\tRUNNING'))
+    with pytest.raises(ValueError, match='second-pass'):
+        validator.validate_trace(path)
