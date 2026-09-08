@@ -147,7 +147,9 @@ workflow PREPARE_GENOME {
         if ((params.tools && params.tools.split(',').contains("realignment"))){
             if (params.splicesites) {
                 supplied_splicesites = Channel.fromPath(params.splicesites).collect().map{ files -> [ [ id:'splice_sites' ], files[0] ] }
-                FILTER_HISAT_SPLICESITES(supplied_splicesites.combine(SAMTOOLS_FAIDX.out.fai.map{ meta, fai -> fai }))
+                // FAIDX is skipped when an existing reference index is supplied.
+                splice_fai = params.fasta_fai ? Channel.value(file(params.fasta_fai, checkIfExists: true)) : SAMTOOLS_FAIDX.out.fai.map{ meta, fai -> fai }
+                FILTER_HISAT_SPLICESITES(supplied_splicesites.combine(splice_fai))
                 ch_splicesites = FILTER_HISAT_SPLICESITES.out.splicesites
                 versions = versions.mix(FILTER_HISAT_SPLICESITES.out.versions)
             } else{
