@@ -20,6 +20,24 @@ assert SPEC.loader is not None
 SPEC.loader.exec_module(validator)
 
 
+def test_second_pass_artifact_globs_are_pathlib_compatible(tmp_path):
+    """Completion checks must not reject valid output with an invalid glob."""
+    files = {
+        "vcf_realignment/normalized/deepsomatic/sample/sample.deepsomatic.vcf.gz",
+        "vcf_realignment/normalized/mutect2/sample/sample.mutect2.filtered.vcf.gz",
+        "vcf_realignment/normalized/strelka/sample/sample.strelka.variants.vcf.gz",
+        "vcf_realignment/consensus/sample/sample.consensus.vcf.gz",
+        "vcf_realignment/rescue/sample/sample.rescued.vcf.gz",
+    }
+    for relative in files:
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.touch()
+
+    matches = [list(tmp_path.glob(pattern)) for pattern in validator.SECOND_PASS_ARTIFACTS]
+    assert all(matches)
+
+
 def row(tmp_path: Path, status: int, sample: str, library: str) -> dict[str, str]:
     fastq_1 = tmp_path / "r1.fastq.gz"
     fastq_2 = tmp_path / "r2.fastq.gz"

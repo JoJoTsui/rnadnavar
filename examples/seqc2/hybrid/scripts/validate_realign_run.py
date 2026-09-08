@@ -27,11 +27,17 @@ SECOND_PASS_PROCESSES = {
     "VEP": ("SECOND_RESCUE_WORKFLOW", "ENSEMBLVEP_VEP"),
 }
 SECOND_PASS_ARTIFACTS = (
-    "vcf_realignment/**/**.deepsomatic.vcf.gz",
-    "vcf_realignment/**/**.mutect2.filtered.vcf.gz",
-    "vcf_realignment/**/**.strelka.variants.vcf.gz",
-    "vcf_realignment/consensus/**/*.consensus.vcf.gz",
-    "vcf_realignment/rescue/**/*.rescued.vcf.gz",
+    # Published artifacts have exactly three path components below
+    # vcf_realignment for caller outputs (stage/caller/sample/file), and two
+    # for consensus/rescue (stage/sample/file).  Keep the wildcard as a
+    # complete pathlib glob component: forms such as ``**.vcf.gz`` are
+    # invalid to pathlib.Path.glob and make an otherwise successful run fail
+    # during post-run validation.
+    "vcf_realignment/*/*/*/*.deepsomatic.vcf.gz",
+    "vcf_realignment/*/*/*/*.mutect2.filtered.vcf.gz",
+    "vcf_realignment/*/*/*/*.strelka.variants.vcf.gz",
+    "vcf_realignment/consensus/*/*.consensus.vcf.gz",
+    "vcf_realignment/rescue/*/*.rescued.vcf.gz",
 )
 FINAL_VCF = (
     "vcf_realignment/rescue/*/*.rescue.filtered.stripped.vep.vcf.gz"
