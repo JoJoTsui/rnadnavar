@@ -57,6 +57,7 @@ process STAR_ALIGN {
         --runThreadN $task.cpus \\
         --outFileNamePrefix $prefix. \\
         $out_sam_type \\
+        --outSAMmapqUnique 60 \\
         $ignore_gtf \\
         $attrRG \\
         $args
