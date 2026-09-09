@@ -42,6 +42,51 @@ Example:
 """
 
 
+def sanitize_genotype(info):
+    """Normalize unavailable/invalid measurements without turning them into zero.
+
+    Keep invalid-field provenance; valid zero depth and zero AF remain valid.
+    This is also used at the public aggregation boundary for in-memory callers.
+    """
+    import math
+
+    result = dict(info or {})
+    invalid = set(result.get("INVALID_FIELDS", []))
+    for key in ("DP", "GQ", "VAF"):
+        value = result.get(key)
+        if value is None or (isinstance(value, str) and value in ("", ".")):
+            result[key] = None
+            continue
+        try:
+            number = float(value)
+            valid = math.isfinite(number) and number >= 0
+            valid = valid and (number <= 1 if key == "VAF" else number.is_integer())
+        except (ValueError, TypeError, OverflowError):
+            valid = False
+        if valid:
+            result[key] = number if key == "VAF" else int(number)
+        else:
+            result[key] = None
+            invalid.add(key)
+    ad = result.get("AD")
+    if ad is None or (isinstance(ad, str) and ad in ("", ".")):
+        result["AD"] = None
+    else:
+        try:
+            values = str(ad).split(",") if isinstance(ad, str) else list(ad)
+            counts = [int(v) for v in values]
+            if len(counts) < 2 or any(c < 0 or float(v) != c for c, v in zip(counts, values)):
+                raise ValueError("invalid allele depths")
+            result["AD"] = ",".join(map(str, counts))
+        except (ValueError, TypeError, OverflowError):
+            result["AD"] = None
+            invalid.add("AD")
+    if result.get("VAF") is None:
+        result["VAF_SOURCE"] = None
+    result["INVALID_FIELDS"] = sorted(invalid)
+    return result
+
+
 def resolve_tumor_sample_index(samples, caller, normal_sample=None):
     """
     Resolve the tumor sample index in a caller VCF.
@@ -254,6 +299,8 @@ def extract_genotype_info(variant, caller, sample_idx=0):
                     pass
                 break
 
+        info = sanitize_genotype(info)
+
         # Strelka-specific parsing when AD/AF are missing
         if caller.lower() == "strelka":
             # Extract from the tumor sample row explicitly (Strelka writes
@@ -290,6 +337,7 @@ def extract_genotype_info(variant, caller, sample_idx=0):
                                 info["DP"] = ref_c + alt_c
                             if info["VAF"] is None and (ref_c + alt_c) > 0:
                                 info["VAF"] = alt_c / (ref_c + alt_c)
+                                info["VAF_SOURCE"] = "derived"
                     except Exception:
                         pass
                 else:
@@ -345,6 +393,7 @@ def extract_genotype_info(variant, caller, sample_idx=0):
                                     info["DP"] = ref_c + alt_c
                                 if info["VAF"] is None and (ref_c + alt_c) > 0:
                                     info["VAF"] = alt_c / (ref_c + alt_c)
+                                    info["VAF_SOURCE"] = "derived"
                         except Exception:
                             pass
 
@@ -358,6 +407,8 @@ def extract_genotype_info(variant, caller, sample_idx=0):
                             info["GT"] = str(row)
                         except Exception:
                             pass
+
+        info = sanitize_genotype(info)
 
         # Calculate VAF from AD if still not available
         if info["VAF"] is None and info["AD"] is not None:
@@ -393,7 +444,7 @@ def extract_genotype_info(variant, caller, sample_idx=0):
         print(f"Error: Unexpected error extracting genotype info from {caller}: {e}")
         # Don't re-raise for genotype extraction as it's not critical
 
-    return info
+    return sanitize_genotype(info)
 
 
 def tumor_alt_count_from_genotype(genotype_info):
@@ -420,8 +471,12 @@ def tumor_alt_count_from_genotype(genotype_info):
         values = [int(x) for x in str(ad).split(",")]
     except (ValueError, TypeError):
         return None
+    if len(values) < 2 or any(value < 0 for value in values):
+        return None
     indices = genotype_info.get("ALT_INDICES") or [1]
-    selected = [values[i] for i in indices if i < len(values)]
+    if any(not isinstance(i, int) or i <= 0 or i >= len(values) for i in indices):
+        return None
+    selected = [values[i] for i in indices]
     return max(selected) if selected else None
 
 
@@ -434,9 +489,9 @@ def _counts_toward_support(variant_data, min_alt_support):
       Artifact — audit finding M9), and
     - the tumor alt-read evidence meets the floor (audit minor note: a caller
       PASS with 1-2 alt reads must not count as a full Somatic vote). The
-      floor is only applied when alt-read evidence (AD) exists; records
-      without evidence (e.g. consensus callers in rescue mode) keep the
-      legacy behavior. Records without a classification keep legacy behavior.
+      positive floor requires available allele-specific AD evidence.
+      Consensus labels are handled separately by the rescue classifier and
+      never substitute for an independent caller vote.
 
     Args:
         variant_data (dict): Per-caller record from read_variants_from_vcf()
@@ -456,7 +511,7 @@ def _counts_toward_support(variant_data, min_alt_support):
         # scalar support vote without decomposition into allele-specific rows.
         return False
     alt_count = tumor_alt_count_from_genotype(variant_data.get("genotype"))
-    if alt_count is not None and min_alt_support and alt_count < min_alt_support:
+    if min_alt_support and (alt_count is None or alt_count < min_alt_support):
         return False
     return True
 
@@ -537,7 +592,7 @@ def aggregate_genotypes(genotypes_by_caller, callers_order):
     gt_counts = defaultdict(int)
 
     for caller in callers_order:
-        info = genotypes_by_caller.get(caller, {})
+        info = sanitize_genotype(genotypes_by_caller.get(caller, {}))
         # Collect GTs
         if info and "GT" in info and info["GT"] is not None:
             agg["gt_list"].append(info["GT"])
@@ -605,6 +660,7 @@ def read_variants_from_vcf(
     classify_variants=True,
     include_non_canonical=False,
     chrom=None,
+    alignment_round="unknown",
 ):
     """
     Read variants from a single VCF file with biological classification.
@@ -826,6 +882,15 @@ def read_variants_from_vcf(
         if modality:
             data["modality"] = modality
 
+        from .caller_evidence import evidence_from_record, read_info
+        data["caller_evidence"] = evidence_from_record(
+            read_info(variant), caller_name, vkey,
+            genotype=data["genotype"], normal_genotype=data["normal_genotype"],
+            modality=modality or "unknown", alignment_round=alignment_round,
+            sample_id=vcf.samples[tumor_sample_idx] if vcf.samples else "unknown",
+            normal_sample_id=vcf.samples[normal_sample_idx] if normal_sample_idx is not None else "unknown",
+        )
+
         variants[vkey] = data
 
     return variants
@@ -939,6 +1004,7 @@ def aggregate_variants(
             "genotypes": {},
             "normal_genotypes": {},
             "source_evidence": {},
+            "caller_evidence": [],
             "ids": [],
             "support_callers": set(),
         }
@@ -985,8 +1051,18 @@ def aggregate_variants(
                 data["ids"].append(variant_data["id"])
 
             # Store genotype information
-            data["genotypes"][caller_name] = variant_data["genotype"]
-            data["normal_genotypes"][caller_name] = variant_data.get("normal_genotype")
+            data["genotypes"][caller_name] = sanitize_genotype(variant_data["genotype"])
+            normal = variant_data.get("normal_genotype")
+            data["normal_genotypes"][caller_name] = sanitize_genotype(normal) if normal is not None else None
+            from .caller_evidence import evidence_from_record, bind_evidence
+            observations = variant_data.get("caller_evidence")
+            if observations is None:
+                observations = evidence_from_record(
+                    variant_data.get("source_evidence", {}), caller_name, vkey,
+                    genotype=data["genotypes"][caller_name],
+                    normal_genotype=data["normal_genotypes"][caller_name], modality=modality or "unknown",
+                )
+            data["caller_evidence"].extend(bind_evidence(observations, modality=modality or "unknown"))
             for key, value in variant_data.get("source_evidence", {}).items():
                 if key not in data["source_evidence"]:
                     data["source_evidence"][key] = value

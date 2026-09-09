@@ -72,14 +72,14 @@ def compute_rescue_statistics(variant_data, dna_variants, rna_variants):
     
     This function calculates statistics about cross-modality variant support,
     including DNA-only, RNA-only, and cross-modality variants, as well as
-    rescue effectiveness metrics.
+    descriptive outcome counts. These are not truth-based accuracy metrics.
     
     Args:
         variant_data (dict): Aggregated variant data dictionary where keys are
             variant identifiers and values contain variant information including
             'dna_support', 'rna_support', 'rescued', and 'is_snv' fields
-        dna_variants (set): Set of variant keys from DNA consensus
-        rna_variants (set): Set of variant keys from RNA consensus
+        dna_variants (dict): DNA consensus records with filter_normalized labels
+        rna_variants (dict): RNA consensus records with filter_normalized labels
     
     Returns:
         dict: Rescue statistics summary containing:
@@ -92,11 +92,16 @@ def compute_rescue_statistics(variant_data, dna_variants, rna_variants):
             - indels: Number of indels
             - snvs_rescued: Number of SNVs rescued
             - indels_rescued: Number of indels rescued
-            - rescue_rate: Percentage of variants rescued (rescued/total * 100)
+            - rescued_union_fraction: rescued / total union records (0..1)
+            - dna_somatic_baseline: DNA input Somatic records
+            - output_somatic: Final output Somatic records
+            - somatic_retained_from_dna: Final Somatic and DNA input Somatic
+            - somatic_new_vs_dna: Final Somatic but not DNA input Somatic
+            - somatic_lost_from_dna: DNA input Somatic but not final Somatic
     
     Example:
-        >>> stats = compute_rescue_statistics(variant_data, dna_set, rna_set)
-        >>> print(f"Rescue rate: {stats['rescue_rate']:.1f}%")
+        >>> stats = compute_rescue_statistics(variant_data, dna_records, rna_records)
+        >>> print(stats['rescued_union_fraction'])
     """
     stats = {
         'total_variants': len(variant_data),
@@ -109,6 +114,22 @@ def compute_rescue_statistics(variant_data, dna_variants, rna_variants):
         'snvs_rescued': 0,
         'indels_rescued': 0,
     }
+    if not isinstance(dna_variants, dict) or not isinstance(rna_variants, dict):
+        raise TypeError("Rescue outcome statistics require labeled consensus record dictionaries")
+    dna_somatic = {key for key, record in dna_variants.items()
+                   if record.get('filter_normalized') == 'Somatic'}
+    missing_final = [key for key, data in variant_data.items() if 'final_classification' not in data]
+    if missing_final:
+        raise ValueError("Rescue outcome statistics require finalized output classifications")
+    output_somatic = {key for key, data in variant_data.items()
+                      if data['final_classification'] == 'Somatic'}
+    stats.update({
+        'dna_somatic_baseline': len(dna_somatic),
+        'output_somatic': len(output_somatic),
+        'somatic_retained_from_dna': len(output_somatic & dna_somatic),
+        'somatic_new_vs_dna': len(output_somatic - dna_somatic),
+        'somatic_lost_from_dna': len(dna_somatic - output_somatic),
+    })
     
     for vkey, data in variant_data.items():
         # Count modality support
@@ -123,7 +144,7 @@ def compute_rescue_statistics(variant_data, dna_variants, rna_variants):
             stats['rna_only'] += 1
         
         # Count rescued variants
-        if data.get('rescued', False):
+        if data.get('rescued', False) and vkey in output_somatic:
             stats['rescued'] += 1
             if data['is_snv']:
                 stats['snvs_rescued'] += 1
@@ -136,11 +157,9 @@ def compute_rescue_statistics(variant_data, dna_variants, rna_variants):
         else:
             stats['indels'] += 1
     
-    # Calculate rescue rate (should be relative to cross-modality variants, not total)
-    if stats['cross_modality'] > 0:
-        stats['rescue_rate'] = (stats['rescued'] / stats['cross_modality']) * 100
-    else:
-        stats['rescue_rate'] = 0.0
+    stats['rescued_union_fraction'] = (
+        stats['rescued'] / stats['total_variants'] if stats['total_variants'] else 0.0
+    )
     
     return stats
 
@@ -162,7 +181,7 @@ def print_statistics(stats, operation_type='consensus'):
         >>> stats = compute_consensus_statistics(variant_data, 2, 2)
         >>> print_statistics(stats, 'consensus')
         
-        >>> rescue_stats = compute_rescue_statistics(variant_data, dna_set, rna_set)
+        >>> rescue_stats = compute_rescue_statistics(variant_data, dna_records, rna_records)
         >>> print_statistics(rescue_stats, 'rescue')
     """
     print("\n- Statistics:")
@@ -183,9 +202,15 @@ def print_statistics(stats, operation_type='consensus'):
         print(f"  - DNA only: {stats['dna_only']:,}")
         print(f"  - RNA only: {stats['rna_only']:,}")
         print(f"  - Cross-modality: {stats['cross_modality']:,}")
-        print("\n- Rescue Effectiveness:")
+        print("\n- Rescue Outcomes (descriptive counts; not truth-based accuracy):")
         print(f"  - Total rescued: {stats['rescued']:,}")
-        print(f"  - Rescue rate: {stats['rescue_rate']:.1f}%")
+        print(f"  - Rescued / union records: {stats['rescued']:,}/{stats['total_variants']:,} "
+              f"({stats['rescued_union_fraction']:.2%})")
+        print(f"  - DNA input Somatic baseline: {stats['dna_somatic_baseline']:,}")
+        print(f"  - Final output Somatic: {stats['output_somatic']:,}")
+        print(f"  - Somatic retained from DNA: {stats['somatic_retained_from_dna']:,}")
+        print(f"  - Somatic new versus DNA: {stats['somatic_new_vs_dna']:,}")
+        print(f"  - Somatic lost from DNA: {stats['somatic_lost_from_dna']:,}")
     
     else:
         raise ValueError(f"Unknown operation_type: {operation_type}. Must be 'consensus' or 'rescue'.")

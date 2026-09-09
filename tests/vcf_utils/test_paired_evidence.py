@@ -6,6 +6,63 @@ from vcf_utils.aggregation import (
     resolve_tumor_sample_index,
 )
 
+import pytest
+import pysam
+from cyvcf2 import VCF
+from vcf_utils.aggregation import read_variants_from_vcf, extract_genotype_info
+from vcf_utils.io_utils import write_union_vcf
+
+
+@pytest.mark.parametrize("modality", [None, "DNA"])
+def test_tumor_only_normal_evidence_round_trips_as_missing(tmp_path, modality):
+    source = tmp_path / "sample.deepsomatic.vcf"
+    source.write_text(
+        '##fileformat=VCFv4.2\n'
+        '##contig=<ID=chr1,length=1000>\n'
+        '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n'
+        '##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Depth">\n'
+        '##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allele depth">\n'
+        '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tWES_LL_T_1\n'
+        'chr1\t10\t.\tA\tG\t50\tPASS\t.\tGT:DP:AD\t0/1:20:15,5\n'
+    )
+    caller = "DNA_deepsomatic" if modality else "deepsomatic"
+    variants = read_variants_from_vcf(str(source), caller)
+    data = aggregate_variants([(caller, variants, modality)], 1, 1)
+    output = tmp_path / "union.vcf"
+    template = VCF(str(source))
+    write_union_vcf(data, template, "unused", str(output), "vcf", [caller],
+                    modality_map={caller: modality} if modality else None,
+                    snv_threshold=1, indel_threshold=1)
+    template.close()
+    with pysam.VariantFile(output) as reader:
+        record = next(reader)
+        for field in ("GT", "DP", "AD", "VAF", "VAF_SOURCE"):
+            value = record.info[f"NORMAL_{field}_BY_CALLER"]
+            assert (value[0] if isinstance(value, tuple) else value) == f"{caller}:."
+        value = record.info["VAF_BY_CALLER"]
+        assert (value[0] if isinstance(value, tuple) else value) == f"{caller}:0.2500"
+        assert not reader.header.samples
+
+
+@pytest.mark.parametrize("indel", [False, True])
+def test_strelka_derived_vaf_has_provenance(tmp_path, indel):
+    fields = ["TAR", "TIR"] if indel else ["AU", "CU", "GU", "TU"]
+    values = "15,0:5,0" if indel else "15,0:0,0:5,0:0,0"
+    source = tmp_path / "sample.strelka.vcf"
+    source.write_text(
+        '##fileformat=VCFv4.2\n##contig=<ID=chr1,length=1000>\n'
+        + ''.join(f'##FORMAT=<ID={f},Number=2,Type=Integer,Description="Counts">\n' for f in fields)
+        + '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tNORMAL\tTUMOR\n'
+        + f'chr1\t10\t.\tA\t{"AT" if indel else "G"}\t50\tPASS\t.\t{":".join(fields)}\t{values}\t{values}\n'
+    )
+    reader = VCF(str(source))
+    variant = next(reader)
+    for sample_idx in (0, 1):
+        evidence = extract_genotype_info(variant, "strelka", sample_idx=sample_idx)
+        assert evidence["VAF"] == 0.25
+        assert evidence["VAF_SOURCE"] == "derived"
+    reader.close()
+
 
 def test_paired_sample_resolution_is_explicit_and_complementary():
     samples = ["WES_LL_N_1", "WES_LL_T_1"]

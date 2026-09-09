@@ -22,6 +22,8 @@ Unified classes:
 - NoConsensus
 
 ## Input and aggregation
+The [evidence contract](CONSENSUS_RESCUE_EVIDENCE_CONTRACT.md) defines current missing-value, eligible-vote and paired-v2 provenance rules. With a positive alternate-read floor, missing/invalid AD cannot vote; a measured zero is not a missing value.
+
 1. Collect VCF files from input directory.
 2. Parse variants and classify each caller record to biological classes.
 3. Aggregate by normalized variant key chrom:pos:ref:alt.

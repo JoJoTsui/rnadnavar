@@ -345,6 +345,34 @@ nextflow run nf-core/rnadnavar \
     -profile docker
 ```
 
+## Eligible evidence counts (2026-09-09)
+
+Rescue VCFs now distinguish three counts for each modality (`DNA` or `RNA`):
+
+| INFO suffix | Meaning |
+| --- | --- |
+| `N_<modality>_CALLERS_OBSERVED` | Distinct individual callers with an allele record, regardless of label or read evidence |
+| `N_<modality>_CALLERS_ELIGIBLE` | Distinct individual callers whose non-Artifact record satisfies the configured tumor alternate-read floor |
+| `N_<modality>_CALLERS_SOMATIC` | Eligible callers whose record is classified Somatic |
+
+Consensus records never add individual-caller votes. The existing
+`N_DNA_CALLERS_SUPPORT`, `N_RNA_CALLERS_SUPPORT`, `DNA_SUPPORT`, and `RNA_SUPPORT`
+fields retain their historical **observed** meaning for compatibility; their
+names must not be interpreted as evidence acceptance.
+
+RNA-editing annotation uses the explicit **eligible** DNA count when deciding
+whether an allele has DNA support, and the eligible RNA count for its minimum
+RNA-caller threshold. A rejected DNA record therefore cannot suppress editing
+classification merely because it exists. Eligible DNA evidence still protects
+a canonical REDIportal-matching allele from the RNA-only HIGH/VERY_HIGH tiers;
+the MEDIUM tier preserves its original FILTER. The Somatic-only count remains
+separate: eligible Germline evidence can also establish DNA presence.
+
+Older VCFs lacking the new fields retain their previous behavior by falling back
+to legacy `N_*_CALLERS_SUPPORT`. An explicitly unavailable new count does not
+fall back to zero. This annotation change acts downstream of caller VCFs and
+does not alter mapping or variant-calling process definitions or their cache.
+
 ## Support and Resources
 
 ### Documentation

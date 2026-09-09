@@ -644,7 +644,7 @@ class RNAEditingAnnotator:
         Process variants using pysam and dedicated evidence tiering and FILTER update modules with performance optimization.
 
         This method implements the complete evidence tiering system with performance optimizations for large VCF files:
-        1. Extracts N_RNA_CALLERS_SUPPORT and N_DNA_CALLERS_SUPPORT from variant INFO fields
+        1. Uses explicit eligible caller counts, falling back to legacy SUPPORT fields
         2. Implements RNA consensus detection (N_RNA_CALLERS_SUPPORT >= min_rna_support)
         3. Implements RNA-only variant detection (N_DNA_CALLERS_SUPPORT = 0)
         4. Creates evidence tier assignment logic (HIGH/MEDIUM/LOW/NONE)
@@ -1153,15 +1153,23 @@ class RNAEditingAnnotator:
 
     def _extract_variant_data_pysam(self, variant) -> Dict:
         """Extract variant data from pysam.VariantRecord for evidence classification."""
+        # pysam INFO.get raises for fields absent from an older VCF header.
+        # Materializing present fields makes the legacy fallback safe, while an
+        # explicitly unavailable eligible count remains unavailable (not zero).
+        info = dict(variant.info)
         return {
             "CHROM": variant.chrom,
             "POS": variant.pos,
             "REF": variant.ref,
             "ALT": ",".join(variant.alts) if variant.alts else ".",
-            "N_RNA_CALLERS_SUPPORT": variant.info.get("N_RNA_CALLERS_SUPPORT", 0),
-            "N_DNA_CALLERS_SUPPORT": variant.info.get("N_DNA_CALLERS_SUPPORT", 0),
-            "VAF_RNA_MEAN": variant.info.get("VAF_RNA_MEAN", 0.0),
-            "VAF_DNA_MEAN": variant.info.get("VAF_DNA_MEAN", 0.0),
+            "N_RNA_CALLERS_SUPPORT": info.get(
+                "N_RNA_CALLERS_ELIGIBLE", info.get("N_RNA_CALLERS_SUPPORT", 0)
+            ),
+            "N_DNA_CALLERS_SUPPORT": info.get(
+                "N_DNA_CALLERS_ELIGIBLE", info.get("N_DNA_CALLERS_SUPPORT", 0)
+            ),
+            "VAF_RNA_MEAN": info.get("VAF_RNA_MEAN", 0.0),
+            "VAF_DNA_MEAN": info.get("VAF_DNA_MEAN", 0.0),
         }
 
     def _has_exact_rediportal_match(self, variant) -> bool:

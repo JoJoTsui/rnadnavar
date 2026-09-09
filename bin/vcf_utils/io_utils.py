@@ -379,6 +379,16 @@ def create_output_header(
         "Integer",
         "Number of RNA callers that detected this variant",
     )
+    for modality in ("DNA", "RNA"):
+        for kind, description in (
+            ("OBSERVED", "with a record at this allele regardless of classification"),
+            ("ELIGIBLE", "whose non-Artifact record satisfies the configured tumor alt-read floor"),
+            ("SOMATIC", "with an eligible record classified Somatic"),
+        ):
+            add_info_safe(
+                new_header, f"N_{modality}_CALLERS_{kind}", "1", "Integer",
+                f"Distinct {modality} variant callers {description}; excludes consensus records",
+            )
     add_info_safe(
         new_header,
         "FILTERS_ORIGINAL",
@@ -594,6 +604,10 @@ def create_output_header(
         "1",
         "String",
         "Versioned paired caller evidence serialization contract",
+    )
+    add_info_safe(
+        new_header, "CALLER_EVIDENCE", "1", "String",
+        "URL-encoded paired-v2 JSON observations keyed by modality/caller/sample role/sample/allele/alignment round; conflicts retained, not independent votes",
     )
 
     # Rescue indicator
@@ -1073,6 +1087,22 @@ def write_union_vcf(
             )
             record.info["N_DNA_CALLERS_SUPPORT"] = dna_callers_support
             record.info["N_RNA_CALLERS_SUPPORT"] = rna_callers_support
+            # Legacy *_SUPPORT counts mean observed, not accepted evidence.
+            # Explicit fields separate presence from an eligible vote and from
+            # an eligible Somatic vote. Consensus records never add votes.
+            for modality in ("DNA", "RNA"):
+                observed = {
+                    c for c in actual_callers_in_variant
+                    if modality_map.get(c) == modality
+                }
+                eligible = observed.intersection(supporting_callers_in_variant)
+                somatic = {
+                    c for c, label in zip(data["callers"], data["filters_normalized"])
+                    if c in eligible and label == "Somatic"
+                }
+                record.info[f"N_{modality}_CALLERS_OBSERVED"] = len(observed)
+                record.info[f"N_{modality}_CALLERS_ELIGIBLE"] = len(eligible)
+                record.info[f"N_{modality}_CALLERS_SOMATIC"] = len(somatic)
 
         # Prefix filter fields with caller names (with modality prefix) - EXCLUDE consensus
         # Note: Use proper VCF escaping for special characters instead of replacement
@@ -1141,6 +1171,7 @@ def write_union_vcf(
                 )
             )
 
+        data["final_classification"] = unified_classification
         record.info["UNIFIED_FILTER"] = unified_classification
         # Classification rationale (ticket 07): every record's FILTER is
         # derivable from its own INFO (rule fired, votes, support, thresholds)
@@ -1462,7 +1493,7 @@ def write_union_vcf(
                     continue
                 prefixed_caller = prefix_caller(caller, modality_map)
                 genotype = normal_by_caller.get(caller)
-                value = "." if not genotype else genotype.get(genotype_key)
+                value = None if not genotype else genotype.get(genotype_key)
                 if value is None:
                     value = "."
                 elif genotype_key == "VAF":
@@ -1492,7 +1523,13 @@ def write_union_vcf(
             for key, value in source_evidence.items():
                 if key in record.header.info and key not in record.info:
                     record.info[key] = value
-        record.info["EVIDENCE_SCHEMA"] = "paired-v1"
+        from .caller_evidence import bind_evidence, encode_evidence, VERSION
+        entries = bind_evidence(
+            data.get("caller_evidence", []),
+            alignment_round={"DNA": "first", "RNA": data.get("alignment_round", "unknown")},
+        )
+        record.info["CALLER_EVIDENCE"] = encode_evidence(entries)
+        record.info["EVIDENCE_SCHEMA"] = VERSION
 
         # Write record
         vcf_out.write(record)

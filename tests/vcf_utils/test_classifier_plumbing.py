@@ -218,9 +218,8 @@ class TestMinAltFloor:
         data = next(iter(aggregated.values()))
         assert data["passes_consensus"] is True
 
-    def test_records_without_alt_evidence_keep_legacy_behavior(self):
-        """No AD evidence (e.g. consensus callers in rescue mode): the floor
-        cannot be evaluated, so the record counts as before."""
+    def test_records_without_alt_evidence_do_not_cast_caller_votes(self):
+        """Sampleless consensus labels are not independent AD-backed votes."""
         record = {
             "CHROM": "chr1",
             "POS": 1000,
@@ -242,8 +241,8 @@ class TestMinAltFloor:
         ]
         aggregated = aggregate_variants(collections, snv_threshold=2, indel_threshold=2)
         data = next(iter(aggregated.values()))
-        assert data["support_callers"] == {"DNA_consensus", "RNA_consensus"}
-        assert data["passes_consensus"] is True
+        assert data["support_callers"] == set()
+        assert data["passes_consensus"] is False
 
 
 # ---------------------------------------------------------------------------
@@ -325,8 +324,8 @@ class TestRescueThresholdWiring:
         assert captured.get("snv_threshold") == 5
         assert captured.get("indel_threshold") == 3
 
-    def test_e2e_rescue_cli_thresholds_change_support(self, tmp_path):
-        """CLI --snv_thr changes rescue-run behavior (PASSES_CONSENSUS)."""
+    def test_e2e_consensus_labels_do_not_cast_caller_votes(self, tmp_path):
+        """Changing the floor cannot turn sampleless labels into caller votes."""
         dna = _write_vcf(tmp_path, "sample.dna.consensus.vcf", DNA_CONSENSUS_VCF)
         rna = _write_vcf(tmp_path, "sample.rna.consensus.vcf", RNA_CONSENSUS_VCF)
 
@@ -351,7 +350,7 @@ class TestRescueThresholdWiring:
             (rec,) = list(VCF(str(out_prefix) + ".vcf"))
             return _info_scalar(rec, "PASSES_CONSENSUS")
 
-        assert run(2) == "YES"  # DNA_consensus + RNA_consensus = 2 votes
+        assert run(2) == "NO"  # Consensus labels cannot substitute for caller AD.
         assert run(3) == "NO"
 
 

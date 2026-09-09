@@ -1,5 +1,6 @@
 """Run real helper modules and the production reference-selection expression."""
 import json
+import textwrap
 import pytest
 from test_alignment_pooling import ROOT, run_nextflow
 
@@ -16,7 +17,7 @@ def test_helper_executes_and_reports_versions(tmp_path, module, process, payload
     fai.write_text('chr1\t100\t0\t100\t101\n')
     extra = f", file('{fai}')" if process == 'FILTER_HISAT_SPLICESITES' else ''
     result = run_nextflow(tmp_path, f"""
-include {{ {process} }} from '{ROOT}/modules/local/{module}/main'
+include {{ {process}_AUDITED as {process} }} from '{ROOT}/modules/local/{module}/main'
 workflow {{
     {process}(Channel.of([[id:'sample'], file('{source}'){extra}]))
     {process}.out.versions.view {{ 'VERSIONS=' + it.text }}
@@ -24,7 +25,7 @@ workflow {{
 }}
 """, [])
     assert result.returncode == 0, result.stdout + result.stderr
-    assert f'"{process}":' in result.stdout
+    assert f'"{process}_AUDITED":' in result.stdout
     expected = 'chr1\t10\t30\n' if process == 'SORT_MERGE_BED' else payload
     assert 'DATA=' + json.dumps(expected, separators=(',', ':')) in result.stdout
 
@@ -32,8 +33,9 @@ workflow {{
 @pytest.mark.parametrize('supplied', [True, False])
 def test_splice_filter_receives_supplied_or_generated_fai(tmp_path, supplied):
     source = (ROOT / 'subworkflows/local/prepare_genome/main.nf').read_text()
-    selection = next((line.strip() for line in source.splitlines()
-                      if line.strip().startswith('splice_fai =')), '')
+    start = source.index('                audit_fai = params.fasta_fai')
+    end = source.index('                supplied_splicesites =', start)
+    selection = textwrap.dedent(source[start:end])
     invocation = next(line.strip() for line in source.splitlines()
                       if 'FILTER_HISAT_SPLICESITES(supplied_splicesites.combine(' in line)
     expression = invocation[len('FILTER_HISAT_SPLICESITES('):-1]

@@ -22,6 +22,8 @@ Unified classes:
 - NoConsensus
 
 ## Rescue inputs
+The [evidence contract](CONSENSUS_RESCUE_EVIDENCE_CONTRACT.md) specifies observed/eligible/Somatic counts, lossless paired-v2 provenance, verification precedence and replacement rescue metrics. Verification is applied after biological classification and cannot erase established negative labels.
+
 Required in workflow wiring:
 - DNA consensus VCF
 - RNA consensus VCF

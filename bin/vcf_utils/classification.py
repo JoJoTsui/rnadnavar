@@ -532,50 +532,62 @@ def compute_unified_classification_rescue(
         str: Unified biological classification; or tuple
             (classification, rationale) when with_rationale=True
     """
-    # Optional DNA verification gates RNA-only promotion. Existing DNA-supported
-    # calls are unaffected, and omission of the manifest preserves legacy behavior.
-    verification_status = variant_data.get("dna_verification_status")
-    if verification_status and verification_status != "confirmed":
-        dna_somatic = any(
-            i < len(variant_data.get("filters_normalized", []))
-            and variant_data.get("caller_modality_map", {}).get(c) == "DNA"
-            and variant_data["filters_normalized"][i] == "Somatic"
-            for i, c in enumerate(variant_data.get("callers", []))
+    if snv_threshold is None and indel_threshold is None and rescue_config is None:
+        classifier = _get_unified_classifier()
+    else:
+        from .variant_classifier_unified import UnifiedVariantClassifier
+
+        config = dict(rescue_config) if rescue_config else {}
+        if snv_threshold is not None:
+            config["consensus_snv_threshold"] = snv_threshold
+        if indel_threshold is not None:
+            config["consensus_indel_threshold"] = indel_threshold
+        classifier = UnifiedVariantClassifier(config)
+
+    # Classify first: optional verification can withhold a Somatic outcome,
+    # but must never erase an existing negative biological classification.
+    variant_data["rescue_promoted"] = False
+    if hasattr(classifier, "classify_rescue_variant_with_rationale"):
+        classification, rationale = classifier.classify_rescue_variant_with_rationale(
+            variant_data, modality_map
         )
-        if not dna_somatic:
+    else:
+        classification = classifier.classify_rescue_variant(variant_data, modality_map)
+        rationale = None
+    verification_status = variant_data.get("dna_verification_status")
+    if classification == "Somatic" and verification_status and verification_status != "confirmed":
+        # A passed DNA consensus is sufficient independently of RNA. Otherwise
+        # evaluate eligible DNA votes alone, so a single DNA Somatic record in
+        # a cross-modality promotion cannot bypass verification.
+        dna_callers = []
+        dna_filters = []
+        dna_consensus_somatic = False
+        support_callers = variant_data.get("support_callers")
+        for caller, label in zip(variant_data.get("callers", []), variant_data.get("filters_normalized", [])):
+            modality = modality_map.get(caller, variant_data.get("caller_modality_map", {}).get(caller))
+            if modality != "DNA":
+                continue
+            if caller.endswith("_consensus"):
+                dna_consensus_somatic |= label == "Somatic"
+            elif support_callers is None or caller in support_callers:
+                dna_callers.append(caller)
+                dna_filters.append(label)
+        dna_only = dict(variant_data, callers=dna_callers, filters_normalized=dna_filters,
+                        support_callers=dna_callers)
+        dna_independent = dna_consensus_somatic or (
+            bool(dna_callers) and classifier.classify_consensus_variant(dna_only) == "Somatic"
+        )
+        if not dna_independent:
+            classification = "NoConsensus"
             rationale = (
                 f"rule:dna_verification|class:NoConsensus|status:{verification_status}"
+                f"|prior_class:Somatic|prior_rationale:{(rationale or 'unavailable').replace('class:', 'prior_class:')}"
             )
-            return ("NoConsensus", rationale) if with_rationale else "NoConsensus"
-
-    if snv_threshold is None and indel_threshold is None and rescue_config is None:
-        # Delegate to the global unified classifier instance (lazy initialization)
-        classifier = _get_unified_classifier()
-        if with_rationale:
-            if hasattr(classifier, "classify_rescue_variant_with_rationale"):
-                return classifier.classify_rescue_variant_with_rationale(
-                    variant_data, modality_map
-                )
-            return classifier.classify_rescue_variant(variant_data, modality_map), None
-        return classifier.classify_rescue_variant(variant_data, modality_map)
-
-    # Create classifier with custom thresholds (lazy import to avoid circular refs)
-    from .variant_classifier_unified import UnifiedVariantClassifier
-
-    config = dict(rescue_config) if rescue_config else {}
-    if snv_threshold is not None:
-        config["consensus_snv_threshold"] = snv_threshold
-    if indel_threshold is not None:
-        config["consensus_indel_threshold"] = indel_threshold
-    classifier = UnifiedVariantClassifier(config)
-
-    if with_rationale:
-        if hasattr(classifier, "classify_rescue_variant_with_rationale"):
-            return classifier.classify_rescue_variant_with_rationale(
-                variant_data, modality_map
-            )
-        return classifier.classify_rescue_variant(variant_data, modality_map), None
-    return classifier.classify_rescue_variant(variant_data, modality_map)
+    if classification != "Somatic":
+        variant_data["rescue_promoted"] = False
+        variant_data["rescued"] = False
+    variant_data["final_classification"] = classification
+    return (classification, rationale) if with_rationale else classification
 
 
 def is_low_quality_artifact(

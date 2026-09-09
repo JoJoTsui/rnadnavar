@@ -19,6 +19,21 @@ Domain terms for this repository. Glossary only — no implementation details or
 
 ## Pipeline concepts
 
+**Unavailable normal evidence**:
+The absence of a caller's matched-normal measurement. It is distinct from a measured zero alternate-read count or zero allele fraction; tumor-only caller output can legitimately have unavailable normal evidence.
+
+**Observed caller**:
+A caller that emitted a record at a variant, regardless of rejection status or read support. Observation alone is not an eligible consensus vote or Somatic agreement.
+
+**Eligible caller vote**:
+A caller's evidence admitted under the configured support rules; a positive alternate-read requirement must be demonstrated by available valid evidence. Eligibility is distinct from observation and from agreement on the variant's biological class.
+
+**Caller observation**:
+A measurement attributed to one modality, caller, sample role, sample, allele and alignment round. Repeated or conflicting observations are provenance, not additional independent caller votes.
+
+**Somatic agreement**:
+Caller or modality evidence classified as Somatic. It is distinct from mere detection and from support for a different biological class.
+
 - **Consensus** — within-modality merging of per-caller VCFs using caller-support thresholds.
 - **Rescue** — cross-modality (DNA ↔ RNA) recovery of variants that failed or were missed in one modality.
 - **Truth label** — a final Somatic-filtered consensus/rescue VCF record used as a supervised training label for the downstream model. The model is a label consumer: label precision matters more than recall.

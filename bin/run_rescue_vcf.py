@@ -305,12 +305,25 @@ def main():
     dna_sources = []
     rna_sources = []
     if not args.consensus_only:
-        for vcf_path in args.dna_vcf:
-            caller_name = get_caller_name(Path(vcf_path).name)
-            dna_sources.append((safe_prefix_caller(caller_name, "DNA"), vcf_path))
-        for vcf_path in args.rna_vcf:
-            caller_name = get_caller_name(Path(vcf_path).name)
-            rna_sources.append((safe_prefix_caller(caller_name, "RNA"), vcf_path))
+        for modality, paths, sources in (
+            ("DNA", args.dna_vcf, dna_sources),
+            ("RNA", args.rna_vcf, rna_sources),
+        ):
+            seen = {}
+            for vcf_path in paths:
+                if not Path(vcf_path).is_file():
+                    print(f"Error: {modality} caller VCF not found: {vcf_path}", file=sys.stderr)
+                    sys.exit(2)
+                caller_name = safe_prefix_caller(get_caller_name(Path(vcf_path).name), modality)
+                identity = caller_name.casefold()
+                if identity in seen:
+                    print(
+                        f"Error: duplicate {modality} caller identity {caller_name}: "
+                        f"{seen[identity]} and {vcf_path}", file=sys.stderr,
+                    )
+                    sys.exit(2)
+                seen[identity] = vcf_path
+                sources.append((caller_name, vcf_path))
     else:
         if args.dna_vcf:
             print(
@@ -383,6 +396,11 @@ def main():
         "indels": 0,
         "snvs_rescued": 0,
         "indels_rescued": 0,
+        "dna_somatic_baseline": 0,
+        "output_somatic": 0,
+        "somatic_retained_from_dna": 0,
+        "somatic_new_vs_dna": 0,
+        "somatic_lost_from_dna": 0,
     }
     dna_variant_keys = set()
     rna_variant_keys = set()
@@ -396,6 +414,7 @@ def main():
             str(dna_consensus_path),
             "DNA_consensus",
             modality="DNA",
+            alignment_round="first",
             include_non_canonical=args.include_non_canonical,
             chrom=chrom,
         )
@@ -403,6 +422,7 @@ def main():
             str(rna_consensus_path),
             "RNA_consensus",
             modality="RNA",
+            alignment_round=args.alignment_round,
             include_non_canonical=args.include_non_canonical,
             chrom=chrom,
         )
@@ -419,6 +439,7 @@ def main():
                 vcf_path,
                 caller_name,
                 modality="DNA",
+                alignment_round="first",
                 include_non_canonical=args.include_non_canonical,
                 chrom=chrom,
             )
@@ -431,6 +452,7 @@ def main():
                 vcf_path,
                 caller_name,
                 modality="RNA",
+                alignment_round=args.alignment_round,
                 include_non_canonical=args.include_non_canonical,
                 chrom=chrom,
             )
@@ -467,12 +489,6 @@ def main():
         # union file (audit M3)
         variant_data = mark_rescued_variants(variant_data, dna_consensus, rna_consensus)
 
-        chunk_stats = compute_rescue_statistics(
-            variant_data, dna_consensus, rna_consensus
-        )
-        for key in total_stats:
-            total_stats[key] += chunk_stats[key]
-
         total_written += write_union_vcf(
             variant_data,
             template_header,
@@ -487,6 +503,12 @@ def main():
             rescue_config=rescue_config,
             vcf_out=vcf_out,
         )
+        # The writer finalizes classification and promotion flags.
+        chunk_stats = compute_rescue_statistics(
+            variant_data, dna_consensus, rna_consensus
+        )
+        for key in total_stats:
+            total_stats[key] += chunk_stats[key]
         print(
             f"  - {chrom}: {len(variant_data):,} unique variants "
             f"(running total {total_written:,})"
@@ -503,14 +525,11 @@ def main():
     print(f"  - Rescued variants (cross-modality support): {total_stats['rescued']:,}")
     print(f"  - Cross-modality variants: {total_stats['cross_modality']:,}")
 
-    # rescue_rate is relative to cross-modality variants (see
-    # compute_rescue_statistics); recompute from the summed counts
-    if total_stats["cross_modality"] > 0:
-        total_stats["rescue_rate"] = (
-            total_stats["rescued"] / total_stats["cross_modality"]
-        ) * 100
-    else:
-        total_stats["rescue_rate"] = 0.0
+    # Recompute the fraction from summed counts, never average chromosome rates.
+    total_stats["rescued_union_fraction"] = (
+        total_stats["rescued"] / total_stats["total_variants"]
+        if total_stats["total_variants"] else 0.0
+    )
 
     print_statistics(total_stats, operation_type="rescue")
 
@@ -520,7 +539,8 @@ def main():
     print(f"  - Output file: {out_file}")
     print(f"  - Total variants written: {total_written:,}")
     print(f"  - Rescued variants: {total_stats['rescued']:,}")
-    print(f"  - Rescue rate: {total_stats['rescue_rate']:.1f}%")
+    print(f"  - Rescued / union records: {total_stats['rescued']:,}/{total_stats['total_variants']:,} "
+          f"({total_stats['rescued_union_fraction']:.2%})")
 
     return 0
 
