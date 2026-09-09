@@ -95,3 +95,7 @@ Semantics:
 ## Verified naming examples from COO8801.shared
 - ../sequencing/aim_exp/rdv_test/output/COO8801.shared/consensus/COO8801DT_vs_COO8801DN/COO8801DT_vs_COO8801DN.consensus.vcf.gz
 - ../sequencing/aim_exp/rdv_test/output/COO8801.shared/consensus/COO8801RT_vs_COO8801DN/COO8801RT_vs_COO8801DN.consensus.vcf.gz
+
+## Opt-in caller-aware baseline policy
+
+`--preserve-baseline-callers` is an experiment-only option. A named caller's Somatic record is retained only when its record is in the eligible support set (non-Artifact and satisfying available tumor AD floor). The legacy threshold policy remains the default. The output rationale identifies `rule:preserve_baseline`; this does not make a blanket quality claim about every baseline call.

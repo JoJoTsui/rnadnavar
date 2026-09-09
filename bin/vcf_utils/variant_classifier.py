@@ -48,6 +48,12 @@ class ClassificationEvidence:
     # Somatic-labeled caller counts parsed from FILTERS_NORMALIZED
     dna_somatic_caller_count: int = 0
     rna_somatic_caller_count: int = 0
+    # Somatic callers that also satisfy the available tumor AD floor.
+    # Raw FILTERS_NORMALIZED counts remain observational only.
+    eligible_dna_somatic_caller_count: int = 0
+    eligible_rna_somatic_caller_count: int = 0
+    eligibility_measurements_available: bool = False
+    dna_verification_status: str = "unknown"
     # Germline-labeled caller counts parsed from FILTERS_NORMALIZED
     dna_germline_caller_count: int = 0
     rna_germline_caller_count: int = 0
@@ -81,6 +87,7 @@ class VariantClassifier:
         somatic_consensus_threshold: int = None,
         cosmic_recurrence_threshold: int = None,
         cross_modality_min_support: int = None,
+        min_alt_support: int = None,
     ):
         """
         Initialize variant classifier with configurable thresholds.
@@ -108,6 +115,11 @@ class VariantClassifier:
             cosmic_recurrence_threshold
             if cosmic_recurrence_threshold is not None
             else DEFAULT_THRESHOLDS["annotation_cosmic_recurrence_threshold"]
+        )
+        self.min_alt_support = (
+            min_alt_support
+            if min_alt_support is not None
+            else DEFAULT_THRESHOLDS["consensus_min_alt_support"]
         )
         self.cross_modality_min_support = (
             cross_modality_min_support
@@ -268,10 +280,60 @@ class VariantClassifier:
                 f"RNA germline: {evidence.rna_germline_caller_count}"
             )
 
-        # Cross-modality: both modalities must have at least min_support Somatic-labeled callers
+        # Derive eligible support from allele-specific tumor evidence when it is
+        # available.  N_*_CALLERS_SUPPORT and FILTERS_NORMALIZED describe
+        # observations; they must not resurrect callers rejected by the AD floor.
+        ad_by_caller = variant_info.get("AD_BY_CALLER", "")
+        if isinstance(ad_by_caller, (list, tuple)):
+            ad_by_caller = ad_by_caller[0] if ad_by_caller else ""
+        eligible = {}
+        for entry in str(ad_by_caller).split("|"):
+            if ":" not in entry:
+                continue
+            caller, ad = entry.split(":", 1)
+            values = ad.split(",")
+            try:
+                alt = float(values[1]) if len(values) > 1 else None
+            except (TypeError, ValueError):
+                alt = None
+            eligible[caller.casefold()] = alt is not None and alt >= self.min_alt_support
+        evidence.eligibility_measurements_available = bool(eligible)
+        if eligible:
+            def caller_eligible(caller):
+                key = caller.casefold()
+                # INFO names may carry a DNA_/RNA_ modality prefix.
+                return eligible.get(
+                    key,
+                    eligible.get(
+                        key.removeprefix("dna_"),
+                        eligible.get(key.removeprefix("rna_"), False),
+                    ),
+                )
+            for entry in str(filters_normalized).split("|"):
+                if ":" not in entry:
+                    continue
+                caller, label = entry.split(":", 1)
+                if label.strip().lower() != "somatic" or not caller_eligible(caller):
+                    continue
+                if caller.upper().startswith("DNA_"):
+                    evidence.eligible_dna_somatic_caller_count += 1
+                elif caller.upper().startswith("RNA_"):
+                    evidence.eligible_rna_somatic_caller_count += 1
+        else:
+            # Compatibility for older VCFs that have no allele-specific AD.
+            evidence.eligible_dna_somatic_caller_count = evidence.dna_somatic_caller_count
+            evidence.eligible_rna_somatic_caller_count = evidence.rna_somatic_caller_count
+
+        verification = variant_info.get(
+            "DNA_VERIFICATION",
+            variant_info.get("DNA_VERIFICATION_STATUS", "unknown"),
+        )
+        if isinstance(verification, (list, tuple)):
+            verification = verification[0] if verification else "unknown"
+        evidence.dna_verification_status = str(verification).strip().lower() or "unknown"
         evidence.has_cross_modality = (
-            evidence.dna_somatic_caller_count >= self.cross_modality_min_support
-            and evidence.rna_somatic_caller_count >= self.cross_modality_min_support
+            evidence.eligible_dna_somatic_caller_count >= self.cross_modality_min_support
+            and evidence.eligible_rna_somatic_caller_count >= self.cross_modality_min_support
         )
 
         # Extract original filter
@@ -374,6 +436,35 @@ class VariantClassifier:
             and evidence.population_frequency > self.germline_freq_threshold
         )
 
+        # Annotation must not turn an upstream negative decision into Somatic
+        # merely because the current FILTER was already rewritten.  The
+        # rationale is the authoritative prior-stage trace; when it says
+        # NoConsensus/Artifact and no caller remains eligible, preserve that
+        # negative outcome and make the final label explainable.
+        prior_rationale = str(
+            (variant_info or {}).get("CLASSIFICATION_RATIONALE", "")
+        )
+        prior_negative = (
+            "class:NoConsensus" in prior_rationale
+            or "class:Artifact" in prior_rationale
+        )
+        if (
+            evidence.original_filter.lower() == "somatic"
+            and prior_negative
+            and evidence.eligible_dna_somatic_caller_count == 0
+            and evidence.eligible_rna_somatic_caller_count == 0
+        ):
+            prior_class = "Artifact" if "class:Artifact" in prior_rationale else "NoConsensus"
+            return ClassificationResult(
+                classification=prior_class,
+                confidence="Protected",
+                evidence_summary=(
+                    f"Preserved prior negative decision ({prior_class}); "
+                    "no eligible Somatic evidence"
+                ),
+                rescue_flag=False,
+            )
+
         # Rule 1: Majority DNA Somatic-labeled caller support → High-confidence Somatic (Priority: Highest)
         # Requires:
         #   - At least somatic_consensus_threshold (default 2) DNA callers labeled Somatic
@@ -383,9 +474,12 @@ class VariantClassifier:
         # Source: FILTERS_NORMALIZED e.g. DNA_mutect2:Somatic|DNA_strelka:Somatic
         if (
             not common_population_frequency
+            and evidence.dna_verification_status != "rejected"
             and evidence.total_dna_callers > 0
-            and evidence.dna_somatic_caller_count >= self.somatic_consensus_threshold
-            and evidence.dna_somatic_caller_count > evidence.total_dna_callers / 2
+            and evidence.eligible_dna_somatic_caller_count
+            >= self.somatic_consensus_threshold
+            and evidence.eligible_dna_somatic_caller_count
+            > evidence.total_dna_callers / 2
         ):
             self.stats["somatic_count"] += 1
             self.stats["evidence_distribution"]["dna_consensus"] += 1
@@ -396,8 +490,8 @@ class VariantClassifier:
                 classification="Somatic",
                 confidence="High",
                 evidence_summary=(
-                    f"Majority DNA Somatic-labeled caller support "
-                    f"({evidence.dna_somatic_caller_count}/{evidence.total_dna_callers} > 50%)"
+                    f"Majority eligible DNA Somatic caller support "
+                    f"({evidence.eligible_dna_somatic_caller_count}/{evidence.total_dna_callers} > 50%)"
                 ),
                 rescue_flag=is_rescue,
             )
@@ -430,6 +524,7 @@ class VariantClassifier:
             prior_artifact_veto = "artifact_veto" in str(rationale)
         if (
             not common_population_frequency
+            and evidence.dna_verification_status != "rejected"
             and not prior_artifact_veto
             and evidence.has_cross_modality
             and evidence.cosmic_recurrence is not None
@@ -446,7 +541,8 @@ class VariantClassifier:
                 confidence="Medium",
                 evidence_summary=(
                     f"Cross-modality Somatic-labeled support "
-                    f"(DNA:{evidence.dna_somatic_caller_count}, RNA:{evidence.rna_somatic_caller_count})"
+                    f"(eligible DNA:{evidence.eligible_dna_somatic_caller_count}, "
+                    f"eligible RNA:{evidence.eligible_rna_somatic_caller_count})"
                     f" + COSMIC recurrence {evidence.cosmic_recurrence}"
                 ),
                 rescue_flag=is_rescue,

@@ -28,6 +28,20 @@ PAIR="${2:-${PAIR:-WES_LL_T_1_vs_WES_LL_N_1}}"
 OD="${3:-${COMPARE_DIR:-$EXAMPLE_ROOT/comparison/$PAIR}}"
 mkdir -p "$OD"
 
+# Prepared benchmark copies are derived artifacts. Never reuse one merely
+# because its index exists: changed production VCFs must invalidate stale copies.
+fingerprint_source() {
+    local source="$1"; sha256sum "$source" | awk -v p="$source" '{print p"\t"$1}'
+}
+derived_is_current() {
+    local source="$1" derived="$2" stamp="$derived.source.sha256"
+    [ -f "$derived" ] && [ -f "$derived.tbi" ] && [ -f "$stamp" ] \
+        && [ "$(fingerprint_source "$source")" = "$(cat "$stamp")" ]
+}
+record_derived_source() {
+    local source="$1" derived="$2"; fingerprint_source "$source" > "$derived.source.sha256"
+}
+
 # SEQC2 data root + references (override via environment if needed)
 SEQ2C="${SEQ2C_ROOT:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2}"
 TRUTH_SNV="${TRUTH_SNV:-$SEQ2C/truth/high-confidence_sSNV_in_HC_regions_v1.2.1.vcf.gz}"
@@ -61,10 +75,11 @@ fi
 # 2. Consensus query: keep FILTER == Somatic only, then rewrite FILTER to PASS
 #    in a benchmark-only copy. The production VCF remains unchanged.
 C_SOM="$OD/$PAIR.consensus.somatic.vcf.gz"
-if [ ! -f "$C_SOM.tbi" ]; then
+if ! derived_is_current "$C_VCF" "$C_SOM"; then
     echo ">> Preparing PASS-only consensus benchmark VCF"
     bcftools view -i 'FILTER="Somatic"' "$C_VCF" | awk 'BEGIN{OFS="\t"} /^#/{print; next} {$7="PASS"; print}' | bgzip -c > "$C_SOM"
     bcftools index -t "$C_SOM"
+    record_derived_source "$C_VCF" "$C_SOM"
 fi
 
 run_som() {  # <name> <query> <extra som.py args...>
@@ -96,12 +111,13 @@ fi
 if [ -n "$RESCUE_VCF" ]; then
     [ -f "$RESCUE_VCF" ] || { echo "ERROR: missing rescue input: $RESCUE_VCF" >&2; exit 1; }
     RESCUE_SOM="$OD/rescue.somatic.vcf.gz"
-    if [ ! -f "$RESCUE_SOM.tbi" ]; then
+    if ! derived_is_current "$RESCUE_VCF" "$RESCUE_SOM"; then
         echo ">> Preparing PASS-only rescue benchmark VCF"
         bcftools view -i 'FILTER="Somatic"' "$RESCUE_VCF" \
             | awk 'BEGIN{OFS="\t"} /^#/{print; next} {$7="PASS"; print}' \
             | bgzip -c > "$RESCUE_SOM"
         bcftools index -t "$RESCUE_SOM"
+        record_derived_source "$RESCUE_VCF" "$RESCUE_SOM"
     fi
     run_som rescue "$RESCUE_SOM"
     QUERIES+=(rescue)

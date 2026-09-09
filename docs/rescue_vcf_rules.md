@@ -151,3 +151,9 @@ Common downstream rescue files:
 - .rescue.rna_annotated.vcf.gz
 - .rescue.cosmic_gnomad_annotated.*.vcf.gz
 - .rescue.filtered.stripped.vep.vcf.gz
+
+## Evidence contract through annotation
+
+Observed caller presence, eligible caller votes and Somatic agreement are separate. Downstream annotation must use allele-specific tumor AD when available and cannot promote an observed caller that failed the configured alternate-read floor. `DNA_VERIFICATION=rejected` vetoes annotation-based Somatic promotion; `confirmed`, `rejected` and `inconclusive` outcomes remain in the final rationale. Missing AD or normal evidence is unavailable, not zero.
+
+RNA-only consensus remains a nomination for an opt-in DNA-verification policy. Realignment is a correlated reassessment of the same RNA reads and does not add an independent vote. The second rescue config records `ALIGNMENT_ROUND=realignment`; first-round defaults remain unchanged.

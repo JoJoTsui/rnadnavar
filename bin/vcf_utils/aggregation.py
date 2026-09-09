@@ -1083,6 +1083,7 @@ def aggregate_variants(
         data["gt_aggregated"] = aggregate_genotypes(data["genotypes"], data["callers"])
         data["preserve_baseline"] = any(
             str(c).lower() in preserve_baseline_callers
+            and c in data["support_callers"]
             and i < len(data["filters_normalized"])
             and data["filters_normalized"][i] == "Somatic"
             for i, c in enumerate(data["callers"])

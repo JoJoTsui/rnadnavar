@@ -128,6 +128,29 @@ class UnifiedVariantClassifier:
                 if i < len(variant_data["filters_normalized"]):
                     individual_filters.append(variant_data["filters_normalized"][i])
 
+        # An explicitly configured baseline caller may be retained, but only
+        # when aggregation marked that caller as eligible. This is opt-in and
+        # keeps the legacy >=2 strategy unchanged by default.
+        if variant_data.get("preserve_baseline"):
+            baseline = [
+                caller for caller in variant_data.get("callers", [])
+                if not caller.endswith("_consensus")
+                and caller in (variant_data.get("support_callers") or set())
+            ]
+            gnomad_af = variant_data.get("gnomad_af", variant_data.get("GNOMAD_AF"))
+            try:
+                common_af = gnomad_af is not None and float(gnomad_af) > self.config["annotation_germline_freq_threshold"]
+            except (TypeError, ValueError):
+                common_af = False
+            verification = str(
+                variant_data.get("dna_verification_status", "unknown")
+            ).strip().lower()
+            if baseline and not common_af and verification not in {"rejected", "inconclusive"}:
+                return "Somatic", (
+                    "rule:preserve_baseline|class:Somatic|votes:Somatic"
+                    f"|callers:{len(individual_filters)}|baseline:{','.join(sorted(baseline))}"
+                )
+
         # Check if we have enough callers for consensus
         caller_count = len(individual_filters)
         required_threshold = (
