@@ -34,7 +34,8 @@ fingerprint_source() {
     local source="$1"; sha256sum "$source" | awk -v p="$source" '{print p"\t"$1}'
 }
 derived_is_current() {
-    local source="$1" derived="$2" stamp="$derived.source.sha256"
+    local source="$1" derived="$2"
+    local stamp="${derived}.source.sha256"
     [ -f "$derived" ] && [ -f "$derived.tbi" ] && [ -f "$stamp" ] \
         && [ "$(fingerprint_source "$source")" = "$(cat "$stamp")" ]
 }
