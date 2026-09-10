@@ -108,9 +108,11 @@ classified Somatic by native caller evidence rather than the ordinary caller
 vote alone:
 
 - a qualified DeepSomatic Somatic record is retained; or
-- a candidate with positive DeepSomatic QUAL is admitted when Mutect2 TLOD is
-  at least 12 and GERMQ is at least 60, unless Mutect2 has one of the explicit
-  contamination/germline artifact combinations.
+- a candidate locus with a DeepSomatic record that is not accepted as a
+  DeepSomatic Somatic call is admitted only when that record has QUAL > 0 and
+  Mutect2 TLOD is at least 12 and GERMQ is at least 60, unless Mutect2 has one
+  of the explicit contamination/germline artifact combinations; a locus with
+  no DeepSomatic record is not admitted by this rule.
 
 This policy is intentionally SNV-only. Indels are not restricted to DeepSomatic:
 indels continue to use the configured ordinary consensus threshold, but they
