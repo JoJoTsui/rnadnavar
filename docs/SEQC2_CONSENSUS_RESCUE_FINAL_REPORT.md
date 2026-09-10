@@ -178,11 +178,15 @@ The downloaded target is
 `SeqCap_EZ_MedExome` empirical-target track, sourced from the capture-kit
 provider and distributed by UCSC: [UCSC hg38 exomeProbesets index](https://hgdownload.soe.ucsc.edu/gbdb/hg38/exomeProbesets/).
 This is the most authoritative generic WES target available without a
-SEQC2 sample-specific capture manifest. It is a reference WES proxy, not a
+SEQC2 sample-specific capture manifest. It contains 195,728 intervals spanning
+about 66.1 Mb across the 24 reference chromosomes. It is a reference WES proxy, not a
 claim about the exact kit used for every SEQC2 library; a kit-specific
 manifest should supersede it when metadata are available.
 
-The benchmark intersects the SEQC2 truth VCF with the unchanged
+By contrast, the current UKB padded union contains 393,320 intervals spanning
+about 170.4 Mb across 25 contigs. It is an expanded research-region union,
+not a single WES capture design, so it admits many off-exome loci and changes
+TP/FP/FN denominators. The benchmark intersects the SEQC2 truth VCF with the unchanged
 `High-Confidence_Regions_v1.2.bed` (`-R`) and this capture target (`-T`);
 caller and consensus VCFs remain read-only. The local
 `ComprehensiveCancer.dna_manifest...bed` was rejected as a benchmark target
@@ -212,10 +216,11 @@ Somatic-filter query.
 | RNA-realign consensus | 185 / 242 / 610 | 0 / 4 / 34 | 185 / 246 / 644 | 0.4292 / 0.2232 / 0.2937 |
 | First rescue | 535 / 352 / 260 | 19 / 9 / 15 | 554 / 361 / 275 | 0.6055 / 0.6683 / 0.6353 |
 | Realignment rescue | 538 / 165 / 257 | 19 / 5 / 15 | 557 / 174 / 272 | 0.7620 / 0.6719 / 0.7141 |
+| Native consensus + gated rescue | 547 / 17 / 248 | 23 / 2 / 11 | 570 / 19 / 259 | 0.9677 / 0.6876 / 0.8039 |
 
-On this target, native consensus is the best overall row by F1 (0.8000),
-slightly above DeepSomatic (0.7980), with fewer false negatives and two fewer
-false positives. RNA-only consensus has substantially lower precision and
+On this target, native consensus plus gated rescue is the best overall row by
+F1 (0.8039), followed by native consensus (0.8000) and DeepSomatic (0.7980).
+The gated rescue adds 6 TP and 2 FP relative to native consensus. RNA-only consensus has substantially lower precision and
 recall against this DNA truth set, as expected for a modality control. The
 original consensus and broad rescue unions are not equivalent: the former is
 conservative, while rescue admits additional candidates and the realignment
