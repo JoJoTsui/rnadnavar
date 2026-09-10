@@ -170,7 +170,63 @@ The benchmarked rescue candidates came from the **realignment-rescue branch**
 source of cached candidate records; no realignment or full workflow rerun was
 performed for this comparison.
 
-## WES-LL benchmark result
+## Authoritative generic-WES target
+
+The downloaded target is
+`examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed`
+(195,728 intervals; SHA-256 `d1cfe2001f51471634db8d29bac17e481496ce3b558f71aff5b2ac10bbcdd87d`). It is the UCSC hg38 `exomeProbesets`
+`SeqCap_EZ_MedExome` empirical-target track, sourced from the capture-kit
+provider and distributed by UCSC: [UCSC hg38 exomeProbesets index](https://hgdownload.soe.ucsc.edu/gbdb/hg38/exomeProbesets/).
+This is the most authoritative generic WES target available without a
+SEQC2 sample-specific capture manifest. It is a reference WES proxy, not a
+claim about the exact kit used for every SEQC2 library; a kit-specific
+manifest should supersede it when metadata are available.
+
+The benchmark intersects the SEQC2 truth VCF with the unchanged
+`High-Confidence_Regions_v1.2.bed` (`-R`) and this capture target (`-T`);
+caller and consensus VCFs remain read-only. The local
+`ComprehensiveCancer.dna_manifest...bed` was rejected as a benchmark target
+because it is a narrow targeted-cancer manifest rather than a WES design.
+
+## WES-LL benchmark on the authoritative generic-WES target
+
+Metrics below are TP/FP/FN followed by precision, recall, and F1. “Original
+DNA consensus” is the default threshold consensus. “Native DNA consensus” is
+the cached opt-in native-evidence SNV policy (`--native-evidence-snv`),
+benchmarked separately without rerunning alignment or variant calling.
+“RNA consensus” and “RNA-realign consensus” are included as modality controls.
+“First rescue” is the original RNA rescue branch; “Realignment rescue” is the
+cached second (realignment) rescue export. Rescue artifacts are
+PASS-normalized for `som.py` and therefore are not confused with an empty
+Somatic-filter query.
+
+| Output | SNP TP/FP/FN | Indel TP/FP/FN | Overall TP/FP/FN | P / R / F1 |
+| --- | ---: | ---: | ---: | ---: |
+| DNA Mutect2 | 497 / 89 / 298 | 17 / 2 / 17 | 514 / 100 / 315 | 0.8371 / 0.6200 / 0.7124 |
+| DNA Strelka2 | 527 / 834 / 268 | 21 / 10 / 13 | 548 / 844 / 281 | 0.3937 / 0.6610 / 0.4935 |
+| Original DNA consensus | 524 / 64 / 271 | 19 / 1 / 15 | 543 / 65 / 286 | 0.8931 / 0.6550 / 0.7557 |
+| Native DNA consensus | 541 / 15 / 254 | 23 / 2 / 11 | 564 / 17 / 265 | 0.9707 / 0.6803 / 0.8000 |
+| DNA DeepSomatic | 540 / 17 / 255 | 23 / 2 / 11 | 563 / 19 / 266 | 0.9674 / 0.6791 / 0.7980 |
+| ClairS | 142 / 0 / 653 | 0 / 0 / 34 | 142 / 0 / 687 | 1.0000 / 0.1713 / 0.2925 |
+| RNA consensus | 155 / 308 / 640 | 1 / 8 / 33 | 156 / 316 / 673 | 0.3305 / 0.1882 / 0.2398 |
+| RNA-realign consensus | 185 / 242 / 610 | 0 / 4 / 34 | 185 / 246 / 644 | 0.4292 / 0.2232 / 0.2937 |
+| First rescue | 535 / 352 / 260 | 19 / 9 / 15 | 554 / 361 / 275 | 0.6055 / 0.6683 / 0.6353 |
+| Realignment rescue | 538 / 165 / 257 | 19 / 5 / 15 | 557 / 174 / 272 | 0.7620 / 0.6719 / 0.7141 |
+
+On this target, native consensus is the best overall row by F1 (0.8000),
+slightly above DeepSomatic (0.7980), with fewer false negatives and two fewer
+false positives. RNA-only consensus has substantially lower precision and
+recall against this DNA truth set, as expected for a modality control. The
+original consensus and broad rescue unions are not equivalent: the former is
+conservative, while rescue admits additional candidates and the realignment
+branch reduces—but does not eliminate—the false-positive burden. These values supersede the exploratory UKB-target
+comparison below for generic-WES interpretation.
+
+## Historical UKB padded-union comparison
+
+The following table is retained for traceability only. The UKB padded union was
+used as an expanded-region sensitivity analysis, not as a pure WES capture
+target.
 
 | Output | SNP TP/FP/FN | Indel TP/FP/FN | Overall TP/FP/FN | P / R / F1 |
 | --- | ---: | ---: | ---: | ---: |

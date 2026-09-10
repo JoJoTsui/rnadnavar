@@ -48,7 +48,9 @@ SEQ2C="${SEQ2C_ROOT:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2}"
 TRUTH_SNV="${TRUTH_SNV:-$SEQ2C/truth/high-confidence_sSNV_in_HC_regions_v1.2.1.vcf.gz}"
 TRUTH_INDEL="${TRUTH_INDEL:-$SEQ2C/truth/high-confidence_sINDEL_in_HC_regions_v1.2.1.vcf.gz}"
 HC_BED="${HC_BED:-$SEQ2C/truth/High-Confidence_Regions_v1.2.bed}"
-TARGET_BED="${TARGET_BED:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed}"
+# Generic WES target: UCSC hg38 SeqCap EZ MedExome empirical targets.
+# Set TARGET_BED explicitly for a kit-specific manifest or historical sensitivity run.
+TARGET_BED="${TARGET_BED:-$EXAMPLE_ROOT/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed}"
 FA="${FASTA:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta}"
 HAPPY_ENV="${HAPPY_ENV:-happy}"
 
@@ -114,7 +116,10 @@ if [ -n "$RESCUE_VCF" ]; then
     RESCUE_SOM="$OD/rescue.somatic.vcf.gz"
     if ! derived_is_current "$RESCUE_VCF" "$RESCUE_SOM"; then
         echo ">> Preparing PASS-only rescue benchmark VCF"
-        bcftools view -i 'FILTER="Somatic"' "$RESCUE_VCF" \
+        # Rescue artifacts may already be normalized to PASS (for example the
+        # realignment-rescue export), or may retain EnsembleVar's Somatic label.
+        # Accept both representations; always emit PASS in the benchmark copy.
+        bcftools view -i 'FILTER="Somatic" || FILTER="PASS"' "$RESCUE_VCF" \
             | awk 'BEGIN{OFS="\t"} /^#/{print; next} {$7="PASS"; print}' \
             | bgzip -c > "$RESCUE_SOM"
         bcftools index -t "$RESCUE_SOM"
