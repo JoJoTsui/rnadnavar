@@ -95,3 +95,40 @@ WGS-IL, so this is evidence for an opt-in rule, not yet a default-policy
 change. The next phase must compare indel-specific consensus and existing
 first/realignment rescue VCFs from completed runs without touching workflow
 outputs or caller caches.
+
+
+## Cached rescue and indel analysis (2026-09-10)
+
+This comparison used only completed WES-LL caller/rescue VCFs and existing som.py
+scratch artifacts. No mapping, variant calling, or full workflow process was
+rerun, and no caller cache or workflow output was modified.
+
+| VCF | SNP TP/FP/FN | Indel TP/FP/FN | Record TP/FP/FN |
+| --- | ---: | ---: | ---: |
+| DNA consensus | 938 / 96 / 1267 | 35 / 1 / 60 | 973 / 97 / 1327 |
+| DNA DeepSomatic | 1007 / 34 / 1198 | 41 / 4 / 54 | 1048 / 38 / 1252 |
+| first rescue | 975 / 485 / 1230 | 36 / 30 / 59 | 1011 / 515 / 1289 |
+| realignment rescue | 975 / 290 / 1230 | 36 / 20 / 59 | 1011 / 314 / 1289 |
+
+The rescue branch does not currently outperform the DNA baseline: it adds 38
+TPs but 418 FPs (first rescue) or 217 FPs (realignment rescue). Realignment
+changes the error profile rather than recall: relative to first rescue it keeps
+all 1011 TPs, removes 201 FPs, and introduces no net TP. The remaining
+realignment-rescue set still has 290 SNP FPs and 20 indel FPs, far above the
+DeepSomatic baseline.
+
+Indels are the clearest negative result. DNA consensus is 35/1/60, already
+more precise than DeepSomatic (41/4/54); first rescue becomes 36/30/59 and
+realignment rescue 36/20/59. Thus indel rescue should remain disabled or use a
+separate, substantially stricter policy. A broad high-confidence indel rescue
+was tested separately and added an FP without a TP.
+
+The FP attributes identify the rescue failure mode: among first-rescue FPs,
+402/515 have zero DNA caller support and 416/515 have zero DNA callers
+classified Somatic; among realignment-rescue FPs these counts are 199/314 and
+213/314. Requiring at least one DNA Somatic caller still leaves 99--101 FPs,
+while requiring three DNA Somatic callers reduces FPs to 9 but loses 85--121
+TPs. This makes an unconditional RNA-only promotion unsuitable. The next
+opt-in rescue experiment should preserve the DNA consensus and admit only
+SNVs with explicit DNA evidence plus independent RNA corroboration/quality;
+indels should require a separate evidence floor and be evaluated on their own.
