@@ -848,6 +848,15 @@ def read_variants_from_vcf(
             if value not in (None, "", "."):
                 source_evidence[evidence_key] = str(value)
 
+        native_evidence = {}
+        for evidence_key in ("TLOD", "GERMQ"):
+            try:
+                value = variant.INFO.get(evidence_key)
+            except Exception:
+                value = None
+            if value not in (None, "", "."):
+                native_evidence[evidence_key] = value
+
         data = {
             "CHROM": variant.CHROM,
             "POS": variant.POS,
@@ -868,6 +877,7 @@ def read_variants_from_vcf(
                 else None
             ),
             "source_evidence": source_evidence,
+            "native_evidence": native_evidence,
             "id": variant.ID if variant.ID else None,
         }
 
@@ -898,7 +908,7 @@ def read_variants_from_vcf(
 
 def aggregate_variants(
     variant_collections, snv_threshold=2, indel_threshold=2, min_alt_support=None,
-    preserve_baseline_callers=None,
+    preserve_baseline_callers=None, native_evidence_snv=False,
 ):
     """
     Aggregate variants from multiple collections.
@@ -1001,9 +1011,11 @@ def aggregate_variants(
             "filters_normalized": [],
             "filters_category": [],
             "qualities": [],
+            "qualities_by_caller": {},
             "genotypes": {},
             "normal_genotypes": {},
             "source_evidence": {},
+            "native_evidence": {},
             "caller_evidence": [],
             "ids": [],
             "support_callers": set(),
@@ -1045,6 +1057,7 @@ def aggregate_variants(
             # Store quality
             if variant_data["quality"] is not None:
                 data["qualities"].append(variant_data["quality"])
+            data["qualities_by_caller"][caller_name] = variant_data.get("quality")
 
             # Store ID
             if variant_data["id"]:
@@ -1063,6 +1076,7 @@ def aggregate_variants(
                     normal_genotype=data["normal_genotypes"][caller_name], modality=modality or "unknown",
                 )
             data["caller_evidence"].extend(bind_evidence(observations, modality=modality or "unknown"))
+            data["native_evidence"][caller_name] = dict(variant_data.get("native_evidence", {}))
             for key, value in variant_data.get("source_evidence", {}).items():
                 if key not in data["source_evidence"]:
                     data["source_evidence"][key] = value
@@ -1078,6 +1092,42 @@ def aggregate_variants(
             data["passes_consensus"] = n_support >= snv_threshold
         else:
             data["passes_consensus"] = n_support >= indel_threshold
+
+        # Optional native-evidence policy: SNVs are anchored on a qualified
+        # DeepSomatic Somatic call, with a narrow Mutect2 rescue for candidates
+        # that have positive DeepSomatic QUAL and strong TLOD/GERMQ evidence.
+        # Indels intentionally retain the normal caller-threshold rule.
+        data["native_evidence_pass"] = False
+        if native_evidence_snv and data.get("is_snv"):
+            ds = data.get("native_evidence", {}).get("deepsomatic", {})
+            m2 = data.get("native_evidence", {}).get("mutect2", {})
+            ds_label = next((label for caller, label in zip(data["callers"], data["filters_normalized"])
+                             if caller == "deepsomatic"), None)
+            ds_quality = data.get("qualities_by_caller", {}).get("deepsomatic")
+            # QUAL list is not guaranteed to align when a caller omits QUAL;
+            # recover from the caller record's native evidence when absent.
+            try:
+                ds_quality_ok = float(ds_quality) > 0
+            except (TypeError, ValueError):
+                ds_quality_ok = False
+            def number(value):
+                try:
+                    if isinstance(value, (tuple, list)):
+                        value = value[0] if value else None
+                    return float(value)
+                except (TypeError, ValueError):
+                    return None
+            tlod = number(m2.get("TLOD"))
+            germq = number(m2.get("GERMQ"))
+            m2_filter = next((f for caller, f in zip(data["callers"], data["filters_original"])
+                              if caller == "mutect2"), "")
+            veto = {"contamination;germline;haplotype;panel_of_normals",
+                    "contamination;orientation;weak_evidence"}
+            data["native_evidence_pass"] = (
+                (ds_label == "Somatic" and "deepsomatic" in data.get("support_callers", set()))
+                or (ds_quality_ok and tlod is not None and germq is not None
+                    and tlod >= 12 and germq >= 60 and str(m2_filter).lower() not in veto)
+            )
 
         # Aggregate genotype information
         data["gt_aggregated"] = aggregate_genotypes(data["genotypes"], data["callers"])

@@ -69,6 +69,11 @@ def argparser():
         help="Optional comma-separated caller names whose Somatic support is retained; opt-in only",
     )
     parser.add_argument(
+        "--native-evidence-snv",
+        action="store_true",
+        help="Opt-in native-evidence policy for SNVs; indels remain threshold-based",
+    )
+    parser.add_argument(
         "--output_format",
         choices=["vcf", "vcf.gz", "bcf"],
         default="vcf.gz",
@@ -199,6 +204,7 @@ def main():
     print(f"SNV consensus threshold: {args.snv_thr}")
     print(f"Indel consensus threshold: {args.indel_thr}")
     print(f"Baseline preservation callers: {sorted(preserve_baseline_callers) or 'none (legacy default)'}")
+    print(f"Native-evidence SNV policy: {'enabled' if args.native_evidence_snv else 'disabled'}")
     if args.exclude_refcall:
         print("Excluding RefCall variants")
     if args.exclude_germline:
@@ -293,6 +299,7 @@ def main():
             indel_threshold=args.indel_thr,
             min_alt_support=args.min_alt_support,
             preserve_baseline_callers=preserve_baseline_callers,
+            native_evidence_snv=args.native_evidence_snv,
         )
 
         chunk_stats = compute_consensus_statistics(

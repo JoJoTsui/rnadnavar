@@ -25,6 +25,7 @@ process VCF_CONSENSUS {
     def min_alt_support = task.ext.min_alt_support != null ? task.ext.min_alt_support : 3
     def preserve_baseline_callers = task.ext.preserve_baseline_callers ?: ''
     def preserve_baseline_arg = preserve_baseline_callers ? "--preserve-baseline-callers '${preserve_baseline_callers}'" : ''
+    def native_evidence_snv_arg = task.ext.native_evidence_snv ? '--native-evidence-snv' : ''
 
     """
     mkdir -p inputs
@@ -48,7 +49,7 @@ process VCF_CONSENSUS {
         --out_prefix ${prefix}.consensus \\
         --snv_thr ${snv_thr} \\
         --indel_thr ${indel_thr} \\
-        --min_alt_support ${min_alt_support} ${preserve_baseline_arg} ${args}
+        --min_alt_support ${min_alt_support} ${preserve_baseline_arg} ${native_evidence_snv_arg} ${args}
     
     # Compress and index
     # bgzip -c ${prefix}.consensus.vcf > ${prefix}.consensus.vcf.gz

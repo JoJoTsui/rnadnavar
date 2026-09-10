@@ -153,3 +153,13 @@ pattern at smaller scale: one added TP is paired with one FP. The current
 policy therefore leaves indels anchored to the strongest baseline caller; any
 future indel rescue must use an independently validated, indel-specific
 evidence model rather than the SNP rescue thresholds.
+
+## Native-evidence policy implementation (2026-09-10)
+
+The validated SNV policy is now implemented behind the opt-in
+`--native-evidence-snv` flag and `params.native_evidence_snv` (default false).
+The consensus module passes the flag without changing the default command
+line, so existing FASTQ/BAM workflows and variant-calling caches are not
+invalidated unless the policy is explicitly enabled. The implementation emits
+the normal classification rationale and leaves indels on the ordinary
+threshold path.

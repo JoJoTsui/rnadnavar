@@ -99,3 +99,19 @@ Semantics:
 ## Opt-in caller-aware baseline policy
 
 `--preserve-baseline-callers` is an experiment-only option. A named caller's Somatic record is retained only when its record is in the eligible support set (non-Artifact and satisfying available tumor AD floor). The legacy threshold policy remains the default. The output rationale identifies `rule:preserve_baseline`; this does not make a blanket quality claim about every baseline call.
+
+### Native-evidence SNV policy (opt-in)
+
+The consensus process supports `--native-evidence-snv` (also exposed as
+`params.native_evidence_snv`, default `false`). When enabled, SNVs may be
+classified Somatic by native caller evidence rather than the ordinary caller
+vote alone:
+
+- a qualified DeepSomatic Somatic record is retained; or
+- a candidate with positive DeepSomatic QUAL is admitted when Mutect2 TLOD is
+  at least 12 and GERMQ is at least 60, unless Mutect2 has one of the explicit
+  contamination/germline artifact combinations.
+
+This policy is intentionally SNV-only. Indels continue to use the configured
+indel caller threshold and are not promoted by this rule. The flag is opt-in
+so existing workflows and caller caches retain their prior behavior.
