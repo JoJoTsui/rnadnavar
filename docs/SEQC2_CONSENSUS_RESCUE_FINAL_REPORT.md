@@ -38,6 +38,7 @@ majority biological class
       +--> unique winner: Somatic/Germline/Reference
       +--> tie: Artifact
       +--> insufficient support: NoConsensus
+```
 
 ## Consensus rules
 
@@ -99,6 +100,7 @@ DNA consensus + RNA consensus + individual caller evidence
 validated opt-in rescue gate for rescue-only SNVs:
 N_DNA_CALLERS_SUPPORT >= 1 AND N_RNA_CALLERS_SOMATIC >= 2
 (indels are not promoted by this gate)
+```
 
 ### Current workflow rescue contract
 
@@ -152,5 +154,4 @@ must remain an explicit acceptance criterion in future rescue tuning.
 - WES-IL and WGS-IL currently lack completed rescue VCF artifacts, so their
   rescue validation is intentionally deferred.
 
-Implementation references: [consensus rules](consensus_vcf_rules.md), [rescue
-rules](rescue_vcf_rules.md), and [optimization follow-up](review/SEQC2_OPTIMIZATION_FOLLOWUP.md).
+Implementation references: [consensus rules](consensus_vcf_rules.md), [rescue rules](rescue_vcf_rules.md), and [optimization follow-up](review/SEQC2_OPTIMIZATION_FOLLOWUP.md).
