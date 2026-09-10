@@ -67,3 +67,31 @@ The command does not disable the default MAPQ transformation. Splitting/filterin
 5. Compare frozen single-factor ablations against the refreshed baseline, then evaluate held-out regions. Do not tune using held-out results.
 
 No workflow, classifier, benchmark implementation, or original artifact has been changed by this follow-up. Product selector and representation-adjudication decisions are the next interview frontier.
+
+
+## Native-evidence consensus experiment (2026-09-10)
+
+An isolated, consensus-only policy was evaluated from cached caller VCFs; no
+alignment or variant-calling process was rerun. The policy anchors labels on
+DeepSomatic PASS calls, removes two explicit Mutect2 artifact combinations
+(`contamination;germline;haplotype;panel_of_normals` and
+`contamination;orientation;weak_evidence`), and admits SNV candidates absent
+from the DeepSomatic set only when raw DeepSomatic QUAL is greater than zero
+and Mutect2 TLOD is at least 12 with GERMQ at least 60. The rescue is
+SNV-only because a WGS-IL indel candidate added an FP without a TP.
+
+The som.py results, using the same truth, reference, HC regions, and UKB
+target regions, were:
+
+| Dataset | DeepSomatic TP/FP/F1 | Policy TP/FP/F1 |
+| --- | ---: | ---: |
+| WES-LL | 1048 / 38 / 0.6190 | 1051 / 36 / 0.6206 |
+| WES-IL | 1365 / 21 / 0.7406 | 1371 / 21 / 0.7427 |
+| WGS-IL | 2168 / 19 / 0.9663 | 2169 / 19 / 0.9666 |
+
+The improvement is SNP-driven; indel performance is intentionally unchanged.
+The thresholds were discovered on WES-LL and then held fixed for WES-IL and
+WGS-IL, so this is evidence for an opt-in rule, not yet a default-policy
+change. The next phase must compare indel-specific consensus and existing
+first/realignment rescue VCFs from completed runs without touching workflow
+outputs or caller caches.
