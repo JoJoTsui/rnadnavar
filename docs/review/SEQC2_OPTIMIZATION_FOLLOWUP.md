@@ -181,3 +181,12 @@ The gate therefore adds 12 TP and 4 FP, with no indel change. It is materially
 safer than unrestricted realignment rescue and is a candidate opt-in rescue
 contract. It still requires validation on WES-IL/WGS-IL before becoming the
 default rescue policy.
+
+## Cross-cohort rescue validation status (2026-09-10)
+
+The stricter rescue gate was validated on WES-LL. Cached WES-IL and WGS-IL
+artifacts currently contain caller and native-consensus VCFs, but no completed
+RNA rescue or realignment-rescue VCFs. Their native-consensus benchmarks are
+available (WES-IL 1371/21/929 records; WGS-IL 2169/19/131 records), but the
+rescue gate cannot be evaluated honestly on those cohorts without inventing
+RNA evidence. No workflow rerun was started to fill this gap.
