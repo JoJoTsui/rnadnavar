@@ -29,7 +29,7 @@ process VCF_RESCUE {
     def min_alt_support = task.ext.min_alt_support != null ? task.ext.min_alt_support : 3
     def disable_promotion = task.ext.disable_rescue_promotion ? '--disable_rescue_promotion' : ''
     def rescue_min_dna = task.ext.rescue_min_dna_callers != null ? task.ext.rescue_min_dna_callers : 1
-    def rescue_min_rna = task.ext.rescue_min_rna_callers != null ? task.ext.rescue_min_rna_callers : 1
+    def rescue_min_rna = task.ext.rescue_min_rna_callers != null ? task.ext.rescue_min_rna_callers : 2
     def rescue_veto = task.ext.rescue_veto ?: 'dna'
     def verification_arg = task.ext.verification_json ? "--verification-json ${task.ext.verification_json}" : ''
     def alignment_round = task.ext.alignment_round ?: 'first'

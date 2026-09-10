@@ -41,6 +41,7 @@ def _tiny_vcf_gz(path: Path, body: str = "chr1\t2\t.\tC\tT\t50\tPASS\t.\n"):
     path.parent.mkdir(parents=True, exist_ok=True)
     with gzip.open(path, "wt") as fh:
         fh.write(header + body)
+    Path(str(path) + ".tbi").write_bytes(b"test-index")
 
 
 def make_sample(source_root: Path, sample_id: str, skip: str = None) -> dict:
@@ -131,7 +132,7 @@ def test_dry_run_prints_plan_and_writes_nothing(fake_cohort, tmp_path):
     assert "input md5" in out
     # dry-run writes nothing
     assert not (rerun_root / "runs").exists()
-    assert not (rerun_root / "output_reconsensus").exists()
+    assert not (rerun_root / "output_reconsensus_native_gated").exists()
 
 
 def test_dry_run_reports_missing_inputs(fake_cohort, tmp_path):
@@ -264,11 +265,7 @@ def test_outdir_must_not_live_inside_source_root(tmp_path):
 
 def test_missing_inputs_mark_failed_without_execution(fake_cohort, tmp_path):
     manifest, rows = fake_cohort
-    victim = next(
-        (Path(rows[0]["base_output_dir"]) / rows[0]["dir_name"]).rglob(
-            "*.strelka.variants.vcf.gz"
-        )
-    )
+    victim = Path(rr.locate_caller_vcfs(rows[0])["dna_strelka"])
     victim.unlink()
     rerun_root = tmp_path / "rerun"
     res = run_driver(
@@ -281,10 +278,10 @@ def test_missing_inputs_mark_failed_without_execution(fake_cohort, tmp_path):
     assert res.returncode == 0, res.stderr
     assert "missing caller VCFs" in res.stdout
     state = json.loads((rerun_root / "runs" / "rerun_state.json").read_text())
-    assert state[rows[0]["sample_id"]]["status"] == "failed"
+    assert state[rows[0]["sample_id"]]["status"] == "partial"
     assert "missing caller VCFs" in state[rows[0]["sample_id"]]["reason"]
     # nothing was executed: no outdir, no samplesheet, no checksum manifest
-    assert not (rerun_root / "output_reconsensus").exists()
+    assert not (rerun_root / "output_reconsensus_native_gated").exists()
     assert not (rerun_root / "runs" / "rerun_csv").exists()
     assert not (rerun_root / "runs" / "rerun_checksums").exists()
 

@@ -850,6 +850,36 @@
                     "description": "Priority order for variant caller consensus.",
                     "help_text": "Specify the priority order of variant callers for consensus calling. Variant callers should be listed in order of preference, separated by spaces."
                 },
+                "native_evidence_snv": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable native-evidence SNV consensus.",
+                    "help_text": "Retain qualified DeepSomatic SNVs and admit eligible non-Somatic DeepSomatic loci with Mutect2 TLOD/GERMQ evidence. Indels remain threshold-based."
+                },
+                "rescue_promotion_enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable cross-modality rescue promotion.",
+                    "help_text": "When enabled, rescue-only SNVs are gated by DNA and RNA caller support."
+                },
+                "rescue_min_dna_callers": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 0,
+                    "description": "Minimum DNA caller support for gated rescue."
+                },
+                "rescue_min_rna_callers": {
+                    "type": "integer",
+                    "default": 2,
+                    "minimum": 0,
+                    "description": "Minimum RNA Somatic caller agreement for gated rescue."
+                },
+                "rescue_veto": {
+                    "type": "string",
+                    "default": "dna",
+                    "enum": ["dna", "rna", "none"],
+                    "description": "Modality whose Artifact consensus vetoes rescue promotion."
+                },
                 "rescue_snv_thr": {
                     "type": "integer",
                     "default": 2,

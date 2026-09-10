@@ -56,9 +56,10 @@ majority biological class
 
 ### New native-evidence SNV consensus policy
 
-The implemented policy is opt-in via `--native-evidence-snv` or
-`params.native_evidence_snv=true`; the default remains disabled to preserve
-existing workflow behavior and caller-cache reuse.
+The implemented policy is default-on via `--native-evidence-snv` or
+`params.native_evidence_snv=true`; an explicit false value preserves the legacy
+threshold policy for rollback and comparison. Caller-cache reuse is preserved
+because this policy is applied after caller VCF production.
 
 Parameter meanings:
 
@@ -134,7 +135,7 @@ DNA consensus + RNA consensus + individual caller evidence
  Artifact / supported non-Artifact        v
                                          RESCUE_PROMOTED=YES
 
-validated opt-in rescue gate for rescue-only SNVs:
+validated default rescue gate for rescue-only SNVs:
 N_DNA_CALLERS_SUPPORT >= 1 AND N_RNA_CALLERS_SOMATIC >= 2
 (indels are not promoted by this gate)
 ```
@@ -161,9 +162,9 @@ For rescue-only SNVs, the validated WES-LL gate requires:
 Existing native-consensus records are always retained. Indels are not rescued by
 this gate.
 
-This gate is validated as a candidate policy; the current production rescue
-classifier still uses its documented configurable promotion contract. Enabling
-the gate as the default requires a code-path change and cross-cohort validation.
+This gate is now the configured default; an explicit rescue threshold override
+or promotion disable flag remains available for rollback. Cross-cohort validation
+still controls release sign-off, and has not been launched by this implementation.
 
 The benchmarked rescue candidates came from the **realignment-rescue branch**
 (second rescue), not the first RNA rescue. Realignment was used only as the
@@ -196,7 +197,7 @@ because it is a narrow targeted-cancer manifest rather than a WES design.
 
 Metrics below are TP/FP/FN followed by precision, recall, and F1. “Original
 DNA consensus” is the default threshold consensus. “Native DNA consensus” is
-the cached opt-in native-evidence SNV policy (`--native-evidence-snv`),
+the cached native-evidence SNV policy (`--native-evidence-snv`),
 benchmarked separately without rerunning alignment or variant calling.
 “RNA consensus” and “RNA-realign consensus” are included as modality controls.
 “First rescue” is the original RNA rescue branch; “Realignment rescue” is the
@@ -249,7 +250,7 @@ must remain an explicit acceptance criterion in future rescue tuning.
 
 ## Reproducibility and cache safety
 
-- The native consensus flag is opt-in and changes only the consensus process
+- The standalone consensus CLI remains opt-in for backward compatibility; the pipeline configuration enables native consensus by default and changes only the consensus process
   when enabled.
 - Caller alignment and variant-calling processes are not modified by this
   policy.

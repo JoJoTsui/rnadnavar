@@ -9,13 +9,17 @@ from vcf_utils.classification import compute_unified_classification_rescue
 from vcf_utils.variant_statistics import compute_rescue_statistics, print_statistics
 
 
-def classify(callers, labels, status="inconclusive", eligible=None):
+def classify(callers, labels, status="inconclusive", eligible=None, rescue_min_rna=2):
     modalities = {caller: caller.split("_")[0] for caller in callers}
     data = {"callers": callers, "filters_normalized": labels, "is_snv": True,
             "dna_verification_status": status}
     if eligible is not None:
         data["support_callers"] = eligible
-    result = compute_unified_classification_rescue(data, modalities, with_rationale=True)
+    result = compute_unified_classification_rescue(
+        data, modalities,
+        rescue_config={"rescue_promotion_min_rna_callers": rescue_min_rna},
+        with_rationale=True,
+    )
     return result, data
 
 
@@ -40,14 +44,17 @@ def test_dna_artifact_veto_precedes_verification():
 def test_verification_withholds_rna_only_somatic():
     (result, rationale), data = classify(["RNA_consensus"], ["Somatic"])
     assert result == data["final_classification"] == "NoConsensus"
-    assert "rule:dna_verification|class:NoConsensus" in rationale
+    assert "rule:rna_without_dna_gate|class:NoConsensus" in rationale
     assert not data["rescue_promoted"]
 
 
 @pytest.mark.parametrize("status,expected", [("confirmed", "Somatic"), (None, "Somatic"),
                                               ("inconclusive", "NoConsensus")])
 def test_one_dna_vote_does_not_bypass_promotion_gate(status, expected):
-    (result, _), data = classify(["DNA_mutect2", "RNA_strelka"], ["Somatic", "Somatic"], status)
+    (result, _), data = classify(
+        ["DNA_mutect2", "RNA_strelka"], ["Somatic", "Somatic"], status,
+        rescue_min_rna=1,
+    )
     assert result == expected
     assert data["rescue_promoted"] == (expected == "Somatic")
     assert data["rescued"] == (expected == "Somatic")
@@ -61,7 +68,7 @@ def test_dna_consensus_somatic_is_independent_of_verification():
 def test_dna_votes_must_be_eligible_for_verification_bypass():
     callers = ["DNA_mutect2", "DNA_strelka", "RNA_consensus"]
     labels = ["Somatic"] * 3
-    assert classify(callers, labels)[0][0] == "Somatic"
+    assert classify(callers, labels)[0][0] == "NoConsensus"
     assert classify(callers, labels, eligible=["DNA_mutect2"])[0][0] == "NoConsensus"
 
 

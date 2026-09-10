@@ -81,6 +81,15 @@ CALLER_VCF_SUFFIX = {
 }
 
 # modality -> (status code, pair-id template, subdirectory under the sample dir)
+MANIFEST_VCF_FIELDS = {
+    "dna_mutect2": "caller_dna_mutect2",
+    "dna_deepsomatic": "caller_dna_deepsomatic",
+    "dna_strelka": "caller_dna_strelka",
+    "rna_mutect2": "caller_rna_mutect2",
+    "rna_deepsomatic": "caller_rna_deepsomatic",
+    "rna_strelka": "caller_rna_strelka",
+}
+
 MODALITY_CONFIG = {
     "dna": {
         "status": 1,
@@ -118,6 +127,11 @@ DEFAULTS = {
     # No caller names here on purpose: with this tool set no variant-calling
     # process can be triggered (caller modules gate on their name in --tools).
     "tools": "consensus,rescue,filtering,vep",
+    "native_evidence_snv": True,
+    "rescue_promotion_enabled": True,
+    "rescue_min_dna_callers": 1,
+    "rescue_min_rna_callers": 2,
+    "rescue_veto": "dna",
     "extra_nextflow_args": [],
     "dry_run": False,
     "resume": True,
@@ -176,20 +190,32 @@ def load_manifest(path: Path) -> list:
 
 
 def locate_caller_vcfs(row: dict) -> dict:
+    """Locate caller VCFs, preferring the manifest's audited explicit paths.
+
+    The manifest is authoritative for seq2neo because its normalized VCF paths
+    may not match the legacy raw-output layout. Legacy discovery remains a
+    compatibility fallback for older manifests.
     """
-    Locate the 6 raw per-caller VCFs for one manifest row.
-    Returns {input_name: Path}; missing files are omitted.
-    input_name: e.g. 'dna_mutect2', 'rna_strelka'.
-    """
+    found = {}
+    declared = set()
+    for input_name, field in MANIFEST_VCF_FIELDS.items():
+        value = str(row.get(field, "")).strip()
+        if value:
+            declared.add(input_name)
+            if Path(value).is_file():
+                found[input_name] = Path(value)
+
     base = Path(row["base_output_dir"]) / row["dir_name"]
     prefix = row["vcf_prefix"]
-    found = {}
     for modality, mcfg in MODALITY_CONFIG.items():
         pair_id = mcfg["pair"].format(p=prefix)
         for caller, suffix in CALLER_VCF_SUFFIX.items():
+            input_name = f"{modality}_{caller}"
+            if input_name in found or input_name in declared:
+                continue
             vcf = base / mcfg["subdir"] / caller / pair_id / f"{pair_id}{suffix}"
             if vcf.is_file():
-                found[f"{modality}_{caller}"] = vcf
+                found[input_name] = vcf
     return found
 
 
@@ -215,30 +241,59 @@ def patient_column(row: dict) -> str:
 
 
 def write_sample_csv(row: dict, inputs: dict, csv_path: Path):
-    """Generate the nextflow input CSV (VCF rows only) for one sample."""
+    """Generate a VCF-only samplesheet for the available modality panel."""
     patient = patient_column(row)
     prefix = row["vcf_prefix"]
     rows = [CSV_HEADER]
     for modality, mcfg in MODALITY_CONFIG.items():
         pair_id = mcfg["pair"].format(p=prefix)
         for caller in CALLER_VCF_SUFFIX:
-            vcf = inputs[f"{modality}_{caller}"]
-            rows.append(f"{patient},{pair_id},{mcfg['status']},{caller},{vcf}")
+            input_name = f"{modality}_{caller}"
+            if input_name in inputs:
+                rows.append(f"{patient},{pair_id},{mcfg['status']},{caller},{inputs[input_name]}")
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     csv_path.write_text("\n".join(rows) + "\n")
 
 
 def render_sample_csv(row: dict, inputs: dict) -> str:
-    """CSV content as string (for dry-run printing without writing)."""
+    """Render the VCF-only samplesheet without writing it."""
     patient = patient_column(row)
     prefix = row["vcf_prefix"]
     lines = [CSV_HEADER]
     for modality, mcfg in MODALITY_CONFIG.items():
         pair_id = mcfg["pair"].format(p=prefix)
         for caller in CALLER_VCF_SUFFIX:
-            vcf = inputs.get(f"{modality}_{caller}", "<MISSING>")
-            lines.append(f"{patient},{pair_id},{mcfg['status']},{caller},{vcf}")
+            input_name = f"{modality}_{caller}"
+            if input_name in inputs:
+                lines.append(f"{patient},{pair_id},{mcfg['status']},{caller},{inputs[input_name]}")
     return "\n".join(lines) + "\n"
+
+
+def classify_inputs(inputs: dict) -> tuple[str, list[str]]:
+    """Return (READY|DNA_ONLY|PARTIAL, missing evidence names).
+
+    Every caller VCF must have a tabix or CSI index before a run is started;
+    otherwise the sample is marked partial rather than allowing a late
+    Nextflow failure.
+    """
+    usable = set()
+    missing_index = []
+    for name, path in inputs.items():
+        if any(Path(str(path) + ext).is_file() for ext in (".tbi", ".csi")):
+            usable.add(name)
+        else:
+            missing_index.append(f"{name} (.tbi/.csi)")
+    dna = {f"dna_{caller}" for caller in CALLER_VCF_SUFFIX}
+    rna = {f"rna_{caller}" for caller in CALLER_VCF_SUFFIX}
+    missing_dna = sorted(dna - usable)
+    missing_rna = sorted(rna - usable)
+    if missing_dna:
+        return "PARTIAL", missing_dna + missing_rna
+    if missing_rna:
+        return "DNA_ONLY", missing_rna
+    if missing_index:
+        return "PARTIAL", sorted(missing_index)
+    return "READY", []
 
 
 # ---------------------------------------------------------------------------
@@ -370,13 +425,16 @@ def evaluate_completion(outdir: Path, cfg: dict) -> tuple:
     """Completion = generic artifacts + consensus VCF(s) + rescue VCF(s),
     with an integrity check on every completion-artifact VCF so that
     truncated/corrupt outputs from killed runs are not waved through."""
-    if not has_all_matches(outdir, cfg["completion_artifacts"]):
+    completion_patterns = list(cfg["completion_artifacts"])
+    if not cfg.get("require_rescue", True):
+        completion_patterns = [p for p in completion_patterns if not p.startswith("rescue/")]
+    if not has_all_matches(outdir, completion_patterns):
         return False, "completion artifacts missing"
     if not has_any_match(outdir, cfg["consensus_success_patterns"]):
         return False, "consensus artifacts missing"
-    if not has_any_match(outdir, cfg["rescue_success_patterns"]):
+    if cfg.get("require_rescue", True) and not has_any_match(outdir, cfg["rescue_success_patterns"]):
         return False, "rescue artifacts missing"
-    for pattern in cfg["completion_artifacts"]:
+    for pattern in completion_patterns:
         for f in outdir.glob(pattern):
             if f.name.endswith(".vcf.gz") and not vcf_gz_sane(f):
                 return False, f"corrupt or truncated VCF: {f}"
@@ -399,6 +457,12 @@ def build_command(cfg: dict, csv_path: Path, outdir: Path) -> list:
     cmd += ["--outdir", str(outdir)]
     cmd += ["--step", cfg["step"]]
     cmd += ["--tools", cfg["tools"]]
+    # Policy flags are explicit in the generated CLI so dry-runs are auditable.
+    cmd += ["--native_evidence_snv", str(bool(cfg.get("native_evidence_snv", True))).lower()]
+    cmd += ["--rescue_promotion_enabled", str(bool(cfg.get("rescue_promotion_enabled", True))).lower()]
+    cmd += ["--rescue_min_dna_callers", str(cfg.get("rescue_min_dna_callers", 1))]
+    cmd += ["--rescue_min_rna_callers", str(cfg.get("rescue_min_rna_callers", 2))]
+    cmd += ["--rescue_veto", str(cfg.get("rescue_veto", "dna"))]
     for extra in cfg.get("extra_nextflow_args") or []:
         cmd.append(str(extra))
     if cfg.get("offline"):
@@ -588,7 +652,7 @@ def main():
 
     print(f"\n{'[DRY RUN] ' if dry_run else ''}Selected {len(selected)} sample(s)\n")
 
-    counts = {"succeeded": 0, "skipped": 0, "failed": 0}
+    counts = {"succeeded": 0, "skipped": 0, "failed": 0, "dna_only": 0, "partial": 0}
 
     for r in selected:
         sid = r["sample_id"]
@@ -597,11 +661,14 @@ def main():
         csv_path = csv_dir / f"{sid}.csv"
         checksum_manifest = checksum_dir / f"{sid}.input_checksums.json"
 
-        # ── completion check ────────────────────────────────────────────────
-        complete_ok, complete_reason = evaluate_completion(outdir, cfg)
+        # ── locate inputs and classify before completion checks ─────────────
+        inputs = locate_caller_vcfs(r)
+        input_status, missing = classify_inputs(inputs)
+        completion_cfg = dict(cfg, require_rescue=input_status == "READY")
+        complete_ok, complete_reason = evaluate_completion(outdir, completion_cfg)
         if complete_ok:
-            print(f"[SKIP]  {key}  already complete")
-            state[key] = {"status": "succeeded", "reason": "artifacts present"}
+            print(f"[SKIP]  {key}  already complete ({input_status})")
+            state[key] = {"status": "succeeded", "reason": "artifacts present", "input_status": input_status}
             counts["skipped"] += 1
             continue
         if outdir.exists() and complete_reason:
@@ -613,28 +680,25 @@ def main():
             print(f"[SKIP]  {key}  max retries ({cfg['max_retries']}) reached")
             counts["skipped"] += 1
             continue
-
-        # ── locate input caller VCFs ────────────────────────────────────────
-        inputs = locate_caller_vcfs(r)
-        missing = [name for name in expected_inputs() if name not in inputs]
-        if missing:
-            print(f"[FAIL]  {key}  missing caller VCFs: {missing}")
+        if input_status == "PARTIAL":
+            print(f"[PARTIAL]  {key}  missing caller VCFs: {missing}")
             if not dry_run:
-                state[key] = {
-                    "status": "failed",
-                    "reason": f"missing caller VCFs: {missing}",
-                    "retries": cfg["max_retries"],  # not retryable by re-running
-                }
+                state[key] = {"status": "partial", "reason": f"missing caller VCFs: {missing}"}
                 save_state(state_path, state)
-            counts["failed"] += 1
+            counts["partial"] += 1
             continue
+        run_cfg = dict(cfg)
+        if input_status == "DNA_ONLY":
+            print(f"[DNA_ONLY] {key}  RNA caller VCFs unavailable; rescue will be skipped")
+            counts["dna_only"] += 1
+            run_cfg["tools"] = ",".join(t for t in str(cfg["tools"]).split(",") if t != "rescue")
 
-        cmd = build_command(cfg, csv_path, outdir)
+        cmd = build_command(run_cfg, csv_path, outdir)
 
         print(f"[{'DRY' if dry_run else 'RUN'}]  {key}  set{r.get('set_number')} | {r.get('disease')}")
         print(f"       csv : {csv_path}")
         print(f"       out : {outdir}")
-        print(f"       cmd : {format_shell_command(cfg, cmd)}")
+        print(f"       cmd : {format_shell_command(run_cfg, cmd)}")
         if dry_run:
             print("       --- samplesheet ---")
             for line in render_sample_csv(r, inputs).splitlines():
@@ -658,7 +722,7 @@ def main():
 
         try:
             subprocess.run(cmd, env=build_env(cfg), check=True)
-            complete_ok, complete_reason = evaluate_completion(outdir, cfg)
+            complete_ok, complete_reason = evaluate_completion(outdir, completion_cfg)
             checksum_ok, checksum_problems = verify_checksums(checksum_manifest)
             if not checksum_ok:
                 state[key] = {
@@ -693,8 +757,8 @@ def main():
         save_state(state_path, state)
 
     print(
-        f"\n=== Done  succeeded={counts['succeeded']}  "
-        f"skipped={counts['skipped']}  failed={counts['failed']} ==="
+        f"\n=== Done  succeeded={counts['succeeded']} skipped={counts['skipped']} "
+        f"dna_only={counts['dna_only']} partial={counts['partial']} failed={counts['failed']} ==="
     )
 
 

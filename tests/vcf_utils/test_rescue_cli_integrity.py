@@ -55,7 +55,8 @@ def test_missing_caller_rejected_before_output(inputs):
 
 def test_promotion_statistics_match_written_record(inputs):
     result = run_rescue(inputs, '--dna_vcf', inputs / 'dna.mutect2.vcf',
-                        '--rna_vcf', inputs / 'rna.mutect2.vcf')
+                        '--rna_vcf', inputs / 'rna.mutect2.vcf',
+                        '--rescue_min_rna_callers', '1')
     assert result.returncode == 0, result.stderr
     with pysam.VariantFile(inputs / 'result.vcf') as reader:
         records = list(reader)

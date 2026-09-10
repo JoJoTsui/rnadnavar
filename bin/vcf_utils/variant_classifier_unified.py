@@ -381,9 +381,20 @@ class UnifiedVariantClassifier:
             )
 
         elif rna_consensus_label and not dna_consensus_label:
-            return rna_consensus_label, rationale(
-                "rna_consensus_only", rna_consensus_label
-            )
+            # A gated rescue may not manufacture a call from RNA consensus
+            # alone.  Require independent DNA Somatic evidence and the
+            # configured RNA vote floor; otherwise retain NoConsensus.
+            if (
+                variant_data.get("is_snv", True)
+                and rna_consensus_label == "Somatic"
+                and self.config["rescue_promotion_enabled"]
+                and len(dna_callers) >= self.config["rescue_promotion_min_dna_callers"]
+                and len(rna_callers) >= self.config["rescue_promotion_min_rna_callers"]
+            ):
+                variant_data["rescued"] = True
+                variant_data["rescue_promoted"] = True
+                return "Somatic", rationale("gated_rna_consensus", "Somatic")
+            return "NoConsensus", rationale("rna_without_dna_gate", "NoConsensus")
 
         # Step 4: No consensus labels - analyze individual caller patterns
         else:
@@ -418,7 +429,8 @@ class UnifiedVariantClassifier:
                     # as cross-modality rescued for the writer (INFO RESCUED /
                     # RESCUE_PROMOTED).
                     if (
-                        dna_class == "Somatic"
+                        variant_data.get("is_snv", True)
+                        and dna_class == "Somatic"
                         and self.config["rescue_promotion_enabled"]
                         and len(dna_callers)
                         >= self.config["rescue_promotion_min_dna_callers"]

@@ -251,7 +251,7 @@ class TestClassificationRationale:
 class TestRescueRationale:
     """Rescue-mode records also carry a FILTER-consistent rationale."""
 
-    def _write_rescue_record(self, tmp_path, callers, filters):
+    def _write_rescue_record(self, tmp_path, callers, filters, config=None):
         data = {
             "CHROM": "chr1",
             "POS": 1000,
@@ -285,6 +285,7 @@ class TestRescueRationale:
             "vcf",
             list(callers),
             modality_map=modality_map,
+            rescue_config=config,
         )
         (rec,) = list(VCF(str(out)))
         return rec
@@ -296,6 +297,7 @@ class TestRescueRationale:
             tmp_path,
             callers=["DNA_mutect2", "RNA_strelka"],
             filters=["Somatic", "Somatic"],
+            config={"rescue_promotion_min_rna_callers": 1},
         )
         assert rec.FILTER == "Somatic"
         rationale = _rationale_parts(_info_scalar(rec, "CLASSIFICATION_RATIONALE"))

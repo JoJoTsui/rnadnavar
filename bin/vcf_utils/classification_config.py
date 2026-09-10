@@ -45,7 +45,7 @@ DEFAULT_THRESHOLDS = {
     # DNA and RNA callers agree on Somatic, rescue the site as Somatic.
     "rescue_promotion_enabled": True,
     "rescue_promotion_min_dna_callers": 1,  # Min DNA callers agreeing on Somatic
-    "rescue_promotion_min_rna_callers": 1,  # Min RNA callers agreeing on Somatic
+    "rescue_promotion_min_rna_callers": 2,  # Gated rescue: min RNA callers agreeing on Somatic
     # Veto: which modality's Artifact consensus label outranks the other
     # modality's non-Artifact evidence. "dna" (default): a DNA Artifact label
     # vetoes RNA-driven overrides; "rna": reverse; "none": legacy behavior

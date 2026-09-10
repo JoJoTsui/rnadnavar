@@ -100,10 +100,11 @@ Semantics:
 
 `--preserve-baseline-callers` is an experiment-only option. A named caller's Somatic record is retained only when its record is in the eligible support set (non-Artifact and satisfying available tumor AD floor). The legacy threshold policy remains the default. The output rationale identifies `rule:preserve_baseline`; this does not make a blanket quality claim about every baseline call.
 
-### Native-evidence SNV policy (opt-in)
+### Native-evidence SNV policy (default-on)
 
 The consensus process supports `--native-evidence-snv` (also exposed as
-`params.native_evidence_snv`, default `false`). When enabled, SNVs may be
+`params.native_evidence_snv`, default `true`). Pass the explicit opt-out value
+when reproducing the legacy threshold policy. When enabled, SNVs may be
 classified Somatic by native caller evidence rather than the ordinary caller
 vote alone:
 
@@ -116,5 +117,6 @@ vote alone:
 
 This policy is intentionally SNV-only. Indels are not restricted to DeepSomatic:
 indels continue to use the configured ordinary consensus threshold, but they
-are not promoted by this native-evidence rule. The flag is opt-in
-so existing workflows and caller caches retain their prior behavior.
+are not promoted by this native-evidence rule. The policy is default-on for new runs; the explicit opt-out preserves legacy
+behavior for controlled rollback and comparison. Caller and alignment caches
+remain reusable because the policy is consumed after caller VCF production.

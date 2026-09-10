@@ -29,7 +29,7 @@ seq2neo_root: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seq2neo
 
 manifest_tsv: data/processed/sample_manifest.tsv  # input: cohort sample list
 csv_dir:      runs/rerun_csv                      # generated per-sample VCF samplesheets
-outdir_base:  output_reconsensus                  # NEW per-sample rerun output dirs
+outdir_base:  output_reconsensus_native_gated      # NEW per-sample rerun output dirs
 state_file:   runs/rerun_state.json               # resume state tracker
 checksum_dir: runs/rerun_checksums                # per-sample input checksum manifests
 
@@ -39,6 +39,12 @@ checksum_dir: runs/rerun_checksums                # per-sample input checksum ma
 step:  consensus
 # No caller names: no variant-calling process can be triggered.
 tools: consensus,rescue,filtering,vep
+# Validated default policy; pass explicit flags so dry-runs are reproducible.
+native_evidence_snv: true
+rescue_promotion_enabled: true
+rescue_min_dna_callers: 1
+rescue_min_rna_callers: 2
+rescue_veto: dna
 extra_nextflow_args: []
 
 # ── Execution ─────────────────────────────────────────────────────────────

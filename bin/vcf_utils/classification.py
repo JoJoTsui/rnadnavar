@@ -471,10 +471,20 @@ def compute_unified_classification_consensus(
         str: Unified biological classification; or tuple
             (classification, rationale) when with_rationale=True
     """
-    # Native-evidence SNV policy is computed during aggregation and is opt-in.
-    # It is deliberately evaluated before the legacy baseline-preservation rule
-    # and never changes indel classification.
-    if variant_data.get("native_evidence_pass") and variant_data.get("is_snv"):
+    # Native-evidence SNV policy is computed during aggregation.  It must still
+    # honor the global population-frequency and DNA-verification vetoes.
+    verification_status = str(variant_data.get("dna_verification_status", "unknown")).strip().lower()
+    gnomad_af = variant_data.get("gnomad_af", variant_data.get("GNOMAD_AF"))
+    try:
+        common_af = gnomad_af is not None and float(gnomad_af) > 0.001
+    except (TypeError, ValueError):
+        common_af = False
+    if (
+        variant_data.get("native_evidence_pass")
+        and variant_data.get("is_snv")
+        and not common_af
+        and verification_status not in {"rejected", "inconclusive"}
+    ):
         rationale = "rule:native_evidence_snv|class:Somatic"
         return ("Somatic", rationale) if with_rationale else "Somatic"
 

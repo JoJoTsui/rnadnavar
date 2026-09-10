@@ -147,7 +147,7 @@ def _info_scalar(variant, key):
     return val
 
 
-def _classify(callers, filters, config=None):
+def _classify(callers, filters, config=None, is_snv=True):
     """Unit seam: run the rescue classifier on a synthetic variant_data dict."""
     modality_map = {}
     for caller in callers:
@@ -158,7 +158,7 @@ def _classify(callers, filters, config=None):
     data = {
         "callers": list(callers),
         "filters_normalized": list(filters),
-        "is_snv": True,
+        "is_snv": is_snv,
     }
     result = UnifiedVariantClassifier(config).classify_rescue_variant(
         data, modality_map
@@ -176,13 +176,17 @@ class TestCrossModalityPromotion:
         """1 DNA + 1 RNA individual caller agreeing on Somatic, no consensus
         labels -> Somatic. Pre-fix this returned NoConsensus (audit M1)."""
         result, _ = _classify(
-            ["DNA_mutect2", "RNA_strelka"], ["Somatic", "Somatic"]
+            ["DNA_mutect2", "RNA_strelka"], ["Somatic", "Somatic"],
+            config={"rescue_promotion_min_rna_callers": 1},
         )
         assert result == "Somatic"
 
     def test_promotion_marks_record_rescued(self):
         """A promoted record is tagged as cross-modality rescued."""
-        _, data = _classify(["DNA_mutect2", "RNA_strelka"], ["Somatic", "Somatic"])
+        _, data = _classify(
+            ["DNA_mutect2", "RNA_strelka"], ["Somatic", "Somatic"],
+            config={"rescue_promotion_min_rna_callers": 1},
+        )
         assert data.get("rescued") is True
         assert data.get("rescue_promoted") is True
 
@@ -193,8 +197,17 @@ class TestCrossModalityPromotion:
         result, _ = _classify(
             ["DNA_consensus", "RNA_consensus", "DNA_mutect2", "RNA_strelka"],
             ["NoConsensus", "NoConsensus", "Somatic", "Somatic"],
+            config={"rescue_promotion_min_rna_callers": 1},
         )
         assert result == "Somatic"
+
+    def test_indel_is_not_promoted_by_gated_rule(self):
+        result, data = _classify(
+            ["DNA_mutect2", "RNA_strelka"], ["Somatic", "Somatic"],
+            config={"rescue_promotion_min_rna_callers": 1}, is_snv=False,
+        )
+        assert result == "NoConsensus"
+        assert data.get("rescue_promoted") is not True
 
     def test_germline_agreement_not_promoted(self):
         """Only Somatic agreement promotes; Germline agreement keeps the
@@ -229,7 +242,7 @@ class TestCrossModalityPromotion:
         result, _ = _classify(
             ["DNA_mutect2", "DNA_deepsomatic", "RNA_strelka"],
             ["Somatic", "Somatic", "Somatic"],
-            config={"rescue_promotion_min_dna_callers": 2},
+            config={"rescue_promotion_min_dna_callers": 2, "rescue_promotion_min_rna_callers": 1},
         )
         assert result == "Somatic"
 
@@ -242,6 +255,11 @@ class TestCrossModalityPromotion:
         )
         assert result == "NoConsensus"
         assert data.get("rescue_promoted") is not True
+
+
+def test_default_gated_policy_requires_two_rna_callers():
+    result, _ = _classify(["DNA_mutect2", "RNA_strelka"], ["Somatic", "Somatic"])
+    assert result == "NoConsensus"
 
 
 # ---------------------------------------------------------------------------
@@ -430,7 +448,8 @@ class TestRescueCliContract:
             tmp_path,
             DNA_CONSENSUS_VCF,
             RNA_CONSENSUS_VCF,
-            extra_args=["--dna_vcf", mutect2, "--rna_vcf", strelka],
+            extra_args=["--dna_vcf", mutect2, "--rna_vcf", strelka,
+                        "--rescue_min_rna_callers", "1"],
         )
         records = {r.POS: r for r in VCF(out)}
         rec = records[1000]
