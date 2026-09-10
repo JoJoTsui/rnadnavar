@@ -1,0 +1,17 @@
+# WGS-IL hybrid benchmark: paired caller-ready DNA BAMs plus pooled RNA FASTQs.
+main_nf: ""
+rdv_conf: seqc2.hybrid.wgs.config
+nxf_conda_cachedir: /t9k/mnt/joey/nf_conda_envs
+nxf_conda_usemamba: "true"
+micromamba_env: nextflow
+https_proxy: "http://127.0.0.1:7890"
+seqc2_root: ""
+input_csv: csv/seqc2_wgs_il_hybrid.csv
+outdir: output/seqc2.wgs.il.hybrid
+state_file: runs/wgs_il_hybrid_state.json
+dry_run: false
+resume: true
+offline: true
+completion_artifacts:
+  - "**/pipeline_info/execution_trace*.txt"
+  - "**/consensus/**/*.vcf.gz"

@@ -43,15 +43,22 @@ record_derived_source() {
     local source="$1" derived="$2"; fingerprint_source "$source" > "$derived.source.sha256"
 }
 
-# SEQC2 data root + references (override via environment if needed)
+# SEQC2 data root + references (override via environment if needed).
+# These are the same truth/FASTA defaults used by the validated WES-LL run.
 SEQ2C="${SEQ2C_ROOT:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2}"
+TRUTH_VCF="${TRUTH_VCF:-}"
 TRUTH_SNV="${TRUTH_SNV:-$SEQ2C/truth/high-confidence_sSNV_in_HC_regions_v1.2.1.vcf.gz}"
 TRUTH_INDEL="${TRUTH_INDEL:-$SEQ2C/truth/high-confidence_sINDEL_in_HC_regions_v1.2.1.vcf.gz}"
 HC_BED="${HC_BED:-$SEQ2C/truth/High-Confidence_Regions_v1.2.bed}"
-# Generic WES target: UCSC hg38 SeqCap EZ MedExome empirical targets.
-# Set TARGET_BED explicitly for a kit-specific manifest or historical sensitivity run.
-TARGET_BED="${TARGET_BED:-$EXAMPLE_ROOT/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed}"
+UKB_BED="${UKB_BED:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed}"
 BENCHMARK_MODE="${BENCHMARK_MODE:-wes}"
+# WES defaults to the authoritative generic capture target; WGS wrappers
+# explicitly select UKB_BED so both -R and -T use the requested region policy.
+if [ "$BENCHMARK_MODE" = "wgs" ]; then
+    TARGET_BED="${TARGET_BED:-$UKB_BED}"
+else
+    TARGET_BED="${TARGET_BED:-$EXAMPLE_ROOT/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed}"
+fi
 FA="${FASTA:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta}"
 HAPPY_ENV="${HAPPY_ENV:-happy}"
 
@@ -63,15 +70,22 @@ S2_VCF="$OUTDIR/variant_calling/strelka/$PAIR/$PAIR.strelka.variants.vcf.gz"
 CLAIR_VCF="${CLAIR_VCF:-}"
 RESCUE_VCF="${RESCUE_VCF:-}"
 
-REQUIRED_INPUTS=("$C_VCF" "$M2_VCF" "$DS_VCF" "$S2_VCF" "$TRUTH_SNV" "$TRUTH_INDEL" "$HC_BED" "$FA")
-[ "$BENCHMARK_MODE" = "wgs" ] || REQUIRED_INPUTS+=("$TARGET_BED")
+REQUIRED_INPUTS=("$C_VCF" "$M2_VCF" "$DS_VCF" "$S2_VCF" "$HC_BED" "$FA")
+if [ -n "$TRUTH_VCF" ]; then
+    REQUIRED_INPUTS+=("$TRUTH_VCF")
+else
+    REQUIRED_INPUTS+=("$TRUTH_SNV" "$TRUTH_INDEL")
+fi
+[ -n "$TARGET_BED" ] && REQUIRED_INPUTS+=("$TARGET_BED")
 for f in "${REQUIRED_INPUTS[@]}"; do
     [ -f "$f" ] || { echo "ERROR: missing input: $f" >&2; exit 1; }
 done
 
 # 1. Merged, indexed truth VCF (cached)
-TRUTH="$OD/high-confidence_sSNV+INDEL_in_HC_regions_v1.2.1.vcf.gz"
-if [ ! -f "$TRUTH.tbi" ]; then
+TRUTH="$OD/benchmark_truth.vcf.gz"
+if [ -n "$TRUTH_VCF" ]; then
+    TRUTH="$TRUTH_VCF"
+elif [ ! -f "$TRUTH.tbi" ]; then
     echo ">> Building merged truth VCF: $TRUTH"
     bcftools concat --allow-overlaps --remove-duplicates "$TRUTH_SNV" "$TRUTH_INDEL" \
         | bcftools sort -Oz -o "$TRUTH"
@@ -92,7 +106,7 @@ run_som() {  # <name> <query> <extra som.py args...>
     local name="$1" query="$2"; shift 2
     echo ">> som.py: $name"
     local region_args=( -R "$HC_BED" )
-    if [ "$BENCHMARK_MODE" != "wgs" ] && [ -n "$TARGET_BED" ]; then
+    if [ -n "$TARGET_BED" ]; then
         region_args+=( -T "$TARGET_BED" )
     fi
     micromamba run -n "$HAPPY_ENV" som.py \

@@ -1,0 +1,6 @@
+patient,status,sample,lane,fastq_1,fastq_2,bam,bai,input_stage,library
+WGS_IL,0,WGS_IL_N_1,LX,,,/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/WGS/WGS_IL_N_1.bwa.dedup.bam,/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/WGS/WGS_IL_N_1.bwa.dedup.bai,caller_ready,WGS_IL_N_1
+WGS_IL,1,WGS_IL_T_1,LX,,,/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/WGS/WGS_IL_T_1.bwa.dedup.bam,/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/WGS/WGS_IL_T_1.bwa.dedup.bai,caller_ready,WGS_IL_T_1
+WGS_IL,2,WGS_IL_RT_1,SRR9134699,/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/RNA/SRR9134699/SRR9134699_1.fastq.gz,/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/RNA/SRR9134699/SRR9134699_2.fastq.gz,,,raw_reads,SRR9134699
+WGS_IL,2,WGS_IL_RT_1,SRR9134697,/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/RNA/SRR9134697/SRR9134697_1.fastq.gz,/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/RNA/SRR9134697/SRR9134697_2.fastq.gz,,,raw_reads,SRR9134697
+WGS_IL,2,WGS_IL_RT_1,SRR9134727,/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/RNA/SRR9134727/SRR9134727_1.fastq.gz,/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/RNA/SRR9134727/SRR9134727_2.fastq.gz,,,raw_reads,SRR9134727
