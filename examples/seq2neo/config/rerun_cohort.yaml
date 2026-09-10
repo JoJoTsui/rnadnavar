@@ -15,8 +15,8 @@
 # Everything else is identical to rerun.yaml.
 
 # ── Nextflow pipeline ─────────────────────────────────────────────────────
-main_nf:  /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/main.nf
-rdv_conf: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seq2neo/seq2neo.shared.config
+main_nf:  ../../main.nf
+rdv_conf: seq2neo.shared.config
 
 # ── Conda / Nextflow env ───────────────────────────────────────────────────
 nxf_conda_cachedir: /t9k/mnt/joey/nf_conda_envs
@@ -27,13 +27,13 @@ micromamba_env: nextflow          # micromamba run -n <this>
 https_proxy: "http://10.233.17.241:3128"
 
 # ── Data root (all relative paths below are anchored here) ────────────────
-seq2neo_root: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seq2neo
+seq2neo_root: .
 
 manifest_tsv: data/processed/sample_manifest.tsv  # input: cohort sample list
 csv_dir:      runs/rerun_csv                      # generated per-sample VCF samplesheets
-outdir_base:  output_reconsensus                  # NEW per-sample rerun output dirs
-state_file:   runs/rerun_state.json               # per-group override via --state-file
-checksum_dir: runs/rerun_checksums                # per-sample input checksum manifests
+outdir_base:  output_reconsensus_native_gated       # NEW per-sample rerun output dirs
+state_file:   runs/rerun_native_gated_state.json               # per-group override via --state-file
+checksum_dir: runs/rerun_native_gated_checksums                # per-sample input checksum manifests
 
 # ── Rerun entry point (do not change; enforced by the driver) ─────────────
 # step 'consensus' enters after variant calling; VCF_NORMALIZE now runs first
@@ -41,7 +41,15 @@ checksum_dir: runs/rerun_checksums                # per-sample input checksum ma
 step:  consensus
 # No caller names: no variant-calling process can be triggered.
 # No 'vep': label artifact is produced upstream of VEP (see header comment).
-tools: consensus,rescue,filtering
+tools: consensus,rescue,filtering,vep
+native_evidence_snv: true
+rescue_promotion_enabled: true
+rescue_min_dna_callers: 1
+rescue_min_rna_callers: 2
+rescue_veto: dna
+cohort_state_dir: runs/cohort_native_gated_state
+cohort_log_dir: runs/cohort_native_gated_logs
+cohort_work_dir: runs/cohort_native_gated_work
 extra_nextflow_args: []
 
 # ── Execution ─────────────────────────────────────────────────────────────

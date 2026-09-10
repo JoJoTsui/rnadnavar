@@ -107,8 +107,11 @@ def main():
     args = ap.parse_args()
 
     cfg = rr.load_config(args.config, {})
+    state_dir = rr.resolve(cfg, "cohort_state_dir") if cfg.get("cohort_state_dir") else STATE_DIR
+    log_dir = rr.resolve(cfg, "cohort_log_dir") if cfg.get("cohort_log_dir") else LOG_DIR
+    work_dir = rr.resolve(cfg, "cohort_work_dir") if cfg.get("cohort_work_dir") else WORK_DIR
     rows = rr.load_manifest(rr.resolve(cfg, "manifest_tsv"))
-    done = load_done_samples(rr.resolve(cfg, "state_file"), extra_state_dirs=[STATE_DIR])
+    done = load_done_samples(rr.resolve(cfg, "state_file"), extra_state_dirs=[state_dir])
     remaining = [r["sample_id"] for r in rows if r["sample_id"] not in done]
     groups = partition(remaining, args.groups)
 
@@ -120,10 +123,10 @@ def main():
 
     launched = []
     for gi, sids in enumerate(groups, start=1):
-        log_path = LOG_DIR / f"group{gi}.log"
-        pid_path = LOG_DIR / f"group{gi}.pid"
-        state_path = STATE_DIR / f"group{gi}.json"
-        cwd = WORK_DIR / f"group{gi}"
+        log_path = log_dir / f"group{gi}.log"
+        pid_path = log_dir / f"group{gi}.pid"
+        state_path = state_dir / f"group{gi}.json"
+        cwd = work_dir / f"group{gi}"
         cmd = [
             sys.executable, str(SCRIPT_DIR / "run_reconsensus_rerun.py"),
             "--config", str(Path(args.config).resolve()),
@@ -162,8 +165,8 @@ def main():
     if launched:
         print("Launched groups: "
               + ", ".join(f"group{gi}=pid{pid}" for gi, pid in launched))
-        print(f"Monitor: tail -f {LOG_DIR}/group<N>.log ; "
-              f"cat {STATE_DIR}/group<N>.json")
+        print(f"Monitor: tail -f {log_dir}/group<N>.log ; "
+              f"cat {state_dir}/group<N>.json")
 
 
 if __name__ == "__main__":

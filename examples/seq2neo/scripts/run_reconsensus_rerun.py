@@ -170,6 +170,13 @@ def load_config(config_path, cli_overrides: dict) -> dict:
             file_cfg = yaml.safe_load(f) or {}
         cfg.update({k: v for k, v in file_cfg.items() if v is not None})
     cfg.update({k: v for k, v in cli_overrides.items() if v is not None})
+    # Anchor relative config roots to the config location, not invocation CWD.
+    # In the checked-in configs, `seq2neo_root: .` means the parent of config/.
+    if config_path and cfg.get("seq2neo_root"):
+        root = Path(str(cfg["seq2neo_root"]))
+        if not root.is_absolute():
+            config_dir = Path(config_path).resolve().parent
+            cfg["seq2neo_root"] = str((config_dir.parent if str(root) == "." else config_dir / root).resolve())
     return cfg
 
 
