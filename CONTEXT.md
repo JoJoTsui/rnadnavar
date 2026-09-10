@@ -35,6 +35,8 @@ A measurement attributed to one modality, caller, sample role, sample, allele an
 Caller or modality evidence classified as Somatic. It is distinct from mere detection and from support for a different biological class.
 
 - **Consensus** — within-modality merging of per-caller VCFs using caller-support thresholds.
+- **Native-evidence consensus** — a consensus interpretation that may admit an SNV using qualified DeepSomatic presence plus independent Mutect2 evidence, rather than requiring the ordinary caller-count threshold alone.
+- **Gated rescue** — a cross-modality rescue interpretation that retains the native baseline and admits rescue-only SNVs only when DNA caller support and RNA Somatic agreement both meet their minimum evidence requirements.
 - **Rescue** — cross-modality (DNA ↔ RNA) recovery of variants that failed or were missed in one modality.
 - **Truth label** — a final Somatic-filtered consensus/rescue VCF record used as a supervised training label for the downstream model. The model is a label consumer: label precision matters more than recall.
 - **Reference-compatible BAM** — an external BAM whose sequence dictionary has exactly the selected reference's contig names, lengths, and order. Off-reference contigs are outside the caller-input domain.
@@ -54,6 +56,7 @@ Caller or modality evidence classified as Somatic. It is distinct from mere dete
 - **Second-round rescue** — cross-modality rescue combining first-round DNA consensus with consensus from realigned RNA reads. It is distinct from first-round rescue using the initial RNA alignment.
 
 - **Re-consensus rerun** — forward-only regeneration of consensus and rescue VCFs for the whole cohort from the existing, read-only per-caller VCF outputs, using fixed pipeline code, written to a new output location. Original outputs are never modified.
+- **Policy validation cohort** — a truth-backed collection used to decide whether a consensus/rescue policy is safe to enable by default; it must include independent sample or assay contexts, not only one benchmark pair.
 
 **Training-label artifact**:
 The rescue output combining DNA evidence with realigned RNA tumor evidence, or its subsequent re-consensus/QC derivative, selected as the source of downstream training labels. First-round rescue is an intermediate diagnostic output.
