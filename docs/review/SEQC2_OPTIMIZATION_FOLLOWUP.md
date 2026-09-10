@@ -174,8 +174,8 @@ consensus records were always retained.
 
 | Output | SNP TP/FP/FN | Indel TP/FP/FN | Record TP/FP/FN | Record F1 |
 | --- | ---: | ---: | ---: | ---: |
-| Native consensus baseline | 1009 / 32 / 1196 | 41 / 4 / 54 | 1050 / 36 / 1250 | 0.6190 |
-| Native consensus + gated rescue | 1021 / 36 / 1184 | 41 / 4 / 54 | 1062 / 40 / 1238 | 0.6247 |
+| Native consensus baseline | 1009 / 32 / 1196 | 41 / 4 / 54 | 1050 / 36 / 1250 | 0.6202 |
+| Native consensus + gated rescue | 1021 / 36 / 1184 | 41 / 4 / 54 | 1062 / 40 / 1238 | 0.6243 |
 
 The gate therefore adds 12 TP and 4 FP, with no indel change. It is materially
 safer than unrestricted realignment rescue and is a candidate opt-in rescue
