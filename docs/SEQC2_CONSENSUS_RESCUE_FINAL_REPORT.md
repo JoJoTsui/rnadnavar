@@ -74,6 +74,10 @@ Parameter meanings:
   contamination, germline/haplotype, panel-of-normals, orientation, or weak
   evidence concerns.
 
+The phrase “candidate locus” means the same normalized
+`CHROM:POS:REF:ALT` key has a DeepSomatic record in the input panel; a locus
+with no DeepSomatic record is not admitted by this rule.
+
 These values are caller INFO/quality fields, not sequencing-depth thresholds;
 DP/AD and the configured alternate-read floor still determine whether a caller
 record is eligible to vote.
@@ -81,8 +85,9 @@ record is eligible to vote.
 When enabled for SNVs:
 
 1. Retain a qualified DeepSomatic Somatic record.
-2. Admit a non-DeepSomatic candidate only when DeepSomatic QUAL is positive and
-   Mutect2 TLOD is at least 12 and GERMQ is at least 60.
+2. Admit a candidate locus that has a DeepSomatic record but is not accepted
+   as a DeepSomatic Somatic call only when that record has QUAL > 0 and Mutect2
+   TLOD is at least 12 and GERMQ is at least 60.
 3. Reject the candidate when Mutect2 carries either explicit contamination /
    germline / haplotype / panel-of-normals or contamination / orientation /
    weak-evidence artifact combination.
@@ -93,8 +98,9 @@ all original caller evidence intact.
 
 ### Why indels are not promoted by the new policy
 
-Indels are still included in the original consensus vote, but neither the new
-native-evidence override nor the validated rescue gate promotes indels. This is
+Indels are still included in the original consensus vote when they meet the
+ordinary eligible-caller threshold; they are not DeepSomatic-only. Neither the
+new native-evidence override nor the validated rescue gate adds extra indels. This is
 evidence-based rather than a shortcut: on WES-LL, original DNA consensus had
 35 TP / 1 FP, while DeepSomatic had 41 TP / 4 FP; the broad rescue candidates
 added only one indel TP while adding 19--29 FPs. The WES-IL and WGS-IL cached

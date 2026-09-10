@@ -112,6 +112,7 @@ vote alone:
   at least 12 and GERMQ is at least 60, unless Mutect2 has one of the explicit
   contamination/germline artifact combinations.
 
-This policy is intentionally SNV-only. Indels continue to use the configured
-indel caller threshold and are not promoted by this rule. The flag is opt-in
+This policy is intentionally SNV-only. Indels are not restricted to DeepSomatic:
+indels continue to use the configured ordinary consensus threshold, but they
+are not promoted by this native-evidence rule. The flag is opt-in
 so existing workflows and caller caches retain their prior behavior.
