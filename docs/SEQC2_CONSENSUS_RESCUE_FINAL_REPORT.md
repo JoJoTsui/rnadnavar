@@ -54,11 +54,29 @@ majority biological class
 - A top-class tie is `Artifact`; it is never forced to Somatic.
 - Preserve per-caller FILTER, support, genotype, depth, VAF, and rationale INFO.
 
-### Native-evidence SNV policy
+### New native-evidence SNV consensus policy
 
 The implemented policy is opt-in via `--native-evidence-snv` or
 `params.native_evidence_snv=true`; the default remains disabled to preserve
 existing workflow behavior and caller-cache reuse.
+
+Parameter meanings:
+
+- `DeepSomatic QUAL > 0`: the DeepSomatic record has positive variant
+  quality; it is a permissive presence check, not a probability cutoff.
+- Mutect2 `TLOD >= 12`: TLOD is the log10 likelihood ratio for the alternate
+  allele versus no variant. A value of 12 corresponds to approximately
+  10^12:1 likelihood in favor of an alternate allele under the Mutect2 model.
+- Mutect2 `GERMQ >= 60`: GERMQ is Phred-scaled evidence against a germline
+  explanation. A value of 60 corresponds to an estimated germline-error
+  probability of about 10^-6 under the caller model.
+- The two explicit Mutect2 filter combinations are vetoes because they encode
+  contamination, germline/haplotype, panel-of-normals, orientation, or weak
+  evidence concerns.
+
+These values are caller INFO/quality fields, not sequencing-depth thresholds;
+DP/AD and the configured alternate-read floor still determine whether a caller
+record is eligible to vote.
 
 When enabled for SNVs:
 
@@ -72,6 +90,19 @@ When enabled for SNVs:
 
 The policy emits `CLASSIFICATION_RATIONALE=rule:native_evidence_snv` and leaves
 all original caller evidence intact.
+
+### Why indels are not promoted by the new policy
+
+Indels are still included in the original consensus vote, but neither the new
+native-evidence override nor the validated rescue gate promotes indels. This is
+evidence-based rather than a shortcut: on WES-LL, original DNA consensus had
+35 TP / 1 FP, while DeepSomatic had 41 TP / 4 FP; the broad rescue candidates
+added only one indel TP while adding 19--29 FPs. The WES-IL and WGS-IL cached
+audits showed the same one-TP/one-FP ceiling for filtered additions and far
+worse FP rates for raw caller unions. Therefore no indel rule currently
+improves both sensitivity and precision. Indel promotion remains a separate
+future experiment requiring indel-specific alignment, repeat-context, and
+allele-support evidence.
 
 ## Rescue rules
 
@@ -128,16 +159,22 @@ This gate is validated as a candidate policy; the current production rescue
 classifier still uses its documented configurable promotion contract. Enabling
 the gate as the default requires a code-path change and cross-cohort validation.
 
+The benchmarked rescue candidates came from the **realignment-rescue branch**
+(second rescue), not the first RNA rescue. Realignment was used only as the
+source of cached candidate records; no realignment or full workflow rerun was
+performed for this comparison.
+
 ## WES-LL benchmark result
 
 | Output | SNP TP/FP/FN | Indel TP/FP/FN | Overall TP/FP/FN | P / R / F1 |
 | --- | ---: | ---: | ---: | ---: |
 | DNA Mutect2 | 906 / 147 / 1299 | 32 / 4 / 63 | 938 / 164 / 1362 | 0.8512 / 0.4078 / 0.5514 |
 | DNA Strelka2 | 944 / 1524 / 1261 | 38 / 41 / 57 | 982 / 1565 / 1318 | 0.3856 / 0.4270 / 0.4052 |
-| DNA consensus | 938 / 96 / 1267 | 35 / 1 / 60 | 973 / 97 / 1327 | 0.9093 / 0.4230 / 0.5774 |
+| Original DNA consensus | 938 / 96 / 1267 | 35 / 1 / 60 | 973 / 97 / 1327 | 0.9093 / 0.4230 / 0.5774 |
+| New native DNA consensus | 1009 / 32 / 1196 | 41 / 4 / 54 | 1050 / 36 / 1250 | 0.9657 / 0.4565 / 0.6202 |
 | DNA DeepSomatic | 1007 / 34 / 1198 | 41 / 4 / 54 | 1048 / 38 / 1252 | 0.9650 / 0.4557 / 0.6190 |
 | ClairS | 237 / 0 / 1968 | 0 / 0 / 95 | 237 / 0 / 2063 | 1.0000 / 0.1030 / 0.1868 |
-| Native consensus + gated rescue | 1021 / 36 / 1184 | 41 / 4 / 54 | 1062 / 40 / 1238 | 0.9637 / 0.4617 / 0.6243 |
+| New native consensus + gated rescue | 1021 / 36 / 1184 | 41 / 4 / 54 | 1062 / 40 / 1238 | 0.9637 / 0.4617 / 0.6243 |
 
 The validated policy improves TP, recall, and F1 over DNA DeepSomatic, ties it
 on indels, and adds two overall FPs. Precision is therefore slightly lower and
