@@ -8,6 +8,37 @@ remain read-only for this report. The validated comparisons used the same truth
 VCF, high-confidence BED, UKB target BED, reference genome, and `som.py -N`
 benchmark contract.
 
+## Decision diagrams
+
+### Consensus (within one modality)
+
+```text
+caller VCF panel
+      |
+      v
+normalize CHROM:POS:REF:ALT + classify each caller
+      |
+      v
+eligible vote?  -- no --> Artifact/NoConsensus evidence
+      | yes
+      v
+alt-read floor + non-Artifact support count
+      |
+      +--> SNV and native policy OFF: support >= snv_thr?
+      |
+      +--> SNV and native policy ON: qualified DeepSomatic
+      |                         OR TLOD>=12 & GERMQ>=60
+      |                         with Mutect2 artifact vetoes
+      |
+      +--> indel: support >= indel_thr (native override never applies)
+      |
+      v
+majority biological class
+      |
+      +--> unique winner: Somatic/Germline/Reference
+      +--> tie: Artifact
+      +--> insufficient support: NoConsensus
+
 ## Consensus rules
 
 ### Default consensus
@@ -43,6 +74,32 @@ all original caller evidence intact.
 
 ## Rescue rules
 
+### Rescue (cross-modality)
+
+```text
+DNA consensus + RNA consensus + individual caller evidence
+                         |
+                         v
+             ignore NoConsensus as positive evidence
+                         |
+                         v
+     both modality labels present?
+       | yes                                | no
+       v                                    v
+ same label -> keep label             one label -> apply it
+ conflicting labels -> support/veto     no labels -> promotion test
+       |                                    |
+       v                                    v
+ DNA Artifact veto (default)             DNA Somatic callers >= threshold
+       |                                    AND RNA Somatic callers >= threshold
+       v                                    |
+ Artifact / supported non-Artifact        v
+                                         RESCUE_PROMOTED=YES
+
+validated opt-in rescue gate for rescue-only SNVs:
+N_DNA_CALLERS_SUPPORT >= 1 AND N_RNA_CALLERS_SOMATIC >= 2
+(indels are not promoted by this gate)
+
 ### Current workflow rescue contract
 
 - Inputs are DNA consensus, RNA consensus, and individual caller VCFs.
@@ -71,10 +128,14 @@ the gate as the default requires a code-path change and cross-cohort validation.
 
 ## WES-LL benchmark result
 
-| Output | SNP TP/FP/FN | SNP F1 | Indel TP/FP/FN | Overall TP/FP/FN | Overall F1 |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| DNA DeepSomatic | 1007 / 34 / 1198 | 0.6205 | 41 / 4 / 54 | 1048 / 38 / 1252 | 0.6190 |
-| Native consensus + gated rescue | 1021 / 36 / 1184 | 0.6260 | 41 / 4 / 54 | 1062 / 40 / 1238 | 0.6243 |
+| Output | SNP TP/FP/FN | Indel TP/FP/FN | Overall TP/FP/FN | P / R / F1 |
+| --- | ---: | ---: | ---: | ---: |
+| DNA Mutect2 | 906 / 147 / 1299 | 32 / 4 / 63 | 938 / 164 / 1362 | 0.8512 / 0.4078 / 0.5514 |
+| DNA Strelka2 | 944 / 1524 / 1261 | 38 / 41 / 57 | 982 / 1565 / 1318 | 0.3856 / 0.4270 / 0.4052 |
+| DNA consensus | 938 / 96 / 1267 | 35 / 1 / 60 | 973 / 97 / 1327 | 0.9093 / 0.4230 / 0.5774 |
+| DNA DeepSomatic | 1007 / 34 / 1198 | 41 / 4 / 54 | 1048 / 38 / 1252 | 0.9650 / 0.4557 / 0.6190 |
+| ClairS | 237 / 0 / 1968 | 0 / 0 / 95 | 237 / 0 / 2063 | 1.0000 / 0.1030 / 0.1868 |
+| Native consensus + gated rescue | 1021 / 36 / 1184 | 41 / 4 / 54 | 1062 / 40 / 1238 | 0.9637 / 0.4617 / 0.6243 |
 
 The validated policy improves TP, recall, and F1 over DNA DeepSomatic, ties it
 on indels, and adds two overall FPs. Precision is therefore slightly lower and
