@@ -163,3 +163,21 @@ line, so existing FASTQ/BAM workflows and variant-calling caches are not
 invalidated unless the policy is explicitly enabled. The implementation emits
 the normal classification rationale and leaves indels on the ordinary
 threshold path.
+
+## Native-consensus rescue-gate validation (2026-09-10)
+
+The rescue gate was validated using only the completed WES-LL artifacts. The
+baseline was the cached native-evidence consensus VCF; rescue candidates came
+from the cached realignment-rescue VCF. A rescue-only record was admitted when
+`N_DNA_CALLERS_SUPPORT >= 1` and `N_RNA_CALLERS_SOMATIC >= 2`; existing native
+consensus records were always retained.
+
+| Output | SNP TP/FP/FN | Indel TP/FP/FN | Record TP/FP/FN | Record F1 |
+| --- | ---: | ---: | ---: | ---: |
+| Native consensus baseline | 1009 / 32 / 1196 | 41 / 4 / 54 | 1050 / 36 / 1250 | 0.6190 |
+| Native consensus + gated rescue | 1021 / 36 / 1184 | 41 / 4 / 54 | 1062 / 40 / 1238 | 0.6247 |
+
+The gate therefore adds 12 TP and 4 FP, with no indel change. It is materially
+safer than unrestricted realignment rescue and is a candidate opt-in rescue
+contract. It still requires validation on WES-IL/WGS-IL before becoming the
+default rescue policy.
