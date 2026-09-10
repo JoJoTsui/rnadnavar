@@ -14,4 +14,5 @@ resume: true
 offline: true
 completion_artifacts:
   - "**/pipeline_info/execution_trace*.txt"
-  - "**/consensus/**/*.vcf.gz"
+  - "**/vcf_realignment/rescue/**/*.rescue.filtered.stripped.vep.vcf.gz"
+  - "**/vcf_realignment/rescue/**/*.rescue.filtered.stripped.vep.vcf.gz.tbi"

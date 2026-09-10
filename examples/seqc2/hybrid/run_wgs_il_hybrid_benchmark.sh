@@ -11,12 +11,8 @@ bash "$HERE/run_wgs_il_hybrid.sh" --outdir "$OUTDIR"
 # the hybrid benchmark acceptance surface. Prefer the annotated realignment
 # artifact, then fall back to the first filtered rescue VCF.
 if [ -z "${RESCUE_VCF:-}" ]; then
-  RESCUE_VCF="$(find "$OUTDIR/vcf_realignment/rescue" "$OUTDIR/rescue" -type f \
+  RESCUE_VCF="$(find "$OUTDIR/vcf_realignment/rescue" -type f \
     -name '*stripped.vep.vcf.gz' 2>/dev/null | sort | head -n 1 || true)"
-  if [ -z "$RESCUE_VCF" ]; then
-    RESCUE_VCF="$(find "$OUTDIR/rescue" -type f -name '*.filtered.vcf.gz' \
-      2>/dev/null | sort | head -n 1 || true)"
-  fi
 fi
 [ -n "$RESCUE_VCF" ] && [ -f "$RESCUE_VCF" ] || { echo "ERROR: final rescue VCF not found under $OUTDIR" >&2; exit 1; }
 export RESCUE_VCF
