@@ -51,6 +51,7 @@ HC_BED="${HC_BED:-$SEQ2C/truth/High-Confidence_Regions_v1.2.bed}"
 # Generic WES target: UCSC hg38 SeqCap EZ MedExome empirical targets.
 # Set TARGET_BED explicitly for a kit-specific manifest or historical sensitivity run.
 TARGET_BED="${TARGET_BED:-$EXAMPLE_ROOT/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed}"
+BENCHMARK_MODE="${BENCHMARK_MODE:-wes}"
 FA="${FASTA:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta}"
 HAPPY_ENV="${HAPPY_ENV:-happy}"
 
@@ -62,7 +63,9 @@ S2_VCF="$OUTDIR/variant_calling/strelka/$PAIR/$PAIR.strelka.variants.vcf.gz"
 CLAIR_VCF="${CLAIR_VCF:-}"
 RESCUE_VCF="${RESCUE_VCF:-}"
 
-for f in "$C_VCF" "$M2_VCF" "$DS_VCF" "$S2_VCF" "$TRUTH_SNV" "$TRUTH_INDEL" "$HC_BED" "$TARGET_BED" "$FA"; do
+REQUIRED_INPUTS=("$C_VCF" "$M2_VCF" "$DS_VCF" "$S2_VCF" "$TRUTH_SNV" "$TRUTH_INDEL" "$HC_BED" "$FA")
+[ "$BENCHMARK_MODE" = "wgs" ] || REQUIRED_INPUTS+=("$TARGET_BED")
+for f in "${REQUIRED_INPUTS[@]}"; do
     [ -f "$f" ] || { echo "ERROR: missing input: $f" >&2; exit 1; }
 done
 
@@ -88,10 +91,13 @@ fi
 run_som() {  # <name> <query> <extra som.py args...>
     local name="$1" query="$2"; shift 2
     echo ">> som.py: $name"
+    local region_args=( -R "$HC_BED" )
+    if [ "$BENCHMARK_MODE" != "wgs" ] && [ -n "$TARGET_BED" ]; then
+        region_args+=( -T "$TARGET_BED" )
+    fi
     micromamba run -n "$HAPPY_ENV" som.py \
         "$TRUTH" "$query" \
-        -R "$HC_BED" \
-        -T "$TARGET_BED" \
+        "${region_args[@]}" \
         -o "$OD/$name" \
         -r "$FA" -N "$@"
 }

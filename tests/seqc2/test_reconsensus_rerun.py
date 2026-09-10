@@ -57,3 +57,15 @@ def test_dna_only_completion_omits_rescue_artifacts(tmp_path, monkeypatch):
     assert ok, reason
     ok, reason = MOD.evaluate_completion(out, dict(MOD.DEFAULTS, require_rescue=True))
     assert not ok and 'completion artifacts' in reason
+
+
+def test_partial_rna_panel_is_not_dna_only(tmp_path):
+    found = {}
+    for name in ("dna_deepsomatic", "dna_mutect2", "dna_strelka", "rna_deepsomatic"):
+        path = tmp_path / f"{name}.vcf.gz"
+        path.write_bytes(b"x")
+        (tmp_path / f"{name}.vcf.gz.tbi").write_bytes(b"i")
+        found[name] = path
+    status, missing = MOD.classify_inputs(found)
+    assert status == "PARTIAL"
+    assert "rna_mutect2" in missing

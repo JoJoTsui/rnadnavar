@@ -12,12 +12,16 @@ def metrics(p, f1, tp, fp, fn):
 
 
 def test_release_gate_accepts_candidate_beating_deepsomatic():
-    result = gate.evaluate({'slices': [{
-        'cohort': 'SEQC2-WES-LL', 'variant_type': 'records',
-        'candidate': metrics(.968, .804, 570, 19, 259),
-        'deepsomatic': metrics(.967, .798, 563, 19, 266),
-        'valid_input_failures': 0,
-    }]})
+    slices = []
+    for cohort in ("SEQC2_WES_LL", "SEQC2_WES_IL", "SEQC2_WGS_IL", "HG008_WGS"):
+        for variant_type in ("snp", "indel", "records"):
+            slices.append({
+                'cohort': cohort, 'variant_type': variant_type,
+                'candidate': metrics(.968, .804, 570, 19, 259),
+                'deepsomatic': metrics(.967, .798, 563, 19, 266),
+                'valid_input_failures': 0,
+            })
+    result = gate.evaluate({'slices': slices})
     assert result['status'] == 'passed'
 
 

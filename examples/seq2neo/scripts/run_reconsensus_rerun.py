@@ -189,7 +189,7 @@ def load_manifest(path: Path) -> list:
         return list(csv.DictReader(fh, delimiter="\t"))
 
 
-def locate_caller_vcfs(row: dict) -> dict:
+def locate_caller_vcfs(row: dict, manifest_dir: Path | None = None) -> dict:
     """Locate caller VCFs, preferring the manifest's audited explicit paths.
 
     The manifest is authoritative for seq2neo because its normalized VCF paths
@@ -202,10 +202,16 @@ def locate_caller_vcfs(row: dict) -> dict:
         value = str(row.get(field, "")).strip()
         if value:
             declared.add(input_name)
-            if Path(value).is_file():
-                found[input_name] = Path(value)
+            candidate = Path(value)
+            if not candidate.is_absolute() and manifest_dir is not None:
+                candidate = manifest_dir / candidate
+            if candidate.is_file():
+                found[input_name] = candidate
 
-    base = Path(row["base_output_dir"]) / row["dir_name"]
+    base = Path(row["base_output_dir"])
+    if not base.is_absolute() and manifest_dir is not None:
+        base = manifest_dir / base
+    base = base / row["dir_name"]
     prefix = row["vcf_prefix"]
     for modality, mcfg in MODALITY_CONFIG.items():
         pair_id = mcfg["pair"].format(p=prefix)
@@ -290,7 +296,13 @@ def classify_inputs(inputs: dict) -> tuple[str, list[str]]:
     if missing_dna:
         return "PARTIAL", missing_dna + missing_rna
     if missing_rna:
-        return "DNA_ONLY", missing_rna
+        # DNA-only is valid only when the complete RNA panel is absent.
+        # A partially present RNA panel is incomplete evidence and must not
+        # silently skip rescue.
+        all_rna = {f"rna_{caller}" for caller in CALLER_VCF_SUFFIX}
+        if usable.isdisjoint(all_rna):
+            return "DNA_ONLY", missing_rna
+        return "PARTIAL", missing_rna
     if missing_index:
         return "PARTIAL", sorted(missing_index)
     return "READY", []
@@ -446,13 +458,20 @@ def evaluate_completion(outdir: Path, cfg: dict) -> tuple:
 # ---------------------------------------------------------------------------
 
 
+def config_path(cfg: dict, key: str) -> str:
+    value = Path(str(cfg[key]))
+    if value.is_absolute():
+        return str(value)
+    return str((Path(cfg["seq2neo_root"]) / value).resolve())
+
+
 def build_command(cfg: dict, csv_path: Path, outdir: Path) -> list:
     cmd = ["micromamba", "run", "-n", cfg["micromamba_env"]]
     cmd += ["nextflow", "run"]
     if cfg.get("main_nf"):
-        cmd.append(cfg["main_nf"])
+        cmd.append(config_path(cfg, "main_nf"))
     if cfg.get("rdv_conf"):
-        cmd += ["-c", cfg["rdv_conf"]]
+        cmd += ["-c", config_path(cfg, "rdv_conf")]
     cmd += ["--input", str(csv_path)]
     cmd += ["--outdir", str(outdir)]
     cmd += ["--step", cfg["step"]]
@@ -512,9 +531,17 @@ def validate_config(cfg: dict):
             f"Edit config/rerun.yaml and set:\n"
             + "\n".join(f"  {k}: /path/to/..." for k in missing)
         )
-    # Structural guard: rerun tools must not name any variant caller.
+    # Structural guard: rerun tools are an explicit VCF-only allowlist.
+    allowed = {"consensus", "rescue", "filtering", "vep"}
+    requested = {t.strip() for t in str(cfg.get("tools", "")).split(",") if t.strip()}
+    unsupported = requested - allowed
+    if unsupported:
+        sys.exit(
+            f"ERROR: rerun tools outside VCF-only allowlist: {sorted(unsupported)}.\n"
+            "Allowed tools are consensus,rescue,filtering,vep."
+        )
     callers = {"sage", "strelka", "mutect2", "deepsomatic", "manta"}
-    named = callers & set(str(cfg.get("tools", "")).split(","))
+    named = callers & requested
     if named:
         sys.exit(
             f"ERROR: rerun tools must not name variant callers (found: {sorted(named)}).\n"
@@ -662,7 +689,7 @@ def main():
         checksum_manifest = checksum_dir / f"{sid}.input_checksums.json"
 
         # ── locate inputs and classify before completion checks ─────────────
-        inputs = locate_caller_vcfs(r)
+        inputs = locate_caller_vcfs(r, manifest_path.parent)
         input_status, missing = classify_inputs(inputs)
         completion_cfg = dict(cfg, require_rescue=input_status == "READY")
         complete_ok, complete_reason = evaluate_completion(outdir, completion_cfg)

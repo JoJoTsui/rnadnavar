@@ -373,5 +373,5 @@ def test_state_file_cli_override(fake_cohort, tmp_path):
     # state written to the override path, not the default rerun_state.json
     assert group_state.is_file()
     state = json.loads(group_state.read_text())
-    assert state[rows[0]["sample_id"]]["status"] == "failed"
+    assert state[rows[0]["sample_id"]]["status"] == "partial"
     assert not (rerun_root / "runs" / "rerun_state.json").exists()

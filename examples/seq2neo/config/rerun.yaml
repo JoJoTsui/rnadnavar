@@ -13,8 +13,8 @@
 # All values can be overridden at runtime via CLI flags.
 
 # ── Nextflow pipeline ─────────────────────────────────────────────────────
-main_nf:  /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/main.nf
-rdv_conf: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seq2neo/seq2neo.shared.config
+main_nf:  ../../main.nf
+rdv_conf: seq2neo.shared.config
 
 # ── Conda / Nextflow env ───────────────────────────────────────────────────
 nxf_conda_cachedir: /t9k/mnt/joey/nf_conda_envs
@@ -25,7 +25,7 @@ micromamba_env: nextflow          # micromamba run -n <this>
 https_proxy: "http://10.233.17.241:3128"
 
 # ── Data root (all relative paths below are anchored here) ────────────────
-seq2neo_root: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seq2neo
+seq2neo_root: .
 
 manifest_tsv: data/processed/sample_manifest.tsv  # input: cohort sample list
 csv_dir:      runs/rerun_csv                      # generated per-sample VCF samplesheets

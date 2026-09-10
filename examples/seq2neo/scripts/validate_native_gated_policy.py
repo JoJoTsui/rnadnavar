@@ -11,6 +11,19 @@ import json
 import math
 from pathlib import Path
 
+REQUIRED_COHORTS = {"SEQC2_WES_LL", "SEQC2_WES_IL", "SEQC2_WGS_IL", "HG008_WGS"}
+REQUIRED_TYPES = {"snp", "indel", "records"}
+
+def _cohort_key(value):
+    text = str(value).upper().replace("-", "_").replace(" ", "_")
+    if text in {"HG008", "HG008_WGS"}:
+        return "HG008_WGS"
+    if text.startswith("SEQC2_") and text in REQUIRED_COHORTS:
+        return text
+    if text in {"WES_LL", "WES_IL", "WGS_IL"}:
+        return "SEQC2_" + text
+    return text
+
 def _metric(obj, name):
     value = obj.get(name)
     if value is None or not math.isfinite(float(value)):
@@ -24,8 +37,12 @@ def evaluate(doc):
         raise ValueError("comparison JSON must contain a non-empty 'slices' list")
     results = []
     reasons = []
-    for index, row in enumerate(slices):
-        label = f"{row.get('cohort', 'slice')}:{row.get('variant_type', 'records')}"
+    seen = set()
+    for row in slices:
+        cohort = _cohort_key(row.get("cohort", ""))
+        variant_type = str(row.get("variant_type", "records")).lower()
+        label = f"{row.get('cohort', 'slice')}:{variant_type}"
+        seen.add((cohort, variant_type))
         candidate = row.get("candidate") or {}
         baseline = row.get("deepsomatic") or {}
         try:
@@ -59,7 +76,17 @@ def evaluate(doc):
         results.append({"slice": label, "accepted": accepted, "checks": checks,
                         "candidate": candidate, "deepsomatic": baseline,
                         "valid_input_failures": failures})
+    missing = sorted(
+        f"{cohort}:{variant_type}"
+        for cohort in REQUIRED_COHORTS
+        for variant_type in REQUIRED_TYPES
+        if (cohort, variant_type) not in seen
+    )
+    if missing:
+        reasons.append("missing required validation slices: " + ", ".join(missing))
     return {"status": "passed" if not reasons else "failed",
+            "required_cohorts": sorted(REQUIRED_COHORTS),
+            "required_variant_types": sorted(REQUIRED_TYPES),
             "slices": results, "reasons": reasons}
 
 
