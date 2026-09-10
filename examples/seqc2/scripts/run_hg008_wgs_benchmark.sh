@@ -10,6 +10,7 @@ export HG008_FASTA="${HG008_FASTA:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/r
 : "${HG008_PIPELINE_OUTDIR:?Set HG008_PIPELINE_OUTDIR}"
 : "${HG008_PAIR:?Set HG008_PAIR}"
 : "${HG008_COMPARE_DIR:?Set HG008_COMPARE_DIR}"
+unset CLAIR_VCF
 export BENCHMARK_MODE=wgs
 export TRUTH_VCF="$HG008_TRUTH_VCF" HC_BED="$HG008_REGIONS" FASTA="$HG008_FASTA" TARGET_BED="${TARGET_BED:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed}"
 exec bash "$HERE/run_benchmark.sh" "$HG008_PIPELINE_OUTDIR" "$HG008_PAIR" "$HG008_COMPARE_DIR"

@@ -63,9 +63,17 @@ def load_config(config_path, cli_overrides: dict) -> dict:
             file_cfg = yaml.safe_load(f) or {}
         cfg.update({k: v for k, v in file_cfg.items() if v is not None})
     cfg.update({k: v for k, v in cli_overrides.items() if v is not None})
+    if not cfg["seqc2_root"]:
+        # Hybrid profiles live below examples/seqc2/hybrid; anchor their
+        # relative inputs/configs to that directory so invocation CWD is free.
+        config_parent = Path(config_path).resolve().parent if config_path else EXAMPLE_DIR
+        cfg["seqc2_root"] = str(config_parent if config_parent.name == "hybrid" else EXAMPLE_DIR)
     cfg["main_nf"] = cfg["main_nf"] or str(REPO_ROOT / "main.nf")
-    cfg["rdv_conf"] = cfg["rdv_conf"] or str(EXAMPLE_DIR / "seqc2.shared.config")
-    cfg["seqc2_root"] = cfg["seqc2_root"] or str(EXAMPLE_DIR)
+    if cfg["rdv_conf"]:
+        rdv = Path(cfg["rdv_conf"])
+        cfg["rdv_conf"] = str(rdv if rdv.is_absolute() else Path(cfg["seqc2_root"]) / rdv)
+    else:
+        cfg["rdv_conf"] = str(EXAMPLE_DIR / "seqc2.shared.config")
     return cfg
 
 
