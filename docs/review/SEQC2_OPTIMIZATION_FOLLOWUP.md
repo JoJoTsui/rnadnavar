@@ -190,3 +190,18 @@ RNA rescue or realignment-rescue VCFs. Their native-consensus benchmarks are
 available (WES-IL 1371/21/929 records; WGS-IL 2169/19/131 records), but the
 rescue gate cannot be evaluated honestly on those cohorts without inventing
 RNA evidence. No workflow rerun was started to fill this gap.
+
+## Direct comparison with DNA DeepSomatic (2026-09-10)
+
+Using the same WES-LL truth, HC regions, UKB target BED, and som.py contract:
+
+| Output | SNP TP/FP/FN | SNP P/R/F1 | Indel TP/FP/FN | Indel F1 | Records TP/FP/FN | Records F1 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| DNA DeepSomatic | 1007 / 34 / 1198 | 0.9673 / 0.4567 / 0.6205 | 41 / 4 / 54 | 0.5857 | 1048 / 38 / 1252 | 0.6190 |
+| Native consensus + gated rescue | 1021 / 36 / 1184 | 0.9659 / 0.4630 / 0.6260 | 41 / 4 / 54 | 0.5857 | 1062 / 40 / 1238 | 0.6243 |
+
+The validated policy beats DNA DeepSomatic on TP, recall, and F1 (+14 TP,
++0.0060 SNP recall, +0.0053 record F1), while adding two FPs and therefore
+slightly lowering precision. It ties DeepSomatic on indels. Thus it wins the
+primary sensitivity/F1 objective, but it does not dominate every metric; the
+remaining precision gap is the next rescue-quality target.
