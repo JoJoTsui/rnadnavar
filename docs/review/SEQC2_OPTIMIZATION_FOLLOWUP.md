@@ -132,3 +132,24 @@ TPs. This makes an unconditional RNA-only promotion unsuitable. The next
 opt-in rescue experiment should preserve the DNA consensus and admit only
 SNVs with explicit DNA evidence plus independent RNA corroboration/quality;
 indels should require a separate evidence floor and be evaluated on their own.
+
+
+## Indel candidate audit (2026-09-10)
+
+The cached caller-level audit was extended to the held-out WES-IL and WGS-IL
+inputs. The native-evidence policy was benchmarked without rerunning any
+workflow stage:
+
+| Dataset | DeepSomatic indels TP/FP/FN | Native policy indels TP/FP/FN |
+| --- | ---: | ---: |
+| WES-IL | 53 / 3 / 42 | 53 / 3 / 42 |
+| WGS-IL | 86 / 12 / 9 | 85 / 11 / 10 |
+
+Raw caller unions are not a viable indel strategy. On WES-IL, Mutect2 and
+Strelka expose thousands of raw indel candidates but contribute only one
+additional truth indel beyond DeepSomatic while adding thousands of FPs. Even
+the filtered consensus adds only one TP and one FP. WGS-IL shows the same
+pattern at smaller scale: one added TP is paired with one FP. The current
+policy therefore leaves indels anchored to the strongest baseline caller; any
+future indel rescue must use an independently validated, indel-specific
+evidence model rather than the SNP rescue thresholds.
