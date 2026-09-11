@@ -37,6 +37,7 @@ DEFAULTS = {
     "rdv_conf": "",          # empty -> EXAMPLE_DIR/seqc2.shared.config
     "nxf_conda_cachedir": "",
     "nxf_conda_usemamba": "true",
+    "nextflow_work_dir": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/nf_work",
     "micromamba_env": "nextflow",
     "https_proxy": "",
     "seqc2_root": "",        # empty -> EXAMPLE_DIR
@@ -88,6 +89,8 @@ def build_command(cfg: dict, input_csv: Path, outdir: Path) -> list:
     cmd += ["nextflow", "run", cfg["main_nf"], "-c", cfg["rdv_conf"]]
     cmd += ["--input", str(input_csv)]
     cmd += ["--outdir", str(outdir)]
+    if cfg.get("nextflow_work_dir"):
+        cmd += ["-work-dir", str(cfg["nextflow_work_dir"])]
     if cfg.get("step"):
         cmd += ["--step", str(cfg["step"])]
     if cfg.get("tools"):

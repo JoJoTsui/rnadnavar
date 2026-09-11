@@ -20,6 +20,7 @@ rdv_conf: seq2neo.shared.config
 nxf_conda_cachedir: /t9k/mnt/joey/nf_conda_envs
 nxf_conda_usemamba: "true"
 micromamba_env: nextflow          # micromamba run -n <this>
+nextflow_work_dir: /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/nf_work
 
 # ── Network proxy (leave empty to disable) ────────────────────────────────
 https_proxy: "http://10.233.17.241:3128"

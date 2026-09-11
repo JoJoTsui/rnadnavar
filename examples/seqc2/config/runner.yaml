@@ -19,6 +19,7 @@ micromamba_env: nextflow          # micromamba run -n <this>
 
 # ── Network proxy (leave empty to disable) ────────────────────────────────
 # Needed even for -offline runs: the nextflow launcher phones home for a
+nextflow_work_dir: /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/nf_work
 # version check and hangs without network access on this host.
 https_proxy: "http://127.0.0.1:7890"
 
