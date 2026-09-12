@@ -5,8 +5,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUTDIR="${1:-$HERE/output/hg008.wgs.hybrid}"
 PAIR="${2:-HG008_T_1_vs_HG008_N_1}"
 COMPARE="${3:-$HERE/comparison/$PAIR}"
-# run_hg008_wgs_hybrid.sh accepts the output directory positionally.
-bash "$HERE/run_hg008_wgs_hybrid.sh" "$OUTDIR"
+# run_hg008_wgs_hybrid.sh exposes the output directory as --outdir.
+bash "$HERE/run_hg008_wgs_hybrid.sh" --outdir "$OUTDIR"
 
 # Require a final rescue VCF; caller-only comparisons are not sufficient for
 # the hybrid benchmark acceptance surface. Prefer the annotated realignment
