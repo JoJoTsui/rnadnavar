@@ -14,7 +14,8 @@ export HG008_FASTA="${HG008_FASTA:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/r
 : "${HG008_COMPARE_DIR:?Set HG008_COMPARE_DIR}"
 unset CLAIR_VCF
 export BENCHMARK_MODE=wgs
-# The HG008 benchmark BED defines the comparison domain. Use it for both
-# hap.py region and target restrictions unless a narrower domain is explicit.
-export TRUTH_VCF="$HG008_TRUTH_VCF" HC_BED="$HG008_REGIONS" FASTA="$HG008_FASTA" TARGET_BED="${TARGET_BED:-$HG008_REGIONS}"
+# Keep HG008 high-confidence regions for -R, but use the SEQC2 WGS UKB
+# union BED for -T so target restriction matches the SEQC2 WGS benchmark.
+export UKB_BED="${UKB_BED:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed}"
+export TRUTH_VCF="$HG008_TRUTH_VCF" HC_BED="$HG008_REGIONS" FASTA="$HG008_FASTA" TARGET_BED="${TARGET_BED:-$UKB_BED}"
 exec bash "$HERE/run_benchmark.sh" "$HG008_PIPELINE_OUTDIR" "$HG008_PAIR" "$HG008_COMPARE_DIR"
