@@ -3,6 +3,7 @@ rdv_conf: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/seqc2.hybrid.s
 nxf_conda_cachedir: /t9k/mnt/joey/nf_conda_envs
 nxf_conda_usemamba: "true"
 micromamba_env: nextflow
+nextflow_work_dir: /t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/nf_work
 https_proxy: "http://127.0.0.1:7890"
 seqc2_root: /t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid
 input_csv: csv/seqc2_wes_ll_hybrid.csv

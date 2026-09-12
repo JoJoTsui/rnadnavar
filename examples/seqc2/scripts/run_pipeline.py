@@ -37,6 +37,7 @@ DEFAULTS = {
     "rdv_conf": "",          # empty -> EXAMPLE_DIR/seqc2.shared.config
     "nxf_conda_cachedir": "",
     "nxf_conda_usemamba": "true",
+    "nextflow_work_dir": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/nf_work",
     "micromamba_env": "nextflow",
     "https_proxy": "",
     "seqc2_root": "",        # empty -> EXAMPLE_DIR
@@ -88,6 +89,12 @@ def build_command(cfg: dict, input_csv: Path, outdir: Path) -> list:
     cmd += ["nextflow", "run", cfg["main_nf"], "-c", cfg["rdv_conf"]]
     cmd += ["--input", str(input_csv)]
     cmd += ["--outdir", str(outdir)]
+    if cfg.get("nextflow_work_dir"):
+        cmd += ["-work-dir", str(cfg["nextflow_work_dir"])]
+    if cfg.get("fasta"):
+        cmd += ["--fasta", str(cfg["fasta"])]
+    if cfg.get("fasta_fai"):
+        cmd += ["--fasta_fai", str(cfg["fasta_fai"])]
     if cfg.get("step"):
         cmd += ["--step", str(cfg["step"])]
     if cfg.get("tools"):
@@ -170,6 +177,8 @@ def main():
     ap.add_argument("--input", default=None, dest="input_csv",
                     help="Override samplesheet path")
     ap.add_argument("--outdir", default=None, help="Override nextflow outdir")
+    ap.add_argument("--fasta", default=None, help="Override reference FASTA")
+    ap.add_argument("--fasta-fai", default=None, dest="fasta_fai", help="Override reference FASTA index")
     ap.add_argument("--dry-run", action="store_true", default=None, dest="dry_run")
     ap.add_argument("--no-resume", action="store_false", default=None, dest="resume")
     args = ap.parse_args()

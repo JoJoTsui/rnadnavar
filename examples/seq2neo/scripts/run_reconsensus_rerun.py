@@ -116,6 +116,7 @@ DEFAULTS = {
     "nxf_conda_cachedir": "",
     "nxf_conda_usemamba": "true",
     "micromamba_env": "nextflow",
+    "nextflow_work_dir": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/nf_work",
     "https_proxy": "",
     "seq2neo_root": str(Path(__file__).resolve().parent.parent),
     "manifest_tsv": "data/processed/sample_manifest.tsv",
@@ -481,6 +482,8 @@ def build_command(cfg: dict, csv_path: Path, outdir: Path) -> list:
         cmd += ["-c", config_path(cfg, "rdv_conf")]
     cmd += ["--input", str(csv_path)]
     cmd += ["--outdir", str(outdir)]
+    if cfg.get("nextflow_work_dir"):
+        cmd += ["-work-dir", str(cfg["nextflow_work_dir"])]
     cmd += ["--step", cfg["step"]]
     cmd += ["--tools", cfg["tools"]]
     # Policy flags are explicit in the generated CLI so dry-runs are auditable.
