@@ -10,6 +10,11 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+import sys
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
+from replay_historical_native_gate import records
 
 
 def pileup(samtools, reference, bam, chrom, pos):
@@ -56,18 +61,28 @@ def main():
                   ("rna_tumor", "rna_tumor.cram"), ("rna_realign", "rna_realign.cram"))}
         for path in files.values():
             report["source_stats"][str(path)] = {"size": path.stat().st_size, "mtime_ns": path.stat().st_mtime_ns}
-        sites = [row for row in evidence["sites"] if row["dataset"] == dataset and row["truth_status"] in {"TP", "FP"}]
+        sites = [{**row, "role": "scored_rescue"} for row in evidence["sites"]
+                 if row["dataset"] == dataset and row["truth_status"] in {"TP", "FP"}]
+        native = sorted(records(bundle / dataset / "native_consensus.vcf.gz"))[:2]
+        sites.extend({"dataset": dataset, "chrom": key[0], "pos": key[1], "ref": key[2], "alt": key[3],
+                      "truth_status": "unassessed", "role": "native_baseline_control"} for key in native)
+        evaluation = json.loads((repo / "examples/seqc2/comparison/rescue_fp_investigation_20260914/gate_tests/evaluation.json").read_text())
+        removed = evaluation["selection"][f"{dataset}/nomination_biological"]["removed_keys"][:2]
+        sites.extend({"dataset": dataset, "chrom": key[0], "pos": key[1], "ref": key[2], "alt": key[3],
+                      "truth_status": "unassessed", "role": "gate_exclusion_control"} for key in removed)
         if args.max_sites:
             sites = sites[:args.max_sites]
         for row in sites:
-            result = {"dataset": dataset, "allele": [row[k] for k in ("chrom", "pos", "ref", "alt")],
+            result = {"dataset": dataset, "role": row["role"], "allele": [row[k] for k in ("chrom", "pos", "ref", "alt")],
                       "truth_status": row["truth_status"]}
             for name, path in files.items():
                 result[name] = pileup(samtools, reference, path, row["chrom"], row["pos"])
             report["sites"].append(result)
-    report["summary"] = {dataset: {status: sum(1 for row in report["sites"] if row["dataset"] == dataset
-                                                 and row["dna_tumor"]["status"] == status)
-                                   for status in ("observed", "inconclusive")}
+    report["summary"] = {dataset: {role: {status: sum(1 for row in report["sites"]
+                                                     if row["dataset"] == dataset and row["role"] == role
+                                                     and row["dna_tumor"]["status"] == status)
+                                             for status in ("observed", "inconclusive")}
+                                  for role in ("scored_rescue", "native_baseline_control", "gate_exclusion_control")}
                          for dataset in ("wes_ll", "wgs_il")}
     args.outdir.mkdir(parents=True, exist_ok=False)
     (args.outdir / "read_evidence.json").write_text(json.dumps(report, indent=2) + "\n")

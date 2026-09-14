@@ -82,11 +82,12 @@ def main():
         actual_sites = {(row.get("dataset"), tuple(row.get("allele", []))) for row in sites}
         streams = ("dna_tumor", "dna_normal", "rna_tumor", "rna_realign")
         stream_counts = {stream: {status: sum(1 for row in sites if row.get(stream, {}).get("status") == status) for status in ("observed", "inconclusive")} for stream in streams}
-        complete = len(sites) == len(expected_sites) and actual_sites == expected_sites and all(sum(counts.values()) == len(sites) for counts in stream_counts.values())
+        scored = [row for row in sites if row.get("role") == "scored_rescue"]
+        complete = len(scored) == len(expected_sites) and {(row.get("dataset"), tuple(row.get("allele", []))) for row in scored} == expected_sites and len(sites) == 26 and all(sum(counts.values()) == len(sites) for counts in stream_counts.values())
         source_stats = read_evidence.get("source_stats", {})
         expected_alignments = {str((bundle / dataset / "alignments" / filename).resolve()) for dataset in ("wes_ll", "wgs_il") for filename in ("dna_tumor.bam", "dna_normal.bam", "rna_tumor.cram", "rna_realign.cram")}
         sources_ok = expected_alignments <= set(source_stats) and str(Path("/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta")) in source_stats
-        checks.append(check("read-evidence:available", complete and sources_ok, f"stream counts {stream_counts}"))
+        checks.append(check("read-evidence:available", complete and sources_ok, f"stream counts {stream_counts}; roles={sorted(set(row.get('role') for row in sites))}"))
     else:
         checks.append(check("read-evidence:available", False, "bounded DNA pileup evidence not run", severity="inconclusive"))
 
