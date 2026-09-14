@@ -10,7 +10,7 @@ import gzip
 import json
 from pathlib import Path
 
-def rows(path):
+def rows(path, include_all=False):
     opener = gzip.open if str(path).endswith(".gz") else open
     out = {}
     with opener(path, "rt") as fh:
@@ -20,7 +20,8 @@ def rows(path):
             cols = line.rstrip("\n").split("\t")
             if len(cols) < 8:
                 continue
-            if cols[6] not in {"PASS", "Somatic"}: continue
+            if not include_all and cols[6] not in {"PASS", "Somatic"}:
+                continue
             for alt in cols[4].split(","):
                 out[(cols[0], int(cols[1]), cols[3], alt)] = {"filter": cols[6], "info": cols[7]}
     return out
@@ -33,7 +34,7 @@ def main():
     ap.add_argument("--out", required=True, type=Path)
     a = ap.parse_args()
     before, after = rows(a.before), rows(a.after)
-    truth = rows(a.truth) if a.truth else {}
+    truth = rows(a.truth, include_all=True) if a.truth else {}
     added = set(after) - set(before); removed = set(before) - set(after)
     result = {"before": str(a.before), "after": str(a.after),
               "counts": {"before": len(before), "after": len(after),
