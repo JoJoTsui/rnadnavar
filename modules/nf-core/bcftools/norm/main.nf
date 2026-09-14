@@ -60,13 +60,15 @@ process BCFTOOLS_NORM {
                     args.contains("--output-type z") || args.contains("-Oz") ? "vcf.gz" :
                     args.contains("--output-type v") || args.contains("-Ov") ? "vcf" :
                     "vcf.gz"
+    // Keep stub outputs aligned with the real script: compressed VCF output
+    // is indexed unconditionally by the real process, and downstream joins
+    // require the emitted TBI even when --write-index is not explicit.
     def index = ''
-    if (extension in ['vcf.gz', 'bcf', 'bcf.gz']) {
-        if (['--write-index=tbi', '-W=tbi'].any { args.contains(it) }  && extension == 'vcf.gz') {
-            index = 'tbi'
-        } else if (['--write-index=tbi', '-W=tbi', '--write-index=csi', '-W=csi', '--write-index', '-W'].any { args.contains(it) }) {
-            index = 'csi'
-        }
+    if (extension == 'vcf.gz') {
+        index = 'tbi'
+    } else if (extension in ['bcf', 'bcf.gz'] &&
+               ['--write-index=tbi', '-W=tbi', '--write-index=csi', '-W=csi', '--write-index', '-W'].any { args.contains(it) }) {
+        index = args.contains('--write-index=tbi') || args.contains('-W=tbi') ? 'tbi' : 'csi'
     }
     def create_cmd = extension.endsWith(".gz") ? "echo '' | gzip >" : "touch"
     def create_index = index ? "touch ${prefix}.${extension}.${index}" : ""
