@@ -1,6 +1,6 @@
 # SEQC2 updated-policy validation report
 
-Date: 2026-09-14. Validation implementation commits: `aecdb324`, `1931050c`. This report is
+Date: 2026-09-14. Validation implementation commits: `aecdb324`, `1931050c`, `e68234c7`. This report is
 generated from the frozen 20260914 evidence bundle and completed VCF/read-level
 assays; it does not represent independent HG008 validation.
 
