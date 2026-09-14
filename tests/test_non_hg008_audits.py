@@ -29,3 +29,26 @@ def test_source_manifest_hashes_content(tmp_path):
     m=load('manifest','examples/seqc2/scripts/build_policy_source_manifest.py')
     f=tmp_path/'source.txt'; f.write_text('frozen')
     assert m.digest(f) and len(m.digest(f))==64
+
+
+def test_indel_policy_matrix_rejects_tp_regression(tmp_path):
+    import json, subprocess, sys
+    candidate = tmp_path / "candidate.json"
+    baseline = tmp_path / "baseline.json"
+    payload = lambda tp, fp, fn: {"metrics": [{"data": [
+        {"id": "type", "values": ["indels"]},
+        {"id": "tp", "values": [tp]},
+        {"id": "fp", "values": [fp]},
+        {"id": "fn", "values": [fn]},
+        {"id": "precision", "values": [tp / (tp + fp)]},
+        {"id": "recall", "values": [tp / (tp + fn)]},
+    ]}]}
+    candidate.write_text(json.dumps(payload(3, 1, 7)))
+    baseline.write_text(json.dumps(payload(4, 2, 6)))
+    out = tmp_path / "decision.json"
+    subprocess.run([sys.executable, "examples/seqc2/scripts/build_indel_policy_matrix.py",
+                    "--candidate", f"cell={candidate}",
+                    "--baseline", f"cell={baseline}", "--out", str(out)], check=True)
+    result = json.loads(out.read_text())
+    assert result["status"] == "no_qualifying_shared_rule"
+    assert result["decision"] == "retain_existing_threshold_consensus"

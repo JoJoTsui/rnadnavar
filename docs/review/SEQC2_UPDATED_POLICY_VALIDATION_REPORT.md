@@ -93,8 +93,10 @@ or cache cleanup was performed by this validation.
   legacy behavior until explicitly selected.
 - Align observed/eligible/Somatic support semantics and annotation timing, with
   regression fixtures for Reference, missing, duplicate, and multiallelic data.
-- Define and independently validate an evidence-based indel policy; do not
-  silently copy DeepSomatic indels as a consensus innovation.
+- The available four-cell indel comparison now has an explicit
+  `no_qualifying_shared_rule` result; retain threshold consensus and do not
+  silently copy DeepSomatic indels as a consensus innovation. Independent
+  HG008 validation remains deferred.
 - Run the frozen policy unchanged on completed HG008 WGS data and a matching
   truth/reference contract when available.
 
