@@ -77,9 +77,15 @@ def main():
         read_evidence = json.loads(read_evidence_path.read_text())
         evidence["read_evidence_sha256"] = digest(read_evidence_path)
         sites = read_evidence.get("sites", [])
-        observed = sum(1 for row in sites if row.get("dna_tumor", {}).get("status") == "observed")
-        complete = len(sites) == 18 and observed + sum(1 for row in sites if row.get("dna_tumor", {}).get("status") == "inconclusive") == 18
-        checks.append(check("read-evidence:available", complete and observed > 0, f"{observed}/18 tumor pileups observed; remaining explicitly inconclusive"))
+        expected_sites = {(row["dataset"], tuple(row[k] for k in ("chrom", "pos", "ref", "alt"))) for row in json.loads((repo / "examples/seqc2/comparison/rescue_fp_investigation_20260914/evidence.json").read_text())["sites"]}
+        actual_sites = {(row.get("dataset"), tuple(row.get("allele", []))) for row in sites}
+        streams = ("dna_tumor", "dna_normal", "rna_tumor", "rna_realign")
+        stream_counts = {stream: {status: sum(1 for row in sites if row.get(stream, {}).get("status") == status) for status in ("observed", "inconclusive")} for stream in streams}
+        complete = len(sites) == len(expected_sites) and actual_sites == expected_sites and all(sum(counts.values()) == len(sites) for counts in stream_counts.values())
+        source_stats = read_evidence.get("source_stats", {})
+        expected_alignments = {str((bundle / dataset / "alignments" / filename).resolve()) for dataset in ("wes_ll", "wgs_il") for filename in ("dna_tumor.bam", "dna_normal.bam", "rna_tumor.cram", "rna_realign.cram")}
+        sources_ok = expected_alignments <= set(source_stats) and str(Path("/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta")) in source_stats
+        checks.append(check("read-evidence:available", complete and sources_ok, f"stream counts {stream_counts}"))
     else:
         checks.append(check("read-evidence:available", False, "bounded DNA pileup evidence not run", severity="inconclusive"))
 
