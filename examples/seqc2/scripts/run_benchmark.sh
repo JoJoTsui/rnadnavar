@@ -61,6 +61,9 @@ else
 fi
 FA="${FASTA:-/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta}"
 HAPPY_ENV="${HAPPY_ENV:-happy}"
+# The common-contract benchmark normalizes truth and query by default. Set
+# NORMALIZE_ALL=0 only for an explicitly recorded historical reproduction.
+NORMALIZE_ALL="${NORMALIZE_ALL:-1}"
 
 # Query VCFs from the pipeline output layout
 C_VCF="$OUTDIR/consensus/$PAIR/$PAIR.consensus.vcf.gz"
@@ -109,11 +112,15 @@ run_som() {  # <name> <query> <extra som.py args...>
     if [ -n "$TARGET_BED" ]; then
         region_args+=( -T "$TARGET_BED" )
     fi
+    local normalize_args=()
+    if [ "$NORMALIZE_ALL" = "1" ]; then
+        normalize_args+=( -N )
+    fi
     micromamba run -n "$HAPPY_ENV" som.py \
         "$TRUTH" "$query" \
         "${region_args[@]}" \
         -o "$OD/$name" \
-        -r "$FA" -N "$@"
+        -r "$FA" "${normalize_args[@]}" "$@"
 }
 
 # 3. Per-query benchmark runs (caller VCFs: PASS records only, som.py default)
@@ -123,6 +130,21 @@ run_som deepsomatic "$DS_VCF"
 run_som strelka "$S2_VCF"
 
 QUERIES=(consensus mutect2 deepsomatic strelka)
+# Optional controls are supplied as comma-separated name=VCF pairs. This keeps
+# the base DNA-only workflow unchanged while allowing the matrix to include
+# RNA, realigned-RNA and both rescue rounds when artifacts exist.
+run_extra_queries() {
+    local spec name query
+    IFS=',' read -ra specs <<< "${EXTRA_QUERIES:-}"
+    for spec in "${specs[@]}"; do
+        [ -n "$spec" ] || continue
+        name="${spec%%=*}"; query="${spec#*=}"
+        [ -f "$query" ] || { echo "ERROR: missing optional query $name: $query" >&2; exit 1; }
+        run_som "$name" "$query"
+        QUERIES+=("$name")
+    done
+}
+run_extra_queries
 if [ -n "$CLAIR_VCF" ]; then
     [ -f "$CLAIR_VCF" ] || { echo "ERROR: missing Clair input: $CLAIR_VCF" >&2; exit 1; }
     run_som clair "$CLAIR_VCF"
@@ -154,5 +176,29 @@ python3 "$HERE/aggregate_benchmark.py" \
     --metrics-dir "$OD" \
     --queries "${QUERIES[@]}" \
     --output "$OD/$PAIR.benchmark_comparison.csv"
+
+python3 - "$OD" "$PAIR" "$TRUTH" "$HC_BED" "$TARGET_BED" "$FA" "$NORMALIZE_ALL" <<'PY'
+import json, sys
+from pathlib import Path
+od, pair, truth, hc, target, fasta, normalize = sys.argv[1:]
+def digest(path):
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for block in iter(lambda: fh.read(1024 * 1024), b""):
+            h.update(block)
+    return h.hexdigest()
+paths = [truth, hc, target, fasta]
+sources = {p: digest(p) for p in paths if p and Path(p).is_file()}
+Path(od, f"{pair}.benchmark_provenance.json").write_text(json.dumps({
+    "pair": pair, "truth": truth, "truth_bed": hc, "target_bed": target,
+    "reference": fasta, "normalize_all": normalize == "1",
+    "selection": "FILTER=Somatic or FILTER=PASS rewritten to PASS in derived copies",
+    "source_sha256": sources,
+    "policy_flags": {"native_evidence_snv": "recorded by workflow command or caller VCF provenance", "rescue_stage": "caller supplied via RESCUE_VCF"},
+    "tool": "som.py/happy via micromamba", "command_contract": "truth query -R HC -T target -r reference [optional -N]",
+    "source_outputs_unchanged": True,
+}, indent=2, sort_keys=True) + "\n")
+PY
 
 echo ">> Done. Table: $OD/$PAIR.benchmark_comparison.csv"

@@ -2,14 +2,8 @@
 """Evaluate a frozen policy on held-out slices without retuning."""
 import argparse
 import json
-import math
 from pathlib import Path
-
-
-def metric(value, label):
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= 1:
-        raise ValueError(f"{label} must be a finite number between 0 and 1")
-    return float(value)
+from policy_metrics import f1, metric
 
 
 def validate_bound(frozen, held):
@@ -73,7 +67,9 @@ def main():
             metric(base.get("recall"), f"baseline {key} recall")
             row["precision_gate"] = row["precision"] >= base["precision"] + min_delta
             row["recall_gate"] = row["recall"] >= base["recall"] + min_delta
-            row["accepted"] = row["precision_gate"] and row["recall_gate"]
+            row["f1"] = f1(row, f"held-out {key}")
+            row["f1_gate"] = row["f1"] >= f1(base, f"baseline {key}") + frozen.get("min_f1_delta", 0.0)
+            row["accepted"] = row["precision_gate"] and row["recall_gate"] and row["f1_gate"]
             rows.append(row)
     except (OSError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))

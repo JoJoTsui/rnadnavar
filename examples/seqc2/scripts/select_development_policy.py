@@ -2,16 +2,8 @@
 """Select and freeze a label policy from declared development metrics."""
 import argparse
 import json
-import math
 from pathlib import Path
-
-
-def _metric(value, label):
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
-        raise ValueError(f"{label} must be a finite number")
-    if not 0 <= value <= 1:
-        raise ValueError(f"{label} must be between 0 and 1")
-    return float(value)
+from policy_metrics import f1, metric
 
 
 def _schema(data):
@@ -33,8 +25,9 @@ def _schema(data):
     for key, row in baseline.items():
         if not isinstance(row, dict):
             raise ValueError(f"baseline slice {key} must be an object")
-        _metric(row.get("precision"), f"baseline {key} precision")
-        _metric(row.get("recall"), f"baseline {key} recall")
+        metric(row.get("precision"), f"baseline {key} precision")
+        metric(row.get("recall"), f"baseline {key} recall")
+        row["f1"] = f1(row, f"baseline {key}")
     candidates = data.get("candidates")
     if not isinstance(candidates, list):
         raise ValueError("candidates must be a list")
@@ -55,8 +48,9 @@ def _candidate_rows(candidate, required):
         if key in by:
             raise ValueError(f"candidate contains duplicate slice {key}")
         by[key] = row
-        _metric(row.get("precision"), f"candidate {key} precision")
-        _metric(row.get("recall"), f"candidate {key} recall")
+        metric(row.get("precision"), f"candidate {key} precision")
+        metric(row.get("recall"), f"candidate {key} recall")
+        row["f1"] = f1(row, f"candidate {key}")
     extra = [key for key in by if key not in required]
     if extra:
         raise ValueError("candidate contains undeclared extra slices: " + ", ".join(sorted(extra)))
@@ -71,11 +65,17 @@ def main():
     parser.add_argument("--metrics", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--min-delta", type=float, default=0.0)
+    parser.add_argument("--min-f1-delta", type=float, default=0.0,
+                        help="Minimum candidate F1 delta versus the declared baseline")
+    parser.add_argument("--min-precision-delta", type=float, default=0.0,
+                        help="Minimum candidate precision delta versus the declared baseline")
     args = parser.parse_args()
     try:
         data = json.loads(Path(args.metrics).read_text())
         required, baseline, candidates = _schema(data)
-        min_delta = _metric(args.min_delta, "min-delta")
+        min_delta = metric(args.min_delta, "min-delta")
+        min_f1_delta = metric(args.min_f1_delta, "min-f1-delta")
+        min_precision_delta = metric(args.min_precision_delta, "min-precision-delta")
         decisions = []
         for candidate in candidates:
             by = _candidate_rows(candidate, required)
@@ -83,10 +83,12 @@ def main():
             for key in required:
                 base = baseline[key]
                 row = by[key]
-                if row["precision"] < base["precision"] + min_delta:
+                if row["precision"] < base["precision"] + max(min_delta, min_precision_delta):
                     failures.append({"key": key, "reason": "precision_gate", "candidate": row["precision"], "baseline": base["precision"]})
                 if row["recall"] < base["recall"] + min_delta:
                     failures.append({"key": key, "reason": "recall_gate", "candidate": row["recall"], "baseline": base["recall"]})
+                if row["f1"] < base["f1"] + min_f1_delta:
+                    failures.append({"key": key, "reason": "f1_gate", "candidate": row["f1"], "baseline": base["f1"]})
             decisions.append({"policy": candidate["policy"], "qualifies": not failures, "failures": failures})
     except (OSError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))
@@ -98,6 +100,8 @@ def main():
         "partitions": data["partitions"],
         "baseline": baseline,
         "min_delta": min_delta,
+        "min_f1_delta": min_f1_delta,
+        "min_precision_delta": min_precision_delta,
         "decisions": decisions,
         "frozen_policy": qualified[0]["policy"] if qualified else None,
     }
