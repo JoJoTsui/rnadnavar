@@ -49,12 +49,19 @@ def read_metrics(samtools, bam, chrom, pos, ref, alt):
     mapq = []
     positions = []
     strands = {"forward": 0, "reverse": 0}
+    flag_counts = {"primary": 0, "secondary": 0, "supplementary": 0, "duplicate": 0, "proper_pair": 0}
     bases = {"ref": 0, "alt": 0, "other": 0, "deletion": 0}
     for line in result.stdout.splitlines():
         fields = line.split("\t")
         if len(fields) < 11:
             continue
         flag, mapping_quality, cigar, sequence, qualities = int(fields[1]), int(fields[4]), fields[5], fields[9], fields[10]
+        if flag & 0x100: flag_counts["secondary"] += 1
+        elif flag & 0x800: flag_counts["supplementary"] += 1
+        else:
+            flag_counts["primary"] += 1
+            if flag & 0x400: flag_counts["duplicate"] += 1
+            if flag & 0x2: flag_counts["proper_pair"] += 1
         reference_cursor, read_cursor = int(fields[3]), 0
         for length_text, operation in _CIGAR.findall(cigar):
             length = int(length_text)
@@ -86,7 +93,7 @@ def read_metrics(samtools, bam, chrom, pos, ref, alt):
     sorted_mapq = sorted(mapq)
     return {"status": "observed", "read_count": len(mapq), "mapq_min": min(mapq),
             "mapq_median": sorted_mapq[len(sorted_mapq) // 2], "read_position_mean": round(sum(positions) / len(positions), 4),
-            "strand": strands, "bases": bases, "command": command}
+            "strand": strands, "flag_counts": flag_counts, "bases": bases, "command": command}
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

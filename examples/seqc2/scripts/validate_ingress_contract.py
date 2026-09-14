@@ -8,6 +8,9 @@ import argparse
 import json
 from pathlib import Path
 import re
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from validation_common import check, overall, write_report
 
 
 def assignment(text, name):
@@ -17,9 +20,6 @@ def assignment(text, name):
     value = match.group(1).split("//", 1)[0].split("#", 1)[0].strip()
     return value.strip("\"'")
 
-
-def check(name, passed, detail):
-    return {"name": name, "status": "pass" if passed else "error", "detail": detail}
 
 
 def main():
@@ -58,10 +58,9 @@ def main():
         values = [parsed[name][key] for key in ("outdir_base", "csv_dir", "state_file", "checksum_dir")]
         checks.append(check(f"{name}-isolated-paths", all(values) and len(set(values)) == len(values), str(values)))
         checks.append(check(f"{name}-new-output", "output_reconsensus" in (parsed[name]["outdir_base"] or ""), parsed[name]["outdir_base"]))
-    report = {"status": "pass" if all(item["status"] == "pass" for item in checks) else "blocked",
-              "static_only": True, "checks": checks, "configs": {name: str(path) for name, path in configs.items()}}
-    args.outdir.mkdir(parents=True)
-    (args.outdir / "ingress_contract.json").write_text(json.dumps(report, indent=2) + "\n")
+    report = {"status": overall(checks), "static_only": True, "checks": checks,
+              "configs": {name: str(path) for name, path in configs.items()}}
+    write_report(args.outdir, "ingress_contract.json", report)
     print(json.dumps({"status": report["status"], "checks": len(checks), "failures": [x for x in checks if x["status"] != "pass"]}, indent=2))
     return 0 if report["status"] == "pass" else 1
 

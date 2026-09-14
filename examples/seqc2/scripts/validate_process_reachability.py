@@ -8,6 +8,9 @@ execute Nextflow or claim cache reuse.
 import argparse
 import json
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from validation_common import check, overall, write_report
 
 
 def main():
@@ -38,10 +41,9 @@ def main():
         ("annotation-before-rescue-filter", all(index >= 0 for index in annotation_order)
          and annotation_order[0] < annotation_order[2] and annotation_order[1] < annotation_order[2]),
     ]
-    report = {"status": "pass" if all(ok for _, ok in checks) else "blocked",
-              "static_only": True, "checks": [{"name": n, "status": "pass" if ok else "error"} for n, ok in checks]}
-    args.outdir.mkdir(parents=True)
-    (args.outdir / "process_reachability.json").write_text(json.dumps(report, indent=2) + "\n")
+    report_checks = [check(n, ok) for n, ok in checks]
+    report = {"status": overall(report_checks), "static_only": True, "checks": report_checks}
+    write_report(args.outdir, "process_reachability.json", report)
     print(json.dumps(report, indent=2))
     return 0 if report["status"] == "pass" else 1
 

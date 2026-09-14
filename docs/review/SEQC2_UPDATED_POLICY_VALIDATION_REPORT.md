@@ -16,11 +16,11 @@ independent validation, and an explicit indel policy.
 
 Machine-readable output:
 
-`examples/seqc2/comparison/updated_policy_validation_20260914_final14/validation_report.json`
+`examples/seqc2/comparison/updated_policy_validation_20260914_final16/validation_report.json`
 
 Ticket matrix:
 
-`examples/seqc2/comparison/updated_policy_validation_20260914_final14/ticket_coverage.json`
+`examples/seqc2/comparison/updated_policy_validation_20260914_final16/ticket_coverage.json`
 
 The validator completed with status `pass_with_known_gates`; this means the
 bounded checks passed while known release gates remain open. It does not mean
@@ -39,13 +39,15 @@ the workflow is approved for training-label generation.
   exploratory; no production module contains its policy name.
 - Re-consensus configs use `step: consensus`, consensus/rescue tools, no caller
   tools, and dedicated checksum namespaces.
-- 19 focused policy tests passed, covering historical replay, rescue evidence,
+- focused policy regression tests passed, covering historical replay, rescue evidence,
   domain attribution, multiallelic/sample-role handling, validator output,
   ingress contracts, static process reachability, and read-metric completeness.
 - Read-level evidence was observed for all 26 control/scored sites in each of
   the DNA-tumor, DNA-normal, original-RNA, and realigned-RNA streams; the
-  audit records MAPQ, strand, read-position, base-count, and command
-  provenance metrics.
+  audit records MAPQ, strand, read-position, base-count, alignment-flag, and
+  command provenance metrics.
+- A source-identity manifest hashes the frozen truth, reference, HC/target
+  regions, configs, evaluation inputs, and read-evidence artifact.
 - Static process analysis confirms annotation modules precede rescue filtering,
   while final realignment lineage remains an explicit artifact-level check.
 

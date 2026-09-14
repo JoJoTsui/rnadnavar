@@ -24,7 +24,8 @@ def build_matrix(report):
         {"ticket": "01", "status": _status(report, [
             "benchmark:wes_ll/ukb", "benchmark:wes_ll/medexome",
             "benchmark:wgs_il/ukb", "benchmark:wgs_il/medexome",
-        ]), "evidence": "benchmark cells and source hashes"},
+            "source-identity:available",
+        ]), "evidence": "benchmark cells and source-identity manifest"},
         {"ticket": "02", "status": _status(report, ["read-evidence:available"]),
          "evidence": "four-stream read/depth/strand metrics"},
         {"ticket": "03", "status": _status(report, [

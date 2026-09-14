@@ -54,6 +54,10 @@ def read_metrics_complete(row):
         if not isinstance(metrics.get("mapq_median"), int) or not 0 <= metrics["mapq_median"] <= 255:
             return False
         strand = metrics.get("strand", {})
+        flags = metrics.get("flag_counts", {})
+        if any(not isinstance(flags.get(key), int) or flags[key] < 0
+               for key in ("primary", "secondary", "supplementary", "duplicate", "proper_pair")):
+            return False
         bases = metrics.get("bases", {})
         if (sum(strand.get(key, -1) for key in ("forward", "reverse"))
                 + bases.get("deletion", -1) != metrics["read_count"]):
@@ -70,6 +74,7 @@ def main():
     parser.add_argument("--read-evidence", type=Path, required=True)
     parser.add_argument("--ingress-report", type=Path, required=True)
     parser.add_argument("--reachability-report", type=Path, required=True)
+    parser.add_argument("--source-manifest", type=Path, required=False)
     args = parser.parse_args()
     if args.outdir.exists():
         parser.error(f"output directory already exists: {args.outdir}; choose a fresh namespace")
@@ -132,6 +137,17 @@ def main():
     else:
         checks.append(check("ingress-contract:available", False, "ingress contract report not run", severity="inconclusive"))
 
+    if args.source_manifest:
+        source_path = args.source_manifest.resolve()
+        if source_path.exists():
+            source = json.loads(source_path.read_text())
+            evidence["source_manifest_sha256"] = digest(source_path)
+            checks.append(check("source-identity:available", source.get("status") == "pass" and bool(source.get("files")) and not source.get("missing"), f"files={len(source.get('files', []))}; missing={source.get('missing', [])}"))
+        else:
+            checks.append(check("source-identity:available", False, "source manifest not found", severity="inconclusive"))
+    else:
+        checks.append(check("source-identity:available", False, "source manifest not supplied", severity="inconclusive"))
+
     reachability_path = args.reachability_report.resolve()
     if reachability_path.exists():
         reachability = json.loads(reachability_path.read_text())
@@ -190,8 +206,17 @@ def main():
         checks.append(check(f"input-mode:{path.name}", "consensus" in text and "rescue" in text, "consensus/rescue tools are declared"))
 
     tests = [
-        [sys.executable, "-m", "pytest", "tests/test_rescue_nomination_experiment.py",
-         "tests/test_rescue_gate_domain_audit.py", "tests/test_historical_native_gate_replay.py", "tests/test_rescue_read_evidence.py", "-q"],
+        [sys.executable, "-m", "pytest",
+         "tests/test_rescue_nomination_experiment.py",
+         "tests/test_rescue_gate_domain_audit.py",
+         "tests/test_historical_native_gate_replay.py",
+         "tests/test_rescue_read_evidence.py",
+         "tests/test_rescue_lineage.py",
+         "tests/test_process_reachability.py",
+         "tests/test_ingress_contract.py",
+         "tests/test_non_hg008_audits.py",
+         "tests/test_ticket_coverage.py",
+         "tests/test_updated_policy_validator.py", "-q"],
     ]
     test_logs = []
     for command in tests:
@@ -199,7 +224,7 @@ def main():
         test_logs.append({"command": command, "returncode": result.returncode,
                           "stdout": result.stdout, "stderr": result.stderr})
     checks.append(check("focused-tests", all(item["returncode"] == 0 for item in test_logs),
-                        "19 focused policy tests pass"))
+                        "focused policy regression tests pass"))
 
     report = {
         "status": "pass_with_known_gates" if all(item["status"] == "pass" for item in checks)

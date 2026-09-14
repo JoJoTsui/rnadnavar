@@ -23,3 +23,9 @@ def test_opt_in_profile_is_explicit_and_indel_policy_is_provisional(tmp_path):
     profile=Path('examples/seq2neo/config/native_gated_policy.yaml')
     assert 'policy_profile: native_gated_experimental' in profile.read_text()
     assert m.EXPECTED['indel_policy']=='threshold_consensus'
+
+
+def test_source_manifest_hashes_content(tmp_path):
+    m=load('manifest','examples/seqc2/scripts/build_policy_source_manifest.py')
+    f=tmp_path/'source.txt'; f.write_text('frozen')
+    assert m.digest(f) and len(m.digest(f))==64

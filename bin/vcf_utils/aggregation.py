@@ -901,6 +901,8 @@ def read_variants_from_vcf(
             normal_sample_id=vcf.samples[normal_sample_idx] if normal_sample_idx is not None else "unknown",
         )
 
+        if vkey in variants:
+            raise ValueError(f"Duplicate allele in {vcf_path}: {vkey}")
         variants[vkey] = data
 
     return variants

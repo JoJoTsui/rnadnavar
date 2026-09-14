@@ -31,6 +31,7 @@ def test_read_metrics_require_all_streams_and_valid_counts():
         row[f"{stream}_read_metrics"] = {
             "status": "observed", "read_count": 2, "mapq_min": 20,
             "mapq_median": 30, "strand": {"forward": 1, "reverse": 1},
+            "flag_counts": {"primary": 2, "secondary": 0, "supplementary": 0, "duplicate": 0, "proper_pair": 2},
             "bases": {"ref": 1, "alt": 1, "other": 0, "deletion": 0},
         }
     assert validator.read_metrics_complete(row)
