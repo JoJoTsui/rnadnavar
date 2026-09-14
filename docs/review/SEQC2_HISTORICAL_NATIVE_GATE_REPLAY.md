@@ -33,8 +33,9 @@ that rule as the future consensus algorithm.
    second-rescue candidate VCF gives **exact allele-set equality** with the
    historical gated VCF. The gate is a union retaining every baseline allele;
    additions must be SNVs with `N_DNA_CALLERS_SUPPORT >= 1` and
-   `N_RNA_CALLERS_SOMATIC >= 2`. The first field is eligible support, not a
-   requirement that the DNA caller label itself be Somatic. These semantics
+   `N_RNA_CALLERS_SOMATIC >= 2`. The first field counts observed DNA callers,
+   not eligible votes or a requirement that the DNA label be Somatic.
+   `N_DNA_CALLERS_ELIGIBLE` is the separate eligibility field. These semantics
    must not be silently replaced by a stricter description.
 3. The historical WGS evidence BED `/tmp/wgsil_sites.bed` contains 2,190
    positions. It is exactly the union of positions in its cached DeepSomatic
