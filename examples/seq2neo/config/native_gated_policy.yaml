@@ -1,0 +1,12 @@
+# Explicit opt-in policy profile.
+# This file is not loaded by default and does not alter legacy cache keys.
+# Use only with consensus/rescue-only reruns after independent validation.
+policy_profile: native_gated_experimental
+native_evidence_snv: true
+rescue_promotion_enabled: true
+rescue_min_dna_callers: 1
+rescue_min_rna_callers: 2
+rescue_veto: dna
+# Indels remain threshold-based until evaluate_indel_policy.py selects an
+# independently validated evidence-based rule.
+indel_policy: threshold_consensus
