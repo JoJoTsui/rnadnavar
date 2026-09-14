@@ -32,14 +32,15 @@ original synthetic graph stopped at consensus.
 
 ## Resume/cache check
 
-The identical command was rerun with `-resume` and the same work directory.
-The log showed cache hits for all three `VT_DECOMPOSE` tasks, all three
-`BCFTOOLS_NORM` tasks, all three `BCFTOOLS_STATS` tasks, and the reference
-`SAMTOOLS_FAIDX` task. Consensus/filter/MultiQC were submitted under the new
-run identity, so this check does **not** claim downstream label-task cache hits.
-It does prove that a policy-only consensus-stage invocation can reuse the
-upstream normalization/reference/statistics cache boundary in an isolated
-work directory.
+The first resume attempt showed the remaining cache defect: `groupTuple()`
+arrival order changed the consensus task hash. The workflow now sorts each
+grouped caller/VCF/index tuple by caller name before invoking consensus.
+With that fix, a fresh run followed by `-resume` in the same work directory
+reused all three `VT_DECOMPOSE`, all three `BCFTOOLS_NORM`, all three
+`BCFTOOLS_STATS`, `SAMTOOLS_FAIDX`, `VCF_CONSENSUS`, and `VCF_FILTER` tasks
+(12 cache hits). Only MultiQC was submitted to write the new run report. The
+resume used a separate output directory to avoid report-file overwrite, and
+completed successfully with consensus and filtered VCFs present.
 
 No mapping, variant caller, realignment, source-input, production-output, or
 shared-cache path was used or modified.

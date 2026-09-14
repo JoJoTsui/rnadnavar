@@ -76,8 +76,17 @@ workflow VCF_CONSENSUS_WORKFLOW {
                         "expected=${expected_callers} actual=${actual} missing=${missing} " +
                         "unexpected=${unexpected} duplicates=${duplicates}"
                 }
+                // groupTuple preserves arrival order, which can vary across
+                // resumes. Canonicalize caller/VCF/index order so the
+                // consensus task hash is stable for identical inputs.
+                def ordered = (0..<actual.size())
+                    .collect { i -> [caller: actual[i], vcf: vcfs[i], tbi: tbis[i]] }
+                    .sort { left, right -> left.caller <=> right.caller }
+                def orderedCallers = ordered.collect { it.caller }
+                def orderedVcfs = ordered.collect { it.vcf }
+                def orderedTbis = ordered.collect { it.tbi }
                 metaMutable.ncallers = expected_callers.size()
-                [ metaMutable, vcfs, tbis, actual, expected_callers ]
+                [ metaMutable, orderedVcfs, orderedTbis, orderedCallers, expected_callers ]
             }
 
         vcf_grouped.dump(tag:"vcf_grouped_for_consensus")
