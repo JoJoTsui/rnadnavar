@@ -51,21 +51,22 @@ def main():
     report["source_stats"][str(reference)] = {"size": reference.stat().st_size, "mtime_ns": reference.stat().st_mtime_ns}
     for dataset in ("wes_ll", "wgs_il"):
         alignments = bundle / dataset / "alignments"
-        tumor = (alignments / "dna_tumor.bam").resolve(strict=True)
-        normal = (alignments / "dna_normal.bam").resolve(strict=True)
-        for path in (tumor, normal):
+        files = {name: (alignments / filename).resolve(strict=True) for name, filename in
+                 (("dna_tumor", "dna_tumor.bam"), ("dna_normal", "dna_normal.bam"),
+                  ("rna_tumor", "rna_tumor.cram"), ("rna_realign", "rna_realign.cram"))}
+        for path in files.values():
             report["source_stats"][str(path)] = {"size": path.stat().st_size, "mtime_ns": path.stat().st_mtime_ns}
-        sites = [row for row in evidence["sites"] if row["dataset"] == dataset]
-        sites = [row for row in sites if row["truth_status"] in {"TP", "FP"}]
+        sites = [row for row in evidence["sites"] if row["dataset"] == dataset and row["truth_status"] in {"TP", "FP"}]
         if args.max_sites:
             sites = sites[:args.max_sites]
         for row in sites:
             result = {"dataset": dataset, "allele": [row[k] for k in ("chrom", "pos", "ref", "alt")],
-                      "truth_status": row["truth_status"], "tumor": pileup(samtools, reference, tumor, row["chrom"], row["pos"]),
-                      "normal": pileup(samtools, reference, normal, row["chrom"], row["pos"])}
+                      "truth_status": row["truth_status"]}
+            for name, path in files.items():
+                result[name] = pileup(samtools, reference, path, row["chrom"], row["pos"])
             report["sites"].append(result)
     report["summary"] = {dataset: {status: sum(1 for row in report["sites"] if row["dataset"] == dataset
-                                                 and row["tumor"]["status"] == status)
+                                                 and row["dna_tumor"]["status"] == status)
                                    for status in ("observed", "inconclusive")}
                          for dataset in ("wes_ll", "wgs_il")}
     args.outdir.mkdir(parents=True, exist_ok=False)

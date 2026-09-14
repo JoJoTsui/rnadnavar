@@ -16,7 +16,7 @@ independent validation, and an explicit indel policy.
 
 Machine-readable output:
 
-`examples/seqc2/comparison/updated_policy_validation_20260914_final2/validation_report.json`
+`examples/seqc2/comparison/updated_policy_validation_20260914_final4/validation_report.json`
 
 The validator completed with status `pass_with_known_gates`; this means the
 bounded checks passed while known release gates remain open. It does not mean
@@ -35,7 +35,7 @@ the workflow is approved for training-label generation.
   exploratory; no production module contains its policy name.
 - Re-consensus configs use `step: consensus`, consensus/rescue tools, no caller
   tools, and dedicated checksum namespaces.
-- 19 focused tests passed, , covering historical replay, rescue evidence,
+- 19 focused tests passed, covering historical replay, rescue evidence,
   domain attribution, multiallelic/sample-role handling, and validator output.
 
 ## Material findings

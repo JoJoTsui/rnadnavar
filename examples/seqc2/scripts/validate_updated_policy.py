@@ -39,6 +39,7 @@ def metric_tuple(metrics):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--outdir", type=Path, required=True)
+    parser.add_argument("--read-evidence", type=Path, required=True)
     args = parser.parse_args()
     if args.outdir.exists():
         parser.error(f"output directory already exists: {args.outdir}; choose a fresh namespace")
@@ -71,11 +72,14 @@ def main():
         checks.append(check(f"domain-retention:{dataset}", not truth_excluded,
                             f"truth-present exclusions: {truth_excluded}"))
 
-    read_evidence_path = repo / "examples/seqc2/comparison/updated_policy_validation_20260914/read_evidence/read_evidence.json"
+    read_evidence_path = args.read_evidence.resolve()
     if read_evidence_path.exists():
         read_evidence = json.loads(read_evidence_path.read_text())
         evidence["read_evidence_sha256"] = digest(read_evidence_path)
-        checks.append(check("read-evidence:available", bool(read_evidence.get("sites")), "bounded DNA pileup evidence recorded"))
+        sites = read_evidence.get("sites", [])
+        observed = sum(1 for row in sites if row.get("dna_tumor", {}).get("status") == "observed")
+        complete = len(sites) == 18 and observed + sum(1 for row in sites if row.get("dna_tumor", {}).get("status") == "inconclusive") == 18
+        checks.append(check("read-evidence:available", complete and observed > 0, f"{observed}/18 tumor pileups observed; remaining explicitly inconclusive"))
     else:
         checks.append(check("read-evidence:available", False, "bounded DNA pileup evidence not run", severity="inconclusive"))
 
@@ -130,7 +134,7 @@ def main():
 
     tests = [
         [sys.executable, "-m", "pytest", "tests/test_rescue_nomination_experiment.py",
-         "tests/test_rescue_gate_domain_audit.py", "tests/test_historical_native_gate_replay.py", "-q"],
+         "tests/test_rescue_gate_domain_audit.py", "tests/test_historical_native_gate_replay.py", "tests/test_rescue_read_evidence.py", "-q"],
     ]
     test_logs = []
     for command in tests:
@@ -138,7 +142,7 @@ def main():
         test_logs.append({"command": command, "returncode": result.returncode,
                           "stdout": result.stdout, "stderr": result.stderr})
     checks.append(check("focused-tests", all(item["returncode"] == 0 for item in test_logs),
-                        "12+ focused policy tests pass"))
+                        "19 focused policy tests pass"))
 
     report = {
         "status": "pass_with_known_gates" if all(item["status"] == "pass" for item in checks)
