@@ -1,7 +1,7 @@
 # SEQC2 updated-policy validation report
 
-Date: 2026-09-14. Validation implementation commit: pending. This report is
-generated from the frozen 20260914 evidence bundle and completed VCF-only
+Date: 2026-09-14. Validation implementation commit: `aecdb324`. This report is
+generated from the frozen 20260914 evidence bundle and completed VCF/read-level
 assays; it does not represent independent HG008 validation.
 
 ## Executive verdict
@@ -35,8 +35,13 @@ the workflow is approved for training-label generation.
   exploratory; no production module contains its policy name.
 - Re-consensus configs use `step: consensus`, consensus/rescue tools, no caller
   tools, and dedicated checksum namespaces.
-- 19 focused tests passed, covering historical replay, rescue evidence,
-  domain attribution, multiallelic/sample-role handling, and validator output.
+- 19 focused policy tests passed, covering historical replay, rescue evidence,
+  domain attribution, multiallelic/sample-role handling, validator output,
+  ingress contracts, and static process reachability.
+- Read-level evidence was observed for all 26 control/scored sites in each of
+  the DNA-tumor, DNA-normal, original-RNA, and realigned-RNA streams; the
+  audit records MAPQ, strand, read-position, base-count, and command
+  provenance metrics.
 
 ## Material findings
 
@@ -56,9 +61,10 @@ the workflow is approved for training-label generation.
    downstream rescue post-processing. The experimental biological veto uses
    final annotated rescue fields, so equivalent production placement is not
    demonstrated.
-5. **Evidence limitations.** Outside-HC additions are unassessed; read-level
-   evidence and independent HG008 validation are not yet available. RNA
-   realignment is not independent biological confirmation.
+5. **Evidence limitations.** Outside-HC additions and independent HG008
+   validation remain unassessed. Read-level evidence is now available for the
+   frozen SEQC2 sites, but RNA realignment is not independent biological
+   confirmation.
 
 ## Input modes and cache safety
 
