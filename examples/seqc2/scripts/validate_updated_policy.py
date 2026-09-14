@@ -36,6 +36,34 @@ def metric_tuple(metrics):
     return tuple(rows[key] for key in ("tp", "fp", "fn"))
 
 
+READ_METRIC_STREAMS = ("dna_tumor", "dna_normal", "rna_tumor", "rna_realign")
+
+
+def read_metrics_complete(row):
+    """Return whether all four streams carry structurally valid read metrics."""
+    for stream in READ_METRIC_STREAMS:
+        metrics = row.get(f"{stream}_read_metrics", {})
+        if metrics.get("status") == "inconclusive":
+            continue
+        if metrics.get("status") != "observed":
+            return False
+        if not isinstance(metrics.get("read_count"), int) or metrics["read_count"] <= 0:
+            return False
+        if not isinstance(metrics.get("mapq_min"), int) or not 0 <= metrics["mapq_min"] <= 255:
+            return False
+        if not isinstance(metrics.get("mapq_median"), int) or not 0 <= metrics["mapq_median"] <= 255:
+            return False
+        strand = metrics.get("strand", {})
+        bases = metrics.get("bases", {})
+        if (sum(strand.get(key, -1) for key in ("forward", "reverse"))
+                + bases.get("deletion", -1) != metrics["read_count"]):
+            return False
+        if any(not isinstance(bases.get(key), int) or bases[key] < 0
+               for key in ("ref", "alt", "other", "deletion")):
+            return False
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--outdir", type=Path, required=True)
@@ -84,7 +112,11 @@ def main():
         streams = ("dna_tumor", "dna_normal", "rna_tumor", "rna_realign")
         stream_counts = {stream: {status: sum(1 for row in sites if row.get(stream, {}).get("status") == status) for status in ("observed", "inconclusive")} for stream in streams}
         scored = [row for row in sites if row.get("role") == "scored_rescue"]
-        complete = len(scored) == len(expected_sites) and {(row.get("dataset"), tuple(row.get("allele", []))) for row in scored} == expected_sites and len(sites) == 26 and all(sum(counts.values()) == len(sites) for counts in stream_counts.values())
+        complete = (len(scored) == len(expected_sites)
+                   and {(row.get("dataset"), tuple(row.get("allele", []))) for row in scored} == expected_sites
+                   and len(sites) == 26
+                   and all(sum(counts.values()) == len(sites) for counts in stream_counts.values())
+                   and all(read_metrics_complete(row) for row in sites))
         source_stats = read_evidence.get("source_stats", {})
         expected_alignments = {str((bundle / dataset / "alignments" / filename).resolve()) for dataset in ("wes_ll", "wgs_il") for filename in ("dna_tumor.bam", "dna_normal.bam", "rna_tumor.cram", "rna_realign.cram")}
         sources_ok = expected_alignments <= set(source_stats) and str(Path("/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta")) in source_stats
