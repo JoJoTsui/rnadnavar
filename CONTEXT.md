@@ -67,6 +67,12 @@ _Avoid_: Rescued somatic variant for a site whose DNA verification remains unres
 
 ## Benchmark interpretation
 
+**Frozen policy reference**:
+A fixed consensus/rescue interpretation and candidate universe used to evaluate reproduction and compare alternatives. It is not, by itself, an approved training-label policy.
+
+**Input-format policy parity**:
+Equivalent interpretation of the same caller evidence regardless of whether its source entered as reads or caller-ready alignments. It does not imply that DNA and RNA evidence use identical admission rules.
+
 **Benchmark domain**:
 The declared genomic region and variant classes over which a truth set and a query callset are compared. Scores from different domains answer different questions.
 _Avoid_: Whole-genome benchmark when only target regions were evaluated.
