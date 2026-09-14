@@ -55,7 +55,15 @@ process VT_DECOMPOSE {
     def VERSION = "2015.11.10" // WARN: Version information not provided by tool on CLI. Please update this string when bumping container versions.
 
     """
-    touch ${prefix}.vcf.gz
+    # Keep the stub graph semantically valid: downstream consensus parses the
+    # decomposed VCF, so an empty placeholder is not a usable test artifact.
+    # The synthetic run does not need decomposition itself; preserving the
+    # input VCF gives later processes a valid, deterministic record set.
+    if [[ "${vcf}" == *.gz ]]; then
+        cp "${vcf}" "${prefix}.vcf.gz"
+    else
+        gzip -c "${vcf}" > "${prefix}.vcf.gz"
+    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

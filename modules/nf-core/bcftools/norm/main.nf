@@ -70,11 +70,19 @@ process BCFTOOLS_NORM {
                ['--write-index=tbi', '-W=tbi', '--write-index=csi', '-W=csi', '--write-index', '-W'].any { args.contains(it) }) {
         index = args.contains('--write-index=tbi') || args.contains('-W=tbi') ? 'tbi' : 'csi'
     }
-    def create_cmd = extension.endsWith(".gz") ? "echo '' | gzip >" : "touch"
-    def create_index = index ? "touch ${prefix}.${extension}.${index}" : ""
+    // Preserve a valid VCF in stub mode. Empty compressed placeholders pass
+    // channel wiring but fail as soon as consensus reads them.
+    def create_index = index == 'tbi' ? "tabix -p vcf ${prefix}.${extension}" :
+                       (index ? "touch ${prefix}.${extension}.${index}" : "")
 
     """
-    ${create_cmd} ${prefix}.${extension}
+    if [[ "${vcf}" == *.gz && "${extension}" == "vcf.gz" ]]; then
+        cp "${vcf}" "${prefix}.${extension}"
+    elif [[ "${extension}" == "vcf.gz" ]]; then
+        gzip -c "${vcf}" > "${prefix}.${extension}"
+    else
+        cp "${vcf}" "${prefix}.${extension}"
+    fi
     ${create_index}
 
     cat <<-END_VERSIONS > versions.yml
