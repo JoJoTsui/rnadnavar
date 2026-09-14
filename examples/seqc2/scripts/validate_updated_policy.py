@@ -41,6 +41,7 @@ def main():
     parser.add_argument("--outdir", type=Path, required=True)
     parser.add_argument("--read-evidence", type=Path, required=True)
     parser.add_argument("--ingress-report", type=Path, required=True)
+    parser.add_argument("--reachability-report", type=Path, required=True)
     args = parser.parse_args()
     if args.outdir.exists():
         parser.error(f"output directory already exists: {args.outdir}; choose a fresh namespace")
@@ -98,6 +99,14 @@ def main():
         checks.append(check("ingress-contract:available", ingress.get("status") == "pass", ingress.get("status", "missing")))
     else:
         checks.append(check("ingress-contract:available", False, "ingress contract report not run", severity="inconclusive"))
+
+    reachability_path = args.reachability_report.resolve()
+    if reachability_path.exists():
+        reachability = json.loads(reachability_path.read_text())
+        evidence["reachability_report_sha256"] = digest(reachability_path)
+        checks.append(check("process-reachability:available", reachability.get("status") == "pass", reachability.get("status", "missing")))
+    else:
+        checks.append(check("process-reachability:available", False, "process reachability report not run", severity="inconclusive"))
 
     nextflow = (repo / "nextflow.config").read_text()
     checks.extend([
