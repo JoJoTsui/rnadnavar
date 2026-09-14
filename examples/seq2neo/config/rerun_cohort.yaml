@@ -42,7 +42,7 @@ checksum_dir: runs/rerun_native_gated_checksums                # per-sample inpu
 step:  consensus
 # No caller names: no variant-calling process can be triggered.
 # No 'vep': label artifact is produced upstream of VEP (see header comment).
-tools: consensus,rescue,filtering,vep
+tools: consensus,rescue,filtering
 native_evidence_snv: true
 rescue_promotion_enabled: true
 rescue_min_dna_callers: 1

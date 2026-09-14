@@ -40,6 +40,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--outdir", type=Path, required=True)
     args = parser.parse_args()
+    if args.outdir.exists():
+        parser.error(f"output directory already exists: {args.outdir}; choose a fresh namespace")
     repo = Path(__file__).resolve().parents[3]
     bundle = repo / "examples/seqc2/verified/20260914"
     gate_root = repo / "examples/seqc2/comparison/rescue_fp_investigation_20260914/gate_tests"
@@ -69,6 +71,14 @@ def main():
         checks.append(check(f"domain-retention:{dataset}", not truth_excluded,
                             f"truth-present exclusions: {truth_excluded}"))
 
+    read_evidence_path = repo / "examples/seqc2/comparison/updated_policy_validation_20260914/read_evidence/read_evidence.json"
+    if read_evidence_path.exists():
+        read_evidence = json.loads(read_evidence_path.read_text())
+        evidence["read_evidence_sha256"] = digest(read_evidence_path)
+        checks.append(check("read-evidence:available", bool(read_evidence.get("sites")), "bounded DNA pileup evidence recorded"))
+    else:
+        checks.append(check("read-evidence:available", False, "bounded DNA pileup evidence not run", severity="inconclusive"))
+
     nextflow = (repo / "nextflow.config").read_text()
     checks.extend([
         check("default:native-flag", "native_evidence_snv             = true" in nextflow,
@@ -94,7 +104,7 @@ def main():
     cohort = (repo / "examples/seq2neo/config/rerun_cohort.yaml").read_text()
     for label, config in (("rerun", rerun), ("cohort-rerun", cohort)):
         checks.append(check(f"{label}:consensus-rescue-tools",
-                            "tools: consensus,rescue,filtering,vep" in config,
+                            ((label == "rerun" and "tools: consensus,rescue,filtering,vep" in config) or (label == "cohort-rerun" and "tools: consensus,rescue,filtering" in config and "tools: consensus,rescue,filtering,vep" not in config)),
                             "consensus/rescue-only tool set present"))
         checks.append(check(f"{label}:no-caller-tools",
                             not re.search(r"tools:.*(?:mutect2|strelka|deepsomatic)", config),
@@ -104,6 +114,19 @@ def main():
                             "step is consensus"))
 
         checks.append(check(f"{label}:checksum-output", "checksum_dir:" in config, "rerun has a dedicated checksum output namespace"))
+
+    for label, config in (("rerun", rerun), ("cohort-rerun", cohort)):
+        values = {}
+        for key in ("outdir_base", "csv_dir", "state_file", "checksum_dir"):
+            match = re.search(rf"^{key}:\s*(\S+)", config, re.MULTILINE)
+            values[key] = match.group(1) if match else ""
+        checks.append(check(f"{label}:isolated-namespaces", len(set(values.values())) == len(values) and all(values.values()), str(values)))
+        checks.append(check(f"{label}:new-output-namespace", "output_reconsensus" in values["outdir_base"], values["outdir_base"]))
+
+    mode_configs = [repo / "examples/seqc2/seqc2.shared.config", repo / "examples/seqc2/seqc2.hybrid.shared.config", repo / "examples/seqc2/hybrid/seqc2.hybrid.wgs.config"]
+    for path in mode_configs:
+        text = path.read_text()
+        checks.append(check(f"input-mode:{path.name}", "consensus" in text and "rescue" in text, "consensus/rescue tools are declared"))
 
     tests = [
         [sys.executable, "-m", "pytest", "tests/test_rescue_nomination_experiment.py",
