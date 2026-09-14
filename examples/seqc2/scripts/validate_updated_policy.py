@@ -40,6 +40,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--outdir", type=Path, required=True)
     parser.add_argument("--read-evidence", type=Path, required=True)
+    parser.add_argument("--ingress-report", type=Path, required=True)
     args = parser.parse_args()
     if args.outdir.exists():
         parser.error(f"output directory already exists: {args.outdir}; choose a fresh namespace")
@@ -88,6 +89,14 @@ def main():
         checks.append(check("read-evidence:available", complete and sources_ok, f"stream counts {stream_counts}"))
     else:
         checks.append(check("read-evidence:available", False, "bounded DNA pileup evidence not run", severity="inconclusive"))
+
+    ingress_path = args.ingress_report.resolve()
+    if ingress_path.exists():
+        ingress = json.loads(ingress_path.read_text())
+        evidence["ingress_report_sha256"] = digest(ingress_path)
+        checks.append(check("ingress-contract:available", ingress.get("status") == "pass", ingress.get("status", "missing")))
+    else:
+        checks.append(check("ingress-contract:available", False, "ingress contract report not run", severity="inconclusive"))
 
     nextflow = (repo / "nextflow.config").read_text()
     checks.extend([
