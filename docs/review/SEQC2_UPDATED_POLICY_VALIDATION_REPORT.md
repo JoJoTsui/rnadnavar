@@ -16,11 +16,11 @@ independent validation, and an explicit indel policy.
 
 Machine-readable output:
 
-`examples/seqc2/comparison/updated_policy_validation_20260914_final16/validation_report.json`
+`examples/seqc2/comparison/updated_policy_validation_20260914_final17/validation_report.json`
 
 Ticket matrix:
 
-`examples/seqc2/comparison/updated_policy_validation_20260914_final16/ticket_coverage.json`
+`examples/seqc2/comparison/updated_policy_validation_20260914_final17/ticket_coverage.json`
 
 The validator completed with status `pass_with_known_gates`; this means the
 bounded checks passed while known release gates remain open. It does not mean
