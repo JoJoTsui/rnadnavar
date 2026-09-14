@@ -1,5 +1,15 @@
 # SEQC2 Consensus and Rescue Final Report
 
+Corrected WES/WGS comparison:
+[historical native/gated replay](review/SEQC2_HISTORICAL_NATIVE_GATE_REPLAY.md).
+
+> Reproducibility correction (2026-09-14): the manual winning WES VCFs are
+> real, but the deployed native flag is not equivalent to their construction.
+> In particular, historical experimental indels were DeepSomatic-derived;
+> the implemented flag keeps threshold-based indels and ordinary-consensus
+> fallback calls. Treat the tables as historical manual experiment results,
+> not validation of the deployed defaults. See the historical replay audit.
+
 ## Scope
 
 This report freezes the current consensus/rescue interpretation for the SEQC2
