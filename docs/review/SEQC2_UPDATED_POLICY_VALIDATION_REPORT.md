@@ -16,11 +16,11 @@ independent validation, and an explicit indel policy.
 
 Machine-readable output:
 
-`examples/seqc2/comparison/updated_policy_validation_20260914_final13/validation_report.json`
+`examples/seqc2/comparison/updated_policy_validation_20260914_final14/validation_report.json`
 
 Ticket matrix:
 
-`examples/seqc2/comparison/updated_policy_validation_20260914_final13/ticket_coverage.json`
+`examples/seqc2/comparison/updated_policy_validation_20260914_final14/ticket_coverage.json`
 
 The validator completed with status `pass_with_known_gates`; this means the
 bounded checks passed while known release gates remain open. It does not mean
@@ -46,6 +46,8 @@ the workflow is approved for training-label generation.
   the DNA-tumor, DNA-normal, original-RNA, and realigned-RNA streams; the
   audit records MAPQ, strand, read-position, base-count, and command
   provenance metrics.
+- Static process analysis confirms annotation modules precede rescue filtering,
+  while final realignment lineage remains an explicit artifact-level check.
 
 ## Material findings
 

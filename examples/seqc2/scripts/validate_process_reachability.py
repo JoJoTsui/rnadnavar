@@ -21,6 +21,12 @@ def main():
     bam_align = (repo / "subworkflows/local/bam_align/main.nf").read_text()
     sample_channel = (repo / "subworkflows/local/samplesheet_to_channel/main.nf").read_text()
     consensus = (repo / "subworkflows/local/vcf_consensus_workflow/main.nf").read_text()
+    rescue_post = (repo / "subworkflows/local/vcf_rescue_post_processing/main.nf").read_text()
+    annotation_order = [
+        rescue_post.find("COSMIC_GNOMAD_ANNOTATION"),
+        rescue_post.find("RNA_EDITING_ANNOTATION"),
+        rescue_post.find("VCF_RESCUE_FILTERING"),
+    ]
     checks = [
         ("bam-align-mapping-gate", "if (params.step == 'mapping')" in bam_align),
         ("bam-input-nonmapping-route", "bam files" in sample_channel and "params.step != 'mapping'" in sample_channel),
@@ -29,6 +35,8 @@ def main():
         ("rescue-process-route", "VCF_RESCUE_WORKFLOW" in consensus and "params.tools.split(',').contains('rescue')" in consensus),
         ("second-rescue-route", "SECOND_RESCUE_WORKFLOW" in workflow and "second_rescued_vcf" in workflow),
         ("realignment-route", "params.tools.split(',').contains('realignment')" in workflow),
+        ("annotation-before-rescue-filter", all(index >= 0 for index in annotation_order)
+         and annotation_order[0] < annotation_order[2] and annotation_order[1] < annotation_order[2]),
     ]
     report = {"status": "pass" if all(ok for _, ok in checks) else "blocked",
               "static_only": True, "checks": [{"name": n, "status": "pass" if ok else "error"} for n, ok in checks]}
