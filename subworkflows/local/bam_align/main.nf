@@ -287,6 +287,8 @@ workflow BAM_ALIGN {
     bam_mapped       = bam_mapped      // for preprocessing
     cram_mapped      = cram_mapped     // for preprocessing
     reports          = reports
-    dictionary_audits = BAM_REORDER_CONTIGS.out.audit
+    // BAM_REORDER_CONTIGS is only invoked in the mapping branch. Keep the
+    // emitted channel defined for consensus/variant-calling entry points.
+    dictionary_audits = (params.step == 'mapping') ? BAM_REORDER_CONTIGS.out.audit : Channel.empty()
     versions         = versions
 }

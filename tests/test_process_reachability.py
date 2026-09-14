@@ -10,3 +10,8 @@ spec.loader.exec_module(reachability)
 
 def test_script_has_explicit_static_contract():
     assert "static_only" in SCRIPT.read_text()
+
+
+def test_bam_align_emits_empty_dictionary_audit_off_mapping():
+    text=(Path(__file__).resolve().parents[1]/"subworkflows/local/bam_align/main.nf").read_text()
+    assert "params.step == 'mapping'" in text and "Channel.empty()" in text
