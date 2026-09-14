@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+import re
 import sys
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -35,6 +36,58 @@ def pileup(samtools, reference, bam, chrom, pos):
             "base_qualities": row[5], "command": command}
 
 
+_CIGAR = re.compile(r"(\d+)([MIDNSHP=X])")
+
+def read_metrics(samtools, bam, chrom, pos, ref, alt):
+    command = [samtools, "view", str(bam), f"{chrom}:{pos}-{pos}"]
+    try:
+        result = subprocess.run(command, text=True, capture_output=True, timeout=30)
+    except subprocess.TimeoutExpired:
+        return {"status": "inconclusive", "reason": "read view timed out", "command": command}
+    if result.returncode:
+        return {"status": "inconclusive", "reason": result.stderr.strip(), "command": command}
+    mapq = []
+    positions = []
+    strands = {"forward": 0, "reverse": 0}
+    bases = {"ref": 0, "alt": 0, "other": 0, "deletion": 0}
+    for line in result.stdout.splitlines():
+        fields = line.split("\t")
+        if len(fields) < 11:
+            continue
+        flag, mapping_quality, cigar, sequence, qualities = int(fields[1]), int(fields[4]), fields[5], fields[9], fields[10]
+        reference_cursor, read_cursor = int(fields[3]), 0
+        for length_text, operation in _CIGAR.findall(cigar):
+            length = int(length_text)
+            if operation in "M=X":
+                if reference_cursor <= pos < reference_cursor + length:
+                    offset = read_cursor + pos - reference_cursor
+                    base = sequence[offset].upper() if offset < len(sequence) else "N"
+                    mapq.append(mapping_quality)
+                    positions.append(round((offset + 1) / max(len(sequence), 1), 4))
+                    strands["reverse" if flag & 16 else "forward"] += 1
+                    if base == ref.upper():
+                        bases["ref"] += 1
+                    elif base == alt.upper():
+                        bases["alt"] += 1
+                    else:
+                        bases["other"] += 1
+                    break
+                reference_cursor += length
+                read_cursor += length
+            elif operation in "DN":
+                if operation == "D" and reference_cursor <= pos < reference_cursor + length:
+                    mapq.append(mapping_quality); bases["deletion"] += 1
+                    break
+                reference_cursor += length
+            elif operation in "IS":
+                read_cursor += length
+    if not mapq:
+        return {"status": "inconclusive", "reason": "no primary read covered locus", "command": command}
+    sorted_mapq = sorted(mapq)
+    return {"status": "observed", "read_count": len(mapq), "mapq_min": min(mapq),
+            "mapq_median": sorted_mapq[len(sorted_mapq) // 2], "read_position_mean": round(sum(positions) / len(positions), 4),
+            "strand": strands, "bases": bases, "command": command}
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--outdir", type=Path, required=True)
@@ -56,11 +109,13 @@ def main():
     report["source_stats"][str(reference)] = {"size": reference.stat().st_size, "mtime_ns": reference.stat().st_mtime_ns}
     for dataset in ("wes_ll", "wgs_il"):
         alignments = bundle / dataset / "alignments"
-        files = {name: (alignments / filename).resolve(strict=True) for name, filename in
+        files = {name: (alignments / filename) for name, filename in
                  (("dna_tumor", "dna_tumor.bam"), ("dna_normal", "dna_normal.bam"),
                   ("rna_tumor", "rna_tumor.cram"), ("rna_realign", "rna_realign.cram"))}
         for path in files.values():
-            report["source_stats"][str(path)] = {"size": path.stat().st_size, "mtime_ns": path.stat().st_mtime_ns}
+            path.resolve(strict=True)
+        for path in files.values():
+            report["source_stats"][str(path.resolve())] = {"size": path.stat().st_size, "mtime_ns": path.stat().st_mtime_ns}
         sites = [{**row, "role": "scored_rescue"} for row in evidence["sites"]
                  if row["dataset"] == dataset and row["truth_status"] in {"TP", "FP"}]
         native = sorted(records(bundle / dataset / "native_consensus.vcf.gz"))[:2]
@@ -77,6 +132,7 @@ def main():
                       "truth_status": row["truth_status"]}
             for name, path in files.items():
                 result[name] = pileup(samtools, reference, path, row["chrom"], row["pos"])
+                result[f"{name}_read_metrics"] = read_metrics(samtools, path, row["chrom"], row["pos"], row["ref"], row["alt"])
             report["sites"].append(result)
     report["summary"] = {dataset: {role: {status: sum(1 for row in report["sites"]
                                                      if row["dataset"] == dataset and row["role"] == role

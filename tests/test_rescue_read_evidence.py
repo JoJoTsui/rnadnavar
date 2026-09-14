@@ -20,3 +20,13 @@ def test_empty_pileup_is_inconclusive(tmp_path):
     tool.chmod(0o755)
     result = read_evidence.pileup(str(tool), Path("ref.fa"), Path("reads.bam"), "chr1", 10)
     assert result["status"] == "inconclusive"
+
+
+def test_read_metrics_reports_mapping_strand_and_alt_counts(tmp_path):
+    tool = tmp_path / "view-samtools"
+    tool.write_text("#!/bin/sh\nprintf 'chr1\t1\tread\t1\t60\t5M\t*\t0\t0\tAACAA\tIIIII\n'\n")
+    tool.chmod(0o755)
+    result = read_evidence.read_metrics(str(tool), Path("reads.bam"), "chr1", 3, "C", "G")
+    assert result["status"] == "observed"
+    assert result["mapq_median"] == 60
+    assert result["bases"]["ref"] == 1

@@ -16,7 +16,7 @@ independent validation, and an explicit indel policy.
 
 Machine-readable output:
 
-`examples/seqc2/comparison/updated_policy_validation_20260914_final8/validation_report.json`
+`examples/seqc2/comparison/updated_policy_validation_20260914_final10/validation_report.json`
 
 The validator completed with status `pass_with_known_gates`; this means the
 bounded checks passed while known release gates remain open. It does not mean
