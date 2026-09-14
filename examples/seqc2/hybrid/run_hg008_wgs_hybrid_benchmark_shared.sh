@@ -22,5 +22,8 @@ cd "$REPO"
 export HG008_PIPELINE_OUTDIR="$OUTDIR"
 export HG008_PAIR="$PAIR"
 export HG008_COMPARE_DIR="$COMPARE_DIR"
+# Use the Mutect2-resume profile so completed tasks remain cacheable while
+# Mutect2 receives the BAM-header normal sample name (HG008-N).
+export HG008_CONFIG="$HERE/config_hg008_wgs_mutect2_resume.yaml"
 exec bash "$HERE/run_hg008_wgs_hybrid_benchmark.sh" \
   >"$LOG" 2>&1
