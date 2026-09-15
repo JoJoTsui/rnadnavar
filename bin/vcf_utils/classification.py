@@ -487,6 +487,9 @@ def compute_unified_classification_consensus(
     ):
         rationale = "rule:native_evidence_snv|class:Somatic"
         return ("Somatic", rationale) if with_rationale else "Somatic"
+    if variant_data.get("native_evidence_enabled") and variant_data.get("is_snv"):
+        rationale = "rule:native_evidence_gate|class:NoConsensus"
+        return ("NoConsensus", rationale) if with_rationale else "NoConsensus"
 
     # Opt-in DeepSomatic-preserving policy. This is a baseline-retention rule,
     # distinct from eligible consensus support and therefore reported as such.

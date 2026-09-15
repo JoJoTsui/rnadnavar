@@ -12,3 +12,18 @@ def test_native_evidence_does_not_promote_indel():
     data = {"is_snv": False, "native_evidence_pass": True, "callers": [], "filters_normalized": []}
     label = compute_unified_classification_consensus(data, 2, 2)
     assert label == "NoConsensus"
+
+
+def test_native_evidence_gate_blocks_majority_fallback():
+    data = {
+        "is_snv": True,
+        "native_evidence_enabled": True,
+        "native_evidence_pass": False,
+        "callers": ["deepsomatic", "mutect2", "strelka"],
+        "filters_normalized": ["Somatic", "Somatic", "Somatic"],
+    }
+    label, rationale = compute_unified_classification_consensus(
+        data, 2, 2, with_rationale=True
+    )
+    assert label == "NoConsensus"
+    assert "native_evidence_gate" in rationale

@@ -104,19 +104,25 @@ Semantics:
 
 The consensus process supports `--native-evidence-snv` (also exposed as
 `params.native_evidence_snv`, default `true`). Pass the explicit opt-out value
-when reproducing the legacy threshold policy. When enabled, SNVs may be
-classified Somatic by native caller evidence rather than the ordinary caller
-vote alone:
+when reproducing the legacy threshold policy. When enabled, SNVs use a DeepSomatic-preserving backbone plus a narrowly
+qualified addition; they do not fall back to ordinary majority voting:
 
-- a qualified DeepSomatic Somatic record is retained; or
-- a candidate locus with a DeepSomatic record that is not accepted as a
-  DeepSomatic Somatic call is admitted only when that record has QUAL > 0 and
-  Mutect2 TLOD is at least 12 and GERMQ is at least 60, unless Mutect2 has one
-  of the explicit contamination/germline artifact combinations; a locus with
-  no DeepSomatic record is not admitted by this rule.
+- retain a DeepSomatic SNV only when its native VCF `FILTER` is `PASS` (or
+  `.`); or
+- admit a DeepSomatic-observed SNV with `QUAL > 0` when the matching Mutect2
+  record has `TLOD >= 12` and `GERMQ >= 60`, unless Mutect2 has one of the
+  explicit contamination/germline artifact combinations
+  (`contamination;germline;haplotype;panel_of_norms` or
+  `contamination;orientation;weak_evidence`);
+- if neither condition passes, the SNV is emitted as `NoConsensus`, even when
+  two callers otherwise agree. A locus with no DeepSomatic record is not
+  admitted by this rule.
 
-This policy is intentionally SNV-only. Indels are not restricted to DeepSomatic:
-indels continue to use the configured ordinary consensus threshold, but they
-are not promoted by this native-evidence rule. The policy is default-on for new runs; the explicit opt-out preserves legacy
-behavior for controlled rollback and comparison. Caller and alignment caches
-remain reusable because the policy is consumed after caller VCF production.
+This distinction is important because DeepSomatic biological labels are
+normalized for reporting; a non-PASS record must not become a positive merely
+because its normalized label is `Somatic`. The policy is intentionally SNV-only.
+Indels continue to use the configured ordinary consensus threshold and are not
+promoted by native evidence. The policy is default-on for new runs; the
+explicit opt-out preserves legacy behavior for controlled rollback and
+comparison. Caller and alignment caches remain reusable because the policy is
+consumed after caller VCF production.

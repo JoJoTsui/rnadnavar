@@ -1095,19 +1095,24 @@ def aggregate_variants(
         else:
             data["passes_consensus"] = n_support >= indel_threshold
 
-        # Optional native-evidence policy: SNVs are anchored on a qualified
-        # DeepSomatic Somatic call, with a narrow Mutect2 rescue for candidates
-        # that have positive DeepSomatic QUAL and strong TLOD/GERMQ evidence.
+        # Optional native-evidence policy: SNVs use a DeepSomatic-preserving
+        # backbone plus a narrow Mutect2-qualified addition. The backbone is
+        # deliberately the caller's native FILTER=PASS result, rather than
+        # the normalized biological label (which maps several non-PASS
+        # DeepSomatic outcomes to Somatic). This keeps rejected/reference
+        # DeepSomatic records from becoming positives.
         # Indels intentionally retain the normal caller-threshold rule.
+        data["native_evidence_enabled"] = bool(native_evidence_snv and data.get("is_snv"))
         data["native_evidence_pass"] = False
-        if native_evidence_snv and data.get("is_snv"):
-            ds = data.get("native_evidence", {}).get("deepsomatic", {})
+        if data["native_evidence_enabled"]:
             m2 = data.get("native_evidence", {}).get("mutect2", {})
-            ds_label = next((label for caller, label in zip(data["callers"], data["filters_normalized"])
-                             if caller == "deepsomatic"), None)
+            ds_idx = next((i for i, caller in enumerate(data["callers"])
+                           if str(caller).lower() == "deepsomatic"), None)
+            ds_filter = (data.get("filters_original", [])[ds_idx]
+                         if ds_idx is not None and ds_idx < len(data.get("filters_original", []))
+                         else None)
+            ds_pass = str(ds_filter or "").strip().upper() in {"PASS", "."}
             ds_quality = data.get("qualities_by_caller", {}).get("deepsomatic")
-            # QUAL list is not guaranteed to align when a caller omits QUAL;
-            # recover from the caller record's native evidence when absent.
             try:
                 ds_quality_ok = float(ds_quality) > 0
             except (TypeError, ValueError):
@@ -1126,7 +1131,7 @@ def aggregate_variants(
             veto = {"contamination;germline;haplotype;panel_of_normals",
                     "contamination;orientation;weak_evidence"}
             data["native_evidence_pass"] = (
-                (ds_label == "Somatic" and "deepsomatic" in data.get("support_callers", set()))
+                ds_pass
                 or (ds_quality_ok and tlod is not None and germq is not None
                     and tlod >= 12 and germq >= 60 and str(m2_filter).lower() not in veto)
             )
