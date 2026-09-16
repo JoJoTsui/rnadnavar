@@ -1146,4 +1146,5 @@ def aggregate_variants(
             for i, c in enumerate(data["callers"])
         )
 
-    return dict(aggregated)
+    # defaultdict is a dict subclass; avoid a second whole-table copy for large VCFs.
+    return aggregated

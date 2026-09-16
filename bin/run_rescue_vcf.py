@@ -402,8 +402,9 @@ def main():
         "somatic_new_vs_dna": 0,
         "somatic_lost_from_dna": 0,
     }
-    dna_variant_keys = set()
-    rna_variant_keys = set()
+    # Keep scalar counts across chromosomes; retaining every key defeats the per-chromosome memory bound.
+    dna_variant_count = 0
+    rna_variant_count = 0
     total_written = 0
 
     print("\n- Streaming per chromosome over " + ", ".join(chroms))
@@ -481,8 +482,8 @@ def main():
         for data in variant_data.values():
             tag_variant_with_modality(data, modality_map)
 
-        dna_variant_keys |= set(dna_consensus.keys())
-        rna_variant_keys |= set(rna_consensus.keys())
+        dna_variant_count += len(dna_consensus)
+        rna_variant_count += len(rna_consensus)
 
         # Pass the record dicts (not just keys): rescue flags are computed
         # from records that PASSED as Somatic, never from mere presence in the
@@ -520,8 +521,8 @@ def main():
     vcf_out.close()
     print(f"- Successfully wrote {total_written:,} variants to {out_file}")
 
-    print(f"\n  - DNA consensus variants: {len(dna_variant_keys):,}")
-    print(f"  - RNA consensus variants: {len(rna_variant_keys):,}")
+    print(f"\n  - DNA consensus variants: {dna_variant_count:,}")
+    print(f"  - RNA consensus variants: {rna_variant_count:,}")
     print(f"  - Rescued variants (cross-modality support): {total_stats['rescued']:,}")
     print(f"  - Cross-modality variants: {total_stats['cross_modality']:,}")
 
