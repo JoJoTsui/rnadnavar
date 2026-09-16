@@ -157,3 +157,31 @@ Common downstream rescue files:
 Observed caller presence, eligible caller votes and Somatic agreement are separate. Downstream annotation must use allele-specific tumor AD when available and cannot promote an observed caller that failed the configured alternate-read floor. `DNA_VERIFICATION=rejected` vetoes annotation-based Somatic promotion; `confirmed`, `rejected` and `inconclusive` outcomes remain in the final rationale. Missing AD or normal evidence is unavailable, not zero.
 
 RNA-only consensus remains a nomination for an opt-in DNA-verification policy. Realignment is a correlated reassessment of the same RNA reads and does not add an independent vote. The second rescue config records `ALIGNMENT_ROUND=realignment`; first-round defaults remain unchanged.
+
+## Experimental reconstructed nomination gate (not enabled)
+
+`bin/vcf_utils/refined_rescue_policy.py` provides experimental gate primitives,
+not a replacement for the default rescue classifier. Applied to existing
+annotated Somatic SNP candidates, the gate requires a positive DNA variant
+nomination and two distinct RNA callers with native PASS/`.` (or biological
+Somatic) **and at least three tumor alternate reads each**. Raw PASS presence
+alone is insufficient. DeepSomatic RefCall cannot nominate; positive-alt
+Mutect2/Strelka variant records can nominate even when filtered.
+
+Additions are vetoed for gnomAD AF >0.001 or canonical REDI annotation with
+zero DNA Somatic callers; malformed available AF fails closed. The DNA
+consensus baseline is retained separately. Indels are not rescued by this gate.
+No first/realignment-round vote summation is permitted.
+
+See the [SEQC2 reconstruction evidence](review/SEQC2_INDEL_RESCUE_FOLLOWUP_20260916.md#rescue-eligibility-reconstruction-and-benchmark-validation).
+The standalone audits reproduce the SEQC2 realignment benchmarks, and both
+rescue rounds have completed frozen HG008 evaluation and structural checks.
+The [HG008 results](review/HG008_FROZEN_POLICY_RESULTS_20260916.md) do not show
+a rescue benefit over optimized consensus; production adoption and biological
+training-label approval remain outstanding.
+
+The separate `bin/apply_refined_rescue.py` adapter now provides experimental
+biological-label output from existing annotated rescue VCFs. It is not enabled
+by workflow configs. See the [adapter contract and validation runbook](review/SEQC2_RESCUE_OUTPUT_ADAPTER_20260916.md)
+for preserved source evidence, protected negative labels, disk-backed union
+processing, and the explicit training-release limitations.
