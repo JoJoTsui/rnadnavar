@@ -32,12 +32,14 @@ SNP and indel metrics remain in the source JSON files.
 | SEQC2 WGS-IL realignment rescue | 2144 | 25 | 156 | 0.9885 | 0.9322 | 0.9595 |
 | SEQC2 WGS-IL first-round rescue | 2141 | 25 | 159 | 0.9885 | 0.9309 | 0.9588 |
 | HG008 WGS optimized consensus | 499 | 20 | 170 | 0.9615 | 0.7459 | **0.8401** |
+| HG008 WGS optimized consensus + first-round gated rescue | 499 | 25 | 170 | 0.9523 | 0.7459 | 0.8365 |
 | HG008 WGS DNA DeepSomatic | 472 | 24 | 197 | 0.9516 | 0.7055 | 0.8103 |
 | HG008 WGS first-round rescue | 490 | 150 | 179 | 0.7656 | 0.7324 | 0.7487 |
 
 HG008 realignment rescue is not included: the second-round artifact is not
-available. Consequently, HG008 has not yet validated optimized rescue, only
-optimized consensus and the unoptimized first-round rescue.
+available. The optimized first-round gate is now validated, but it adds five
+FPs and no TP relative to optimized consensus, so it is not an improvement on
+HG008.
 
 ## Ranking
 
@@ -48,7 +50,8 @@ optimized consensus and the unoptimized first-round rescue.
    comparisons.
 
 Neither rescue round currently beats the optimized DNA baseline when used
-   without the optimized gate. No standalone Mutect2 or Strelka2 result
+without the optimized gate; the HG008 first-round gate also trails its native
+consensus by five FP. No standalone Mutect2 or Strelka2 result
    exceeds the primary methods under this contract.
 
 ## Provenance
@@ -59,6 +62,8 @@ Neither rescue round currently beats the optimized DNA baseline when used
 - WGS first/realignment rescue benchmark-only metrics:
   `/tmp/wgs-optimized-rounds-pass-20260916/`.
 - HG008 metrics: `/tmp/hg008-rescue-benchmark-20260916/bench/`.
+- HG008 streaming optimized-gate report and metrics:
+  `/tmp/hg008-optimized-gate-20260916/`.
 
 The benchmark copies are derived PASS queries. Original VCFs, workflow
 outputs, mapping/calling caches, and input files were not modified.
