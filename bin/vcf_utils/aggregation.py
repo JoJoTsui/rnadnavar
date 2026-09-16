@@ -661,6 +661,7 @@ def read_variants_from_vcf(
     include_non_canonical=False,
     chrom=None,
     alignment_round="unknown",
+    refined_native=False,
 ):
     """
     Read variants from a single VCF file with biological classification.
@@ -849,13 +850,26 @@ def read_variants_from_vcf(
                 source_evidence[evidence_key] = str(value)
 
         native_evidence = {}
-        for evidence_key in ("TLOD", "GERMQ"):
+        for evidence_key in (("TLOD", "GERMQ", "ECNT") if refined_native else ("TLOD", "GERMQ")):
             try:
                 value = variant.INFO.get(evidence_key)
             except Exception:
                 value = None
             if value not in (None, "", "."):
                 native_evidence[evidence_key] = value
+
+        if refined_native:
+            # Read native FORMAT rows directly: no derived DP or sample fallback.
+            for role, index in (("tumor", tumor_sample_idx), ("normal", normal_sample_idx)):
+                if index is None:
+                    continue
+                for key in ("AD", "DP", "SB"):
+                    try:
+                        field = variant.format(key)
+                        if field is not None and index < len(field):
+                            native_evidence[f"{role}_{key}"] = field[index].tolist()
+                    except (AttributeError, IndexError, TypeError, ValueError, KeyError):
+                        pass
 
         data = {
             "CHROM": variant.CHROM,
@@ -910,7 +924,7 @@ def read_variants_from_vcf(
 
 def aggregate_variants(
     variant_collections, snv_threshold=2, indel_threshold=2, min_alt_support=None,
-    preserve_baseline_callers=None, native_evidence_snv=False,
+    preserve_baseline_callers=None, native_evidence_snv=False, refined_native=False,
 ):
     """
     Aggregate variants from multiple collections.
@@ -1135,6 +1149,13 @@ def aggregate_variants(
                 or (ds_quality_ok and tlod is not None and germq is not None
                     and tlod >= 12 and germq >= 60 and str(m2_filter).lower() not in veto)
             )
+
+        if refined_native:
+            from .refined_native_policy import evaluate, trace
+            branch = evaluate(data)
+            data["refined_native_enabled"] = True
+            data["refined_native_branch"] = branch
+            data["refined_native_trace"] = trace(data, branch or "not_admitted")
 
         # Aggregate genotype information
         data["gt_aggregated"] = aggregate_genotypes(data["genotypes"], data["callers"])

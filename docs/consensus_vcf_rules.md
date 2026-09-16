@@ -126,3 +126,34 @@ promoted by native evidence. The policy is default-on for new runs; the
 explicit opt-out preserves legacy behavior for controlled rollback and
 comparison. Caller and alignment caches remain reusable because the policy is
 consumed after caller VCF production.
+
+### Experimental refined DNA policy (opt-in, not promoted)
+
+The standalone Python driver additionally accepts
+`--experimental-refined-native`. This selects `seqc2_refined_v2`; no Nextflow
+config or workflow default enables it. Use existing, consistently normalized
+DNA caller VCFs. It is not a validated RNA policy or a production label release.
+Do not combine it with `--preserve-baseline-callers`.
+
+- SNPs retain native DeepSomatic PASS/`.` records. Other SNPs require positive
+  DeepSomatic QUAL, Mutect2 TLOD >=12 and GERMQ >=60, with Mutect2 FILTER tokens
+  limited to PASS/`.`/contamination/weak_evidence. No majority fallback.
+- Indels retain ordinary threshold-consensus calls. Additional biallelic
+  sequence indels require DeepSomatic tumor ADalt >=3, measured Mutect2 normal
+  DP >=10 and ADalt =0, GERMQ >=20 and TLOD >0, plus one branch:
+  - DeepSomatic PASS/`.` QUAL >=20, Mutect2 ADalt >=2 and only the soft tokens above;
+  - DeepSomatic PASS/`.` QUAL >=10, the same Mutect2 soft evidence and alternate
+    strand counts >=1 forward and >=1 reverse;
+  - Mutect2 PASS/`.` ADalt >=3 and ECNT =1, DeepSomatic PASS/`.`/RefCall with QUAL >0.
+
+Required absent, nonfinite or malformed measurements fail the corresponding
+branch. Normal DP is read directly, not derived from AD. Missing ECNT only
+disables the single-event branch. Caller counts are not summed as independent
+reads. New admissions respect available population-frequency and DNA-verification
+vetoes. Biological FILTER classes remain unchanged; `CLASSIFICATION_RATIONALE`
+records the policy, admitting branch and caller-native measurements.
+
+See [the development comparison](review/SEQC2_INDEL_RESCUE_FOLLOWUP_20260916.md)
+for the selected assays and their limitations. The reported rescue combination
+is a historical gate replay, not proof of current rescue-driver parity. Do not
+use its metrics as a production-workflow or HG008 validation claim.

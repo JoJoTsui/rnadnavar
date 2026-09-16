@@ -479,6 +479,16 @@ def compute_unified_classification_consensus(
         common_af = gnomad_af is not None and float(gnomad_af) > 0.001
     except (TypeError, ValueError):
         common_af = False
+    if variant_data.get("refined_native_enabled"):
+        branch = variant_data.get("refined_native_branch")
+        allowed = not common_af and verification_status not in {"rejected", "inconclusive"}
+        if branch and allowed:
+            rationale = variant_data["refined_native_trace"] + "|class:Somatic"
+            return ("Somatic", rationale) if with_rationale else "Somatic"
+        if variant_data.get("is_snv"):
+            rationale = variant_data["refined_native_trace"] + "|class:NoConsensus"
+            return ("NoConsensus", rationale) if with_rationale else "NoConsensus"
+        # Unadmitted indels retain the existing threshold classifier.
     if (
         variant_data.get("native_evidence_pass")
         and variant_data.get("is_snv")

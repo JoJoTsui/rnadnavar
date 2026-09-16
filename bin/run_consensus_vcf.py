@@ -74,6 +74,11 @@ def argparser():
         help="Opt-in native-evidence policy for SNVs; indels remain threshold-based",
     )
     parser.add_argument(
+        "--experimental-refined-native",
+        action="store_true",
+        help="SEQC2 development v2 SNP/indel policy; requires normalized DNA caller VCFs; not validated for production",
+    )
+    parser.add_argument(
         "--output_format",
         choices=["vcf", "vcf.gz", "bcf"],
         default="vcf.gz",
@@ -118,6 +123,8 @@ def argparser():
 
 def main():
     args = argparser()
+    if args.experimental_refined_native and args.preserve_baseline_callers:
+        raise SystemExit("Experimental refined policy cannot be combined with baseline preservation")
     try:
         validate_thresholds(vars(args))
     except ValueError as exc:
@@ -286,6 +293,7 @@ def main():
                 exclude_germline=args.exclude_germline,
                 include_non_canonical=args.include_non_canonical,
                 chrom=chrom,
+                refined_native=args.experimental_refined_native,
             )
             n_records += len(variants)
             variant_collections.append((caller, variants, None))
@@ -300,6 +308,7 @@ def main():
             min_alt_support=args.min_alt_support,
             preserve_baseline_callers=preserve_baseline_callers,
             native_evidence_snv=args.native_evidence_snv,
+            refined_native=args.experimental_refined_native,
         )
 
         chunk_stats = compute_consensus_statistics(
