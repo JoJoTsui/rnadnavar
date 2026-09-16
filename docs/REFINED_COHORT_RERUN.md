@@ -1,5 +1,52 @@
 # Frozen refined-policy cohort preparation
 
+## Full-cohort entry point and integration order
+
+The [pilot review](review/REFINED_COHORT_PILOT_REVIEW_20260916.md) is complete:
+all structural checks passed; biological QC retains a baseline-conflict warning
+for 4032. The remaining cohort is prepared, **not launched**. Use the wrapper
+from either checkout; it writes unique logs under the shared output root:
+
+```bash
+# Preparation only (also the default without arguments):
+bash examples/seq2neo/run_refined_cohort.sh --prepare
+
+# Future launch, after acknowledging the pilot warning:
+bash examples/seq2neo/run_refined_cohort.sh --execute --approve-pilot
+```
+
+The wrapper runs in the foreground with log redirection. From the rsynced repo,
+first sync the committed wrapper, runner, config and policy code, and ensure its
+`.venv` is available. At preparation time the shared checkout did not yet contain
+the runner. No code was copied over the shared checkout automatically. Running
+from the development checkout also writes all generated VCFs/state/logs to the
+same shared output root. Existing pilots are checksum-verified and skipped, not
+moved; preserve this directory and code identity to reuse them.
+
+```text
+shared-repo/examples/seq2neo/output_refined_native_v2_20260916/
+├── run_identity.json
+├── candidate_manifest.tsv
+├── logs/                          # unique preparation/full-run logs
+├── pilot_qc.Lhj4wuT0/              # retained pilot QC reports
+└── <sample_id>/
+    ├── state.json
+    └── attemptNNN/                # VCFs, indexes, audits, provenance, task logs
+```
+
+Large private intermediates remain separately under the configured shared
+`nf_work/refined_native_v2_cohort/`. These and generated output directories are
+not source-code artifacts and must remain outside Git. Do not relocate prior
+pilot files just to change the layout: their absolute paths are in provenance.
+
+**Recommended order:** frozen standalone candidate rerun → cohort QC/biological
+review; workflow-default integration is a separate, later change with parity
+tests against these frozen outputs. The rerun does not require integration and
+does not change current workflow defaults. Integration is not training approval.
+Do not edit hashed policy/runner code mid-cohort: that invalidates resume identity.
+Fresh VEP/annotation requirements must be resolved before final training release,
+not silently assumed satisfied by this inherited-annotation candidate rerun.
+
 This is an **opt-in, standalone candidate-label rerun**, not a full Nextflow run
 or training-label release. It uses `seqc2_refined_v2+seqc2_refined_gate_v1`, matching
 the [frozen benchmark archive](manuscript/frozen_native_gate_20260916/README.md).
