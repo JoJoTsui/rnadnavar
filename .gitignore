@@ -69,3 +69,12 @@ examples/seq2neo/runs/label_qc_manifest*.tsv
 /.tmp/
 /.worktrees/
 /examples/seqc2/data/ComprehensiveCancer.dna_manifest.20220908.3col.bed
+
+# Optimized cohort candidate-label outputs; never add to Git
+/examples/seq2neo/output_refined_native_v2*/
+/examples/seq2neo/runs/refined_native_v2*/
+# Manuscript archives contain light evidence only, not generated genomic files
+/docs/manuscript/**/*.vcf*
+/docs/manuscript/**/*.bam*
+/docs/manuscript/**/*.cram*
+/docs/manuscript/**/*.sqlite*

@@ -1,0 +1,452 @@
+[
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/deepsomatic.query.vcf.gz",
+    "bytes": 37039,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/deepsomatic.query.vcf.gz.tbi",
+    "bytes": 23420,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/dna_inputs/sample.deepsomatic.vcf.gz",
+    "bytes": 2189065,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/dna_inputs/sample.deepsomatic.vcf.gz.tbi",
+    "bytes": 375034,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/dna_inputs/sample.mutect2.vcf.gz",
+    "bytes": 471029,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/dna_inputs/sample.mutect2.vcf.gz.tbi",
+    "bytes": 62862,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/dna_inputs/sample.strelka.vcf.gz",
+    "bytes": 4311314,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/dna_inputs/sample.strelka.vcf.gz.tbi",
+    "bytes": 394053,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/first/refined.rescue.vcf.gz",
+    "bytes": 688473907,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/first/refined.rescue.vcf.gz.tbi",
+    "bytes": 786545,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/first/union.sqlite",
+    "bytes": 1592868864,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/realignment/refined.rescue.vcf.gz",
+    "bytes": 389582324,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/realignment/refined.rescue.vcf.gz.tbi",
+    "bytes": 729669,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/realignment/union.sqlite",
+    "bytes": 815669248,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/refined.vcf.gz",
+    "bytes": 32031730,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/refined_consensus.query.vcf.gz",
+    "bytes": 16884,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/refined_consensus.query.vcf.gz.tbi",
+    "bytes": 23607,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/refined_first_rescue.query.vcf.gz",
+    "bytes": 16986,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/refined_first_rescue.query.vcf.gz.tbi",
+    "bytes": 23762,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/refined_realignment_rescue.query.vcf.gz",
+    "bytes": 16989,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/refined_realignment_rescue.query.vcf.gz.tbi",
+    "bytes": 23733,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/workflow_first_rescue.query.vcf.gz",
+    "bytes": 18808,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/workflow_first_rescue.query.vcf.gz.tbi",
+    "bytes": 26267,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/workflow_realignment_rescue.query.vcf.gz",
+    "bytes": 18034,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wes_ll",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wes_frozen_full_domain_v1/workflow_realignment_rescue.query.vcf.gz.tbi",
+    "bytes": 25812,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/deepsomatic.query.vcf.gz",
+    "bytes": 58168,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/deepsomatic.query.vcf.gz.tbi",
+    "bytes": 40728,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/dna_inputs/sample.deepsomatic.vcf.gz",
+    "bytes": 5819203,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/dna_inputs/sample.deepsomatic.vcf.gz.tbi",
+    "bytes": 560833,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/dna_inputs/sample.mutect2.vcf.gz",
+    "bytes": 1341029,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/dna_inputs/sample.mutect2.vcf.gz.tbi",
+    "bytes": 99880,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/dna_inputs/sample.strelka.vcf.gz",
+    "bytes": 4581774,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/dna_inputs/sample.strelka.vcf.gz.tbi",
+    "bytes": 368223,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/first/refined.rescue.vcf.gz",
+    "bytes": 866939840,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/first/refined.rescue.vcf.gz.tbi",
+    "bytes": 927217,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/first/union.sqlite",
+    "bytes": 2084061184,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/realignment/refined.rescue.vcf.gz",
+    "bytes": 1925011012,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/realignment/refined.rescue.vcf.gz.tbi",
+    "bytes": 953486,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/realignment/union.sqlite",
+    "bytes": 2438037504,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined.vcf.gz",
+    "bytes": 65822809,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_consensus.query.vcf.gz",
+    "bytes": 38232,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_consensus.query.vcf.gz.tbi",
+    "bytes": 40981,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_first_rescue.query.vcf.gz",
+    "bytes": 38232,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_first_rescue.query.vcf.gz.tbi",
+    "bytes": 40970,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_realignment_rescue.query.vcf.gz",
+    "bytes": 38248,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_realignment_rescue.query.vcf.gz.tbi",
+    "bytes": 40969,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/workflow_first_rescue.query.vcf.gz",
+    "bytes": 36863,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/workflow_first_rescue.query.vcf.gz.tbi",
+    "bytes": 40519,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/workflow_realignment_rescue.query.vcf.gz",
+    "bytes": 37377,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "seqc2_wgs_il",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/workflow_realignment_rescue.query.vcf.gz.tbi",
+    "bytes": 40792,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/deepsomatic.query.vcf.gz",
+    "bytes": 24913,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/deepsomatic.query.vcf.gz.tbi",
+    "bytes": 10613,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.deepsomatic.vcf.gz",
+    "bytes": 10198633,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.deepsomatic.vcf.gz.tbi",
+    "bytes": 463392,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.mutect2.vcf.gz",
+    "bytes": 1137488,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.mutect2.vcf.gz.tbi",
+    "bytes": 58849,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.strelka.vcf.gz",
+    "bytes": 3919953,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.strelka.vcf.gz.tbi",
+    "bytes": 277640,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/first/refined.rescue.vcf.gz",
+    "bytes": 1455202875,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/first/refined.rescue.vcf.gz.tbi",
+    "bytes": 913225,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/first/union.sqlite",
+    "bytes": 3475673088,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/realignment/refined.rescue.vcf.gz",
+    "bytes": 2729708721,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/realignment/refined.rescue.vcf.gz.tbi",
+    "bytes": 865848,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/realignment/union.sqlite",
+    "bytes": 3630555136,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/refined.vcf.gz",
+    "bytes": 93763152,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/refined_consensus.query.vcf.gz",
+    "bytes": 4916,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/refined_consensus.query.vcf.gz.tbi",
+    "bytes": 11017,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/refined_first_rescue.query.vcf.gz",
+    "bytes": 4946,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/refined_first_rescue.query.vcf.gz.tbi",
+    "bytes": 11053,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/refined_realignment_rescue.query.vcf.gz",
+    "bytes": 4953,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/refined_realignment_rescue.query.vcf.gz.tbi",
+    "bytes": 11081,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/workflow_first_rescue.query.vcf.gz",
+    "bytes": 5944,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/workflow_first_rescue.query.vcf.gz.tbi",
+    "bytes": 12528,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/workflow_realignment_rescue.query.vcf.gz",
+    "bytes": 5707,
+    "role": "retained_generated_artifact"
+  },
+  {
+    "dataset": "hg008_wgs",
+    "path": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/workflow_realignment_rescue.query.vcf.gz.tbi",
+    "bytes": 12128,
+    "role": "retained_generated_artifact"
+  }
+]

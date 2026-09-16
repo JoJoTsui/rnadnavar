@@ -1,0 +1,774 @@
+{
+  "status": "complete_experimental_not_training_ready",
+  "manifest": {
+    "dataset": "seqc2_wgs",
+    "purpose": "Frozen full-input validation; no truth or target candidate preselection",
+    "dna": {
+      "deepsomatic": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/deepsomatic/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.deepsomatic.vcf.gz",
+      "mutect2": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/mutect2/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz",
+      "strelka": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/strelka/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.strelka.variants.vcf.gz"
+    },
+    "rna_first": {
+      "deepsomatic": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/deepsomatic/WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_RT_1_vs_WGS_IL_N_1.deepsomatic.vcf.gz",
+      "mutect2": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/mutect2/WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_RT_1_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz",
+      "strelka": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/strelka/WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_RT_1_vs_WGS_IL_N_1.strelka.variants.vcf.gz"
+    },
+    "rna_realignment": {
+      "deepsomatic": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/variant_calling/deepsomatic/WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_RT_1_realign_vs_WGS_IL_N_1.deepsomatic.vcf.gz",
+      "mutect2": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/variant_calling/mutect2/WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_RT_1_realign_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz",
+      "strelka": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/variant_calling/strelka/WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_RT_1_realign_vs_WGS_IL_N_1.strelka.variants.vcf.gz"
+    },
+    "rescues": {
+      "first": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/rescue/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_vs_WGS_IL_N_1.filtered.vcf.gz",
+      "realignment": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/rescue/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_realign_vs_WGS_IL_N_1.rescue.filtered.stripped.vep.vcf.gz"
+    },
+    "truth": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+    "hc": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+    "fasta": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+    "targets": {
+      "ukb": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "medexome": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed"
+    }
+  },
+  "commands": [
+    [
+      "bcftools",
+      "norm",
+      "-f",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-c",
+      "e",
+      "-d",
+      "exact",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/deepsomatic/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.deepsomatic.vcf.gz",
+      "-Oz",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/dna_inputs/sample.deepsomatic.vcf.gz"
+    ],
+    [
+      "bcftools",
+      "index",
+      "-t",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/dna_inputs/sample.deepsomatic.vcf.gz"
+    ],
+    [
+      "bcftools",
+      "norm",
+      "-f",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-c",
+      "e",
+      "-d",
+      "exact",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/mutect2/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz",
+      "-Oz",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/dna_inputs/sample.mutect2.vcf.gz"
+    ],
+    [
+      "bcftools",
+      "index",
+      "-t",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/dna_inputs/sample.mutect2.vcf.gz"
+    ],
+    [
+      "bcftools",
+      "norm",
+      "-f",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-c",
+      "e",
+      "-d",
+      "exact",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/strelka/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.strelka.variants.vcf.gz",
+      "-Oz",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/dna_inputs/sample.strelka.vcf.gz"
+    ],
+    [
+      "bcftools",
+      "index",
+      "-t",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/dna_inputs/sample.strelka.vcf.gz"
+    ],
+    [
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/run_consensus_vcf.py",
+      "--input_dir",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/dna_inputs",
+      "--expected_callers",
+      "deepsomatic,mutect2,strelka",
+      "--experimental-refined-native",
+      "--out_prefix",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_consensus.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_consensus.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_consensus.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_consensus.medexome"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/deepsomatic.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/deepsomatic.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/deepsomatic.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/deepsomatic.medexome"
+    ],
+    [
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/apply_refined_rescue.py",
+      "--dna-consensus",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined.vcf.gz",
+      "--annotated-rescue",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/rescue/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_vs_WGS_IL_N_1.filtered.vcf.gz",
+      "--alignment-round",
+      "first",
+      "--outdir",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/first",
+      "--dna-vcf",
+      "deepsomatic=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/deepsomatic/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.deepsomatic.vcf.gz",
+      "--dna-vcf",
+      "mutect2=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/mutect2/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz",
+      "--dna-vcf",
+      "strelka=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/strelka/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.strelka.variants.vcf.gz",
+      "--rna-vcf",
+      "deepsomatic=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/deepsomatic/WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_RT_1_vs_WGS_IL_N_1.deepsomatic.vcf.gz",
+      "--rna-vcf",
+      "mutect2=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/mutect2/WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_RT_1_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz",
+      "--rna-vcf",
+      "strelka=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/strelka/WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_RT_1_vs_WGS_IL_N_1.strelka.variants.vcf.gz"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_first_rescue.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_first_rescue.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_first_rescue.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_first_rescue.medexome"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/workflow_first_rescue.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/workflow_first_rescue.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/workflow_first_rescue.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/workflow_first_rescue.medexome"
+    ],
+    [
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/apply_refined_rescue.py",
+      "--dna-consensus",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined.vcf.gz",
+      "--annotated-rescue",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/rescue/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_realign_vs_WGS_IL_N_1.rescue.filtered.stripped.vep.vcf.gz",
+      "--alignment-round",
+      "realignment",
+      "--outdir",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/realignment",
+      "--dna-vcf",
+      "deepsomatic=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/deepsomatic/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.deepsomatic.vcf.gz",
+      "--dna-vcf",
+      "mutect2=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/mutect2/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz",
+      "--dna-vcf",
+      "strelka=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/strelka/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.strelka.variants.vcf.gz",
+      "--rna-vcf",
+      "deepsomatic=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/variant_calling/deepsomatic/WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_RT_1_realign_vs_WGS_IL_N_1.deepsomatic.vcf.gz",
+      "--rna-vcf",
+      "mutect2=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/variant_calling/mutect2/WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_RT_1_realign_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz",
+      "--rna-vcf",
+      "strelka=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/variant_calling/strelka/WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_RT_1_realign_vs_WGS_IL_N_1.strelka.variants.vcf.gz"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_realignment_rescue.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_realignment_rescue.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_realignment_rescue.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined_realignment_rescue.medexome"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/workflow_realignment_rescue.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/workflow_realignment_rescue.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/workflow_realignment_rescue.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/workflow_realignment_rescue.medexome"
+    ]
+  ],
+  "metrics": {
+    "refined_consensus/ukb": {
+      "snp": {
+        "tp": 2091,
+        "fp": 8,
+        "fn": 114,
+        "precision": 0.9961886612672701,
+        "recall": 0.9482993197278912,
+        "f1": 0.9716542750929368
+      },
+      "indel": {
+        "tp": 81,
+        "fp": 6,
+        "fn": 14,
+        "precision": 0.9310344827586207,
+        "recall": 0.8526315789473684,
+        "f1": 0.8901098901098902
+      },
+      "records": {
+        "tp": 2172,
+        "fp": 14,
+        "fn": 128,
+        "precision": 0.9935956084172004,
+        "recall": 0.9443478260869566,
+        "f1": 0.968345965225145
+      }
+    },
+    "refined_consensus/medexome": {
+      "snp": {
+        "tp": 675,
+        "fp": 2,
+        "fn": 120,
+        "precision": 0.9970457902511078,
+        "recall": 0.8490566037735849,
+        "f1": 0.9171195652173914
+      },
+      "indel": {
+        "tp": 29,
+        "fp": 2,
+        "fn": 5,
+        "precision": 0.9354838709677419,
+        "recall": 0.8529411764705882,
+        "f1": 0.8923076923076922
+      },
+      "records": {
+        "tp": 704,
+        "fp": 4,
+        "fn": 125,
+        "precision": 0.9943502824858758,
+        "recall": 0.8492159227985525,
+        "f1": 0.9160702667534159
+      }
+    },
+    "deepsomatic/ukb": {
+      "snp": {
+        "tp": 2083,
+        "fp": 8,
+        "fn": 122,
+        "precision": 0.9961740793878527,
+        "recall": 0.944671201814059,
+        "f1": 0.9697392923649907
+      },
+      "indel": {
+        "tp": 85,
+        "fp": 11,
+        "fn": 10,
+        "precision": 0.8854166666666666,
+        "recall": 0.8947368421052632,
+        "f1": 0.8900523560209423
+      },
+      "records": {
+        "tp": 2168,
+        "fp": 19,
+        "fn": 132,
+        "precision": 0.9913122999542753,
+        "recall": 0.9426086956521739,
+        "f1": 0.9663472253175841
+      }
+    },
+    "deepsomatic/medexome": {
+      "snp": {
+        "tp": 674,
+        "fp": 2,
+        "fn": 121,
+        "precision": 0.9970414201183432,
+        "recall": 0.8477987421383648,
+        "f1": 0.9163834126444595
+      },
+      "indel": {
+        "tp": 28,
+        "fp": 4,
+        "fn": 6,
+        "precision": 0.875,
+        "recall": 0.8235294117647058,
+        "f1": 0.8484848484848485
+      },
+      "records": {
+        "tp": 702,
+        "fp": 6,
+        "fn": 127,
+        "precision": 0.9915254237288136,
+        "recall": 0.8468033775633294,
+        "f1": 0.9134677944046845
+      }
+    },
+    "refined_first_rescue/ukb": {
+      "snp": {
+        "tp": 2091,
+        "fp": 8,
+        "fn": 114,
+        "precision": 0.9961886612672701,
+        "recall": 0.9482993197278912,
+        "f1": 0.9716542750929368
+      },
+      "indel": {
+        "tp": 81,
+        "fp": 6,
+        "fn": 14,
+        "precision": 0.9310344827586207,
+        "recall": 0.8526315789473684,
+        "f1": 0.8901098901098902
+      },
+      "records": {
+        "tp": 2172,
+        "fp": 14,
+        "fn": 128,
+        "precision": 0.9935956084172004,
+        "recall": 0.9443478260869566,
+        "f1": 0.968345965225145
+      }
+    },
+    "refined_first_rescue/medexome": {
+      "snp": {
+        "tp": 675,
+        "fp": 2,
+        "fn": 120,
+        "precision": 0.9970457902511078,
+        "recall": 0.8490566037735849,
+        "f1": 0.9171195652173914
+      },
+      "indel": {
+        "tp": 29,
+        "fp": 2,
+        "fn": 5,
+        "precision": 0.9354838709677419,
+        "recall": 0.8529411764705882,
+        "f1": 0.8923076923076922
+      },
+      "records": {
+        "tp": 704,
+        "fp": 4,
+        "fn": 125,
+        "precision": 0.9943502824858758,
+        "recall": 0.8492159227985525,
+        "f1": 0.9160702667534159
+      }
+    },
+    "workflow_first_rescue/ukb": {
+      "snp": {
+        "tp": 2070,
+        "fp": 21,
+        "fn": 135,
+        "precision": 0.9899569583931134,
+        "recall": 0.9387755102040817,
+        "f1": 0.963687150837989
+      },
+      "indel": {
+        "tp": 71,
+        "fp": 4,
+        "fn": 24,
+        "precision": 0.9466666666666667,
+        "recall": 0.7473684210526316,
+        "f1": 0.8352941176470587
+      },
+      "records": {
+        "tp": 2141,
+        "fp": 25,
+        "fn": 159,
+        "precision": 0.9884579870729455,
+        "recall": 0.9308695652173913,
+        "f1": 0.9587998208687863
+      }
+    },
+    "workflow_first_rescue/medexome": {
+      "snp": {
+        "tp": 671,
+        "fp": 4,
+        "fn": 124,
+        "precision": 0.9940740740740741,
+        "recall": 0.8440251572327044,
+        "f1": 0.9129251700680273
+      },
+      "indel": {
+        "tp": 24,
+        "fp": 1,
+        "fn": 10,
+        "precision": 0.96,
+        "recall": 0.7058823529411765,
+        "f1": 0.8135593220338982
+      },
+      "records": {
+        "tp": 695,
+        "fp": 5,
+        "fn": 134,
+        "precision": 0.9928571428571429,
+        "recall": 0.8383594692400482,
+        "f1": 0.9090909090909091
+      }
+    },
+    "refined_realignment_rescue/ukb": {
+      "snp": {
+        "tp": 2091,
+        "fp": 8,
+        "fn": 114,
+        "precision": 0.9961886612672701,
+        "recall": 0.9482993197278912,
+        "f1": 0.9716542750929368
+      },
+      "indel": {
+        "tp": 81,
+        "fp": 6,
+        "fn": 14,
+        "precision": 0.9310344827586207,
+        "recall": 0.8526315789473684,
+        "f1": 0.8901098901098902
+      },
+      "records": {
+        "tp": 2172,
+        "fp": 14,
+        "fn": 128,
+        "precision": 0.9935956084172004,
+        "recall": 0.9443478260869566,
+        "f1": 0.968345965225145
+      }
+    },
+    "refined_realignment_rescue/medexome": {
+      "snp": {
+        "tp": 675,
+        "fp": 2,
+        "fn": 120,
+        "precision": 0.9970457902511078,
+        "recall": 0.8490566037735849,
+        "f1": 0.9171195652173914
+      },
+      "indel": {
+        "tp": 29,
+        "fp": 2,
+        "fn": 5,
+        "precision": 0.9354838709677419,
+        "recall": 0.8529411764705882,
+        "f1": 0.8923076923076922
+      },
+      "records": {
+        "tp": 704,
+        "fp": 4,
+        "fn": 125,
+        "precision": 0.9943502824858758,
+        "recall": 0.8492159227985525,
+        "f1": 0.9160702667534159
+      }
+    },
+    "workflow_realignment_rescue/ukb": {
+      "snp": {
+        "tp": 2071,
+        "fp": 21,
+        "fn": 134,
+        "precision": 0.989961759082218,
+        "recall": 0.9392290249433106,
+        "f1": 0.9639283220851756
+      },
+      "indel": {
+        "tp": 73,
+        "fp": 4,
+        "fn": 22,
+        "precision": 0.948051948051948,
+        "recall": 0.7684210526315789,
+        "f1": 0.8488372093023255
+      },
+      "records": {
+        "tp": 2144,
+        "fp": 25,
+        "fn": 156,
+        "precision": 0.9884739511295528,
+        "recall": 0.9321739130434783,
+        "f1": 0.9594987692996196
+      }
+    },
+    "workflow_realignment_rescue/medexome": {
+      "snp": {
+        "tp": 669,
+        "fp": 5,
+        "fn": 126,
+        "precision": 0.9925816023738873,
+        "recall": 0.8415094339622642,
+        "f1": 0.9108236895847517
+      },
+      "indel": {
+        "tp": 25,
+        "fp": 1,
+        "fn": 9,
+        "precision": 0.9615384615384616,
+        "recall": 0.7352941176470589,
+        "f1": 0.8333333333333333
+      },
+      "records": {
+        "tp": 694,
+        "fp": 6,
+        "fn": 135,
+        "precision": 0.9914285714285714,
+        "recall": 0.8371531966224367,
+        "f1": 0.907782864617397
+      }
+    }
+  },
+  "scope": "Evaluate frozen opt-in policies using existing full-domain caller VCFs.\n\nNo workflow launch, truth-driven selection, default promotion or input writes.\nThe output remains experimental: historical annotation provenance and label QC\nmust be reviewed separately before training use.\n",
+  "code": {
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/run_consensus_vcf.py": "121abf9f6231f1e584b12de533ec6224e38ec8fb856eefffdbad99912f9b6d5d",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/apply_refined_rescue.py": "2e8a30a292586c5e89152eb9cf981529c2275016b32f1eb8c170da5430905108",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/scripts/validate_frozen_hybrid_policy.py": "0f0f775bd28d170b3fa73105696525aa87d732b72c2bf12ee1b36bfa01b0107b",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/scripts/aggregate_benchmark.py": "80b6106346051abd8d34cacc3632347cf7bf826855bb25eb1dbb25d7f0de475b",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/scripts/validate_refined_native_integration.py": "f97fe0bae36d0d2d62bf5b7ea6ab37035e08fa41fe47ce3609022b51dfc99364",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/__init__.py": "2dd8957845d83621b84f068fc5ba34974ee3877c5aa84e15b91a15dd464b28d9",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/aggregation.py": "561fcf051a81eba4bc2fe97963918add9dcd71336050d2ec959bc7e0e02d075e",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/annotation_utils.py": "19b6cff031d2f5708857e12ea38fe1a877cc34b8281f95bc9e9891aabc9c1b1e",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/bcftools_annotator.py": "21f7a46e949449ecbcc3d9d66515ff94bb06359574b93b5648ab0f78d998fc8e",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/caller_evidence.py": "a765520738016a00c970145a889ee61113e7a5711531db5dfd4c06119cf52d48",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/chromosome_utils.py": "01c1e8b9958deedf44be6e3598cde9b5ed17f45728c1179b78728d46d20ed742",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/classification.py": "834a95288ba6158ac437404228b5b2dd83cafcaa57dcb39f5b4fab58bd0e0f3d",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/classification_config.py": "ffea026b63f6fdc1cb8c240ea682abd18e14e956952aebd1a9a4d0ef8bfea5ae",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/cosmic_annotator.py": "8b7e72eec1578fc369720a3cb8d8db34c50c040a7650ffe516c624c4bcc309ef",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/error_handler.py": "90ef3314e3854f3880e9bfbadd03ec22b0ecf7c541377174c320fe5ca2aae18d",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/evidence_tiering.py": "19bfd259c669d18966d5a4aeb86cda979e3534dcf867b20df944a4a536ecb451",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/field_mapping.py": "3e0f9b12204079972b8dbe4e586a01bd54b47885aaf145690e4950a5269c6c4c",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/filter_updater.py": "4f07aa5a34ba6b61def4ad85015df62f7b4f819bc8672473b023b2c1f3bfa265",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/filters.py": "620bdc7ad49ae1499988c46940a15a044ed1eccf3842d024d5d3bf956030afa0",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/gnomad_annotator.py": "6a5bf0eacd2d02d89d5e53535c23362b458b6df5ebe533862f6635e503cc7b1a",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/io_utils.py": "b0b9c0fe5184057a6b0e968e90bd949a92306f33aa7f0a61832dddb1c76f99a5",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/logging_config.py": "4c8d60c0dbbe724311ee9f48088a8645b9edabad307b766970ee569de47c907c",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/performance_optimizer.py": "df2dacdbde215d505e991f253ca61181a969b8261d221b30da019f2defb9652a",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/rediportal_converter.py": "eb59ece7f223cf5a0c1251a88c8c042ffb1ef2657522412e4c25a8258038d477",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/refined_native_policy.py": "7d496336029698196d37d04a1941a6e857f2dd02e71d5f45935bde29dfb725c5",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/refined_rescue_policy.py": "04912a2b751fe0d9ed594f2c3a5ccf3dd861483e8af7c02947eba9598649fe45",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/rna_editing_core.py": "778d55a63285e001d5460acb3edffaf9119f83d2f03d8f7841c46e0da29825bb",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/stripped_writer.py": "e898830e4f1ea6b97d1ca162e834df3f44bab830cc0e52ce4e39264faceb4500",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/tagging.py": "98ab3f4bc0823d9eba357cead18d4cadd0d4a5e60c0fd282ed8eca83418d6df3",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/unified_filters.py": "98b3e109e710641fd9f4d5f6804b01dfe9e4459bf346d13d2daaf631cf6fce76",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/variant_classifier.py": "52e93c9673602efb85996973986f45564f4ea95eb3823616dcd6ba1327afd1a9",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/variant_classifier_unified.py": "c9823f5bd5425d790ccc257d336d6876e2cc33559e7f9ea24c99cca77b0d449b",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/variant_statistics.py": "0059a47e1d26fe3855ef1aa14b034d53865c8abb477edb0c7ab0aff8e072b572",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/vcf_escaping.py": "8fcba4055ca2318da2135d81a28c0c87cb0000db97966e45cad31cb7f7eb08dc",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/common/__init__.py": "ee72e066e14c3d61453a02d5866952d343b4bd1701206034a9fc23f119a466b7",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/common/category_matcher.py": "614f3dd4485a54afc461fc60c4c86b4aeebb70daf2af266973ccf23a43754c40",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/common/database_checker.py": "f7245ec3030d33f933673189651c65bf7ccd3f2327df5bb9fd63a533a64e6c85",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/common/tier_config.py": "8ced46cb3232623ba2603cd1beee1ba26e21918f313a816356636eeee49a33a5",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/common/vcf_config.py": "842c9745fd97a19eb01512bb3444c2792c6e10b5745b39f5af586739abbf3c89"
+  },
+  "sources": {
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed": "5ed0875f4c1333d2e40131666b08b485f1f4ea17639b106dc9180d9759896616",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta": "93157a161863464c9435062fd67c173fdaf99cb8b32f1455018361387ffa5564",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed": "dedaa36a956d6121fb8fccd9ae1891a4fefd608ff31ab277cb55d7c96bb4a6c4",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/rescue/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_vs_WGS_IL_N_1.filtered.vcf.gz": "1029e69a6355a582990c2b0c977f2b331e66f68082c86613860a92875067196c",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/deepsomatic/WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_RT_1_vs_WGS_IL_N_1.deepsomatic.vcf.gz": "062eb2209ee7c8082f9b43c4e1cf7cdb96f52e7cc63d58e5474a7a58da9b1408",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/deepsomatic/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.deepsomatic.vcf.gz": "3312b8e60bbbedfac000c6c60d4feb7df03e19c0c181a4528c91aaf86ee4f591",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/mutect2/WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_RT_1_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz": "caac32a12bb7ed2587d3f8d6b8683392d8cbf675cd7125392286396db1f830db",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/mutect2/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz": "65f02ac032236ee5f4cca49754d9852933da86c9df089d3ccc3414460e5fe729",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/strelka/WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_RT_1_vs_WGS_IL_N_1.strelka.variants.vcf.gz": "5974072bf8eebe3a92ca8a0531e6dc0d1edd2b333d875f1b02cd2aefeb20b917",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/strelka/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.strelka.variants.vcf.gz": "918321fe42b955fc1743bf7b0803812613d39d8e3666926bcbc6f70464f29381",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/rescue/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_realign_vs_WGS_IL_N_1.rescue.filtered.stripped.vep.vcf.gz": "02b0643583282afa5820a621cdc624df66cc1ae53ca1cad69bd219aad7495d55",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/variant_calling/deepsomatic/WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_RT_1_realign_vs_WGS_IL_N_1.deepsomatic.vcf.gz": "f849b19a9814742f02b50dc77915230256b8ebe84b9e04911af2253789e5fd64",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/variant_calling/mutect2/WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_RT_1_realign_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz": "9772a647ee6afe8276230dc92d3f091aab59ab99cc928f940975a0c01e56eb2a",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/variant_calling/strelka/WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_RT_1_realign_vs_WGS_IL_N_1.strelka.variants.vcf.gz": "29c0736c86a88a7b937ad1f2a74447c10033b0e685b8bb26ec35d8cfc795253d",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz": "ac818e230bca76fe80dc890523550f7c1c147f6963e4b9f71432a89a2846bab4",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed": "d1cfe2001f51471634db8d29bac17e481496ce3b558f71aff5b2ac10bbcdd87d"
+  },
+  "outputs": {
+    "refined_consensus": {
+      "vcf": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined.vcf.gz",
+      "sha256": "427d067d5bb42b74ba0f707eb0868262dda309ccc51e6584cc2709c1db5dec03"
+    },
+    "deepsomatic": {
+      "vcf": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/deepsomatic/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.deepsomatic.vcf.gz",
+      "sha256": "3312b8e60bbbedfac000c6c60d4feb7df03e19c0c181a4528c91aaf86ee4f591"
+    },
+    "refined_first_rescue": {
+      "vcf": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/first/refined.rescue.vcf.gz",
+      "sha256": "3bd90294333389876476a129b1a061aff964739bd228ce6f5c2f8bea7e584583"
+    },
+    "workflow_first_rescue": {
+      "vcf": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/rescue/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_vs_WGS_IL_N_1.filtered.vcf.gz",
+      "sha256": "1029e69a6355a582990c2b0c977f2b331e66f68082c86613860a92875067196c"
+    },
+    "refined_realignment_rescue": {
+      "vcf": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/realignment/refined.rescue.vcf.gz",
+      "sha256": "5dd08323770e5ec7aac908bb3250fcf381da113010627e08bee282d4c56cab8d"
+    },
+    "workflow_realignment_rescue": {
+      "vcf": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/rescue/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_realign_vs_WGS_IL_N_1.rescue.filtered.stripped.vep.vcf.gz",
+      "sha256": "02b0643583282afa5820a621cdc624df66cc1ae53ca1cad69bd219aad7495d55"
+    }
+  },
+  "manifest_sha256": "b00a7e11a7a531512a8fa791583d3736e4db717dee6ce1934225985888f41795",
+  "sources_unchanged": true,
+  "code_unchanged": true,
+  "manifest_unchanged": true
+}
