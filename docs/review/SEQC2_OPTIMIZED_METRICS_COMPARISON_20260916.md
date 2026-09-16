@@ -3,6 +3,10 @@
 Date: 2026-09-16  
 Branch: `seqc2-consolidated`
 
+For the subsequent matched current-code reproduction and new SEQC2-only
+candidate, see [the current-policy experiment](SEQC2_CURRENT_NATIVE_EXPERIMENT_20260916.md).
+The historical metrics below remain preserved as their own policy version.
+
 This record supersedes comparisons that used the unrestricted historical
 native-plus-gated replay. The optimized rescue policy is the frozen
 DNA-nomination plus biological-veto gate from
@@ -12,8 +16,14 @@ DNA-nomination plus biological-veto gate from
 retain every optimized native-consensus record
 add only SNVs with RNA support >= 2 and a positive DNA nomination
 reject common gnomAD alleles and the DNA-unsupported canonical editing case
-keep indels on the validated threshold-consensus path
+retain historical DeepSomatic-derived indels in the SEQC2 replay
 ```
+
+Policy identity correction: SEQC2 rows below describe the historical native
+replay plus optimized rescue gate. They do not demonstrate threshold-indel
+performance. HG008 rows describe a later consensus experiment, so this is not
+a same-policy cross-dataset validation. See
+[the development protocol](SEQC2_DEVELOPMENT_PROTOCOL_20260916.md).
 
 All values below are `som.py -N` record metrics using the same truth, HC BED,
 target BED, and GRCh38 reference within each dataset. TP/FP/FN are records;
@@ -70,8 +80,7 @@ outputs, mapping/calling caches, and input files were not modified.
 
 ## Next implementation boundary
 
-Apply the frozen optimized gate to HG008's available first-round caller
-evidence in a separate output namespace. Do not tune thresholds on HG008 and
-do not treat realignment as an independent vote. Indel rescue remains disabled
-until one shared indel rule improves all completed datasets without an FP
-regression.
+HG008 first-round evaluation above is complete. Further rule selection uses
+SEQC2 WES/WGS only, under UKB and MedExome. Freeze candidates before subsequent
+HG008 evaluation. Earlier HG008-informed development remains disclosed.
+Realignment is not an independent vote.
