@@ -1,0 +1,14 @@
+{
+  "policy": "seqc2_refined_v2+seqc2_refined_gate_v1",
+  "manifest": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/data/processed/sample_manifest.tsv",
+  "output_root": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916",
+  "work_root": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/nf_work/refined_native_v2_cohort",
+  "fasta": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+  "expected_samples": 66,
+  "pilot_samples": ["PRJNA298330_4032", "PRJNA298376_4278", "PRJNA298376_4255"],
+  "workers": 2,
+  "memory_gib_per_worker": 16,
+  "reserve_memory_gib": 8,
+  "minimum_free_gib": 100,
+  "disk_expansion_factor": 12
+}
