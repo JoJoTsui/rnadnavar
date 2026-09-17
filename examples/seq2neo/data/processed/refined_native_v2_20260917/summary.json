@@ -1,0 +1,2388 @@
+{
+  "schema_version": 1,
+  "samples": 66,
+  "candidate_rows": 32933,
+  "parquet": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/variant_parquet/refined_candidates.parquet",
+  "manifest": "examples/seq2neo/data/processed/refined_native_v2_20260917/manifest.tsv",
+  "variant_filter": "Somatic",
+  "status": "candidate_not_training_approved",
+  "source_manifest": "examples/seq2neo/data/processed/sample_manifest.tsv",
+  "samples_detail": [
+    {
+      "sample_id": "PRJNA298376_3812",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_3812/vcf_realignment/rescue/PRJNA298376_3812DT_vs_PRJNA298376_3812DN_rescued_PRJNA298376_3812RT_realign_vs_PRJNA298376_3812DN/PRJNA298376_3812DT_vs_PRJNA298376_3812DN_rescued_PRJNA298376_3812RT_realign_vs_PRJNA298376_3812DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_3812/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_3812/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "b9228cd06b8163b952381505d81e35aeb8d2aa395439bc0877f6593585aa05c9",
+      "new_consensus_sha256": "59825a9729f93074c4eb2e0aa359ef12bb2b6cd273086716b5f21f9c25eaddad",
+      "new_rescue_sha256": "ca1cfc55e446b9e123014bf614a2df8913ffba3423afde160ea51f926b064b0f",
+      "original_counts": {
+        "NoConsensus": 196616,
+        "Artifact": 18016,
+        "Reference": 20957,
+        "Germline": 16433,
+        "RNAedit": 5458,
+        "Somatic": 1000
+      },
+      "consensus_counts": {
+        "NoConsensus": 92154,
+        "Reference": 745,
+        "Artifact": 333,
+        "Somatic": 216,
+        "Germline": 349
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 197435,
+        "Artifact": 17990,
+        "Reference": 20955,
+        "Germline": 16433,
+        "RNAedit": 5457,
+        "Somatic": 216
+      },
+      "original_records": 258480,
+      "new_rescue_records": 258486,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_3942",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_3942/vcf_realignment/rescue/PRJNA298376_3942DT_vs_PRJNA298376_3942DN_rescued_PRJNA298376_3942RT_realign_vs_PRJNA298376_3942DN/PRJNA298376_3942DT_vs_PRJNA298376_3942DN_rescued_PRJNA298376_3942RT_realign_vs_PRJNA298376_3942DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_3942/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_3942/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "df6cce24af63faa7378c221dc016315fc9355425023b2666c804756c163e373a",
+      "new_consensus_sha256": "4bec303bf741bb088810d3d5f5f3be47a6edb95381b4a499c84c810f895e2356",
+      "new_rescue_sha256": "10dce6de4a497415e1c8e46ab4bc1ce867f3fc7170fdd4f17db15b6ca953cfab",
+      "original_counts": {
+        "Artifact": 54377,
+        "NoConsensus": 454570,
+        "Reference": 132990,
+        "RNAedit": 4730,
+        "Germline": 13235,
+        "Somatic": 967
+      },
+      "consensus_counts": {
+        "NoConsensus": 555132,
+        "Artifact": 1372,
+        "Somatic": 1127,
+        "Germline": 328,
+        "Reference": 901
+      },
+      "new_rescue_counts": {
+        "Artifact": 53867,
+        "NoConsensus": 455029,
+        "Reference": 132936,
+        "RNAedit": 4730,
+        "Germline": 13235,
+        "Somatic": 1129
+      },
+      "original_records": 660869,
+      "new_rescue_records": 660926,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_3948",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_3948/vcf_realignment/rescue/PRJNA298376_3948DT_vs_PRJNA298376_3948DN_rescued_PRJNA298376_3948RT_realign_vs_PRJNA298376_3948DN/PRJNA298376_3948DT_vs_PRJNA298376_3948DN_rescued_PRJNA298376_3948RT_realign_vs_PRJNA298376_3948DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_3948/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_3948/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "209f6efd72421a93be9349c0b1fc41d99a6f49b546421d9320a9d6f7d6170c5f",
+      "new_consensus_sha256": "459d6b1cccfb747e78b608236888f24605d0dad3f31954a95d9f566e1cf0069c",
+      "new_rescue_sha256": "8568b8d2460ce6c9888d5d2b33ce16ffadd933bcd2a5ed1047a867bbe0e4ac3f",
+      "original_counts": {
+        "NoConsensus": 865954,
+        "Reference": 84192,
+        "Artifact": 39356,
+        "Germline": 12086,
+        "RNAedit": 7296,
+        "Somatic": 1081
+      },
+      "consensus_counts": {
+        "NoConsensus": 353617,
+        "Somatic": 1879,
+        "Artifact": 772,
+        "Reference": 1337,
+        "Germline": 9
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 866711,
+        "Reference": 84132,
+        "Artifact": 37914,
+        "Germline": 12086,
+        "Somatic": 1881,
+        "RNAedit": 7296
+      },
+      "original_records": 1009965,
+      "new_rescue_records": 1010020,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_3971",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_3971/vcf_realignment/rescue/PRJNA298376_3971DT_vs_PRJNA298376_3971DN_rescued_PRJNA298376_3971RT_realign_vs_PRJNA298376_3971DN/PRJNA298376_3971DT_vs_PRJNA298376_3971DN_rescued_PRJNA298376_3971RT_realign_vs_PRJNA298376_3971DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_3971/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_3971/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "714a462616b5289e4a8b46ddfe6bbe283e13676db51c481e9da284300282bfa0",
+      "new_consensus_sha256": "b7cf13220c8a71193187b2463c5ea064430299499647027da81b0ce21147f5c6",
+      "new_rescue_sha256": "f3e30bf00d3420befea68170efa7daebc7f5128facf55c46947af0149b668e79",
+      "original_counts": {
+        "NoConsensus": 1260272,
+        "Artifact": 21845,
+        "Reference": 75806,
+        "Germline": 7203,
+        "Somatic": 3360,
+        "RNAedit": 7734
+      },
+      "consensus_counts": {
+        "NoConsensus": 1237644,
+        "Somatic": 605,
+        "Artifact": 698,
+        "Reference": 668,
+        "Germline": 11
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1263633,
+        "Artifact": 21522,
+        "Reference": 75801,
+        "Germline": 7203,
+        "Somatic": 607,
+        "RNAedit": 7734
+      },
+      "original_records": 1376220,
+      "new_rescue_records": 1376500,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_3978",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_3978/vcf_realignment/rescue/PRJNA298376_3978DT_vs_PRJNA298376_3978DN_rescued_PRJNA298376_3978RT_realign_vs_PRJNA298376_3978DN/PRJNA298376_3978DT_vs_PRJNA298376_3978DN_rescued_PRJNA298376_3978RT_realign_vs_PRJNA298376_3978DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_3978/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_3978/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "eb8bbfc7630e9800acec511977627b1c7a5301cd265d1c9d34958c6692ce9b24",
+      "new_consensus_sha256": "17f339f1c08b970e7cee5dccce01b7324f65c3c9316fcfcafe3f813febeed93b",
+      "new_rescue_sha256": "89a49095bfb012cd35868824dbcbc498a0b7261739e8238e177c651af8677c91",
+      "original_counts": {
+        "NoConsensus": 198712,
+        "Artifact": 19914,
+        "RNAedit": 6320,
+        "Germline": 12216,
+        "Reference": 19968,
+        "Somatic": 907
+      },
+      "consensus_counts": {
+        "NoConsensus": 83331,
+        "Artifact": 241,
+        "Reference": 1140,
+        "Somatic": 286,
+        "Germline": 98
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 199392,
+        "Artifact": 19867,
+        "RNAedit": 6320,
+        "Germline": 12216,
+        "Reference": 19968,
+        "Somatic": 288
+      },
+      "original_records": 258037,
+      "new_rescue_records": 258051,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_3995",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_3995/vcf_realignment/rescue/PRJNA298376_3995DT_vs_PRJNA298376_3995DN_rescued_PRJNA298376_3995RT_realign_vs_PRJNA298376_3995DN/PRJNA298376_3995DT_vs_PRJNA298376_3995DN_rescued_PRJNA298376_3995RT_realign_vs_PRJNA298376_3995DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_3995/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_3995/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "5d030859460a9ee835910fc49e9f88115f0cb794aca8643971f5ec1097139249",
+      "new_consensus_sha256": "66273290b0ff4c87b9861399afadc1aea281638ad3d05324800428dff2a30fd0",
+      "new_rescue_sha256": "ee28602270a1343661ca7d2308f7c575ef2f644e651bfabe3395447fd3972fef",
+      "original_counts": {
+        "Artifact": 16450,
+        "NoConsensus": 259122,
+        "Germline": 11797,
+        "RNAedit": 4857,
+        "Reference": 21479,
+        "Somatic": 1171
+      },
+      "consensus_counts": {
+        "NoConsensus": 88102,
+        "Reference": 1084,
+        "Germline": 179,
+        "Somatic": 208,
+        "Artifact": 271
+      },
+      "new_rescue_counts": {
+        "Artifact": 16429,
+        "NoConsensus": 260115,
+        "Germline": 11797,
+        "RNAedit": 4857,
+        "Reference": 21477,
+        "Somatic": 209
+      },
+      "original_records": 314876,
+      "new_rescue_records": 314884,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4007",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4007/vcf_realignment/rescue/PRJNA298376_4007DT_vs_PRJNA298376_4007DN_rescued_PRJNA298376_4007RT_realign_vs_PRJNA298376_4007DN/PRJNA298376_4007DT_vs_PRJNA298376_4007DN_rescued_PRJNA298376_4007RT_realign_vs_PRJNA298376_4007DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4007/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4007/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "ca87778f69fbd79b82469ab290fef0973c6b51608305c38410162fdbc757db52",
+      "new_consensus_sha256": "d8ca764295afeafbf2597552cc438ef1077de3f158722404923e99eadf877fe9",
+      "new_rescue_sha256": "8671135866b96a6e5c239c1d5cdd2bb6f750a51bb7c652211ade2d9e9d7ddc6f",
+      "original_counts": {
+        "NoConsensus": 391902,
+        "Artifact": 44638,
+        "Reference": 48441,
+        "RNAedit": 3892,
+        "Germline": 10739,
+        "Somatic": 1498
+      },
+      "consensus_counts": {
+        "NoConsensus": 374032,
+        "Reference": 1369,
+        "Somatic": 607,
+        "Artifact": 761,
+        "Germline": 103
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 393028,
+        "Artifact": 44475,
+        "Reference": 48434,
+        "RNAedit": 3892,
+        "Germline": 10739,
+        "Somatic": 609
+      },
+      "original_records": 501110,
+      "new_rescue_records": 501177,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4060",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4060_rnadnavar/vcf_realignment/rescue/4060DT_vs_4060DN_rescued_4060RT_realign_vs_4060DN/4060DT_vs_4060DN_rescued_4060RT_realign_vs_4060DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4060/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4060/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "e3461e3fd408abf8002f366eeca825d10ac7f25a9fe4262be50445e08a977c9a",
+      "new_consensus_sha256": "1f7a345162a19234b22e458be2f8ca01facf19629349642ae17395b03295b545",
+      "new_rescue_sha256": "e6cbe01f7e873225cc2accff85cf799a6c1a0570963aeb20d1aa79d7d04c5f3c",
+      "original_counts": {
+        "NoConsensus": 1297888,
+        "Artifact": 15164,
+        "Reference": 74499,
+        "Germline": 9428,
+        "RNAedit": 4689,
+        "Somatic": 348
+      },
+      "consensus_counts": {
+        "NoConsensus": 902718,
+        "Reference": 262,
+        "Somatic": 238,
+        "Artifact": 182,
+        "Germline": 26
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1298322,
+        "Artifact": 15127,
+        "Reference": 74498,
+        "Germline": 9428,
+        "RNAedit": 4689,
+        "Somatic": 239
+      },
+      "original_records": 1402016,
+      "new_rescue_records": 1402303,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4069",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4069/vcf_realignment/rescue/PRJNA298376_4069DT_vs_PRJNA298376_4069DN_rescued_PRJNA298376_4069RT_realign_vs_PRJNA298376_4069DN/PRJNA298376_4069DT_vs_PRJNA298376_4069DN_rescued_PRJNA298376_4069RT_realign_vs_PRJNA298376_4069DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4069/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4069/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "403142b623f0767e77c6614fca94bbfea0bde353ed5393708d910d792e98153a",
+      "new_consensus_sha256": "26addc85e6299285e5f680bdbda6bfe6197092a15a48cec6d6048b7af4504c78",
+      "new_rescue_sha256": "24148688cc1582d449e2de924479f2ed22e13eef5b7dd71bdad78bf8dd308e1f",
+      "original_counts": {
+        "NoConsensus": 2532583,
+        "Artifact": 41868,
+        "Reference": 68800,
+        "RNAedit": 35437,
+        "Germline": 22221,
+        "Somatic": 744
+      },
+      "consensus_counts": {
+        "NoConsensus": 1830657,
+        "Somatic": 247,
+        "Reference": 516,
+        "Artifact": 324,
+        "Germline": 231
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 2533729,
+        "Artifact": 41822,
+        "Reference": 68797,
+        "RNAedit": 35437,
+        "Germline": 22220,
+        "Somatic": 248
+      },
+      "original_records": 2701653,
+      "new_rescue_records": 2702253,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4071",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4071/vcf_realignment/rescue/PRJNA298376_4071DT_vs_PRJNA298376_4071DN_rescued_PRJNA298376_4071RT_realign_vs_PRJNA298376_4071DN/PRJNA298376_4071DT_vs_PRJNA298376_4071DN_rescued_PRJNA298376_4071RT_realign_vs_PRJNA298376_4071DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4071/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4071/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "717a8fcc013ed1326773f8aed9d8d3c87e4feafe502457df92f964fc41efc6eb",
+      "new_consensus_sha256": "f992b1b971b8fa253dcb42d2c13c75d2243161d34a005736bd7d3ca565c55040",
+      "new_rescue_sha256": "969c7ac200cefa41f451406652fedcc19a1482eed4426839c5bd4e00f586af71",
+      "original_counts": {
+        "NoConsensus": 6599431,
+        "Reference": 406184,
+        "Artifact": 39168,
+        "RNAedit": 5485,
+        "Germline": 11248,
+        "Somatic": 473
+      },
+      "consensus_counts": {
+        "NoConsensus": 6694397,
+        "Somatic": 582,
+        "Artifact": 1114,
+        "Germline": 145,
+        "Reference": 299
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 6601827,
+        "Reference": 406173,
+        "Artifact": 38884,
+        "RNAedit": 5485,
+        "Germline": 11248,
+        "Somatic": 589
+      },
+      "original_records": 7061989,
+      "new_rescue_records": 7064206,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4072",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4072_rnadnavar/vcf_realignment/rescue/4072DT_vs_4072DN_rescued_4072RT_realign_vs_4072DN/4072DT_vs_4072DN_rescued_4072RT_realign_vs_4072DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4072/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4072/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "ee4108a5f9102c74f666a6736cb08bf435d6af8f4e7299915364d3c73c4fe79e",
+      "new_consensus_sha256": "fa85903aec654a571094ad6deaf408b35a1e7c9b4cdc406e82e1f48b3bb4a499",
+      "new_rescue_sha256": "529c51a02ed9af4b25bb73434d445efe9334c7a035deed5b19ffe5d19d61e52d",
+      "original_counts": {
+        "Reference": 69071,
+        "NoConsensus": 3461685,
+        "Artifact": 15649,
+        "RNAedit": 5699,
+        "Germline": 15637,
+        "Somatic": 359
+      },
+      "consensus_counts": {
+        "NoConsensus": 2550994,
+        "Somatic": 265,
+        "Germline": 415,
+        "Reference": 361,
+        "Artifact": 190
+      },
+      "new_rescue_counts": {
+        "Reference": 69071,
+        "NoConsensus": 3462547,
+        "Artifact": 15627,
+        "RNAedit": 5699,
+        "Germline": 15637,
+        "Somatic": 265
+      },
+      "original_records": 3568100,
+      "new_rescue_records": 3568846,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4077",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4077/vcf_realignment/rescue/PRJNA298376_4077DT_vs_PRJNA298376_4077DN_rescued_PRJNA298376_4077RT_realign_vs_PRJNA298376_4077DN/PRJNA298376_4077DT_vs_PRJNA298376_4077DN_rescued_PRJNA298376_4077RT_realign_vs_PRJNA298376_4077DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4077/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4077/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "73c4fb7a22ee8e893c474001cb34c4394b47e44548b97284845da2b7a93bbada",
+      "new_consensus_sha256": "c30949276477a779710c49b07d7d1e7ab43fc49ec32d3f9b562648838a6a9a52",
+      "new_rescue_sha256": "c72c865ec8fd96bef9b8f41d885613e2dbc10c05e0a9ff351fecba4d7d848079",
+      "original_counts": {
+        "NoConsensus": 8743975,
+        "Reference": 554949,
+        "Artifact": 31961,
+        "Germline": 7827,
+        "RNAedit": 3608,
+        "Somatic": 127
+      },
+      "consensus_counts": {
+        "NoConsensus": 8709464,
+        "Somatic": 179,
+        "Artifact": 1042,
+        "Reference": 197,
+        "Germline": 38
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 8746957,
+        "Reference": 554946,
+        "Artifact": 31886,
+        "Germline": 7827,
+        "Somatic": 179,
+        "RNAedit": 3608
+      },
+      "original_records": 9342447,
+      "new_rescue_records": 9345403,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4081",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4081_rnadnavar/vcf_realignment/rescue/4081DT_vs_4081DN_rescued_4081RT_realign_vs_4081DN/4081DT_vs_4081DN_rescued_4081RT_realign_vs_4081DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4081/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4081/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "0af76277f0d92b5548261f1b2468e7bcfdcb7ffd5b1f8abbce4932e4ddbe7230",
+      "new_consensus_sha256": "0d31abffc8e110df4b92fab5c1f3bb96dfa0dc16a8151d8ac2c1065e6a6d4be1",
+      "new_rescue_sha256": "3691d8918f37310ac5d5dfd6ebb57b65fe61a523a493555507f0f0673c04d9da",
+      "original_counts": {
+        "NoConsensus": 5194497,
+        "Germline": 66784,
+        "Somatic": 10944,
+        "Reference": 192543,
+        "Artifact": 21384,
+        "RNAedit": 5609
+      },
+      "consensus_counts": {
+        "NoConsensus": 4910745,
+        "Artifact": 645,
+        "Somatic": 286,
+        "Reference": 320,
+        "Germline": 45
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 5206758,
+        "Germline": 66772,
+        "Reference": 192588,
+        "Artifact": 21327,
+        "RNAedit": 5609,
+        "Somatic": 286
+      },
+      "original_records": 5491761,
+      "new_rescue_records": 5493340,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4090",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4090/vcf_realignment/rescue/PRJNA298376_4090DT_vs_PRJNA298376_4090DN_rescued_PRJNA298376_4090RT_realign_vs_PRJNA298376_4090DN/PRJNA298376_4090DT_vs_PRJNA298376_4090DN_rescued_PRJNA298376_4090RT_realign_vs_PRJNA298376_4090DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4090/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4090/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "6ab0856abb88feaa669f6f6665cf2d5b2707b3fa8b9bb9945dde8209da19fc0a",
+      "new_consensus_sha256": "8b345bddbd6ab2c86a4016b5bf7f200ecf1db19873a7d9b8c0fda4f89725f56c",
+      "new_rescue_sha256": "656117cc9cb98989c2a6aeca259bdde4e26a5295a5982d8e977c7fc2fdd6b645",
+      "original_counts": {
+        "NoConsensus": 2162385,
+        "Reference": 28519,
+        "Artifact": 9575,
+        "Germline": 7802,
+        "RNAedit": 2688,
+        "Somatic": 481
+      },
+      "consensus_counts": {
+        "NoConsensus": 1666624,
+        "Artifact": 483,
+        "Somatic": 522,
+        "Germline": 332,
+        "Reference": 560
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 2162690,
+        "Reference": 28517,
+        "Artifact": 9487,
+        "Germline": 7802,
+        "RNAedit": 2688,
+        "Somatic": 522
+      },
+      "original_records": 2211450,
+      "new_rescue_records": 2211706,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4095",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4095_rnadnavar/vcf_realignment/rescue/4095DT_vs_4095DN_rescued_4095RT_realign_vs_4095DN/4095DT_vs_4095DN_rescued_4095RT_realign_vs_4095DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4095/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4095/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "e5c55a2ab2bcaeb264966b58dd9c8f1fa2e63425bb6faf31b9da0d75514bdda8",
+      "new_consensus_sha256": "6a7e05e97270d15450c20f349f35a692a963245b8310d9e9ca71930457802329",
+      "new_rescue_sha256": "292d64ac1baf2f02321b1c3a575a40de3d6d8f64555beff8d273284fd4edd174",
+      "original_counts": {
+        "NoConsensus": 3808373,
+        "Artifact": 108272,
+        "Reference": 384231,
+        "Germline": 13418,
+        "RNAedit": 24729,
+        "Somatic": 1475
+      },
+      "consensus_counts": {
+        "NoConsensus": 4030192,
+        "Artifact": 1697,
+        "Germline": 46,
+        "Reference": 434,
+        "Somatic": 282
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 3810505,
+        "Artifact": 108213,
+        "Reference": 384229,
+        "Germline": 13418,
+        "RNAedit": 24729,
+        "Somatic": 294
+      },
+      "original_records": 4340498,
+      "new_rescue_records": 4341388,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4110",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4110/vcf_realignment/rescue/PRJNA298376_4110DT_vs_PRJNA298376_4110DN_rescued_PRJNA298376_4110RT_realign_vs_PRJNA298376_4110DN/PRJNA298376_4110DT_vs_PRJNA298376_4110DN_rescued_PRJNA298376_4110RT_realign_vs_PRJNA298376_4110DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4110/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4110/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "370b583c78ce405e429b720451d5e7174b7d6d9eb16f51746f943bc78f9fb7bf",
+      "new_consensus_sha256": "f218fe82f81a82130aacccf270ac861f520531e0cfdcf3601a502638fcb39a3b",
+      "new_rescue_sha256": "bdbaf7ad595b2d5d5cae1da0123727dbe45d77bd5f1056e14b0b62939dc5f32b",
+      "original_counts": {
+        "NoConsensus": 2964694,
+        "Reference": 93890,
+        "Artifact": 28774,
+        "RNAedit": 727,
+        "Germline": 7725,
+        "Somatic": 998
+      },
+      "consensus_counts": {
+        "NoConsensus": 3040099,
+        "Somatic": 361,
+        "Germline": 279,
+        "Reference": 333,
+        "Artifact": 778
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 2966236,
+        "Reference": 93890,
+        "Artifact": 28742,
+        "RNAedit": 727,
+        "Germline": 7725,
+        "Somatic": 361
+      },
+      "original_records": 3096808,
+      "new_rescue_records": 3097681,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4112",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4112/vcf_realignment/rescue/PRJNA298376_4112DT_vs_PRJNA298376_4112DN_rescued_PRJNA298376_4112RT_realign_vs_PRJNA298376_4112DN/PRJNA298376_4112DT_vs_PRJNA298376_4112DN_rescued_PRJNA298376_4112RT_realign_vs_PRJNA298376_4112DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4112/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4112/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "46dde1a7665f278cea72316ecbd07782fd5aae0a00cf91d2faca76e5bfa9385c",
+      "new_consensus_sha256": "b2672910685f24402832cbf19a3766ba4783f569dfaae9b6bf6475999a9da037",
+      "new_rescue_sha256": "fb6348ebdee82422129fa065c65da7ad9688fe8694321d901e894792063b1dea",
+      "original_counts": {
+        "NoConsensus": 1726928,
+        "Reference": 68025,
+        "Artifact": 29634,
+        "RNAedit": 9884,
+        "Germline": 18624,
+        "Somatic": 4272
+      },
+      "consensus_counts": {
+        "NoConsensus": 1605171,
+        "Somatic": 3050,
+        "Reference": 543,
+        "Germline": 448,
+        "Artifact": 359
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1728682,
+        "Reference": 68007,
+        "Artifact": 29516,
+        "RNAedit": 9883,
+        "Germline": 18624,
+        "Somatic": 3056
+      },
+      "original_records": 1857367,
+      "new_rescue_records": 1857768,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4115",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4115/vcf_realignment/rescue/PRJNA298376_4115DT_vs_PRJNA298376_4115DN_rescued_PRJNA298376_4115RT_realign_vs_PRJNA298376_4115DN/PRJNA298376_4115DT_vs_PRJNA298376_4115DN_rescued_PRJNA298376_4115RT_realign_vs_PRJNA298376_4115DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4115/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4115/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "14075460c557c52dcf92845f27d8fb39750c4415fe18208f8991c20d02c594c2",
+      "new_consensus_sha256": "5a661226f5f66cdd160b71f90c8aae6c3439f698522aa694d4f0d198bb0fe248",
+      "new_rescue_sha256": "c5dcddcdc0a422fd264c54a16438a81db2590b9546839c000656408b957dc781",
+      "original_counts": {
+        "Reference": 29713,
+        "NoConsensus": 634616,
+        "Artifact": 6657,
+        "Germline": 9198,
+        "Somatic": 430,
+        "RNAedit": 76
+      },
+      "consensus_counts": {
+        "NoConsensus": 590537,
+        "Artifact": 408,
+        "Germline": 394,
+        "Somatic": 482,
+        "Reference": 552
+      },
+      "new_rescue_counts": {
+        "Reference": 29710,
+        "NoConsensus": 634701,
+        "Artifact": 6588,
+        "Germline": 9198,
+        "Somatic": 482,
+        "RNAedit": 76
+      },
+      "original_records": 680690,
+      "new_rescue_records": 680755,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4145",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4145/vcf_realignment/rescue/PRJNA298376_4145DT_vs_PRJNA298376_4145DN_rescued_PRJNA298376_4145RT_realign_vs_PRJNA298376_4145DN/PRJNA298376_4145DT_vs_PRJNA298376_4145DN_rescued_PRJNA298376_4145RT_realign_vs_PRJNA298376_4145DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4145/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4145/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "848046c2eb37e8745183d6374de325e658ba444f2edef5457153dd2ea25e31a8",
+      "new_consensus_sha256": "d6b11bfccade0978ec3c1575f3988703409f0b9b0023aa9b74b6edf8988b9f86",
+      "new_rescue_sha256": "bba55f3583528567e4846d51ae05f2633becd3b14f739b2e9041977225cfde2b",
+      "original_counts": {
+        "NoConsensus": 1842351,
+        "Reference": 76994,
+        "Artifact": 41315,
+        "RNAedit": 19041,
+        "Germline": 15531,
+        "Somatic": 1313
+      },
+      "consensus_counts": {
+        "NoConsensus": 1602592,
+        "Somatic": 239,
+        "Artifact": 1077,
+        "Reference": 435,
+        "Germline": 151
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1844193,
+        "Reference": 76991,
+        "Artifact": 41255,
+        "RNAedit": 19041,
+        "Germline": 15531,
+        "Somatic": 244
+      },
+      "original_records": 1996545,
+      "new_rescue_records": 1997255,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4151",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4151/vcf_realignment/rescue/PRJNA298376_4151DT_vs_PRJNA298376_4151DN_rescued_PRJNA298376_4151RT_realign_vs_PRJNA298376_4151DN/PRJNA298376_4151DT_vs_PRJNA298376_4151DN_rescued_PRJNA298376_4151RT_realign_vs_PRJNA298376_4151DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4151/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4151/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "df18f506ba4a2f1acc370255405a2fe18dca9c741b97b5d42a4d88d9620cdb54",
+      "new_consensus_sha256": "1b0248a1862a526cb760a164136d0c883b6f353cccfc194600b11c4ee3182340",
+      "new_rescue_sha256": "50dab7e738e5e49f252858b70df236ecb40c096e4a880892781dc2e02272e112",
+      "original_counts": {
+        "NoConsensus": 1609147,
+        "Reference": 56302,
+        "Artifact": 31256,
+        "RNAedit": 1072,
+        "Somatic": 374,
+        "Germline": 7846
+      },
+      "consensus_counts": {
+        "NoConsensus": 1565752,
+        "Somatic": 351,
+        "Artifact": 1135,
+        "Reference": 428,
+        "Germline": 248
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1609674,
+        "Reference": 56300,
+        "Artifact": 31196,
+        "RNAedit": 1072,
+        "Somatic": 351,
+        "Germline": 7846
+      },
+      "original_records": 1705997,
+      "new_rescue_records": 1706439,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4160",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4160/vcf_realignment/rescue/PRJNA298376_4160DT_vs_PRJNA298376_4160DN_rescued_PRJNA298376_4160RT_realign_vs_PRJNA298376_4160DN/PRJNA298376_4160DT_vs_PRJNA298376_4160DN_rescued_PRJNA298376_4160RT_realign_vs_PRJNA298376_4160DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4160/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4160/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "9308d41ad70787818885f5a66608f6f21c4ac679ab2de24d8a4721095fdb7596",
+      "new_consensus_sha256": "e16ce8cda6459a887ec99546763aeda15a55434c77dfda9b4c54255d9a0cb865",
+      "new_rescue_sha256": "df304e15b3f173b2a57803eb32cc06140cd785ed7cab23cc3f0dc13a46d20a77",
+      "original_counts": {
+        "NoConsensus": 2747113,
+        "Artifact": 28561,
+        "Reference": 92693,
+        "Germline": 18778,
+        "RNAedit": 6124,
+        "Somatic": 1008
+      },
+      "consensus_counts": {
+        "NoConsensus": 2504831,
+        "Somatic": 467,
+        "Artifact": 782,
+        "Reference": 314,
+        "Germline": 776
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 2748876,
+        "Artifact": 28528,
+        "Reference": 92693,
+        "Germline": 18778,
+        "RNAedit": 6124,
+        "Somatic": 472
+      },
+      "original_records": 2894277,
+      "new_rescue_records": 2895471,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4166",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4166/vcf_realignment/rescue/PRJNA298376_4166DT_vs_PRJNA298376_4166DN_rescued_PRJNA298376_4166RT_realign_vs_PRJNA298376_4166DN/PRJNA298376_4166DT_vs_PRJNA298376_4166DN_rescued_PRJNA298376_4166RT_realign_vs_PRJNA298376_4166DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4166/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4166/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "5320357c917e11472ee300bc77b68efd38db2429878c4e0fb9556042bd8526c1",
+      "new_consensus_sha256": "20538f0745f4a3c25a5f83802fb9d40c9c74177c2fffa4e2f4478e8455a641b1",
+      "new_rescue_sha256": "65e542ae78e19e0ec1df20dc0fcdbc50202efe6a3633eb2f0d7d13a489ec64a3",
+      "original_counts": {
+        "Germline": 16746,
+        "NoConsensus": 1575165,
+        "Artifact": 16124,
+        "Reference": 44512,
+        "RNAedit": 12085,
+        "Somatic": 1679
+      },
+      "consensus_counts": {
+        "NoConsensus": 1313465,
+        "Germline": 349,
+        "Artifact": 368,
+        "Reference": 543,
+        "Somatic": 599
+      },
+      "new_rescue_counts": {
+        "Germline": 16746,
+        "NoConsensus": 1576626,
+        "Artifact": 16067,
+        "Reference": 44510,
+        "RNAedit": 12085,
+        "Somatic": 600
+      },
+      "original_records": 1666311,
+      "new_rescue_records": 1666634,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4196",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4196/vcf_realignment/rescue/PRJNA298376_4196DT_vs_PRJNA298376_4196DN_rescued_PRJNA298376_4196RT_realign_vs_PRJNA298376_4196DN/PRJNA298376_4196DT_vs_PRJNA298376_4196DN_rescued_PRJNA298376_4196RT_realign_vs_PRJNA298376_4196DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4196/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4196/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "a4c2a016e903ceb9b9f3d6625393527c80ee4ead28ccbc6107c0f30be93b506c",
+      "new_consensus_sha256": "d0933171aee732607f7064b772d5361313d4dfa46c2044ee5f79c020b05c565a",
+      "new_rescue_sha256": "a6e2ceb24c64e407678d383b98a891bd299b05e587ae668094947a70b50ac6b2",
+      "original_counts": {
+        "NoConsensus": 2250558,
+        "Reference": 319164,
+        "Artifact": 60760,
+        "RNAedit": 6608,
+        "Germline": 14364,
+        "Somatic": 884
+      },
+      "consensus_counts": {
+        "NoConsensus": 2584016,
+        "Germline": 516,
+        "Artifact": 2668,
+        "Somatic": 564,
+        "Reference": 366
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 2251313,
+        "Reference": 319161,
+        "Artifact": 60680,
+        "RNAedit": 6608,
+        "Germline": 14364,
+        "Somatic": 564
+      },
+      "original_records": 2652338,
+      "new_rescue_records": 2652690,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4200",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4200/vcf_realignment/rescue/PRJNA298376_4200DT_vs_PRJNA298376_4200DN_rescued_PRJNA298376_4200RT_realign_vs_PRJNA298376_4200DN/PRJNA298376_4200DT_vs_PRJNA298376_4200DN_rescued_PRJNA298376_4200RT_realign_vs_PRJNA298376_4200DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4200/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4200/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "ffa63b1ca119275dff91f617e24ae0068e5e16e680a018e3ced532418e89bb69",
+      "new_consensus_sha256": "683242d99d5a6d842fec9344d9a0161ac2a1a1020efccf22be5bf62d781321e9",
+      "new_rescue_sha256": "24b48e28500b0b3adb3336e62e6fb109ac99e8a2823685dff686c197422a9e21",
+      "original_counts": {
+        "NoConsensus": 1723433,
+        "Reference": 71113,
+        "Germline": 25759,
+        "Somatic": 2024,
+        "Artifact": 28906,
+        "RNAedit": 33401
+      },
+      "consensus_counts": {
+        "NoConsensus": 1282713,
+        "Artifact": 596,
+        "Somatic": 211,
+        "Germline": 416,
+        "Reference": 476
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1725477,
+        "Reference": 71109,
+        "Germline": 25759,
+        "Artifact": 28839,
+        "RNAedit": 33401,
+        "Somatic": 215
+      },
+      "original_records": 1884636,
+      "new_rescue_records": 1884800,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4203",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4203/vcf_realignment/rescue/PRJNA298376_4203DT_vs_PRJNA298376_4203DN_rescued_PRJNA298376_4203RT_realign_vs_PRJNA298376_4203DN/PRJNA298376_4203DT_vs_PRJNA298376_4203DN_rescued_PRJNA298376_4203RT_realign_vs_PRJNA298376_4203DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4203/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4203/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "cfac02ffabd91aeca26d986eade541724093cb9260a62dd2cdc4ab0e0b0fb44d",
+      "new_consensus_sha256": "71524805c843ccd9fa315d386da4a88abec35cf8a21f03924a0b4cab37061577",
+      "new_rescue_sha256": "96d8bfec6d0c4c35898de4c49bf2230806361c4019c9a4c4c870d27cb67aaeda",
+      "original_counts": {
+        "NoConsensus": 1554029,
+        "Artifact": 7277,
+        "Reference": 24317,
+        "Germline": 6880,
+        "Somatic": 171,
+        "RNAedit": 1
+      },
+      "consensus_counts": {
+        "NoConsensus": 1300900,
+        "Germline": 360,
+        "Reference": 377,
+        "Artifact": 467,
+        "Somatic": 261
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1554320,
+        "Artifact": 7211,
+        "Reference": 24317,
+        "Germline": 6880,
+        "Somatic": 261,
+        "RNAedit": 1
+      },
+      "original_records": 1592675,
+      "new_rescue_records": 1592990,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4207",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4207_rnadnavar/vcf_realignment/rescue/4207DT_vs_4207DN_rescued_4207RT_realign_vs_4207DN/4207DT_vs_4207DN_rescued_4207RT_realign_vs_4207DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4207/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4207/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "83d62f3f0b4a2c6c6077369482f8c6f1961036ccea92173e6496a08f80de667b",
+      "new_consensus_sha256": "00a2befd6b70085097a84ef82b859a2e741fc01301d1fddd6b33cee739294c47",
+      "new_rescue_sha256": "903a32589d1301d5833106434b808c2b93b1f25046944c4bde6f09d6ec9a0ec0",
+      "original_counts": {
+        "NoConsensus": 1205973,
+        "Artifact": 9826,
+        "Reference": 36307,
+        "RNAedit": 4548,
+        "Germline": 6620,
+        "Somatic": 742
+      },
+      "consensus_counts": {
+        "NoConsensus": 1104183,
+        "Artifact": 361,
+        "Somatic": 111,
+        "Reference": 438,
+        "Germline": 5
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1206958,
+        "Artifact": 9773,
+        "Reference": 36304,
+        "RNAedit": 4548,
+        "Germline": 6620,
+        "Somatic": 111
+      },
+      "original_records": 1264016,
+      "new_rescue_records": 1264314,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4214",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4214/vcf_realignment/rescue/PRJNA298376_4214DT_vs_PRJNA298376_4214DN_rescued_PRJNA298376_4214RT_realign_vs_PRJNA298376_4214DN/PRJNA298376_4214DT_vs_PRJNA298376_4214DN_rescued_PRJNA298376_4214RT_realign_vs_PRJNA298376_4214DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4214/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4214/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "1eae190c9e787fd1657980a9312cd6b89af27106a4d7bc8d4ec0567a404c7916",
+      "new_consensus_sha256": "b784626fff24b820930d7f888475f6567450f4c467333d2534ede222f7a6bd41",
+      "new_rescue_sha256": "db0347ef31b9121bcfcce1ce216133ddf9050bbb6f05f480ec09ae7458fd3c4f",
+      "original_counts": {
+        "NoConsensus": 1251043,
+        "Germline": 23296,
+        "Artifact": 36756,
+        "Somatic": 2899,
+        "Reference": 72921,
+        "RNAedit": 35798
+      },
+      "consensus_counts": {
+        "NoConsensus": 869936,
+        "Artifact": 541,
+        "Germline": 371,
+        "Reference": 533,
+        "Somatic": 411
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1253719,
+        "Germline": 23296,
+        "Artifact": 36707,
+        "Reference": 72919,
+        "RNAedit": 35797,
+        "Somatic": 428
+      },
+      "original_records": 1422713,
+      "new_rescue_records": 1422866,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4220",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4220/vcf_realignment/rescue/PRJNA298376_4220DT_vs_PRJNA298376_4220DN_rescued_PRJNA298376_4220RT_realign_vs_PRJNA298376_4220DN/PRJNA298376_4220DT_vs_PRJNA298376_4220DN_rescued_PRJNA298376_4220RT_realign_vs_PRJNA298376_4220DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4220/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4220/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "c589bdd1625eb5bb19541184868ab43c29e09b46352c7ec42a193cdaeadc02a9",
+      "new_consensus_sha256": "1980d5902895bfe8e265f36e80238262c80345cf8eac937c063ec799bdc497f8",
+      "new_rescue_sha256": "cbb038f66a693931c78d4f639b06f17f1490897cfa12c7b19c0c6d4d8b7a9d17",
+      "original_counts": {
+        "NoConsensus": 1285201,
+        "Reference": 76602,
+        "Germline": 12290,
+        "Artifact": 64582,
+        "RNAedit": 9662,
+        "Somatic": 958
+      },
+      "consensus_counts": {
+        "NoConsensus": 1269917,
+        "Artifact": 3989,
+        "Somatic": 492,
+        "Reference": 632,
+        "Germline": 101
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1285969,
+        "Reference": 76599,
+        "Germline": 12290,
+        "Artifact": 64447,
+        "RNAedit": 9662,
+        "Somatic": 498
+      },
+      "original_records": 1449295,
+      "new_rescue_records": 1449465,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4228",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4228/vcf_realignment/rescue/PRJNA298376_4228DT_vs_PRJNA298376_4228DN_rescued_PRJNA298376_4228RT_realign_vs_PRJNA298376_4228DN/PRJNA298376_4228DT_vs_PRJNA298376_4228DN_rescued_PRJNA298376_4228RT_realign_vs_PRJNA298376_4228DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4228/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4228/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "465ceb31a4270d864bcdb806a872419e912137441edc4d451ee325c356a2e2bb",
+      "new_consensus_sha256": "9fe23ee3624bb6ed077792b597ea77faab674f435d812aeb629eeb382ab184d1",
+      "new_rescue_sha256": "919e84edfd046bcb51fb571866b6e7b988c9bd8fd6595892065d2ac1e68087ee",
+      "original_counts": {
+        "NoConsensus": 1143465,
+        "Reference": 145180,
+        "Artifact": 54445,
+        "RNAedit": 24686,
+        "Germline": 19787,
+        "Somatic": 1598
+      },
+      "consensus_counts": {
+        "NoConsensus": 1103056,
+        "Artifact": 3798,
+        "Somatic": 667,
+        "Reference": 616,
+        "Germline": 340
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1144784,
+        "Reference": 145169,
+        "Artifact": 54221,
+        "RNAedit": 24686,
+        "Germline": 19787,
+        "Somatic": 671
+      },
+      "original_records": 1389161,
+      "new_rescue_records": 1389318,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4231",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4231/vcf_realignment/rescue/PRJNA298376_4231DT_vs_PRJNA298376_4231DN_rescued_PRJNA298376_4231RT_realign_vs_PRJNA298376_4231DN/PRJNA298376_4231DT_vs_PRJNA298376_4231DN_rescued_PRJNA298376_4231RT_realign_vs_PRJNA298376_4231DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4231/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4231/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "a1f0130ff970e4fdeb33bf88c2de84f5c858b01b499d586b57c57623b8a4c3aa",
+      "new_consensus_sha256": "fd215b93fe1ccd96295d2b5dee651d07b8ff87fba92e455ec9a2532eeb3a72cd",
+      "new_rescue_sha256": "c9fe89003731879c385a2c1f5690580d941337c7b32ae2fe120638a64c868ed9",
+      "original_counts": {
+        "NoConsensus": 961953,
+        "Reference": 38190,
+        "Artifact": 11727,
+        "RNAedit": 2317,
+        "Germline": 5830,
+        "Somatic": 386
+      },
+      "consensus_counts": {
+        "NoConsensus": 898589,
+        "Artifact": 812,
+        "Reference": 623,
+        "Somatic": 324,
+        "Germline": 285
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 962276,
+        "Reference": 38189,
+        "Artifact": 11629,
+        "RNAedit": 2316,
+        "Germline": 5830,
+        "Somatic": 324
+      },
+      "original_records": 1020403,
+      "new_rescue_records": 1020564,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4232",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4232_rnadnavar/vcf_realignment/rescue/4232DT_vs_4232DN_rescued_4232RT_realign_vs_4232DN/4232DT_vs_4232DN_rescued_4232RT_realign_vs_4232DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4232/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4232/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "b8799e5e8c01fb2b7c18a39537021b46b1249efac07aa356db0a70036cf9062c",
+      "new_consensus_sha256": "ca136878126f4406bf1ca9d31cc7d680d84b212d36c3310ec861e5606e3208e6",
+      "new_rescue_sha256": "18c8137f8593e262bc0b0f208fefd014fdaf8065e372fda30ffca8edb535e375",
+      "original_counts": {
+        "NoConsensus": 2062507,
+        "Reference": 119179,
+        "Artifact": 37279,
+        "RNAedit": 7144,
+        "Germline": 4776,
+        "Somatic": 511
+      },
+      "consensus_counts": {
+        "NoConsensus": 2029317,
+        "Artifact": 1936,
+        "Reference": 456,
+        "Somatic": 186,
+        "Germline": 13
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 2063638,
+        "Reference": 119179,
+        "Artifact": 37219,
+        "RNAedit": 7144,
+        "Germline": 4776,
+        "Somatic": 187
+      },
+      "original_records": 2231396,
+      "new_rescue_records": 2232143,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4236",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4236/vcf_realignment/rescue/PRJNA298376_4236DT_vs_PRJNA298376_4236DN_rescued_PRJNA298376_4236RT_realign_vs_PRJNA298376_4236DN/PRJNA298376_4236DT_vs_PRJNA298376_4236DN_rescued_PRJNA298376_4236RT_realign_vs_PRJNA298376_4236DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4236/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4236/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "6824ef7b986c9f1f550dea3d9bac7dc804cd1915ee4834ced48c82d12d7c25ea",
+      "new_consensus_sha256": "6f24f15541b55716b94a8dc053a28bb26d01002a4719df42725ce7a1a6625d68",
+      "new_rescue_sha256": "5287d90849da6ba4f63df7ae497dacabeb73eec61cb970fd23d6cdc806ad6be4",
+      "original_counts": {
+        "NoConsensus": 1019126,
+        "Artifact": 20802,
+        "Reference": 49344,
+        "Somatic": 1863,
+        "Germline": 10815,
+        "RNAedit": 11663
+      },
+      "consensus_counts": {
+        "NoConsensus": 862176,
+        "Artifact": 513,
+        "Somatic": 457,
+        "Reference": 619,
+        "Germline": 30
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1020755,
+        "Artifact": 20754,
+        "Reference": 49342,
+        "Germline": 10815,
+        "RNAedit": 11663,
+        "Somatic": 457
+      },
+      "original_records": 1113613,
+      "new_rescue_records": 1113786,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4239",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4239/vcf_realignment/rescue/PRJNA298376_4239DT_vs_PRJNA298376_4239DN_rescued_PRJNA298376_4239RT_realign_vs_PRJNA298376_4239DN/PRJNA298376_4239DT_vs_PRJNA298376_4239DN_rescued_PRJNA298376_4239RT_realign_vs_PRJNA298376_4239DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4239/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4239/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "b027cc7fb34b26f6d945c6b76adc944ba60233cd30602bc966096701dde012c1",
+      "new_consensus_sha256": "beea28aad0f930e7c012dbb44d166a3eba7f02fab4285b16a1131e0a06080a1f",
+      "new_rescue_sha256": "c883313bf512e90cbb9a46eff2f8cdd1929c8fa52f18361c75bf977bb18bc9bd",
+      "original_counts": {
+        "NoConsensus": 3760261,
+        "Reference": 501094,
+        "Artifact": 39905,
+        "RNAedit": 5623,
+        "Germline": 6787,
+        "Somatic": 701
+      },
+      "consensus_counts": {
+        "NoConsensus": 4243116,
+        "Artifact": 1518,
+        "Reference": 437,
+        "Somatic": 307,
+        "Germline": 165
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 3761414,
+        "Reference": 501094,
+        "Artifact": 39842,
+        "RNAedit": 5623,
+        "Germline": 6787,
+        "Somatic": 308
+      },
+      "original_records": 4314371,
+      "new_rescue_records": 4315068,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4242",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4242/vcf_realignment/rescue/PRJNA298376_4242DT_vs_PRJNA298376_4242DN_rescued_PRJNA298376_4242RT_realign_vs_PRJNA298376_4242DN/PRJNA298376_4242DT_vs_PRJNA298376_4242DN_rescued_PRJNA298376_4242RT_realign_vs_PRJNA298376_4242DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4242/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4242/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "613bc0032377baab482f62a71ad1aa7bb415242711db478372ff8a7ebbf5fdb2",
+      "new_consensus_sha256": "624b4d845a1d5c24bfde1247cba7c021ed7183d32d8efd802ef8b83f792694db",
+      "new_rescue_sha256": "c43c23ec5300d41929052b53eb38a3c6447666bccb56f50d199e99c6530d25b6",
+      "original_counts": {
+        "NoConsensus": 2350149,
+        "Reference": 32694,
+        "Artifact": 9913,
+        "Germline": 17152,
+        "RNAedit": 2363,
+        "Somatic": 942
+      },
+      "consensus_counts": {
+        "NoConsensus": 2321977,
+        "Germline": 782,
+        "Artifact": 439,
+        "Somatic": 646,
+        "Reference": 350
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 2351041,
+        "Reference": 32693,
+        "Artifact": 9820,
+        "Germline": 17152,
+        "RNAedit": 2363,
+        "Somatic": 646
+      },
+      "original_records": 2413213,
+      "new_rescue_records": 2413715,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4245",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4245/vcf_realignment/rescue/PRJNA298376_4245DT_vs_PRJNA298376_4245DN_rescued_PRJNA298376_4245RT_realign_vs_PRJNA298376_4245DN/PRJNA298376_4245DT_vs_PRJNA298376_4245DN_rescued_PRJNA298376_4245RT_realign_vs_PRJNA298376_4245DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4245/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4245/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "a69310ad0b5e7e39d670f8c6f879a304a8b79ffc19e4c4a78a3c6410067eaf1f",
+      "new_consensus_sha256": "101a38d1faa111c4719356c5df293bf678bda43a31993efdf3f3bd759facda06",
+      "new_rescue_sha256": "a79d5a59cdc96e1463370afeb5e47662144b286384cc9c1122b74c3b3844df2f",
+      "original_counts": {
+        "NoConsensus": 3200889,
+        "Germline": 11074,
+        "Artifact": 44499,
+        "Reference": 395999,
+        "RNAedit": 10851,
+        "Somatic": 1063
+      },
+      "consensus_counts": {
+        "NoConsensus": 3040126,
+        "Artifact": 1550,
+        "Somatic": 418,
+        "Reference": 393,
+        "Germline": 136
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 3201885,
+        "Germline": 11074,
+        "Artifact": 44436,
+        "Reference": 395997,
+        "RNAedit": 10851,
+        "Somatic": 419
+      },
+      "original_records": 3664375,
+      "new_rescue_records": 3664662,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4246",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4246/vcf_realignment/rescue/PRJNA298376_4246DT_vs_PRJNA298376_4246DN_rescued_PRJNA298376_4246RT_realign_vs_PRJNA298376_4246DN/PRJNA298376_4246DT_vs_PRJNA298376_4246DN_rescued_PRJNA298376_4246RT_realign_vs_PRJNA298376_4246DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4246/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4246/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "f63b528f4bd237f99521a4b3d06f28805ad60c7a2a2480ae0e6596d50762c9f2",
+      "new_consensus_sha256": "7d95f5507967b58b7d7b5ede81d7439e9d7dbba98c8c5e2037693195e5c26d3e",
+      "new_rescue_sha256": "c95bbb1ffb93024fcd5e228adae878726ebe53b5d98b3bf36004dbbab8ba447e",
+      "original_counts": {
+        "NoConsensus": 1921659,
+        "Reference": 267883,
+        "Artifact": 76929,
+        "Germline": 13107,
+        "RNAedit": 34835,
+        "Somatic": 1006
+      },
+      "consensus_counts": {
+        "NoConsensus": 2039496,
+        "Somatic": 560,
+        "Artifact": 2922,
+        "Reference": 529,
+        "Germline": 187
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1922488,
+        "Reference": 267872,
+        "Artifact": 76796,
+        "Germline": 13107,
+        "RNAedit": 34835,
+        "Somatic": 568
+      },
+      "original_records": 2315419,
+      "new_rescue_records": 2315666,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4247",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4247/vcf_realignment/rescue/PRJNA298376_4247DT_vs_PRJNA298376_4247DN_rescued_PRJNA298376_4247RT_realign_vs_PRJNA298376_4247DN/PRJNA298376_4247DT_vs_PRJNA298376_4247DN_rescued_PRJNA298376_4247RT_realign_vs_PRJNA298376_4247DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4247/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4247/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "56f921b6e112370cd7247e8b6b752d14c8336c70d512bc0739f8472509ffd881",
+      "new_consensus_sha256": "6915be62609c3733eae22b728d858a0495efcb7353533f1367bb137d421565c6",
+      "new_rescue_sha256": "b8fce593b67a2ae1ed08860d1840dc20f94635848ffaf33b57c8a57d6cb5dba1",
+      "original_counts": {
+        "NoConsensus": 2663286,
+        "Germline": 23298,
+        "Reference": 216597,
+        "Artifact": 124196,
+        "RNAedit": 27762,
+        "Somatic": 1158
+      },
+      "consensus_counts": {
+        "NoConsensus": 2650102,
+        "Artifact": 3785,
+        "Germline": 634,
+        "Somatic": 431,
+        "Reference": 715
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 2664403,
+        "Germline": 23298,
+        "Reference": 216588,
+        "Artifact": 124020,
+        "RNAedit": 27762,
+        "Somatic": 437
+      },
+      "original_records": 3056297,
+      "new_rescue_records": 3056508,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4252",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4252_rnadnavar/vcf_realignment/rescue/4252DT_vs_4252DN_rescued_4252RT_realign_vs_4252DN/4252DT_vs_4252DN_rescued_4252RT_realign_vs_4252DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4252/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4252/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "bf927bf6c5578e60ed2b404c0809e0edfce0d676788508c8357ab13187fd2cc4",
+      "new_consensus_sha256": "f24e9954e71529ec659affaa403b4f9e78a6b2ae85bbb6e99058bbce4436d8c9",
+      "new_rescue_sha256": "63bdf252f10bd23f4b0135ff43fb5973ea8a9b325e614b8b8a93aa8db2b73536",
+      "original_counts": {
+        "NoConsensus": 1165933,
+        "Reference": 56261,
+        "Artifact": 22845,
+        "Somatic": 2964,
+        "Germline": 16975,
+        "RNAedit": 27296
+      },
+      "consensus_counts": {
+        "NoConsensus": 915790,
+        "Artifact": 601,
+        "Somatic": 883,
+        "Reference": 567,
+        "Germline": 288
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1168226,
+        "Reference": 56253,
+        "Artifact": 22790,
+        "Germline": 16975,
+        "RNAedit": 27296,
+        "Somatic": 892
+      },
+      "original_records": 1292274,
+      "new_rescue_records": 1292432,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4255",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4255_rnadnavar/vcf_realignment/rescue/4255DT_vs_4255DN_rescued_4255RT_realign_vs_4255DN/4255DT_vs_4255DN_rescued_4255RT_realign_vs_4255DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4255/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4255/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "4172d4eb8cd8a44d85414ca140764a6523b387d05d143ae1390ad2ad8ae2ef55",
+      "new_consensus_sha256": "f2aa9e29ed3f0ef48f24dc99b02d201034ede7f0c1d9b2b6757857544f8ecae7",
+      "new_rescue_sha256": "dbdb8b8c8f36d2fad5810b7b7687ffbfd859ee745f3a58b4ba0200402dbbd48d",
+      "original_counts": {
+        "NoConsensus": 999637,
+        "Germline": 92917,
+        "Reference": 128667,
+        "Artifact": 45015,
+        "RNAedit": 25485,
+        "Somatic": 21672
+      },
+      "consensus_counts": {
+        "NoConsensus": 1110779,
+        "Artifact": 3702,
+        "Germline": 241,
+        "Somatic": 541,
+        "Reference": 491
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1020984,
+        "Germline": 92876,
+        "Reference": 128782,
+        "Artifact": 44897,
+        "RNAedit": 25485,
+        "Somatic": 545
+      },
+      "original_records": 1313393,
+      "new_rescue_records": 1313569,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4257",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4257/vcf_realignment/rescue/PRJNA298376_4257DT_vs_PRJNA298376_4257DN_rescued_PRJNA298376_4257RT_realign_vs_PRJNA298376_4257DN/PRJNA298376_4257DT_vs_PRJNA298376_4257DN_rescued_PRJNA298376_4257RT_realign_vs_PRJNA298376_4257DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4257/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4257/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "d5eba3658b5b7c80634d39c8d1714f5daf961c780729ed4dbcd2b609426d269f",
+      "new_consensus_sha256": "1596a4958a5945d5041da46ddce146c76c57eb456a03981a530babe75df34b49",
+      "new_rescue_sha256": "a161d76826312e3f54f745598b8600f0a1a344b672e7eb8cc1ed88ab9ad98baf",
+      "original_counts": {
+        "NoConsensus": 2012792,
+        "Germline": 18013,
+        "Artifact": 41255,
+        "Reference": 100090,
+        "RNAedit": 11419,
+        "Somatic": 998
+      },
+      "consensus_counts": {
+        "NoConsensus": 1914773,
+        "Artifact": 2231,
+        "Germline": 1020,
+        "Somatic": 480,
+        "Reference": 445
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 2013614,
+        "Germline": 18013,
+        "Artifact": 41190,
+        "Reference": 100089,
+        "RNAedit": 11419,
+        "Somatic": 481
+      },
+      "original_records": 2184567,
+      "new_rescue_records": 2184806,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4259",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4259/vcf_realignment/rescue/PRJNA298376_4259DT_vs_PRJNA298376_4259DN_rescued_PRJNA298376_4259RT_realign_vs_PRJNA298376_4259DN/PRJNA298376_4259DT_vs_PRJNA298376_4259DN_rescued_PRJNA298376_4259RT_realign_vs_PRJNA298376_4259DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4259/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4259/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "04cd8e6b631c7848040534c6aaf5c282b7b43d93672e779ea7bbf5a6f6edcfbc",
+      "new_consensus_sha256": "e77d503239a7d7563d38b8d0b78d4ea0e4968c0ef8267ef904337ffd5a10bb4e",
+      "new_rescue_sha256": "814c7858214bca8ea9135d552d26ce16e7b20e13bfa7c8185f965a3f95a6d814",
+      "original_counts": {
+        "NoConsensus": 1039868,
+        "Reference": 140586,
+        "Artifact": 45728,
+        "Germline": 16132,
+        "RNAedit": 4646,
+        "Somatic": 1218
+      },
+      "consensus_counts": {
+        "NoConsensus": 1133620,
+        "Artifact": 4219,
+        "Somatic": 703,
+        "Reference": 564,
+        "Germline": 688
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1040779,
+        "Reference": 140583,
+        "Artifact": 45515,
+        "Germline": 16131,
+        "RNAedit": 4646,
+        "Somatic": 703
+      },
+      "original_records": 1248178,
+      "new_rescue_records": 1248357,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4262",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4262_rnadnavar/vcf_realignment/rescue/4262DT_vs_4262DN_rescued_4262RT_realign_vs_4262DN/4262DT_vs_4262DN_rescued_4262RT_realign_vs_4262DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4262/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4262/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "218edc4222bb6f60e5d4cf519bacb09b0f7990176f5edf777b776e3f510a5ede",
+      "new_consensus_sha256": "58b8a76b8ce504f2bf49184fd9f23c95a71832f57a299dc18962c80507ddf6fa",
+      "new_rescue_sha256": "83f08a002bb1c05f2f0813c649a1b42b2a9d791d2b69b162f4ce72627efaa2ae",
+      "original_counts": {
+        "Germline": 13875,
+        "NoConsensus": 1082736,
+        "Artifact": 11256,
+        "Reference": 42930,
+        "Somatic": 1279,
+        "RNAedit": 2024
+      },
+      "consensus_counts": {
+        "NoConsensus": 949109,
+        "Artifact": 616,
+        "Reference": 589,
+        "Somatic": 370,
+        "Germline": 476
+      },
+      "new_rescue_counts": {
+        "Germline": 13875,
+        "NoConsensus": 1083864,
+        "Artifact": 11204,
+        "Reference": 42927,
+        "RNAedit": 2024,
+        "Somatic": 372
+      },
+      "original_records": 1154100,
+      "new_rescue_records": 1154266,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4263",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4263/vcf_realignment/rescue/PRJNA298376_4263DT_vs_PRJNA298376_4263DN_rescued_PRJNA298376_4263RT_realign_vs_PRJNA298376_4263DN/PRJNA298376_4263DT_vs_PRJNA298376_4263DN_rescued_PRJNA298376_4263RT_realign_vs_PRJNA298376_4263DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4263/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4263/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "7248abe595ec2f52b9e10d9b5b808c71aa62542788684f0bf7cd06fd3ee626f7",
+      "new_consensus_sha256": "b8f05150b4d688f7ea1cdfa5dd94235b751408996162fc239c40095df650762c",
+      "new_rescue_sha256": "3f6f12d82f7b2913b2024fd7c3b6539ab313702899751a802868e4b8725e9c61",
+      "original_counts": {
+        "NoConsensus": 2986664,
+        "Reference": 169383,
+        "Artifact": 66640,
+        "Germline": 11272,
+        "Somatic": 721,
+        "RNAedit": 7471
+      },
+      "consensus_counts": {
+        "NoConsensus": 2980346,
+        "Artifact": 2788,
+        "Somatic": 297,
+        "Reference": 677,
+        "Germline": 241
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 2987704,
+        "Reference": 169381,
+        "Artifact": 66595,
+        "Germline": 11272,
+        "RNAedit": 7471,
+        "Somatic": 300
+      },
+      "original_records": 3242151,
+      "new_rescue_records": 3242723,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4264",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4264/vcf_realignment/rescue/PRJNA298376_4264DT_vs_PRJNA298376_4264DN_rescued_PRJNA298376_4264RT_realign_vs_PRJNA298376_4264DN/PRJNA298376_4264DT_vs_PRJNA298376_4264DN_rescued_PRJNA298376_4264RT_realign_vs_PRJNA298376_4264DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4264/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4264/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "b278a7ff77d89fafa6b2fec8b52fc681161b33be796851e06f8497b9cda73118",
+      "new_consensus_sha256": "32d32f93fb030b0c9910a932388733384fd7b5fe0bf5ce4a22fc3bb6c8f6cc65",
+      "new_rescue_sha256": "7acf2e6c2c47202621e437fa04ed6c0754f8e24a38f714d0d8645a64e1cf0d67",
+      "original_counts": {
+        "NoConsensus": 1177359,
+        "Reference": 154064,
+        "Germline": 17933,
+        "Artifact": 62436,
+        "Somatic": 2672,
+        "RNAedit": 21778
+      },
+      "consensus_counts": {
+        "NoConsensus": 1207835,
+        "Somatic": 560,
+        "Germline": 419,
+        "Artifact": 3397,
+        "Reference": 493
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1179839,
+        "Reference": 154060,
+        "Germline": 17933,
+        "Artifact": 62304,
+        "RNAedit": 21778,
+        "Somatic": 566
+      },
+      "original_records": 1436242,
+      "new_rescue_records": 1436480,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4265",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4265/vcf_realignment/rescue/PRJNA298376_4265DT_vs_PRJNA298376_4265DN_rescued_PRJNA298376_4265RT_realign_vs_PRJNA298376_4265DN/PRJNA298376_4265DT_vs_PRJNA298376_4265DN_rescued_PRJNA298376_4265RT_realign_vs_PRJNA298376_4265DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4265/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4265/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "a97ca82f83cf399f95e787c69a7f44f5a6c0010a0c481688fc56703a135d8590",
+      "new_consensus_sha256": "12d1a3e672c340bd356992829dc2e94e4c03d5136ddeb3e6fc1925589b0c4d2e",
+      "new_rescue_sha256": "fd9232b406afdca215450d64e02e2425608927bc692a77e5f0c65c9789854343",
+      "original_counts": {
+        "NoConsensus": 1360234,
+        "Reference": 75588,
+        "Somatic": 585,
+        "Germline": 10659,
+        "Artifact": 31053,
+        "RNAedit": 1502
+      },
+      "consensus_counts": {
+        "NoConsensus": 1288308,
+        "Somatic": 444,
+        "Artifact": 1161,
+        "Reference": 446,
+        "Germline": 86
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1360787,
+        "Reference": 75583,
+        "Germline": 10659,
+        "Artifact": 30952,
+        "Somatic": 451,
+        "RNAedit": 1502
+      },
+      "original_records": 1479621,
+      "new_rescue_records": 1479934,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4266",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4266/vcf_realignment/rescue/PRJNA298376_4266DT_vs_PRJNA298376_4266DN_rescued_PRJNA298376_4266RT_realign_vs_PRJNA298376_4266DN/PRJNA298376_4266DT_vs_PRJNA298376_4266DN_rescued_PRJNA298376_4266RT_realign_vs_PRJNA298376_4266DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4266/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4266/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "30a3f02ac295880ef96ce7006d8376f49698d74efab46a3e45479a7eb2af55aa",
+      "new_consensus_sha256": "4f76486c89bdf5242b507fba19e530007d6245cc02a833f44cac89492b8f6ab6",
+      "new_rescue_sha256": "3fa44d16dcc0a6e927fb9b897437ae056a3b1154953c07e7150079512ee09805",
+      "original_counts": {
+        "NoConsensus": 963102,
+        "Reference": 124906,
+        "Artifact": 30197,
+        "Somatic": 2063,
+        "Germline": 11861,
+        "RNAedit": 2317
+      },
+      "consensus_counts": {
+        "NoConsensus": 962568,
+        "Somatic": 650,
+        "Artifact": 1748,
+        "Germline": 184,
+        "Reference": 551
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 964860,
+        "Reference": 124903,
+        "Artifact": 29981,
+        "Germline": 11861,
+        "Somatic": 658,
+        "RNAedit": 2317
+      },
+      "original_records": 1134446,
+      "new_rescue_records": 1134580,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4268",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4268_rnadnavar/vcf_realignment/rescue/4268DT_vs_4268DN_rescued_4268RT_realign_vs_4268DN/4268DT_vs_4268DN_rescued_4268RT_realign_vs_4268DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4268/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4268/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "87b05f93e77c8e69cbf000a097761eeddb0880d218dee49c88c4091cfce752bf",
+      "new_consensus_sha256": "f2a6c3fedc4d620d9bdc2a67e50337f31f4aa6ee0d6a4beebeb2b2215e226dfd",
+      "new_rescue_sha256": "7712af724c61e46f70f082421c977410d9e49058d887068aa6638aedd97ca8d2",
+      "original_counts": {
+        "NoConsensus": 1322870,
+        "Artifact": 40572,
+        "Reference": 185167,
+        "Germline": 12172,
+        "Somatic": 1912,
+        "RNAedit": 4093
+      },
+      "consensus_counts": {
+        "NoConsensus": 1372073,
+        "Reference": 577,
+        "Artifact": 1670,
+        "Somatic": 518,
+        "Germline": 195
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1324582,
+        "Artifact": 40384,
+        "Reference": 185164,
+        "Germline": 12172,
+        "RNAedit": 4093,
+        "Somatic": 527
+      },
+      "original_records": 1566786,
+      "new_rescue_records": 1566922,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4270",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4270/vcf_realignment/rescue/PRJNA298376_4270DT_vs_PRJNA298376_4270DN_rescued_PRJNA298376_4270RT_realign_vs_PRJNA298376_4270DN/PRJNA298376_4270DT_vs_PRJNA298376_4270DN_rescued_PRJNA298376_4270RT_realign_vs_PRJNA298376_4270DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4270/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4270/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "67674f0dc2c7ea3e9c077cd33866a2c5235903f3311bda72870a0c9c303f6a3e",
+      "new_consensus_sha256": "4fa4ea6d5a9a2bdde87a4b8959bca42bb290466de67def64af09e3586d128b45",
+      "new_rescue_sha256": "a03c41ec4456fd79d4301c7dad44e850a38485f905fd8bfcd9531cd605e41e94",
+      "original_counts": {
+        "NoConsensus": 1088276,
+        "Reference": 69873,
+        "Artifact": 15201,
+        "Somatic": 1804,
+        "Germline": 13669,
+        "RNAedit": 9632
+      },
+      "consensus_counts": {
+        "NoConsensus": 1010996,
+        "Artifact": 466,
+        "Somatic": 302,
+        "Reference": 603,
+        "Germline": 28
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1090011,
+        "Reference": 69865,
+        "Artifact": 15110,
+        "Germline": 13669,
+        "RNAedit": 9632,
+        "Somatic": 309
+      },
+      "original_records": 1198455,
+      "new_rescue_records": 1198596,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4271",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4271_rnadnavar/vcf_realignment/rescue/4271DT_vs_4271DN_rescued_4271RT_realign_vs_4271DN/4271DT_vs_4271DN_rescued_4271RT_realign_vs_4271DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4271/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4271/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "478ef4d971284c7d93e58b2b620c3306ac2da6e4bdd0613caf9263a3ed6cc881",
+      "new_consensus_sha256": "9514a4a00fb16a3603bded9acc80709858c508724151a973ee237048df772cde",
+      "new_rescue_sha256": "91ff5a425cff5225008cb4787bb86f2f1603e8165776606e602eb340c1972879",
+      "original_counts": {
+        "NoConsensus": 2180493,
+        "Reference": 89368,
+        "Artifact": 16859,
+        "Germline": 10805,
+        "Somatic": 1236,
+        "RNAedit": 1989
+      },
+      "consensus_counts": {
+        "NoConsensus": 1817464,
+        "Somatic": 379,
+        "Reference": 390,
+        "Artifact": 541,
+        "Germline": 112
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 2181782,
+        "Reference": 89366,
+        "Artifact": 16803,
+        "Germline": 10805,
+        "Somatic": 384,
+        "RNAedit": 1989
+      },
+      "original_records": 2300750,
+      "new_rescue_records": 2301129,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4272",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4272/vcf_realignment/rescue/PRJNA298376_4272DT_vs_PRJNA298376_4272DN_rescued_PRJNA298376_4272RT_realign_vs_PRJNA298376_4272DN/PRJNA298376_4272DT_vs_PRJNA298376_4272DN_rescued_PRJNA298376_4272RT_realign_vs_PRJNA298376_4272DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4272/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4272/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "331da81de0fd20b0a5146171339ac373f14e559f60ddb0737f95e40628ca3ba7",
+      "new_consensus_sha256": "e5bae0b5fa540813fcc8a408d77fb9c441eaf6dfb1ca6fdd31206928a0120465",
+      "new_rescue_sha256": "bdce3a3700f361314bbf7d4632aba9d0978ba86e4d09a9f091c292d769027ea0",
+      "original_counts": {
+        "NoConsensus": 1615760,
+        "Reference": 95162,
+        "Artifact": 44095,
+        "Somatic": 1827,
+        "Germline": 13960,
+        "RNAedit": 4103
+      },
+      "consensus_counts": {
+        "NoConsensus": 1383717,
+        "Somatic": 477,
+        "Artifact": 2219,
+        "Germline": 346,
+        "Reference": 581
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1617419,
+        "Reference": 95159,
+        "Artifact": 43954,
+        "Somatic": 491,
+        "Germline": 13960,
+        "RNAedit": 4103
+      },
+      "original_records": 1774907,
+      "new_rescue_records": 1775086,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4273",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4273/vcf_realignment/rescue/PRJNA298376_4273DT_vs_PRJNA298376_4273DN_rescued_PRJNA298376_4273RT_realign_vs_PRJNA298376_4273DN/PRJNA298376_4273DT_vs_PRJNA298376_4273DN_rescued_PRJNA298376_4273RT_realign_vs_PRJNA298376_4273DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4273/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4273/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "a09c37dcf2d30683f1acd6c85e5a63f97cc733daca596cbd585b6980a9969e3a",
+      "new_consensus_sha256": "cc746f30c2e56b5755204ac682fe613396b8b6d8c43d57a90eeec5523ea5af5a",
+      "new_rescue_sha256": "2364861018446560a389cbcb6311a115f57bd455f823aaee44765d49c8368fea",
+      "original_counts": {
+        "NoConsensus": 1784421,
+        "Artifact": 42092,
+        "Reference": 128757,
+        "Somatic": 2476,
+        "Germline": 19810,
+        "RNAedit": 10049
+      },
+      "consensus_counts": {
+        "NoConsensus": 1692452,
+        "Reference": 543,
+        "Artifact": 1588,
+        "Germline": 426,
+        "Somatic": 497
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1786689,
+        "Artifact": 41969,
+        "Reference": 128751,
+        "Germline": 19810,
+        "RNAedit": 10049,
+        "Somatic": 501
+      },
+      "original_records": 1987605,
+      "new_rescue_records": 1987769,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4274",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4274/vcf_realignment/rescue/PRJNA298376_4274DT_vs_PRJNA298376_4274DN_rescued_PRJNA298376_4274RT_realign_vs_PRJNA298376_4274DN/PRJNA298376_4274DT_vs_PRJNA298376_4274DN_rescued_PRJNA298376_4274RT_realign_vs_PRJNA298376_4274DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4274/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4274/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "b2801d07b28b4daa3fd77a313e0613d1f78d6ae495bafa7627ce3a5afbe361f6",
+      "new_consensus_sha256": "7688602da8b254dc9e74474c9a7a1c9b0bccb51f069d73a9061af6fb95961cbb",
+      "new_rescue_sha256": "fc5f9dc0c74f26a502a8466c3ae06ec6f34ce04ad5b7c94805b2c71445765187",
+      "original_counts": {
+        "NoConsensus": 2001802,
+        "Artifact": 19226,
+        "Somatic": 2186,
+        "Germline": 19038,
+        "Reference": 96253,
+        "RNAedit": 11192
+      },
+      "consensus_counts": {
+        "NoConsensus": 1955172,
+        "Germline": 198,
+        "Somatic": 770,
+        "Artifact": 588,
+        "Reference": 539
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 2003777,
+        "Artifact": 18945,
+        "Germline": 19038,
+        "Reference": 96244,
+        "RNAedit": 11191,
+        "Somatic": 782
+      },
+      "original_records": 2149697,
+      "new_rescue_records": 2149977,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4275",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4275_rnadnavar/vcf_realignment/rescue/4275DT_vs_4275DN_rescued_4275RT_realign_vs_4275DN/4275DT_vs_4275DN_rescued_4275RT_realign_vs_4275DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4275/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4275/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "f280bceb1252b4f5199a4695f240dcbd9637b8f4fb7c5793f578cea94f8cbcab",
+      "new_consensus_sha256": "807fe87aa08a91660dcc05d83850ab534b16acef9625d6594601419a446f3daa",
+      "new_rescue_sha256": "8dd4f14dbd67db31c3eb6a2a6834bd80ec6a829d123450c0170c6f8d45f15022",
+      "original_counts": {
+        "NoConsensus": 1849865,
+        "Reference": 98087,
+        "Artifact": 33821,
+        "Germline": 13117,
+        "RNAedit": 23936,
+        "Somatic": 1387
+      },
+      "consensus_counts": {
+        "NoConsensus": 1430923,
+        "Artifact": 1152,
+        "Somatic": 546,
+        "Germline": 35,
+        "Reference": 527
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1851070,
+        "Reference": 98086,
+        "Artifact": 33629,
+        "Germline": 13117,
+        "RNAedit": 23936,
+        "Somatic": 546
+      },
+      "original_records": 2020213,
+      "new_rescue_records": 2020384,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4278",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4278_rnadnavar/vcf_realignment/rescue/4278DT_vs_4278DN_rescued_4278RT_realign_vs_4278DN/4278DT_vs_4278DN_rescued_4278RT_realign_vs_4278DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4278/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4278/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "a64304b3c1aff90180f013493e5327f09afd52279560d50a971eba0c62f9dbca",
+      "new_consensus_sha256": "10d5bc107be0924c0b2bf7e48a0982a8236379bc4fb272dbcd002a6d50a2a48f",
+      "new_rescue_sha256": "4a88c21939f71eebee6c7df72ff6983126fe6fb5ba6c304f5c7db84003609000",
+      "original_counts": {
+        "NoConsensus": 1682843,
+        "Artifact": 51988,
+        "Reference": 101976,
+        "RNAedit": 31309,
+        "Somatic": 2384,
+        "Germline": 12835
+      },
+      "consensus_counts": {
+        "NoConsensus": 1533358,
+        "Artifact": 1951,
+        "Reference": 504,
+        "Somatic": 523,
+        "Germline": 182
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1685064,
+        "Artifact": 51883,
+        "Reference": 101974,
+        "RNAedit": 31309,
+        "Germline": 12835,
+        "Somatic": 528
+      },
+      "original_records": 1883335,
+      "new_rescue_records": 1883593,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4283",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4283_rnadnavar/vcf_realignment/rescue/4283DT_vs_4283DN_rescued_4283RT_realign_vs_4283DN/4283DT_vs_4283DN_rescued_4283RT_realign_vs_4283DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4283/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4283/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "762bfa4d92ed80a9bf934c4891d666164ada67ef76f1b5dc47fdb7b2b7966e77",
+      "new_consensus_sha256": "6c0bf476424f13db8e9632dbe108929f1831f9c20c06d3b9166b9c60742994ce",
+      "new_rescue_sha256": "999deb2d9fcc9c7e103472fdd427a27a402bf617b82a9b5263fd25c913f3e155",
+      "original_counts": {
+        "NoConsensus": 900143,
+        "Germline": 11845,
+        "Reference": 41661,
+        "Artifact": 11981,
+        "RNAedit": 1660,
+        "Somatic": 1219
+      },
+      "consensus_counts": {
+        "NoConsensus": 803385,
+        "Artifact": 496,
+        "Somatic": 459,
+        "Reference": 609,
+        "Germline": 207
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 901100,
+        "Germline": 11845,
+        "Reference": 41660,
+        "Artifact": 11909,
+        "RNAedit": 1660,
+        "Somatic": 460
+      },
+      "original_records": 968509,
+      "new_rescue_records": 968634,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4284",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4284_rnadnavar/vcf_realignment/rescue/4284DT_vs_4284DN_rescued_4284RT_realign_vs_4284DN/4284DT_vs_4284DN_rescued_4284RT_realign_vs_4284DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4284/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4284/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "8ee658428cd9876128268cbb12f7b4b3522b3f40088b2320afdf674300ebbd5d",
+      "new_consensus_sha256": "1769d6492465cc6994a406f4245e80d3df09591deafb79ec52b37765db7a00ee",
+      "new_rescue_sha256": "eb1f592e17d48c76468229b32d89d33d185c0036600ac7754622ba63c90f2a02",
+      "original_counts": {
+        "NoConsensus": 958615,
+        "Artifact": 13245,
+        "Reference": 59056,
+        "Somatic": 1778,
+        "Germline": 17072,
+        "RNAedit": 3553
+      },
+      "consensus_counts": {
+        "NoConsensus": 851159,
+        "Germline": 490,
+        "Artifact": 528,
+        "Somatic": 491,
+        "Reference": 534
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 960088,
+        "Artifact": 13171,
+        "Reference": 59055,
+        "Germline": 17072,
+        "RNAedit": 3553,
+        "Somatic": 495
+      },
+      "original_records": 1053319,
+      "new_rescue_records": 1053434,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298376_4285",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4285/vcf_realignment/rescue/PRJNA298376_4285DT_vs_PRJNA298376_4285DN_rescued_PRJNA298376_4285RT_realign_vs_PRJNA298376_4285DN/PRJNA298376_4285DT_vs_PRJNA298376_4285DN_rescued_PRJNA298376_4285RT_realign_vs_PRJNA298376_4285DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4285/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298376_4285/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "913c61642cdb56a2ee1e03da77cf83b95011ab83053820cb1df59d2256430544",
+      "new_consensus_sha256": "1413e63796163abc95d06c55096dac25f7ec54706522df2640335d7b3de49550",
+      "new_rescue_sha256": "fa27529c01e1014493f83d295b16cbd4979255001362da75de2f339797de851f",
+      "original_counts": {
+        "NoConsensus": 1056207,
+        "Germline": 8307,
+        "Reference": 38271,
+        "Artifact": 8726,
+        "Somatic": 1222,
+        "RNAedit": 360
+      },
+      "consensus_counts": {
+        "NoConsensus": 1044247,
+        "Artifact": 554,
+        "Somatic": 675,
+        "Reference": 466,
+        "Germline": 206
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1057056,
+        "Germline": 8307,
+        "Reference": 38270,
+        "Artifact": 8649,
+        "Somatic": 676,
+        "RNAedit": 360
+      },
+      "original_records": 1113093,
+      "new_rescue_records": 1113318,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298330_3812",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3812/vcf_realignment/rescue/PRJNA298330_3812DT_vs_PRJNA298330_3812DN_rescued_PRJNA298330_3812RT_realign_vs_PRJNA298330_3812DN/PRJNA298330_3812DT_vs_PRJNA298330_3812DN_rescued_PRJNA298330_3812RT_realign_vs_PRJNA298330_3812DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_3812/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_3812/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "f5c920ffd7fef279b1909df636c6f3c9ca260f44f6c5e9d5992bdb8944559be0",
+      "new_consensus_sha256": "393b14b18af9f48e9dec191ca5ab130d461a5e40b65800d5c73fe0c9c2fcff43",
+      "new_rescue_sha256": "a63801191fbe104bccb2a1ba3a8f47d90c0919750fb1719ce6055355ad4c44b3",
+      "original_counts": {
+        "NoConsensus": 345744,
+        "Artifact": 3299,
+        "Reference": 4921,
+        "Germline": 8987,
+        "Somatic": 205,
+        "RNAedit": 15
+      },
+      "consensus_counts": {
+        "NoConsensus": 356566,
+        "Reference": 665,
+        "Artifact": 382,
+        "Somatic": 174,
+        "Germline": 69
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 345843,
+        "Artifact": 3279,
+        "Reference": 4919,
+        "Germline": 8987,
+        "Somatic": 174,
+        "RNAedit": 15
+      },
+      "original_records": 363171,
+      "new_rescue_records": 363217,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298330_3942",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3942/vcf_realignment/rescue/PRJNA298330_3942DT_vs_PRJNA298330_3942DN_rescued_PRJNA298330_3942RT_realign_vs_PRJNA298330_3942DN/PRJNA298330_3942DT_vs_PRJNA298330_3942DN_rescued_PRJNA298330_3942RT_realign_vs_PRJNA298330_3942DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_3942/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_3942/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "cebb27860baaf7d5aaff726c1fbf0dc3fa005b9167cdab8275712d49893824f4",
+      "new_consensus_sha256": "d0f49a1607937e405f97cba6e1c03e6fa9c5cfead70206f9a9186cb3fb426792",
+      "new_rescue_sha256": "3b2abfe69abe19e2f83dc71f5f49be6d0de3c38cc521c382f840a9c72e7ec97f",
+      "original_counts": {
+        "Artifact": 10779,
+        "NoConsensus": 420940,
+        "RNAedit": 5198,
+        "Reference": 9045,
+        "Germline": 12830,
+        "Somatic": 964
+      },
+      "consensus_counts": {
+        "NoConsensus": 379503,
+        "Artifact": 296,
+        "Germline": 83,
+        "Reference": 668,
+        "Somatic": 467
+      },
+      "new_rescue_counts": {
+        "Artifact": 10756,
+        "NoConsensus": 421491,
+        "RNAedit": 5198,
+        "Reference": 9044,
+        "Germline": 12830,
+        "Somatic": 470
+      },
+      "original_records": 459756,
+      "new_rescue_records": 459789,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298330_3948",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3948/vcf_realignment/rescue/PRJNA298330_3948DT_vs_PRJNA298330_3948DN_rescued_PRJNA298330_3948RT_realign_vs_PRJNA298330_3948DN/PRJNA298330_3948DT_vs_PRJNA298330_3948DN_rescued_PRJNA298330_3948RT_realign_vs_PRJNA298330_3948DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_3948/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_3948/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "f8dee38d7968eacd28dc190cd08b924e452b8c815f226ebc621f8904ec037f3b",
+      "new_consensus_sha256": "21623efb09903c3ac8a207cced594ab849aa61ce3c45b9134e3f0132e4bc1e3c",
+      "new_rescue_sha256": "9ebde9668e2cf1374302fab2af67c06190f468e9680482a20ca134392aed29fd",
+      "original_counts": {
+        "NoConsensus": 1033613,
+        "Artifact": 19126,
+        "Germline": 11746,
+        "Reference": 30406,
+        "RNAedit": 6613,
+        "Somatic": 884
+      },
+      "consensus_counts": {
+        "NoConsensus": 444978,
+        "Artifact": 744,
+        "Somatic": 295,
+        "Reference": 1064,
+        "Germline": 6
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 1034261,
+        "Artifact": 19099,
+        "Germline": 11746,
+        "Reference": 30398,
+        "RNAedit": 6613,
+        "Somatic": 296
+      },
+      "original_records": 1102388,
+      "new_rescue_records": 1102413,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298330_3978",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3978/vcf_realignment/rescue/PRJNA298330_3978DT_vs_PRJNA298330_3978DN_rescued_PRJNA298330_3978RT_realign_vs_PRJNA298330_3978DN/PRJNA298330_3978DT_vs_PRJNA298330_3978DN_rescued_PRJNA298330_3978RT_realign_vs_PRJNA298330_3978DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_3978/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_3978/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "f891e8cbbb8d22930db849491edf5ef6b11d1f1c521025a968ab268ad7dc8d23",
+      "new_consensus_sha256": "9c43c978d301c96abaeea41924fb585d08e58914f2ae6d219da325b182ef5d63",
+      "new_rescue_sha256": "bf8267b1227b58f4540e9e745fed05e326beb9312df229dd85dcb0778d5f69cd",
+      "original_counts": {
+        "NoConsensus": 367538,
+        "Artifact": 3697,
+        "Reference": 4925,
+        "Germline": 3088,
+        "Somatic": 298,
+        "RNAedit": 16
+      },
+      "consensus_counts": {
+        "NoConsensus": 370018,
+        "Artifact": 373,
+        "Reference": 677,
+        "Somatic": 261,
+        "Germline": 20
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 367667,
+        "Artifact": 3657,
+        "Reference": 4912,
+        "Germline": 3088,
+        "Somatic": 261,
+        "RNAedit": 16
+      },
+      "original_records": 379562,
+      "new_rescue_records": 379601,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298330_3995",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298330_3995/vcf_realignment/rescue/PRJNA298330_3995DT_vs_PRJNA298330_3995DN_rescued_PRJNA298330_3995RT_realign_vs_PRJNA298330_3995DN/PRJNA298330_3995DT_vs_PRJNA298330_3995DN_rescued_PRJNA298330_3995RT_realign_vs_PRJNA298330_3995DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_3995/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_3995/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "109521fba28750a52d6ced3443542114a5534d2d319d84f5b32ed42f2059d5b0",
+      "new_consensus_sha256": "6a4a232261f241b520814559c2f8a1229b08d52c46d2c06fca9e687bb2b130b6",
+      "new_rescue_sha256": "78f3cda2641d4d6a4796383dc926ec97569f9ccce72450d436506d1bb8da5fc3",
+      "original_counts": {
+        "NoConsensus": 398440,
+        "Artifact": 2959,
+        "Somatic": 218,
+        "Germline": 5046,
+        "Reference": 4625,
+        "RNAedit": 13
+      },
+      "consensus_counts": {
+        "NoConsensus": 404732,
+        "Reference": 956,
+        "Artifact": 419,
+        "Somatic": 177,
+        "Germline": 17
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 398513,
+        "Artifact": 2943,
+        "Germline": 5046,
+        "Reference": 4621,
+        "Somatic": 177,
+        "RNAedit": 13
+      },
+      "original_records": 411301,
+      "new_rescue_records": 411313,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298330_4007",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298330_4007/vcf_realignment/rescue/PRJNA298330_4007DT_vs_PRJNA298330_4007DN_rescued_PRJNA298330_4007RT_realign_vs_PRJNA298330_4007DN/PRJNA298330_4007DT_vs_PRJNA298330_4007DN_rescued_PRJNA298330_4007RT_realign_vs_PRJNA298330_4007DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_4007/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_4007/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "c29141a080aa1c6f7121c4b76fbe6a0bf6f0abb24d29014ff2b15e34d68fcd49",
+      "new_consensus_sha256": "f90f030354710ffcd0bd1b8bb7fe5453eb6ea546f817b2b8481713d4d25aad48",
+      "new_rescue_sha256": "5413d487da937bcdccfe1debcd954cc0065a917d7868c8822fa8152d33ea8453",
+      "original_counts": {
+        "Artifact": 3129,
+        "NoConsensus": 409169,
+        "Reference": 4024,
+        "Germline": 3818,
+        "Somatic": 469,
+        "RNAedit": 10
+      },
+      "consensus_counts": {
+        "NoConsensus": 415120,
+        "Artifact": 413,
+        "Somatic": 408,
+        "Reference": 873,
+        "Germline": 19
+      },
+      "new_rescue_counts": {
+        "Artifact": 3103,
+        "NoConsensus": 409292,
+        "Reference": 4017,
+        "Germline": 3818,
+        "Somatic": 408,
+        "RNAedit": 10
+      },
+      "original_records": 420619,
+      "new_rescue_records": 420648,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298330_4032",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298330_4032/vcf_realignment/rescue/PRJNA298330_4032DT_vs_PRJNA298330_4032DN_rescued_PRJNA298330_4032RT_realign_vs_PRJNA298330_4032DN/PRJNA298330_4032DT_vs_PRJNA298330_4032DN_rescued_PRJNA298330_4032RT_realign_vs_PRJNA298330_4032DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_4032/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_4032/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "f8a9e1633d16923f34e91c133a8e19f28b3298999dc1c12505c706bd7a3b8573",
+      "new_consensus_sha256": "0d309cffca5f339c4efe4d63d24898544b8ae0fb12b42d85eba2ac84100c42c5",
+      "new_rescue_sha256": "f054f0b2e4ef2f846f54f0cda06c2ef20ac1492a3c421e00a130523c2b00be3a",
+      "original_counts": {
+        "NoConsensus": 600026,
+        "Artifact": 40421,
+        "RNAedit": 14097,
+        "Reference": 42279,
+        "Germline": 15250,
+        "Somatic": 7114
+      },
+      "consensus_counts": {
+        "NoConsensus": 406447,
+        "Artifact": 325,
+        "Somatic": 397,
+        "Reference": 723,
+        "Germline": 25
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 606857,
+        "Artifact": 40381,
+        "RNAedit": 14097,
+        "Reference": 42258,
+        "Germline": 15250,
+        "Somatic": 397
+      },
+      "original_records": 719187,
+      "new_rescue_records": 719240,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298330_4096",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_4096/vcf_realignment/rescue/PRJNA298330_4096DT_vs_PRJNA298330_4096DN_rescued_PRJNA298330_4096RT_realign_vs_PRJNA298330_4096DN/PRJNA298330_4096DT_vs_PRJNA298330_4096DN_rescued_PRJNA298330_4096RT_realign_vs_PRJNA298330_4096DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_4096/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298330_4096/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "f577940648e88f3dda1e5ccedbb77f0b10ffbec4eaa4b42913a52aaa8a65a092",
+      "new_consensus_sha256": "39d4229ccae6030d8694aea108ea8b603ee8816ae44dbfe36399695b3cf6449e",
+      "new_rescue_sha256": "802917c0a5f7a6e96f52a9695844707c6c4cd12fb57d8457075d882e03155ff2",
+      "original_counts": {
+        "NoConsensus": 2272470,
+        "Artifact": 40473,
+        "Reference": 79243,
+        "Germline": 21182,
+        "RNAedit": 35577,
+        "Somatic": 1024
+      },
+      "consensus_counts": {
+        "NoConsensus": 1836939,
+        "Somatic": 231,
+        "Artifact": 359,
+        "Reference": 511,
+        "Germline": 160
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 2273915,
+        "Artifact": 40424,
+        "Reference": 79242,
+        "Germline": 21182,
+        "RNAedit": 35577,
+        "Somatic": 232
+      },
+      "original_records": 2449969,
+      "new_rescue_records": 2450572,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    },
+    {
+      "sample_id": "PRJNA298310_3812",
+      "status": "candidate_complete_not_training_approved",
+      "original_rescue": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298310_3812/vcf_realignment/rescue/PRJNA298310_3812DT_vs_PRJNA298310_3812DN_rescued_PRJNA298310_3812RT_realign_vs_PRJNA298310_3812DN/PRJNA298310_3812DT_vs_PRJNA298310_3812DN_rescued_PRJNA298310_3812RT_realign_vs_PRJNA298310_3812DN.filtered.vcf.stripped.vcf.gz",
+      "new_consensus": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298310_3812/attempt001/refined.vcf.gz",
+      "new_rescue": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/PRJNA298310_3812/attempt001/refined.rescue.vcf.gz",
+      "original_sha256": "ba35ee65c99d04abee65830c3cb140308207e0c462d45f3b09343b63915e1e54",
+      "new_consensus_sha256": "7ba00e0eb4a3f0a2c7ca873065aae9079f3e0fb77e7766f341568eee8447f437",
+      "new_rescue_sha256": "d8b024db5c561f993c5d79224373542b901ff2a0cfbca3c1687ac21e2e0cff55",
+      "original_counts": {
+        "NoConsensus": 150840,
+        "Artifact": 12369,
+        "Reference": 10791,
+        "Germline": 7665,
+        "RNAedit": 6311,
+        "Somatic": 1165
+      },
+      "consensus_counts": {
+        "NoConsensus": 88961,
+        "Somatic": 626,
+        "Reference": 746,
+        "Artifact": 247,
+        "Germline": 31
+      },
+      "new_rescue_counts": {
+        "NoConsensus": 151448,
+        "Artifact": 12310,
+        "Reference": 10782,
+        "Germline": 7665,
+        "RNAedit": 6311,
+        "Somatic": 630
+      },
+      "original_records": 189141,
+      "new_rescue_records": 189146,
+      "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"
+    }
+  ]
+}
