@@ -98,6 +98,8 @@ def run(baseline, native, outdir, baseline_sha, native_sha, stage_name):
                 header.info.add(name,1,'String',description)
             if 'CLASSIFICATION_RATIONALE' not in header.info:
                 header.info.add('CLASSIFICATION_RATIONALE',1,'String','Decision trace')
+            if 'UNIFIED_FILTER' not in header.info:
+                header.info.add('UNIFIED_FILTER',1,'String','Current biological candidate class')
             for label in LABELS:
                 if label not in header.filters:
                     header.filters.add(label,None,None,'Biological candidate class')
@@ -133,7 +135,12 @@ def run(baseline, native, outdir, baseline_sha, native_sha, stage_name):
                                     THREE_CLASS_NATIVE_RATIONALE=ni.get('CLASSIFICATION_RATIONALE','missing'),
                                     THREE_CLASS_REVIEW_REASON='|'.join(review) or 'none',
                                     TRAINING_ELIGIBLE='NO',
+                                    UNIFIED_FILTER=label,
                                     CLASSIFICATION_RATIONALE=f'policy:{POLICY}|decision:{reason}|class:{label}')
+                        if label != 'Somatic':
+                            for flag in ('RESCUE_PROMOTED','PASSES_CONSENSUS_DNA','PASSES_CONSENSUS_RNA'):
+                                if flag in info:
+                                    info[flag]='NO'
                         parts[6]=label
                         parts[7]=';'.join(k if v is None else k+'='+str(v) for k,v in info.items())
                         writer.write(('\t'.join(parts)+'\n').encode())

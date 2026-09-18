@@ -40,9 +40,13 @@ def test_complete_union_provenance_and_somatic_parity(tmp_path):
         rows=list(f)
     assert [next(iter(r.filter)) for r in rows]==['Somatic','Germline','NoConsensus','Reference']
     assert all(r.info['TRAINING_ELIGIBLE']=='NO' for r in rows)
+    assert all(r.info['UNIFIED_FILTER']==next(iter(r.filter)) for r in rows)
     assert 'native_negative_conflict' in rows[0].info['THREE_CLASS_REVIEW_REASON']
     assert native_nomination(rows[1].info)
     assert (digest(b),digest(n))==hashes
+    sys.path.insert(0,str(ROOT/'examples/seqc2/scripts'))
+    from audit_refined_label_contract import audit
+    assert audit(Path(report['output']))['issues']=={}
     with pytest.raises(FileExistsError):run(b,n,tmp_path/'out',*hashes,'realignment')
 
 

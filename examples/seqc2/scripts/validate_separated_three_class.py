@@ -12,6 +12,7 @@ from apply_three_class_labels import run as label, digest
 from validate_three_class_policy import class_queries
 from validate_frozen_hybrid_policy import pass_query
 from aggregate_benchmark import parse_metrics_json
+from audit_refined_label_contract import audit
 
 
 def main():
@@ -55,12 +56,17 @@ def main():
         return parse_metrics_json(Path(str(prefix)+'.metrics.json'))
 
     try:
+        save()
         for stage,name in (('consensus','refined_consensus'),('first','refined_first_rescue'),('realignment','refined_realignment_rescue')):
             source=frozen['outputs'][name]
             destination=args.outdir/stage
             outcome=label(Path(source['vcf']),candidates,destination,source['sha256'],native['output_sha256'],stage)
+            structural=audit(Path(outcome['output']))
+            (destination/'structural.audit.json').write_text(json.dumps(structural,indent=2)+'\n')
+            if structural['issues'] or not structural['sources_unchanged']:
+                raise ValueError('Structural output contract failed: '+stage)
             counts,reasons=class_queries(Path(outcome['output']),destination)
-            report['stages'][stage]=dict(adapter=outcome,class_counts=counts,metrics={},baseline_metrics={})
+            report['stages'][stage]=dict(adapter=outcome,structural=structural,class_counts=counts,metrics={},baseline_metrics={})
             current=report['stages'][stage]
             baseline_query=destination/'baseline.query.vcf.gz'
             pass_query(Path(source['vcf']),baseline_query,True)
