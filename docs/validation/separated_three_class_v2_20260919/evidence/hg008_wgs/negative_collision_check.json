@@ -1,0 +1,36 @@
+{
+  "scope": "Challenge negative evidence at known Somatic exact-allele collisions.\n\nThis targeted regression panel is truth-selected, unlike the random-hash pilot.\nIt must never be used as an accuracy estimate or to fit thresholds. Indel\nnegative evidence remains withheld pending haplotype-aware adjudication.\n",
+  "sources": {
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/hg008_wgs/consensus/candidates.vcf.gz": "e1e22f526bf89e910e2b76ca8ae04b7ec66a076e46eab013699e5e5450878cd0",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/giab_benchmarks/smvar_v0.3/HG008-T_somatic_smvar_benchmark_v0.3_tumorvariants.vcf.gz": "6ff5b215e0dc634c85da6164cffbd5790233258fcc48c88a598331430b061cad",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/csv/hg008_wgs_hybrid.csv": "ffc28a1ff49b09086f94a07ee3b74ec398d78e9c4b4a14daedfe45ef63e96b76",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta": "93157a161863464c9435062fd67c173fdaf99cb8b32f1455018361387ffa5564"
+  },
+  "results": [
+    {
+      "site": [
+        "chr10",
+        17796654,
+        "G",
+        "GT"
+      ],
+      "label": "Germline",
+      "normal": null,
+      "tumor": null,
+      "status": "WITHHELD",
+      "reason": "requires_haplotype_aware_validation"
+    }
+  ],
+  "training_approved": false,
+  "bam_paths": {
+    "0": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/giab_bams/HG008-N-D_Illumina_118x_GRCh38-GIABv3.bam",
+    "1": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/giab_bams/HG008-T_Illumina_161x_GRCh38-GIABv3.bam"
+  },
+  "flag_filter": 3844,
+  "counts": {
+    "Germline:WITHHELD:requires_haplotype_aware_validation": 1
+  },
+  "supported_known_somatic_collisions": 0,
+  "sources_unchanged": true,
+  "status": "pass_targeted_screen_not_accuracy"
+}

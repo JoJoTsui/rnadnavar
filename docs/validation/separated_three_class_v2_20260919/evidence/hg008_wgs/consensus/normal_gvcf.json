@@ -1,0 +1,6804 @@
+{
+  "scope": "Corroborate preselected SNP candidates against an orthogonal normal gVCF.\n\nHG008 N-P is a different normal tissue from the N-D caller input. This is not\na validated germline benchmark, and normal-only evidence cannot approve a\npaired Reference label. Missing calls are never treated as reference truth.\n",
+  "pilot": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/hg008_wgs/consensus/bam_pilot.json",
+  "pilot_sha256": "ce72347b5ab2ae2bb62be6e706b5e5f8846e73c84d048415f32d310962afba76",
+  "normal_gvcf": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.artifacts/three_class_validation_20260918/orthogonal/HG008-N-P.GRCh38.deepvariant.g.vcf.gz",
+  "normal_gvcf_sha256": "70048f83dbeb81b2d57732432513706de5b1c35100ed813f17b0dc7731b58984",
+  "training_approved": false,
+  "results": [
+    {
+      "site": [
+        "chr1",
+        13056011,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 13052732,
+          "stop": 13056658,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 1,
+          "DP": 0
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        57618858,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 57618858,
+          "stop": 57618858,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 60,
+          "DP": 44
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        75500334,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 75500334,
+          "stop": 75500334,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 64,
+          "DP": 49
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr11",
+        131771132,
+        "C",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 131771132,
+          "stop": 131771132,
+          "ref": "C",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 37
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        4013406,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 4013406,
+          "stop": 4013406,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 47,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        178531627,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 178531627,
+          "stop": 178531627,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 59,
+          "DP": 33
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr11",
+        36269588,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 36269588,
+          "stop": 36269588,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 55,
+          "DP": 35
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr17",
+        29078032,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 29078032,
+          "stop": 29078032,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 46,
+          "DP": 20
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr18",
+        63970438,
+        "C",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 63970438,
+          "stop": 63970438,
+          "ref": "C",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 55,
+          "DP": 26
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr11",
+        295808,
+        "A",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 295808,
+          "stop": 295808,
+          "ref": "A",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 63,
+          "DP": 24
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        19884862,
+        "C",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 19884862,
+          "stop": 19884862,
+          "ref": "C",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 59,
+          "DP": 38
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr8",
+        68231761,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 68231761,
+          "stop": 68231761,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 60,
+          "DP": 45
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        217848003,
+        "A",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 217848003,
+          "stop": 217848003,
+          "ref": "A",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 26
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        196197595,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 196197595,
+          "stop": 196197595,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 59,
+          "DP": 43
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr6",
+        3290731,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 3290731,
+          "stop": 3290731,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 48,
+          "DP": 37
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr6",
+        31270713,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 31270713,
+          "stop": 31270713,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 51,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr20",
+        50578078,
+        "A",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 50578078,
+          "stop": 50578078,
+          "ref": "A",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 63,
+          "DP": 26
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        85056272,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 85056272,
+          "stop": 85056272,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 57,
+          "DP": 33
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr11",
+        58145166,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 58145166,
+          "stop": 58145166,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 33
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr16",
+        68364529,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 68364529,
+          "stop": 68364529,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 48,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr8",
+        17907400,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 17907400,
+          "stop": 17907400,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 37
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        49920033,
+        "C",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 49920033,
+          "stop": 49920033,
+          "ref": "C",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 63,
+          "DP": 38
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr4",
+        42267733,
+        "A",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 42267733,
+          "stop": 42267733,
+          "ref": "A",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 54,
+          "DP": 29
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr21",
+        44458364,
+        "A",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 44458364,
+          "stop": 44458364,
+          "ref": "A",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 51,
+          "DP": 21
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        176531543,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 176531543,
+          "stop": 176531543,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 67,
+          "DP": 46
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr17",
+        81264100,
+        "A",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 81264100,
+          "stop": 81264100,
+          "ref": "A",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 49,
+          "DP": 20
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        225886863,
+        "T",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 225886863,
+          "stop": 225886863,
+          "ref": "T",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 55,
+          "DP": 28
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr16",
+        1443758,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 1443758,
+          "stop": 1443758,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 49,
+          "DP": 20
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr11",
+        8910986,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 8910986,
+          "stop": 8910986,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 59,
+          "DP": 33
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        153669896,
+        "G",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 153669896,
+          "stop": 153669896,
+          "ref": "G",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 52,
+          "DP": 28
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        58118484,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 58118484,
+          "stop": 58118484,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 64,
+          "DP": 40
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        37269348,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 37269348,
+          "stop": 37269348,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 62,
+          "DP": 46
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr13",
+        42241261,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 42241261,
+          "stop": 42241261,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 54,
+          "DP": 42
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr20",
+        63895366,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 63895366,
+          "stop": 63895366,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 43,
+          "DP": 21
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr13",
+        48045806,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 48045806,
+          "stop": 48045806,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 63,
+          "DP": 47
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr10",
+        113634170,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 113634170,
+          "stop": 113634170,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 57,
+          "DP": 34
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        150488379,
+        "T",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 150488379,
+          "stop": 150488379,
+          "ref": "T",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 48,
+          "DP": 37
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr15",
+        82958900,
+        "G",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 82958900,
+          "stop": 82958900,
+          "ref": "G",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 50,
+          "DP": 19
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        29681065,
+        "T",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 29681065,
+          "stop": 29681065,
+          "ref": "T",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 48,
+          "DP": 38
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        131620737,
+        "G",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 131620737,
+          "stop": 131620737,
+          "ref": "G",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 61,
+          "DP": 24
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr9",
+        112872972,
+        "A",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 112872972,
+          "stop": 112872972,
+          "ref": "A",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 58,
+          "DP": 36
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        56997561,
+        "A",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 56997561,
+          "stop": 56997561,
+          "ref": "A",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 29,
+          "DP": 39
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr3",
+        140505946,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 140505946,
+          "stop": 140505946,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 57,
+          "DP": 34
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        205351341,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 205351341,
+          "stop": 205351341,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 60,
+          "DP": 37
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        33426099,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 33426099,
+          "stop": 33426099,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 51,
+          "DP": 38
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr20",
+        57565924,
+        "T",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 57565924,
+          "stop": 57565924,
+          "ref": "T",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 54,
+          "DP": 31
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        182919798,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 182919798,
+          "stop": 182919798,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 65,
+          "DP": 47
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        109051284,
+        "A",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 109051284,
+          "stop": 109051284,
+          "ref": "A",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 58,
+          "DP": 50
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        13253378,
+        "A",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 13253378,
+          "stop": 13253378,
+          "ref": "A",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            null,
+            null
+          ],
+          "GQ": 12,
+          "DP": 39
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr17",
+        59878393,
+        "G",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 59878393,
+          "stop": 59878393,
+          "ref": "G",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 54,
+          "DP": 34
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr4",
+        11477373,
+        "G",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 11477373,
+          "stop": 11477373,
+          "ref": "G",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 54,
+          "DP": 33
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        43379690,
+        "A",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 43379690,
+          "stop": 43379690,
+          "ref": "A",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 63,
+          "DP": 34
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr20",
+        23126351,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 23126351,
+          "stop": 23126351,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 49,
+          "DP": 32
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr15",
+        99007653,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 99007653,
+          "stop": 99007653,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 52,
+          "DP": 18
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr6",
+        32644226,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 32644226,
+          "stop": 32644226,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 30,
+          "DP": 40
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr11",
+        71414299,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 71414299,
+          "stop": 71414299,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 52,
+          "DP": 29
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        209611582,
+        "G",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 209611582,
+          "stop": 209611582,
+          "ref": "G",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 58,
+          "DP": 35
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        44988580,
+        "C",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 44988580,
+          "stop": 44988580,
+          "ref": "C",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 54,
+          "DP": 29
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr10",
+        79556700,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 79556700,
+          "stop": 79556700,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 52,
+          "DP": 26
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        176863956,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 176863956,
+          "stop": 176863956,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 59,
+          "DP": 37
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr10",
+        35032486,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 35032486,
+          "stop": 35032486,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 59,
+          "DP": 43
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr3",
+        121041648,
+        "T",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 121041648,
+          "stop": 121041648,
+          "ref": "T",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 39
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr14",
+        74293680,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 74293680,
+          "stop": 74293680,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 60,
+          "DP": 21
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr18",
+        12281491,
+        "T",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 12281491,
+          "stop": 12281491,
+          "ref": "T",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 51,
+          "DP": 33
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr4",
+        25767513,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 25767513,
+          "stop": 25767513,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 37
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr10",
+        71749708,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 71749708,
+          "stop": 71749708,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 52,
+          "DP": 24
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        24810636,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 24810636,
+          "stop": 24810636,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 60,
+          "DP": 44
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr11",
+        130120692,
+        "A",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 130120692,
+          "stop": 130120692,
+          "ref": "A",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 58,
+          "DP": 37
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr13",
+        99406801,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 99406801,
+          "stop": 99406801,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 13,
+          "DP": 13
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        8685599,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 8685599,
+          "stop": 8685599,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 60,
+          "DP": 50
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr4",
+        39476544,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 39476544,
+          "stop": 39476544,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 46,
+          "DP": 38
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr9",
+        70640516,
+        "G",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 70640516,
+          "stop": 70640516,
+          "ref": "G",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 55,
+          "DP": 27
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        240576396,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 240576396,
+          "stop": 240576396,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 26
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        52914300,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 52914300,
+          "stop": 52914300,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 50,
+          "DP": 29
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr11",
+        49838911,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 49838911,
+          "stop": 49838911,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 63,
+          "DP": 32
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr7",
+        16971340,
+        "T",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 16971340,
+          "stop": 16971340,
+          "ref": "T",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 61,
+          "DP": 43
+        }
+      ]
+    },
+    {
+      "site": [
+        "chrX",
+        41728916,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 41728916,
+          "stop": 41728916,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 58,
+          "DP": 40
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr10",
+        132520972,
+        "A",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 132520972,
+          "stop": 132520972,
+          "ref": "A",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 57,
+          "DP": 29
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr8",
+        22579628,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 22579628,
+          "stop": 22579628,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 49,
+          "DP": 31
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr7",
+        27740146,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 27740146,
+          "stop": 27740146,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 62,
+          "DP": 43
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        12431958,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 12431958,
+          "stop": 12431958,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 38
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr6",
+        43204692,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 43204692,
+          "stop": 43204692,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 58,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr17",
+        83085299,
+        "G",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 83085299,
+          "stop": 83085299,
+          "ref": "G",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 58,
+          "DP": 21
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        101642527,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 101642527,
+          "stop": 101642527,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 62,
+          "DP": 52
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr15",
+        30596743,
+        "T",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 30596743,
+          "stop": 30596743,
+          "ref": "T",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 22,
+          "DP": 39
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        39467084,
+        "C",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 39467084,
+          "stop": 39467084,
+          "ref": "C",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 59,
+          "DP": 48
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr17",
+        21782912,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 21782912,
+          "stop": 21782912,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 62,
+          "DP": 27
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        52669543,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 52669543,
+          "stop": 52669543,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 53,
+          "DP": 30
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr11",
+        82933862,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 82933862,
+          "stop": 82933862,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 37
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        224379302,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 224379302,
+          "stop": 224379302,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 55,
+          "DP": 37
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr7",
+        141907824,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 141907824,
+          "stop": 141907824,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 55,
+          "DP": 35
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr11",
+        78424473,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 78424473,
+          "stop": 78424473,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 43,
+          "DP": 44
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr15",
+        43798656,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 43798656,
+          "stop": 43798656,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 55,
+          "DP": 27
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr11",
+        102716331,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 102716331,
+          "stop": 102716331,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 54,
+          "DP": 41
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr10",
+        61407504,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 61407504,
+          "stop": 61407504,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 62,
+          "DP": 45
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr3",
+        57493766,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 57493766,
+          "stop": 57493766,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 57,
+          "DP": 40
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr11",
+        60518055,
+        "T",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 60518055,
+          "stop": 60518055,
+          "ref": "T",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 58,
+          "DP": 51
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr14",
+        100145612,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 100145612,
+          "stop": 100145612,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 44,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr14",
+        77278850,
+        "A",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 77278850,
+          "stop": 77278850,
+          "ref": "A",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 53,
+          "DP": 24
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr10",
+        70112816,
+        "G",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 70112816,
+          "stop": 70112816,
+          "ref": "G",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 59,
+          "DP": 35
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr4",
+        52593525,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 52593525,
+          "stop": 52593525,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 50
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr6",
+        89662267,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 89662267,
+          "stop": 89662267,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 61,
+          "DP": 47
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        82398887,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 82398887,
+          "stop": 82398887,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 58,
+          "DP": 41
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr22",
+        43626698,
+        "C",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 43626698,
+          "stop": 43626698,
+          "ref": "C",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr9",
+        71712045,
+        "A",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 71712045,
+          "stop": 71712045,
+          "ref": "A",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 65,
+          "DP": 46
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        35615435,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 35615435,
+          "stop": 35615435,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 55,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr3",
+        154024360,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 154024360,
+          "stop": 154024360,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 59,
+          "DP": 37
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr20",
+        29879040,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 29879040,
+          "stop": 29879040,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            1,
+            1
+          ],
+          "GQ": 7,
+          "DP": 136
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        48965830,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 48965830,
+          "stop": 48965830,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 55,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr20",
+        47224384,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 47224384,
+          "stop": 47224384,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 60,
+          "DP": 31
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        85751663,
+        "G",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 85751663,
+          "stop": 85751663,
+          "ref": "G",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 50,
+          "DP": 17
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr4",
+        102502169,
+        "G",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 102502169,
+          "stop": 102502169,
+          "ref": "G",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 64,
+          "DP": 45
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr10",
+        127015117,
+        "G",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 127015117,
+          "stop": 127015117,
+          "ref": "G",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 33
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        110381613,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 110381613,
+          "stop": 110381613,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 63,
+          "DP": 46
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr6",
+        104025746,
+        "T",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 104025746,
+          "stop": 104025746,
+          "ref": "T",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 30,
+          "DP": 34
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr9",
+        90626205,
+        "G",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 90626205,
+          "stop": 90626205,
+          "ref": "G",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 59,
+          "DP": 41
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr3",
+        130676905,
+        "A",
+        "G"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 130676905,
+          "stop": 130676905,
+          "ref": "A",
+          "alts": [
+            "G",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 48
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr11",
+        123640943,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 123640943,
+          "stop": 123640943,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 54,
+          "DP": 29
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        39125853,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 39125853,
+          "stop": 39125853,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 39,
+          "DP": 17
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr20",
+        42079594,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 42079594,
+          "stop": 42079594,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 60,
+          "DP": 33
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr11",
+        64907204,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 64907204,
+          "stop": 64907204,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 30,
+          "DP": 27
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr3",
+        22372402,
+        "C",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 22372402,
+          "stop": 22372402,
+          "ref": "C",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 44
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr3",
+        124163836,
+        "G",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 124163836,
+          "stop": 124163836,
+          "ref": "G",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 63,
+          "DP": 29
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        38201590,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 38201590,
+          "stop": 38201590,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 57,
+          "DP": 32
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        132583147,
+        "C",
+        "T"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 132583147,
+          "stop": 132583147,
+          "ref": "C",
+          "alts": [
+            "T",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 53,
+          "DP": 22
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr13",
+        113118393,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 113118393,
+          "stop": 113118393,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 56,
+          "DP": 23
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        15690931,
+        "T",
+        "C"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 15690931,
+          "stop": 15690931,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 59,
+          "DP": 32
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        156815825,
+        "G",
+        "A"
+      ],
+      "label": "Germline",
+      "outcome": "normal_alt_corroboration",
+      "evidence": [
+        {
+          "pos": 156815825,
+          "stop": 156815825,
+          "ref": "G",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            1
+          ],
+          "GQ": 58,
+          "DP": 32
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr18",
+        42923800,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 42923771,
+          "stop": 42923932,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 34
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr8",
+        8785849,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 8785739,
+          "stop": 8785876,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 28
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        180809792,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 180809450,
+          "stop": 180809823,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 32
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr21",
+        25945477,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 25945381,
+          "stop": 25945708,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 28
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr7",
+        73543712,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 73543700,
+          "stop": 73543729,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 21
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        16565848,
+        "C",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 16565816,
+          "stop": 16565851,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 17
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr4",
+        80202473,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 80202464,
+          "stop": 80202597,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 23
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        179555666,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 179555625,
+          "stop": 179555802,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 21
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr17",
+        8039601,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 8039595,
+          "stop": 8039667,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 16
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr6",
+        33670582,
+        "A",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 33670404,
+          "stop": 33670879,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 33
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        48172113,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 48172106,
+          "stop": 48172176,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 27
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr9",
+        127762087,
+        "A",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 127762085,
+          "stop": 127762097,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 17
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr3",
+        27424178,
+        "T",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 27423690,
+          "stop": 27424267,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 34
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        203440892,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 203440881,
+          "stop": 203440894,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        150657094,
+        "A",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 150656687,
+          "stop": 150657363,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 34
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr17",
+        32052970,
+        "T",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 32052970,
+          "stop": 32052970,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 7,
+          "DP": 32
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        84137219,
+        "A",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 84137187,
+          "stop": 84138124,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 37
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr8",
+        18803257,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 18803211,
+          "stop": 18803286,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 42
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        14386429,
+        "G",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 14386403,
+          "stop": 14386435,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 20
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr4",
+        188109263,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 188109258,
+          "stop": 188109268,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 16
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr16",
+        29669323,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 29669320,
+          "stop": 29669456,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 24
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr7",
+        112287558,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 112287530,
+          "stop": 112287840,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 27
+        }
+      ]
+    },
+    {
+      "site": [
+        "chrX",
+        67544352,
+        "T",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 67543930,
+          "stop": 67544367,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 35
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr10",
+        113781372,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 113781237,
+          "stop": 113781461,
+          "ref": "ATCCTTCCCAACACCTCCTTCCCAACACCTCCTTCCCAAACACCTCCTTCCCAAACACCTCCTTCCCAACACCTCCTTCCCCAACACCTCCTTCCCAAACACCTCTTTCCCAAACACCTCCTTCCCAGACACCTCCTTCCCAACACCTCCTTCCCAACACCTCCTTCCCAAACCCCTCTTTCCCAAACACCTCCTTCCCCAACACCTCCTTCCCAACACCTCCTT",
+          "alts": [
+            "A",
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 30,
+          "DP": 32
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr17",
+        41892255,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 41892244,
+          "stop": 41892264,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 19
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr17",
+        17494407,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 17494379,
+          "stop": 17494412,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 30
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        151606654,
+        "A",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 151606524,
+          "stop": 151606685,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 38
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr18",
+        60804419,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 60804397,
+          "stop": 60804447,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 32
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        42733138,
+        "G",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 42733076,
+          "stop": 42733382,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 24
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        81751285,
+        "T",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 81750491,
+          "stop": 81751349,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 31
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        116535571,
+        "C",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 116535523,
+          "stop": 116535599,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 19
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr6",
+        15546052,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 15545597,
+          "stop": 15546062,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 28
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        68776093,
+        "T",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 68775953,
+          "stop": 68776211,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 16
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        68301341,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 68301208,
+          "stop": 68301341,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr2",
+        118990591,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 118990570,
+          "stop": 118990956,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 27
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        42251315,
+        "A",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 42251272,
+          "stop": 42251368,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 22
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        27761008,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 27760948,
+          "stop": 27761183,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 22
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        121364473,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 121364373,
+          "stop": 121364495,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 42
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr16",
+        20859587,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 20859571,
+          "stop": 20859626,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 29
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr6",
+        137784523,
+        "A",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 137784158,
+          "stop": 137784644,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 42
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr17",
+        8160406,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 8160406,
+          "stop": 8160406,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 18
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        21184402,
+        "C",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 21184349,
+          "stop": 21184758,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 31
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        126494261,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 126493544,
+          "stop": 126494353,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 32
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        141573728,
+        "G",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 141573694,
+          "stop": 141573740,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 40
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        36171894,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 36171794,
+          "stop": 36171933,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr7",
+        46634741,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 46634728,
+          "stop": 46634749,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 36
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        51912499,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 51912437,
+          "stop": 51912536,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 16
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        61406603,
+        "T",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 61406544,
+          "stop": 61406617,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 21
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr6",
+        15103079,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 15103043,
+          "stop": 15103170,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 18
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        94705394,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 94705204,
+          "stop": 94705506,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 36
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr9",
+        65704813,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 65704736,
+          "stop": 65704864,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 68
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        41878965,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 41878918,
+          "stop": 41878972,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 42,
+          "DP": 14
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr6",
+        122399527,
+        "T",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 122398605,
+          "stop": 122399608,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 32
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        23324380,
+        "A",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 23324335,
+          "stop": 23324401,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 19
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        37735960,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 37735932,
+          "stop": 37736018,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 33
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        100332661,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 100332627,
+          "stop": 100332924,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        22463948,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 22463835,
+          "stop": 22464043,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 36
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        47414868,
+        "T",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 47414868,
+          "stop": 47414868,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 21,
+          "DP": 17
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        41843577,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 41843572,
+          "stop": 41843593,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 19
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr4",
+        13930154,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 13930029,
+          "stop": 13930229,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr9",
+        136725809,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 136725798,
+          "stop": 136725814,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 20
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr7",
+        100884630,
+        "A",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 100884593,
+          "stop": 100884668,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 29
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr4",
+        158680072,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 158679910,
+          "stop": 158680077,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 37
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        50488507,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 50488506,
+          "stop": 50488516,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 16
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        56412676,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 56412065,
+          "stop": 56412690,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 35
+        }
+      ]
+    },
+    {
+      "site": [
+        "chrY",
+        3852190,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 3852177,
+          "stop": 3852209,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 42,
+          "DP": 14
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        149538029,
+        "C",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 149537999,
+          "stop": 149538101,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 45
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        161881950,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 161881903,
+          "stop": 161881964,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 43
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr3",
+        57293793,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 57293737,
+          "stop": 57293974,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        77868346,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 77868231,
+          "stop": 77868569,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 38
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        109561046,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 109561010,
+          "stop": 109561199,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 27
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr22",
+        20488653,
+        "T",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 20488418,
+          "stop": 20488680,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 20
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        48905889,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 48905861,
+          "stop": 48905891,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 21
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        65828385,
+        "A",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 65828373,
+          "stop": 65828466,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 31
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr6",
+        125119056,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 125118943,
+          "stop": 125119188,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 30
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        7871262,
+        "G",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 7871261,
+          "stop": 7871267,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 16
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr3",
+        52518915,
+        "G",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 52518907,
+          "stop": 52518965,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 24
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        55947621,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 55947594,
+          "stop": 55949613,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 22
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        180529251,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 180529239,
+          "stop": 180529296,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 39
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        74707843,
+        "T",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 74707705,
+          "stop": 74707851,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 33
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        154993671,
+        "A",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 154992825,
+          "stop": 154993757,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 35
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr7",
+        123535000,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 123534789,
+          "stop": 123535281,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 32
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr8",
+        2935677,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 2935659,
+          "stop": 2935777,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 32
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr6",
+        111557505,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 111557426,
+          "stop": 111557594,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 17
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr10",
+        13139337,
+        "T",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 13139297,
+          "stop": 13139375,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 36
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr8",
+        76853116,
+        "A",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 76853085,
+          "stop": 76853317,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 28
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr4",
+        127723450,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 127723387,
+          "stop": 127723650,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 22
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr22",
+        23871234,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 23871113,
+          "stop": 23871407,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 34
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr17",
+        7717986,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 7717964,
+          "stop": 7717998,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr21",
+        46444665,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 46444651,
+          "stop": 46444707,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 20
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr17",
+        41892261,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 41892244,
+          "stop": 41892264,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 19
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr3",
+        64596947,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 64595799,
+          "stop": 64598318,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 41
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr9",
+        69734249,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 69733828,
+          "stop": 69734257,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 43
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr9",
+        128709880,
+        "T",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 128709808,
+          "stop": 128710011,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 20
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr4",
+        869504,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 869310,
+          "stop": 869632,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 25
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr15",
+        30488784,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 30488758,
+          "stop": 30488802,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 33,
+          "DP": 11
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr10",
+        15139852,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 15138791,
+          "stop": 15139862,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 35
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr18",
+        75210894,
+        "T",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 75210884,
+          "stop": 75210895,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 31
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr14",
+        106097623,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 106097602,
+          "stop": 106097645,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 23
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr8",
+        22564875,
+        "T",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 22564875,
+          "stop": 22564875,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 36,
+          "DP": 22
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr3",
+        11627445,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 11627416,
+          "stop": 11627501,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 44
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        116574267,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 116574176,
+          "stop": 116574343,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 29
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr3",
+        44442052,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 44442002,
+          "stop": 44442380,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 22
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        82278277,
+        "A",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 82278265,
+          "stop": 82278551,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 27
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr22",
+        21471173,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 21470839,
+          "stop": 21471671,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 29
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        85447402,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 85447356,
+          "stop": 85447707,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 41
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        78198687,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 78198594,
+          "stop": 78198693,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 36
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr16",
+        16106489,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 16106418,
+          "stop": 16106572,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 28
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        1077499,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 1077478,
+          "stop": 1077529,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 42,
+          "DP": 14
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr9",
+        36834409,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 36834288,
+          "stop": 36834416,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 27
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        49167752,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 49167738,
+          "stop": 49167768,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 22
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr18",
+        56083520,
+        "T",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 56082805,
+          "stop": 56083674,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 30
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        57522993,
+        "G",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 57522953,
+          "stop": 57523002,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 19
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        23949714,
+        "C",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 23949714,
+          "stop": 23949728,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 41
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr4",
+        86914378,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 86914365,
+          "stop": 86914390,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 40
+        }
+      ]
+    },
+    {
+      "site": [
+        "chrY",
+        11333302,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 11333301,
+          "stop": 11333309,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 105
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr3",
+        195787892,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 195787888,
+          "stop": 195787892,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 27
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr5",
+        87374193,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 87374148,
+          "stop": 87374379,
+          "ref": "T",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 32
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr16",
+        1307841,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 1307817,
+          "stop": 1307909,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 16
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr6",
+        26599119,
+        "G",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 26598511,
+          "stop": 26600000,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 30
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr17",
+        38479835,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 38479804,
+          "stop": 38480076,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 30
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        123457665,
+        "C",
+        "G"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 123457607,
+          "stop": 123457892,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 16
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr1",
+        2775063,
+        "T",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 2775001,
+          "stop": 2775098,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 17
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr9",
+        61192467,
+        "T",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "inconclusive",
+      "evidence": [
+        {
+          "pos": 61192467,
+          "stop": 61192467,
+          "ref": "T",
+          "alts": [
+            "C",
+            "<*>"
+          ],
+          "GT": [
+            null,
+            null
+          ],
+          "GQ": 6,
+          "DP": 18
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr12",
+        113017786,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 113016645,
+          "stop": 113017802,
+          "ref": "C",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 34
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr4",
+        3938683,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 3938671,
+          "stop": 3938708,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 27
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr19",
+        37172506,
+        "A",
+        "C"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 37172329,
+          "stop": 37172520,
+          "ref": "A",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 50,
+          "DP": 38
+        }
+      ]
+    },
+    {
+      "site": [
+        "chr20",
+        3779826,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "outcome": "normal_reference_evidence",
+      "evidence": [
+        {
+          "pos": 3779780,
+          "stop": 3779891,
+          "ref": "G",
+          "alts": [
+            "<*>"
+          ],
+          "GT": [
+            0,
+            0
+          ],
+          "GQ": 48,
+          "DP": 23
+        }
+      ]
+    }
+  ],
+  "sample_names": [
+    "HG008-N-P"
+  ],
+  "counts": {
+    "Germline:inconclusive": 10,
+    "Germline:normal_alt_corroboration": 118,
+    "Reference:normal_reference_evidence": 100,
+    "Reference:inconclusive": 28
+  }
+}

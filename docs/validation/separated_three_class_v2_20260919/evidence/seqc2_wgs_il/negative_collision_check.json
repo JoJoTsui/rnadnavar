@@ -1,0 +1,253 @@
+{
+  "scope": "Challenge negative evidence at known Somatic exact-allele collisions.\n\nThis targeted regression panel is truth-selected, unlike the random-hash pilot.\nIt must never be used as an accuracy estimate or to fit thresholds. Indel\nnegative evidence remains withheld pending haplotype-aware adjudication.\n",
+  "sources": {
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/candidates.vcf.gz": "7a8b1ce100c2e9c2a49a07ff749119d5f06e81870db759ac780b5b59b6ba965d",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz": "ac818e230bca76fe80dc890523550f7c1c147f6963e4b9f71432a89a2846bab4",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/csv/seqc2_wgs_il_hybrid.csv": "22b058952822edf9c33e5555e7e6104c2c4e1df0e2b53f895ffccac56b49948d",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta": "93157a161863464c9435062fd67c173fdaf99cb8b32f1455018361387ffa5564"
+  },
+  "results": [
+    {
+      "site": [
+        "chr3",
+        42548945,
+        "G",
+        "A"
+      ],
+      "label": "Reference",
+      "normal": {
+        "depth": 34,
+        "ref": 34,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 61,
+        "ref": 60,
+        "alt": 1,
+        "other": 0
+      },
+      "status": "WITHHELD",
+      "reason": "observed_alt_not_zero"
+    },
+    {
+      "site": [
+        "chr5",
+        119037716,
+        "G",
+        "A"
+      ],
+      "label": "Reference",
+      "normal": {
+        "depth": 72,
+        "ref": 72,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 40,
+        "ref": 38,
+        "alt": 2,
+        "other": 0
+      },
+      "status": "WITHHELD",
+      "reason": "observed_alt_not_zero"
+    },
+    {
+      "site": [
+        "chr5",
+        145229546,
+        "C",
+        "A"
+      ],
+      "label": "Reference",
+      "normal": {
+        "depth": 54,
+        "ref": 54,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 47,
+        "ref": 45,
+        "alt": 2,
+        "other": 0
+      },
+      "status": "WITHHELD",
+      "reason": "observed_alt_not_zero"
+    },
+    {
+      "site": [
+        "chr8",
+        24509496,
+        "A",
+        "G"
+      ],
+      "label": "Reference",
+      "normal": {
+        "depth": 42,
+        "ref": 42,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 40,
+        "ref": 38,
+        "alt": 2,
+        "other": 0
+      },
+      "status": "WITHHELD",
+      "reason": "observed_alt_not_zero"
+    },
+    {
+      "site": [
+        "chr16",
+        2853214,
+        "A",
+        "T"
+      ],
+      "label": "Reference",
+      "normal": {
+        "depth": 45,
+        "ref": 45,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 38,
+        "ref": 36,
+        "alt": 2,
+        "other": 0
+      },
+      "status": "WITHHELD",
+      "reason": "observed_alt_not_zero"
+    },
+    {
+      "site": [
+        "chr17",
+        327620,
+        "G",
+        "C"
+      ],
+      "label": "Reference",
+      "normal": {
+        "depth": 40,
+        "ref": 40,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 53,
+        "ref": 51,
+        "alt": 2,
+        "other": 0
+      },
+      "status": "WITHHELD",
+      "reason": "observed_alt_not_zero"
+    },
+    {
+      "site": [
+        "chr17",
+        1516860,
+        "C",
+        "G"
+      ],
+      "label": "Reference",
+      "normal": {
+        "depth": 56,
+        "ref": 56,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 57,
+        "ref": 55,
+        "alt": 2,
+        "other": 0
+      },
+      "status": "WITHHELD",
+      "reason": "observed_alt_not_zero"
+    },
+    {
+      "site": [
+        "chr17",
+        40597645,
+        "C",
+        "T"
+      ],
+      "label": "Reference",
+      "normal": {
+        "depth": 78,
+        "ref": 78,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 56,
+        "ref": 54,
+        "alt": 2,
+        "other": 0
+      },
+      "status": "WITHHELD",
+      "reason": "observed_alt_not_zero"
+    },
+    {
+      "site": [
+        "chr21",
+        21418545,
+        "C",
+        "T"
+      ],
+      "label": "Reference",
+      "normal": {
+        "depth": 84,
+        "ref": 84,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 56,
+        "ref": 54,
+        "alt": 2,
+        "other": 0
+      },
+      "status": "WITHHELD",
+      "reason": "observed_alt_not_zero"
+    },
+    {
+      "site": [
+        "chr22",
+        35552587,
+        "G",
+        "C"
+      ],
+      "label": "Reference",
+      "normal": {
+        "depth": 39,
+        "ref": 39,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 59,
+        "ref": 58,
+        "alt": 1,
+        "other": 0
+      },
+      "status": "WITHHELD",
+      "reason": "observed_alt_not_zero"
+    }
+  ],
+  "training_approved": false,
+  "bam_paths": {
+    "0": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/WGS/WGS_IL_N_1.bwa.dedup.bam",
+    "1": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/WGS/WGS_IL_T_1.bwa.dedup.bam"
+  },
+  "flag_filter": 3844,
+  "counts": {
+    "Reference:WITHHELD:observed_alt_not_zero": 10
+  },
+  "supported_known_somatic_collisions": 0,
+  "sources_unchanged": true,
+  "status": "pass_targeted_screen_not_accuracy"
+}

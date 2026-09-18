@@ -1,0 +1,31 @@
+{
+  "policy": "negative_evidence_gate_v2",
+  "training_approved": false,
+  "sources": {
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wes_ll/realignment/candidates.vcf.gz": "c906de096940d9193e6cd6b0fc1659fc1db1df8c4532bbbc7a3b2c1bbf850046",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wes_ll/realignment/bam_pilot.json": "ec4b81a35bc80204e70a4dd75f1602b6c8a34dd3619045cca3c3fc4cf0bba503"
+  },
+  "parameters": {
+    "max_reference_af": 0.01,
+    "confidence": 0.95,
+    "required_zero_alt_depth_each_sample": 299
+  },
+  "scope": "Evidence-only gate for native negative candidates, never training approval.\n\nConsumes a hash-bound paired-BAM pilot report. Preserves every FILTER and source\nrecord. Indels/complex contexts abstain pending haplotype-aware adjudication.\nNo caller votes are summed and missing coverage is never interpreted as zero.\n",
+  "counts": {
+    "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 385578,
+    "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 39350,
+    "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 13302,
+    "Germline:WITHHELD:requires_haplotype_aware_validation": 971,
+    "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 2518,
+    "Reference:WITHHELD:observed_alt_not_zero": 114,
+    "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 34,
+    "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 14,
+    "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 57,
+    "Germline:WITHHELD:insufficient_paired_germline_evidence": 34,
+    "Germline:WITHHELD:other_allele_context_requires_review": 1
+  },
+  "status": "complete_not_training_approved",
+  "sources_unchanged": true,
+  "output": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wes_ll/realignment/evidence_gate/candidate.evidence.vcf.gz",
+  "output_sha256": "446fada4397e702da6301c3fcb4513b3eb7ee8d9002681eb42d073d87d29be20"
+}

@@ -1,0 +1,32 @@
+{
+  "policy": "negative_evidence_gate_v2",
+  "training_approved": false,
+  "sources": {
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/hg008_wgs/first/candidates.vcf.gz": "3fc702d6b6a061f8b5177c83869a6a1238b170bd133c53148594aacb5e5e02ac",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/hg008_wgs/first/bam_pilot.json": "6fb77b01ef48263513dd6fb5137c97ded5ce618d2d6a7baba51c2c12d5aa8281"
+  },
+  "parameters": {
+    "max_reference_af": 0.01,
+    "confidence": 0.95,
+    "required_zero_alt_depth_each_sample": 299
+  },
+  "scope": "Evidence-only gate for native negative candidates, never training approval.\n\nConsumes a hash-bound paired-BAM pilot report. Preserves every FILTER and source\nrecord. Indels/complex contexts abstain pending haplotype-aware adjudication.\nNo caller votes are summed and missing coverage is never interpreted as zero.\n",
+  "counts": {
+    "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 1974081,
+    "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 54804,
+    "Germline:WITHHELD:requires_haplotype_aware_validation": 4649,
+    "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 41993,
+    "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 609,
+    "Reference:WITHHELD:observed_alt_not_zero": 32,
+    "Germline:WITHHELD:other_allele_context_requires_review": 4,
+    "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 52,
+    "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 91,
+    "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 71,
+    "Reference:WITHHELD:other_allele_context_requires_review": 5,
+    "Germline:WITHHELD:insufficient_paired_germline_evidence": 1
+  },
+  "status": "complete_not_training_approved",
+  "sources_unchanged": true,
+  "output": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/hg008_wgs/first/evidence_gate/candidate.evidence.vcf.gz",
+  "output_sha256": "133982cbd4bb545654780b657f6203742b7815e3565cd44e7743db75d1d6e01e"
+}

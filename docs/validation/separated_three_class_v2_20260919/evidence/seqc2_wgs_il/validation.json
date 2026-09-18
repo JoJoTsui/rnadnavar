@@ -1,0 +1,1404 @@
+{
+  "status": "complete_candidate_validation_not_training_approved",
+  "training_approved": false,
+  "policy": "separated_three_class_v2",
+  "native_validation": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/seqc2_wgs_il/validation.json",
+  "truth": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+  "stages": {
+    "consensus": {
+      "adapter": {
+        "status": "candidate_complete_not_training_approved",
+        "policy": "separated_three_class_v2",
+        "stage": "consensus",
+        "sources": {
+          "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/refined.vcf.gz": "427d067d5bb42b74ba0f707eb0868262dda309ccc51e6584cc2709c1db5dec03",
+          "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/seqc2_wgs_il/three_class.vcf.gz": "946d478b4d00bce3642805fe28bb9a2c28aebc9d2a79539b39cd8448ecbc4f56"
+        },
+        "training_approved": false,
+        "counts": {
+          "NoConsensus": 253981,
+          "Reference": 167614,
+          "Germline": 39209,
+          "Somatic": 6074
+        },
+        "code_sha256": "0d90d4407269bd952235b9a210ad9a3383e9e30db2054c6765997240f09be8a7",
+        "somatic_membership_mismatches": 0,
+        "sources_unchanged": true,
+        "output": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/candidates.vcf.gz",
+        "output_sha256": "7a8b1ce100c2e9c2a49a07ff749119d5f06e81870db759ac780b5b59b6ba965d"
+      },
+      "structural": {
+        "status": "structural_pass_not_training_approval",
+        "source": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/candidates.vcf.gz",
+        "sha256": "7a8b1ce100c2e9c2a49a07ff749119d5f06e81870db759ac780b5b59b6ba965d",
+        "sources_unchanged": true,
+        "counts": {
+          "records": 466878,
+          "NoConsensus": 253981,
+          "Reference": 167614,
+          "Germline": 39209,
+          "Somatic": 6074
+        },
+        "issues": {},
+        "examples": {}
+      },
+      "class_counts": {
+        "NoConsensus": 253981,
+        "Reference": 167614,
+        "Germline": 39209,
+        "Somatic": 6074
+      },
+      "metrics": {
+        "Somatic/ukb": {
+          "snp": {
+            "tp": 2091,
+            "fp": 8,
+            "fn": 114,
+            "precision": 0.9961886612672701,
+            "recall": 0.9482993197278912,
+            "f1": 0.9716542750929368
+          },
+          "indel": {
+            "tp": 81,
+            "fp": 6,
+            "fn": 14,
+            "precision": 0.9310344827586207,
+            "recall": 0.8526315789473684,
+            "f1": 0.8901098901098902
+          },
+          "records": {
+            "tp": 2172,
+            "fp": 14,
+            "fn": 128,
+            "precision": 0.9935956084172004,
+            "recall": 0.9443478260869566,
+            "f1": 0.968345965225145
+          }
+        },
+        "Germline/ukb": {
+          "snp": {
+            "tp": 0,
+            "fp": 34486,
+            "fn": 2205,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 3001,
+            "fn": 95,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 0,
+            "fp": 37488,
+            "fn": 2300,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          }
+        },
+        "Reference/ukb": {
+          "snp": {
+            "tp": 10,
+            "fp": 153668,
+            "fn": 2195,
+            "precision": 6.50711227371517e-05,
+            "recall": 0.0045351473922902496,
+            "f1": 0.00012830135422079377
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 95,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 10,
+            "fp": 153668,
+            "fn": 2290,
+            "precision": 6.50711227371517e-05,
+            "recall": 0.004347826086956522,
+            "f1": 0.00012822321096564898
+          }
+        },
+        "Somatic/medexome": {
+          "snp": {
+            "tp": 675,
+            "fp": 2,
+            "fn": 120,
+            "precision": 0.9970457902511078,
+            "recall": 0.8490566037735849,
+            "f1": 0.9171195652173914
+          },
+          "indel": {
+            "tp": 29,
+            "fp": 2,
+            "fn": 5,
+            "precision": 0.9354838709677419,
+            "recall": 0.8529411764705882,
+            "f1": 0.8923076923076922
+          },
+          "records": {
+            "tp": 704,
+            "fp": 4,
+            "fn": 125,
+            "precision": 0.9943502824858758,
+            "recall": 0.8492159227985525,
+            "f1": 0.9160702667534159
+          }
+        },
+        "Germline/medexome": {
+          "snp": {
+            "tp": 0,
+            "fp": 9860,
+            "fn": 795,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 582,
+            "fn": 34,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 0,
+            "fp": 10442,
+            "fn": 829,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          }
+        },
+        "Reference/medexome": {
+          "snp": {
+            "tp": 3,
+            "fp": 44213,
+            "fn": 792,
+            "precision": 6.784874253663831e-05,
+            "recall": 0.0037735849056603774,
+            "f1": 0.0001333007487058719
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 34,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 3,
+            "fp": 44213,
+            "fn": 826,
+            "precision": 6.784874253663831e-05,
+            "recall": 0.0036188178528347406,
+            "f1": 0.0001332001332001332
+          }
+        }
+      },
+      "baseline_metrics": {
+        "ukb": {
+          "snp": {
+            "tp": 2091,
+            "fp": 8,
+            "fn": 114,
+            "precision": 0.9961886612672701,
+            "recall": 0.9482993197278912,
+            "f1": 0.9716542750929368
+          },
+          "indel": {
+            "tp": 81,
+            "fp": 6,
+            "fn": 14,
+            "precision": 0.9310344827586207,
+            "recall": 0.8526315789473684,
+            "f1": 0.8901098901098902
+          },
+          "records": {
+            "tp": 2172,
+            "fp": 14,
+            "fn": 128,
+            "precision": 0.9935956084172004,
+            "recall": 0.9443478260869566,
+            "f1": 0.968345965225145
+          }
+        },
+        "medexome": {
+          "snp": {
+            "tp": 675,
+            "fp": 2,
+            "fn": 120,
+            "precision": 0.9970457902511078,
+            "recall": 0.8490566037735849,
+            "f1": 0.9171195652173914
+          },
+          "indel": {
+            "tp": 29,
+            "fp": 2,
+            "fn": 5,
+            "precision": 0.9354838709677419,
+            "recall": 0.8529411764705882,
+            "f1": 0.8923076923076922
+          },
+          "records": {
+            "tp": 704,
+            "fp": 4,
+            "fn": 125,
+            "precision": 0.9943502824858758,
+            "recall": 0.8492159227985525,
+            "f1": 0.9160702667534159
+          }
+        }
+      },
+      "negative_evidence": {
+        "policy": "negative_evidence_gate_v2",
+        "training_approved": false,
+        "sources": {
+          "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/candidates.vcf.gz": "7a8b1ce100c2e9c2a49a07ff749119d5f06e81870db759ac780b5b59b6ba965d",
+          "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/bam_pilot.json": "b5aef6d8b63b79a77db653adcea238f4888b30eb474fe2764f6a05845ab73bca"
+        },
+        "parameters": {
+          "max_reference_af": 0.01,
+          "confidence": 0.95,
+          "required_zero_alt_depth_each_sample": 299
+        },
+        "scope": "Evidence-only gate for native negative candidates, never training approval.\n\nConsumes a hash-bound paired-BAM pilot report. Preserves every FILTER and source\nrecord. Indels/complex contexts abstain pending haplotype-aware adjudication.\nNo caller votes are summed and missing coverage is never interpreted as zero.\n",
+        "counts": {
+          "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 253981,
+          "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 167486,
+          "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 35672,
+          "Germline:WITHHELD:requires_haplotype_aware_validation": 3411,
+          "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 6074,
+          "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 66,
+          "Reference:WITHHELD:observed_alt_not_zero": 46,
+          "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 80,
+          "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 51,
+          "Germline:WITHHELD:insufficient_paired_germline_evidence": 4,
+          "Germline:WITHHELD:other_allele_context_requires_review": 5,
+          "Reference:WITHHELD:other_allele_context_requires_review": 2
+        },
+        "status": "complete_not_training_approved",
+        "sources_unchanged": true,
+        "output": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/evidence_gate/candidate.evidence.vcf.gz",
+        "output_sha256": "9deb69e60de83985a01289b15f53223566ce986708f9bea30a6851c861d39fb4"
+      },
+      "somatic_parity": true
+    },
+    "first": {
+      "adapter": {
+        "status": "candidate_complete_not_training_approved",
+        "policy": "separated_three_class_v2",
+        "stage": "first",
+        "sources": {
+          "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/first/refined.rescue.vcf.gz": "3bd90294333389876476a129b1a061aff964739bd228ce6f5c2f8bea7e584583",
+          "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/seqc2_wgs_il/three_class.vcf.gz": "946d478b4d00bce3642805fe28bb9a2c28aebc9d2a79539b39cd8448ecbc4f56"
+        },
+        "training_approved": false,
+        "counts": {
+          "NoConsensus": 1000703,
+          "review:common_population_af": 132449,
+          "Reference": 167614,
+          "Germline": 39209,
+          "review:canonical_editing_without_dna_somatic": 17515,
+          "Somatic": 6076
+        },
+        "code_sha256": "0d90d4407269bd952235b9a210ad9a3383e9e30db2054c6765997240f09be8a7",
+        "somatic_membership_mismatches": 0,
+        "sources_unchanged": true,
+        "output": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/candidates.vcf.gz",
+        "output_sha256": "e4f61c1e63a7fb4829c1dbf58b056d750373671dc20bd55a366ab7f45d8a86d7"
+      },
+      "structural": {
+        "status": "structural_pass_not_training_approval",
+        "source": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/candidates.vcf.gz",
+        "sha256": "e4f61c1e63a7fb4829c1dbf58b056d750373671dc20bd55a366ab7f45d8a86d7",
+        "sources_unchanged": true,
+        "counts": {
+          "records": 1213602,
+          "NoConsensus": 1000703,
+          "Reference": 167614,
+          "Germline": 39209,
+          "Somatic": 6076
+        },
+        "issues": {},
+        "examples": {}
+      },
+      "class_counts": {
+        "NoConsensus": 1000703,
+        "Reference": 167614,
+        "Germline": 39209,
+        "Somatic": 6076
+      },
+      "metrics": {
+        "Somatic/ukb": {
+          "snp": {
+            "tp": 2091,
+            "fp": 8,
+            "fn": 114,
+            "precision": 0.9961886612672701,
+            "recall": 0.9482993197278912,
+            "f1": 0.9716542750929368
+          },
+          "indel": {
+            "tp": 81,
+            "fp": 6,
+            "fn": 14,
+            "precision": 0.9310344827586207,
+            "recall": 0.8526315789473684,
+            "f1": 0.8901098901098902
+          },
+          "records": {
+            "tp": 2172,
+            "fp": 14,
+            "fn": 128,
+            "precision": 0.9935956084172004,
+            "recall": 0.9443478260869566,
+            "f1": 0.968345965225145
+          }
+        },
+        "Germline/ukb": {
+          "snp": {
+            "tp": 0,
+            "fp": 34486,
+            "fn": 2205,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 3001,
+            "fn": 95,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 0,
+            "fp": 37488,
+            "fn": 2300,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          }
+        },
+        "Reference/ukb": {
+          "snp": {
+            "tp": 10,
+            "fp": 153668,
+            "fn": 2195,
+            "precision": 6.50711227371517e-05,
+            "recall": 0.0045351473922902496,
+            "f1": 0.00012830135422079377
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 95,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 10,
+            "fp": 153668,
+            "fn": 2290,
+            "precision": 6.50711227371517e-05,
+            "recall": 0.004347826086956522,
+            "f1": 0.00012822321096564898
+          }
+        },
+        "Somatic/medexome": {
+          "snp": {
+            "tp": 675,
+            "fp": 2,
+            "fn": 120,
+            "precision": 0.9970457902511078,
+            "recall": 0.8490566037735849,
+            "f1": 0.9171195652173914
+          },
+          "indel": {
+            "tp": 29,
+            "fp": 2,
+            "fn": 5,
+            "precision": 0.9354838709677419,
+            "recall": 0.8529411764705882,
+            "f1": 0.8923076923076922
+          },
+          "records": {
+            "tp": 704,
+            "fp": 4,
+            "fn": 125,
+            "precision": 0.9943502824858758,
+            "recall": 0.8492159227985525,
+            "f1": 0.9160702667534159
+          }
+        },
+        "Germline/medexome": {
+          "snp": {
+            "tp": 0,
+            "fp": 9860,
+            "fn": 795,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 582,
+            "fn": 34,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 0,
+            "fp": 10442,
+            "fn": 829,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          }
+        },
+        "Reference/medexome": {
+          "snp": {
+            "tp": 3,
+            "fp": 44213,
+            "fn": 792,
+            "precision": 6.784874253663831e-05,
+            "recall": 0.0037735849056603774,
+            "f1": 0.0001333007487058719
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 34,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 3,
+            "fp": 44213,
+            "fn": 826,
+            "precision": 6.784874253663831e-05,
+            "recall": 0.0036188178528347406,
+            "f1": 0.0001332001332001332
+          }
+        }
+      },
+      "baseline_metrics": {
+        "ukb": {
+          "snp": {
+            "tp": 2091,
+            "fp": 8,
+            "fn": 114,
+            "precision": 0.9961886612672701,
+            "recall": 0.9482993197278912,
+            "f1": 0.9716542750929368
+          },
+          "indel": {
+            "tp": 81,
+            "fp": 6,
+            "fn": 14,
+            "precision": 0.9310344827586207,
+            "recall": 0.8526315789473684,
+            "f1": 0.8901098901098902
+          },
+          "records": {
+            "tp": 2172,
+            "fp": 14,
+            "fn": 128,
+            "precision": 0.9935956084172004,
+            "recall": 0.9443478260869566,
+            "f1": 0.968345965225145
+          }
+        },
+        "medexome": {
+          "snp": {
+            "tp": 675,
+            "fp": 2,
+            "fn": 120,
+            "precision": 0.9970457902511078,
+            "recall": 0.8490566037735849,
+            "f1": 0.9171195652173914
+          },
+          "indel": {
+            "tp": 29,
+            "fp": 2,
+            "fn": 5,
+            "precision": 0.9354838709677419,
+            "recall": 0.8529411764705882,
+            "f1": 0.8923076923076922
+          },
+          "records": {
+            "tp": 704,
+            "fp": 4,
+            "fn": 125,
+            "precision": 0.9943502824858758,
+            "recall": 0.8492159227985525,
+            "f1": 0.9160702667534159
+          }
+        }
+      },
+      "negative_evidence": {
+        "policy": "negative_evidence_gate_v2",
+        "training_approved": false,
+        "sources": {
+          "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/candidates.vcf.gz": "e4f61c1e63a7fb4829c1dbf58b056d750373671dc20bd55a366ab7f45d8a86d7",
+          "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/bam_pilot.json": "2147ddb208e316efdfa837d0ccd00e6c822ad00b7ea708f7df6f7d42f2033d0b"
+        },
+        "parameters": {
+          "max_reference_af": 0.01,
+          "confidence": 0.95,
+          "required_zero_alt_depth_each_sample": 299
+        },
+        "scope": "Evidence-only gate for native negative candidates, never training approval.\n\nConsumes a hash-bound paired-BAM pilot report. Preserves every FILTER and source\nrecord. Indels/complex contexts abstain pending haplotype-aware adjudication.\nNo caller votes are summed and missing coverage is never interpreted as zero.\n",
+        "counts": {
+          "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 1000703,
+          "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 167486,
+          "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 35672,
+          "Germline:WITHHELD:requires_haplotype_aware_validation": 3411,
+          "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 6076,
+          "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 66,
+          "Reference:WITHHELD:observed_alt_not_zero": 46,
+          "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 80,
+          "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 51,
+          "Germline:WITHHELD:insufficient_paired_germline_evidence": 4,
+          "Germline:WITHHELD:other_allele_context_requires_review": 5,
+          "Reference:WITHHELD:other_allele_context_requires_review": 2
+        },
+        "status": "complete_not_training_approved",
+        "sources_unchanged": true,
+        "output": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/evidence_gate/candidate.evidence.vcf.gz",
+        "output_sha256": "14f2e2b6843740aa572dd21941eb31bef07d54e33695bb411a795a59343e96cf"
+      },
+      "somatic_parity": true
+    },
+    "realignment": {
+      "adapter": {
+        "status": "candidate_complete_not_training_approved",
+        "policy": "separated_three_class_v2",
+        "stage": "realignment",
+        "sources": {
+          "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/realignment/refined.rescue.vcf.gz": "5dd08323770e5ec7aac908bb3250fcf381da113010627e08bee282d4c56cab8d",
+          "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/seqc2_wgs_il/three_class.vcf.gz": "946d478b4d00bce3642805fe28bb9a2c28aebc9d2a79539b39cd8448ecbc4f56"
+        },
+        "training_approved": false,
+        "counts": {
+          "NoConsensus": 447897,
+          "review:common_population_af": 126853,
+          "Reference": 167614,
+          "Germline": 39209,
+          "review:canonical_editing_without_dna_somatic": 9745,
+          "Somatic": 6079
+        },
+        "code_sha256": "0d90d4407269bd952235b9a210ad9a3383e9e30db2054c6765997240f09be8a7",
+        "somatic_membership_mismatches": 0,
+        "sources_unchanged": true,
+        "output": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/candidates.vcf.gz",
+        "output_sha256": "2b09af921ee829e218a121f26dca44f460bd1915121e94c85441843a8e80c484"
+      },
+      "structural": {
+        "status": "structural_pass_not_training_approval",
+        "source": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/candidates.vcf.gz",
+        "sha256": "2b09af921ee829e218a121f26dca44f460bd1915121e94c85441843a8e80c484",
+        "sources_unchanged": true,
+        "counts": {
+          "records": 660799,
+          "NoConsensus": 447897,
+          "Reference": 167614,
+          "Germline": 39209,
+          "Somatic": 6079
+        },
+        "issues": {},
+        "examples": {}
+      },
+      "class_counts": {
+        "NoConsensus": 447897,
+        "Reference": 167614,
+        "Germline": 39209,
+        "Somatic": 6079
+      },
+      "metrics": {
+        "Somatic/ukb": {
+          "snp": {
+            "tp": 2091,
+            "fp": 8,
+            "fn": 114,
+            "precision": 0.9961886612672701,
+            "recall": 0.9482993197278912,
+            "f1": 0.9716542750929368
+          },
+          "indel": {
+            "tp": 81,
+            "fp": 6,
+            "fn": 14,
+            "precision": 0.9310344827586207,
+            "recall": 0.8526315789473684,
+            "f1": 0.8901098901098902
+          },
+          "records": {
+            "tp": 2172,
+            "fp": 14,
+            "fn": 128,
+            "precision": 0.9935956084172004,
+            "recall": 0.9443478260869566,
+            "f1": 0.968345965225145
+          }
+        },
+        "Germline/ukb": {
+          "snp": {
+            "tp": 0,
+            "fp": 34486,
+            "fn": 2205,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 3001,
+            "fn": 95,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 0,
+            "fp": 37488,
+            "fn": 2300,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          }
+        },
+        "Reference/ukb": {
+          "snp": {
+            "tp": 10,
+            "fp": 153668,
+            "fn": 2195,
+            "precision": 6.50711227371517e-05,
+            "recall": 0.0045351473922902496,
+            "f1": 0.00012830135422079377
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 95,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 10,
+            "fp": 153668,
+            "fn": 2290,
+            "precision": 6.50711227371517e-05,
+            "recall": 0.004347826086956522,
+            "f1": 0.00012822321096564898
+          }
+        },
+        "Somatic/medexome": {
+          "snp": {
+            "tp": 675,
+            "fp": 2,
+            "fn": 120,
+            "precision": 0.9970457902511078,
+            "recall": 0.8490566037735849,
+            "f1": 0.9171195652173914
+          },
+          "indel": {
+            "tp": 29,
+            "fp": 2,
+            "fn": 5,
+            "precision": 0.9354838709677419,
+            "recall": 0.8529411764705882,
+            "f1": 0.8923076923076922
+          },
+          "records": {
+            "tp": 704,
+            "fp": 4,
+            "fn": 125,
+            "precision": 0.9943502824858758,
+            "recall": 0.8492159227985525,
+            "f1": 0.9160702667534159
+          }
+        },
+        "Germline/medexome": {
+          "snp": {
+            "tp": 0,
+            "fp": 9860,
+            "fn": 795,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 582,
+            "fn": 34,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 0,
+            "fp": 10442,
+            "fn": 829,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          }
+        },
+        "Reference/medexome": {
+          "snp": {
+            "tp": 3,
+            "fp": 44213,
+            "fn": 792,
+            "precision": 6.784874253663831e-05,
+            "recall": 0.0037735849056603774,
+            "f1": 0.0001333007487058719
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 34,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 3,
+            "fp": 44213,
+            "fn": 826,
+            "precision": 6.784874253663831e-05,
+            "recall": 0.0036188178528347406,
+            "f1": 0.0001332001332001332
+          }
+        }
+      },
+      "baseline_metrics": {
+        "ukb": {
+          "snp": {
+            "tp": 2091,
+            "fp": 8,
+            "fn": 114,
+            "precision": 0.9961886612672701,
+            "recall": 0.9482993197278912,
+            "f1": 0.9716542750929368
+          },
+          "indel": {
+            "tp": 81,
+            "fp": 6,
+            "fn": 14,
+            "precision": 0.9310344827586207,
+            "recall": 0.8526315789473684,
+            "f1": 0.8901098901098902
+          },
+          "records": {
+            "tp": 2172,
+            "fp": 14,
+            "fn": 128,
+            "precision": 0.9935956084172004,
+            "recall": 0.9443478260869566,
+            "f1": 0.968345965225145
+          }
+        },
+        "medexome": {
+          "snp": {
+            "tp": 675,
+            "fp": 2,
+            "fn": 120,
+            "precision": 0.9970457902511078,
+            "recall": 0.8490566037735849,
+            "f1": 0.9171195652173914
+          },
+          "indel": {
+            "tp": 29,
+            "fp": 2,
+            "fn": 5,
+            "precision": 0.9354838709677419,
+            "recall": 0.8529411764705882,
+            "f1": 0.8923076923076922
+          },
+          "records": {
+            "tp": 704,
+            "fp": 4,
+            "fn": 125,
+            "precision": 0.9943502824858758,
+            "recall": 0.8492159227985525,
+            "f1": 0.9160702667534159
+          }
+        }
+      },
+      "negative_evidence": {
+        "policy": "negative_evidence_gate_v2",
+        "training_approved": false,
+        "sources": {
+          "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/candidates.vcf.gz": "2b09af921ee829e218a121f26dca44f460bd1915121e94c85441843a8e80c484",
+          "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/bam_pilot.json": "756f9ddcfb0b035bd8225e28735c862913eb893cc4e2edb38999ee3e326fc340"
+        },
+        "parameters": {
+          "max_reference_af": 0.01,
+          "confidence": 0.95,
+          "required_zero_alt_depth_each_sample": 299
+        },
+        "scope": "Evidence-only gate for native negative candidates, never training approval.\n\nConsumes a hash-bound paired-BAM pilot report. Preserves every FILTER and source\nrecord. Indels/complex contexts abstain pending haplotype-aware adjudication.\nNo caller votes are summed and missing coverage is never interpreted as zero.\n",
+        "counts": {
+          "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 447897,
+          "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 167486,
+          "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 35672,
+          "Germline:WITHHELD:requires_haplotype_aware_validation": 3411,
+          "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 6079,
+          "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 66,
+          "Reference:WITHHELD:observed_alt_not_zero": 46,
+          "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 80,
+          "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 51,
+          "Germline:WITHHELD:insufficient_paired_germline_evidence": 4,
+          "Germline:WITHHELD:other_allele_context_requires_review": 5,
+          "Reference:WITHHELD:other_allele_context_requires_review": 2
+        },
+        "status": "complete_not_training_approved",
+        "sources_unchanged": true,
+        "output": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/evidence_gate/candidate.evidence.vcf.gz",
+        "output_sha256": "583421a9754fdde156f2bceaae0a7581063f17e6f2abdde7cb735cd33c4091bd"
+      },
+      "somatic_parity": true
+    }
+  },
+  "commands": [
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/baseline.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/baseline.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/Somatic.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/Somatic.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/Germline.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/Germline.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/Reference.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/Reference.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/baseline.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/baseline.medexome"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/Somatic.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/Somatic.medexome"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/Germline.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/Germline.medexome"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/Reference.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/Reference.medexome"
+    ],
+    [
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/scripts/pilot_three_class_bam_evidence.py",
+      "--vcf",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/candidates.vcf.gz",
+      "--samplesheet",
+      "examples/seqc2/hybrid/csv/seqc2_wgs_il_hybrid.csv",
+      "--fasta",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "--per-class",
+      "128",
+      "--out",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/bam_pilot.json"
+    ],
+    [
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/assess_negative_label_evidence.py",
+      "--vcf",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/candidates.vcf.gz",
+      "--bam-evidence",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/bam_pilot.json",
+      "--outdir",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/evidence_gate"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/baseline.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/baseline.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/Somatic.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/Somatic.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/Germline.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/Germline.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/Reference.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/Reference.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/baseline.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/baseline.medexome"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/Somatic.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/Somatic.medexome"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/Germline.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/Germline.medexome"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/Reference.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/Reference.medexome"
+    ],
+    [
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/scripts/pilot_three_class_bam_evidence.py",
+      "--vcf",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/candidates.vcf.gz",
+      "--samplesheet",
+      "examples/seqc2/hybrid/csv/seqc2_wgs_il_hybrid.csv",
+      "--fasta",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "--per-class",
+      "128",
+      "--out",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/bam_pilot.json"
+    ],
+    [
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/assess_negative_label_evidence.py",
+      "--vcf",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/candidates.vcf.gz",
+      "--bam-evidence",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/bam_pilot.json",
+      "--outdir",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/first/evidence_gate"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/baseline.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/baseline.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/Somatic.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/Somatic.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/Germline.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/Germline.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/Reference.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/Reference.ukb"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/baseline.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/baseline.medexome"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/Somatic.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/Somatic.medexome"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/Germline.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/Germline.medexome"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/Reference.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/Reference.medexome"
+    ],
+    [
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/scripts/pilot_three_class_bam_evidence.py",
+      "--vcf",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/candidates.vcf.gz",
+      "--samplesheet",
+      "examples/seqc2/hybrid/csv/seqc2_wgs_il_hybrid.csv",
+      "--fasta",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "--per-class",
+      "128",
+      "--out",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/bam_pilot.json"
+    ],
+    [
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/assess_negative_label_evidence.py",
+      "--vcf",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/candidates.vcf.gz",
+      "--bam-evidence",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/bam_pilot.json",
+      "--outdir",
+      "examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/evidence_gate"
+    ]
+  ],
+  "sources": {
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz": "ac818e230bca76fe80dc890523550f7c1c147f6963e4b9f71432a89a2846bab4",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta": "93157a161863464c9435062fd67c173fdaf99cb8b32f1455018361387ffa5564",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/truth/High-Confidence_Regions_v1.2.bed": "dedaa36a956d6121fb8fccd9ae1891a4fefd608ff31ab277cb55d7c96bb4a6c4",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/csv/seqc2_wgs_il_hybrid.csv": "22b058952822edf9c33e5555e7e6104c2c4e1df0e2b53f895ffccac56b49948d",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/seqc2_wgs_il/validation.json": "26090400316f61eb1d43b7653adc3e08c88d0e549e813fa6fc14b87f37e26387",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/docs/manuscript/frozen_native_gate_20260916/evidence/seqc2_wgs_il/validation.json": "812e8d02a77d14b180fcee8801bb9a6de72fb58300bf85808042ab7476cf4ecd",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed": "5ed0875f4c1333d2e40131666b08b485f1f4ea17639b106dc9180d9759896616",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed": "d1cfe2001f51471634db8d29bac17e481496ce3b558f71aff5b2ac10bbcdd87d"
+  },
+  "code": {
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/scripts/validate_separated_three_class.py": "4d24d3af803cf73f541f4aaeba98a0f3202cb9760d1f684b420a96d8f0a62dfc",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/apply_three_class_labels.py": "0d90d4407269bd952235b9a210ad9a3383e9e30db2054c6765997240f09be8a7",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/assess_negative_label_evidence.py": "cf21ab98f98f2ca47b098d9fbedc56cf14688e3527e0b870085b60a35df1fa9f",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/scripts/pilot_three_class_bam_evidence.py": "df911d5e9e007f7146905f23c9d407098538b282b19d95e08e494d213430774f"
+  },
+  "sources_unchanged": true,
+  "code_unchanged": true
+}

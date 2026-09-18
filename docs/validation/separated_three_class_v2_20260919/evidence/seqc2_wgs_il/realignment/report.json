@@ -1,0 +1,23 @@
+{
+  "status": "candidate_complete_not_training_approved",
+  "policy": "separated_three_class_v2",
+  "stage": "realignment",
+  "sources": {
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/seqc2_wgs_frozen_full_domain_v1/realignment/refined.rescue.vcf.gz": "5dd08323770e5ec7aac908bb3250fcf381da113010627e08bee282d4c56cab8d",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/seqc2_wgs_il/three_class.vcf.gz": "946d478b4d00bce3642805fe28bb9a2c28aebc9d2a79539b39cd8448ecbc4f56"
+  },
+  "training_approved": false,
+  "counts": {
+    "NoConsensus": 447897,
+    "review:common_population_af": 126853,
+    "Reference": 167614,
+    "Germline": 39209,
+    "review:canonical_editing_without_dna_somatic": 9745,
+    "Somatic": 6079
+  },
+  "code_sha256": "0d90d4407269bd952235b9a210ad9a3383e9e30db2054c6765997240f09be8a7",
+  "somatic_membership_mismatches": 0,
+  "sources_unchanged": true,
+  "output": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/candidates.vcf.gz",
+  "output_sha256": "2b09af921ee829e218a121f26dca44f460bd1915121e94c85441843a8e80c484"
+}

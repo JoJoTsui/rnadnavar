@@ -1,0 +1,31 @@
+{
+  "policy": "negative_evidence_gate_v2",
+  "training_approved": false,
+  "sources": {
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wes_ll/first/candidates.vcf.gz": "cf2bd0c37487fa84164e300d331152f381c9256eaeb973d77d8f336c9a42d29e",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wes_ll/first/bam_pilot.json": "7f029ea8006ff17bbb07f0a6dc455d32e5e6ea9b7cf086e9cec0a66d1fd9ed6d"
+  },
+  "parameters": {
+    "max_reference_af": 0.01,
+    "confidence": 0.95,
+    "required_zero_alt_depth_each_sample": 299
+  },
+  "scope": "Evidence-only gate for native negative candidates, never training approval.\n\nConsumes a hash-bound paired-BAM pilot report. Preserves every FILTER and source\nrecord. Indels/complex contexts abstain pending haplotype-aware adjudication.\nNo caller votes are summed and missing coverage is never interpreted as zero.\n",
+  "counts": {
+    "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 942705,
+    "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 39349,
+    "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 13302,
+    "Germline:WITHHELD:requires_haplotype_aware_validation": 971,
+    "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 2518,
+    "Reference:WITHHELD:observed_alt_not_zero": 114,
+    "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 34,
+    "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 14,
+    "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 57,
+    "Germline:WITHHELD:insufficient_paired_germline_evidence": 34,
+    "Germline:WITHHELD:other_allele_context_requires_review": 1
+  },
+  "status": "complete_not_training_approved",
+  "sources_unchanged": true,
+  "output": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wes_ll/first/evidence_gate/candidate.evidence.vcf.gz",
+  "output_sha256": "261394729c6a2185761fe2201cc88025035b341e0f0dbb4ce25d5d01def11b86"
+}

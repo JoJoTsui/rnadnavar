@@ -1,0 +1,2989 @@
+{
+  "scope": "Attribute baseline Somatic losses without changing any labels or thresholds.\n\nFull-query som.py replay must match the recorded consensus metrics before its\npartitions can attribute losses. Unmatched representations remain unresolved.\nThis is not a Germline/Reference accuracy estimate or training approval.\n",
+  "status": "complete_read_only_not_training_approved",
+  "training_approved": false,
+  "validation": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/rescue_validation/validation.json",
+  "sources": {
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/rescue_validation/validation.json": "e35bdb8fcf7f7c91026ce55c1729d29d92cbca13290c9026126375172bf33ef1",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/validation.json": "663d3b0c976f4b12dbd6abe125687aab0d487351266e0dd87755870fb74cff79",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.deepsomatic.vcf.gz": "550282587269874396b932f2b9552e944470ea887a41b7591b923822dcebeaf6",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.mutect2.vcf.gz": "2fd361123f4ef9150fdbec9e75aa953974c109f463eafc9eed5cbe69ed48f264",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.strelka.vcf.gz": "5c8e6981ea14bd5ede53eac3d1f0e3ca781755cd9690f25dac652d363bc23579",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/giab_benchmarks/smvar_v0.3/HG008-T_somatic_smvar_benchmark_v0.3_somatic_tumornormal.vcf.gz": "38de36ea93b2b397e5190d0bb60f87ed27c8831f7c201fb472e55e8472e453d6",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/giab_benchmarks/smvar_v0.3/HG008-T_somatic_smvar_benchmark_v0.3_all.bed": "c6100933430322eb62c64e826a349c1861e26a029853502bd247f86d27e22726",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta": "93157a161863464c9435062fd67c173fdaf99cb8b32f1455018361387ffa5564",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed": "5ed0875f4c1333d2e40131666b08b485f1f4ea17639b106dc9180d9759896616",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed": "d1cfe2001f51471634db8d29bac17e481496ce3b558f71aff5b2ac10bbcdd87d",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/recommended_truth/validation.json": "a0ee96b2961b23a54b32e38f0be207a64b532d4866146e4d5ae75a64c9e566a7",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/giab_benchmarks/smvar_v0.3/HG008-T_somatic_smvar_benchmark_v0.3_tumorvariants.vcf.gz": "6ff5b215e0dc634c85da6164cffbd5790233258fcc48c88a598331430b061cad",
+    "examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/validation.json": "663d3b0c976f4b12dbd6abe125687aab0d487351266e0dd87755870fb74cff79",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/refined.vcf.gz": "ddd6bd585ccb6c652f33ae79a88434890eabff71536d6fe4cef1a3870f5ecacc",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/hg008.wgs.hybrid/variant_calling/deepsomatic/HG008_T_1_vs_HG008_N_1/HG008_T_1_vs_HG008_N_1.deepsomatic.vcf.gz": "ca13454ec4221eb17bb0e7fc409fbeb9ecfe80a475ed71da97e15c90a3a6f9f2",
+    "examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/Somatic.query.vcf.gz": "608dc4da83138fb8c62c8032b399109075574569249cc8ebb1cd091e727d9f6e",
+    "examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/Germline.query.vcf.gz": "0691dd4afef305aca7afd6f94b2dcef763c84a0941ed5a88877bdc952188b33d",
+    "examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/Reference.query.vcf.gz": "9c54f3c5fe9ff8c5313b027d5afcf24c9f47e1c311f9a5469cab86a54aec061d",
+    "examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/recommended_truth/refined_consensus.query.vcf.gz": "966f31c7c98e84c6194252e0aecbe1e1eaa3288776620726492dbcfaf96ccc08",
+    "examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/recommended_truth/deepsomatic.query.vcf.gz": "b5fcb8d654a974844568da0c71f3533f6cb47cb07b94d15bed9189d3e0c1d7de",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/three_class.vcf.gz": "0e64f4bfbca3bdc08ff06cff8f4731184fd4e8c05eb64d2a1f0b59debf5011b0",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/hg008.wgs.hybrid/rescue/HG008_T_1_vs_HG008_N_1_rescued_HG008_RT_1_vs_HG008_N_1/HG008_T_1_vs_HG008_N_1_rescued_HG008_RT_1_vs_HG008_N_1.filtered.vcf.gz": "e4b4d0be795cb1e6cc810ff15757891081291492fe7fa4d0f6552efbadcd7525",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/hg008.wgs.hybrid/variant_calling/mutect2/HG008_T_1_vs_HG008_N_1/HG008_T_1_vs_HG008_N_1.mutect2.filtered.vcf.gz": "301afbb4a76654e4f751fc1399b38a5fa1d9ac3c35cc3658d49ca113f495590e",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/hg008.wgs.hybrid/variant_calling/strelka/HG008_T_1_vs_HG008_N_1/HG008_T_1_vs_HG008_N_1.strelka.variants.vcf.gz": "a719314f700738b9c9ced0808fe976934aa6a8ca2ae3a6822e376db02defb84d",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/hg008.wgs.hybrid/variant_calling/deepsomatic/HG008_RT_1_vs_HG008_N_1/HG008_RT_1_vs_HG008_N_1.deepsomatic.vcf.gz": "ca490bb45b5c357d4fa9c5eb1dcf6e3f4c6ce061e616d19701837bef0bda5520",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/hg008.wgs.hybrid/variant_calling/mutect2/HG008_RT_1_vs_HG008_N_1/HG008_RT_1_vs_HG008_N_1.mutect2.filtered.vcf.gz": "37ee691ab681a3c4cd6e0490c95b231502fd8a70e9bfe17398856f8f3eb3d6c9",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/hg008.wgs.hybrid/variant_calling/strelka/HG008_RT_1_vs_HG008_N_1/HG008_RT_1_vs_HG008_N_1.strelka.variants.vcf.gz": "5d3f651cf8317acaf7c57aedf079b0020c132ad28906150d791e1a52494d11d6",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/rescue_validation/first/refined.rescue.vcf.gz": "931ad78a4d41d33292fe6af1eb7d21b4ec523962a3df35283ed4dec192c53eba",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/hg008.wgs.hybrid/vcf_realignment/rescue/HG008_T_1_vs_HG008_N_1_rescued_HG008_RT_1_realign_vs_HG008_N_1/HG008_T_1_vs_HG008_N_1_rescued_HG008_RT_1_realign_vs_HG008_N_1.rescue.filtered.stripped.vep.vcf.gz": "7797399f54eb87f20751143289dd2335bc084fb03772dad41b5fd0ec6af2f372",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/hg008.wgs.hybrid/vcf_realignment/variant_calling/deepsomatic/HG008_RT_1_realign_vs_HG008_N_1/HG008_RT_1_realign_vs_HG008_N_1.deepsomatic.vcf.gz": "ea5877922890840b9901f3194059d32626230eac236d3f405c7e3f864a4578d4",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/hg008.wgs.hybrid/vcf_realignment/variant_calling/mutect2/HG008_RT_1_realign_vs_HG008_N_1/HG008_RT_1_realign_vs_HG008_N_1.mutect2.filtered.vcf.gz": "3a419bb0f289c866d3429b7cb9241975dc92ff48b2a919ec4fe0a82eff2a06a7",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/hg008.wgs.hybrid/vcf_realignment/variant_calling/strelka/HG008_RT_1_realign_vs_HG008_N_1/HG008_RT_1_realign_vs_HG008_N_1.strelka.variants.vcf.gz": "d1e39d96e09b705b0c86d0312046f6caf462ba81228dc7ba05fc61692cabb50b",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/rescue_validation/realignment/refined.rescue.vcf.gz": "f0e382b6f74a24362241289a31a42bc11be04e9d788083e8ea9b1bcf9257cfd8"
+  },
+  "rounds": {
+    "first": {
+      "causes": {
+        "retained": 547,
+        "common_population_af+inherited_label_Reference": 2,
+        "common_population_af": 37,
+        "inherited_label_Artifact": 8,
+        "common_population_af+inherited_label_Artifact": 3,
+        "common_population_af+inherited_label_Germline": 4
+      },
+      "losses": [
+        {
+          "allele": [
+            "chr1",
+            16605649,
+            "A",
+            "C"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Reference"
+          ],
+          "source_rescue_label": "Reference",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.169461"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr1",
+            16617512,
+            "T",
+            "C"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.128395"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr1",
+            16635093,
+            "A",
+            "G"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.494231"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr1",
+            43840030,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0133333"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr1",
+            146113719,
+            "G",
+            "C"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0119776"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr1",
+            165724986,
+            "TTCTCTCTCTCTCTC",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.123314"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr1",
+            235464749,
+            "C",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr10",
+            42674368,
+            "G",
+            "GA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.125"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr10",
+            111012433,
+            "G",
+            "GA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0714286"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr11",
+            62870728,
+            "T",
+            "A"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0832035"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr11",
+            62870867,
+            "T",
+            "A"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0179978"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr11",
+            107643368,
+            "GA",
+            "G"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.22806"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr11",
+            115176312,
+            "AT",
+            "A"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.286735"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr12",
+            9416752,
+            "TCA",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr12",
+            75490564,
+            "CCG",
+            "C"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.00117177"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr12",
+            100033534,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Germline"
+          ],
+          "source_rescue_label": "Germline",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.107143"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr13",
+            43894702,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.019685"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr13",
+            113186509,
+            "G",
+            "A"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.5"
+          },
+          "partitions": {
+            "ukb": [
+              "FP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr15",
+            61300541,
+            "T",
+            "TA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.115385"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr15",
+            61866492,
+            "A",
+            "C"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.00264125"
+          },
+          "partitions": {
+            "ukb": [
+              "FP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr16",
+            30012544,
+            "A",
+            "AT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Germline"
+          ],
+          "source_rescue_label": "Germline",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.166667"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr17",
+            69182632,
+            "C",
+            "CA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.00118077"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "TP"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr18",
+            20955394,
+            "A",
+            "G"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.005021"
+          },
+          "partitions": {
+            "ukb": [
+              "FP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr18",
+            60623098,
+            "A",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.00139018"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr18",
+            79587599,
+            "C",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.030303"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr19",
+            8319560,
+            "C",
+            "CA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {},
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr19",
+            14795739,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Germline"
+          ],
+          "source_rescue_label": "Germline",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.04"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr19",
+            54260821,
+            "CA",
+            "C"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.2"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr2",
+            113979657,
+            "G",
+            "A"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Germline"
+          ],
+          "source_rescue_label": "Germline",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.1"
+          },
+          "partitions": {
+            "ukb": [
+              "FP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr2",
+            151716130,
+            "C",
+            "CTT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.000566458"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr2",
+            185736026,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.5"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr2",
+            230752247,
+            "C",
+            "CA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.166667"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr2",
+            236072443,
+            "C",
+            "CA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.137681"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr20",
+            10636513,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.139825"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr20",
+            51007188,
+            "A",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.00208333"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr20",
+            55421622,
+            "TA",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.173077"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr22",
+            50669906,
+            "T",
+            "TA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.166667"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr3",
+            12900451,
+            "G",
+            "GTA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0161894"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr3",
+            70072646,
+            "GAA",
+            "G"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {},
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr5",
+            34192589,
+            "A",
+            "G"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.076658"
+          },
+          "partitions": {
+            "ukb": [
+              "FP"
+            ],
+            "medexome": [
+              "FP"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr5",
+            75369513,
+            "G",
+            "GA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.166667"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr5",
+            141190658,
+            "C",
+            "CA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr6",
+            31798084,
+            "A",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0677669"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "TP"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr6",
+            42619454,
+            "T",
+            "TATA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr6",
+            97144105,
+            "CA",
+            "C"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Reference"
+          ],
+          "source_rescue_label": "Reference",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0647059"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr7",
+            5068254,
+            "T",
+            "TA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.5"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr7",
+            6704315,
+            "T",
+            "TA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.1875"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr7",
+            146116535,
+            "A",
+            "AT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0262076"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr8",
+            51818458,
+            "C",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.318898"
+          },
+          "partitions": {
+            "ukb": [
+              "FP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr8",
+            122671403,
+            "GA",
+            "G"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.255195"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chrX",
+            37839991,
+            "T",
+            "TA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chrX",
+            41558169,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0227273"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chrX",
+            136976985,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.00641389"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chrX",
+            153351585,
+            "GA",
+            "G"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.037037"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        }
+      ],
+      "all_baseline_records_accounted_for": true,
+      "regional_loss_causes": {
+        "ukb": {
+          "common_population_af+inherited_label_Reference:representation_unresolved": 1,
+          "common_population_af:representation_unresolved": 6,
+          "common_population_af:TP": 26,
+          "inherited_label_Artifact:TP": 7,
+          "inherited_label_Artifact:representation_unresolved": 1,
+          "common_population_af+inherited_label_Artifact:TP": 2,
+          "common_population_af+inherited_label_Germline:TP": 3,
+          "common_population_af:FP": 5,
+          "common_population_af+inherited_label_Germline:FP": 1,
+          "common_population_af+inherited_label_Reference:TP": 1,
+          "common_population_af+inherited_label_Artifact:representation_unresolved": 1
+        },
+        "medexome": {
+          "common_population_af+inherited_label_Reference:representation_unresolved": 2,
+          "common_population_af:representation_unresolved": 34,
+          "inherited_label_Artifact:representation_unresolved": 8,
+          "common_population_af+inherited_label_Artifact:representation_unresolved": 3,
+          "common_population_af+inherited_label_Germline:representation_unresolved": 4,
+          "common_population_af:TP": 2,
+          "common_population_af:FP": 1
+        }
+      }
+    },
+    "realignment": {
+      "causes": {
+        "retained": 549,
+        "common_population_af+inherited_label_Reference": 2,
+        "common_population_af": 38,
+        "common_population_af+inherited_label_Artifact": 2,
+        "common_population_af+inherited_label_Germline": 4,
+        "inherited_label_Artifact": 6
+      },
+      "losses": [
+        {
+          "allele": [
+            "chr1",
+            16605649,
+            "A",
+            "C"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Reference"
+          ],
+          "source_rescue_label": "Reference",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.169461"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr1",
+            16617512,
+            "T",
+            "C"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.128395"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr1",
+            16635093,
+            "A",
+            "G"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.494231"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr1",
+            43840030,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0133333"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr1",
+            146113719,
+            "G",
+            "C"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0119776"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr1",
+            165724986,
+            "TTCTCTCTCTCTCTC",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.123314"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr10",
+            42674368,
+            "G",
+            "GA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.125"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr10",
+            111012433,
+            "G",
+            "GA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0714286"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr11",
+            62870728,
+            "T",
+            "A"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0832035"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr11",
+            62870867,
+            "T",
+            "A"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0179978"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr11",
+            107643368,
+            "GA",
+            "G"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.22806"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr11",
+            115176312,
+            "AT",
+            "A"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.286735"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr12",
+            75490564,
+            "CCG",
+            "C"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.00117177"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr12",
+            100033534,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Germline"
+          ],
+          "source_rescue_label": "Germline",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.107143"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr13",
+            43894702,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.019685"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr13",
+            113186509,
+            "G",
+            "A"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.5"
+          },
+          "partitions": {
+            "ukb": [
+              "FP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr15",
+            61300541,
+            "T",
+            "TA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.115385"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr15",
+            61866492,
+            "A",
+            "C"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.00264125"
+          },
+          "partitions": {
+            "ukb": [
+              "FP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr16",
+            30012544,
+            "A",
+            "AT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Germline"
+          ],
+          "source_rescue_label": "Germline",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.166667"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr17",
+            69182632,
+            "C",
+            "CA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.00118077"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "TP"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr18",
+            20955394,
+            "A",
+            "G"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.005021"
+          },
+          "partitions": {
+            "ukb": [
+              "FP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr18",
+            60623098,
+            "A",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.00139018"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr18",
+            79587599,
+            "C",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.030303"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr19",
+            8319560,
+            "C",
+            "CA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {},
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr19",
+            14795739,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Germline"
+          ],
+          "source_rescue_label": "Germline",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.04"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr19",
+            54260821,
+            "CA",
+            "C"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.2"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr2",
+            113979657,
+            "G",
+            "A"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Germline"
+          ],
+          "source_rescue_label": "Germline",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.1"
+          },
+          "partitions": {
+            "ukb": [
+              "FP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr2",
+            151716130,
+            "C",
+            "CTT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.000566458"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr2",
+            185736026,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.5"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr2",
+            215364615,
+            "G",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr2",
+            230752247,
+            "C",
+            "CA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.166667"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr2",
+            236072443,
+            "C",
+            "CA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.137681"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr20",
+            10636513,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.139825"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr20",
+            51007188,
+            "A",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.00208333"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr20",
+            55421622,
+            "TA",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.173077"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr22",
+            50669906,
+            "T",
+            "TA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.166667"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr3",
+            12900451,
+            "G",
+            "GTA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0161894"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr3",
+            70072646,
+            "GAA",
+            "G"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {},
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr5",
+            34192589,
+            "A",
+            "G"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.076658"
+          },
+          "partitions": {
+            "ukb": [
+              "FP"
+            ],
+            "medexome": [
+              "FP"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr5",
+            75369513,
+            "G",
+            "GA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.166667"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr5",
+            141190658,
+            "C",
+            "CA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr6",
+            31798084,
+            "A",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0677669"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "TP"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr6",
+            42619454,
+            "T",
+            "TATA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "inherited_label_Artifact"
+          ],
+          "source_rescue_label": "Artifact",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr6",
+            97144105,
+            "CA",
+            "C"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af",
+            "inherited_label_Reference"
+          ],
+          "source_rescue_label": "Reference",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0647059"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr7",
+            5068254,
+            "T",
+            "TA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.5"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr7",
+            6704315,
+            "T",
+            "TA"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.1875"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr7",
+            146116535,
+            "A",
+            "AT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0262076"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr8",
+            51818458,
+            "C",
+            "T"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.318898"
+          },
+          "partitions": {
+            "ukb": [
+              "FP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chr8",
+            122671403,
+            "GA",
+            "G"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.255195"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chrX",
+            41558169,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.0227273"
+          },
+          "partitions": {
+            "ukb": [
+              "representation_unresolved"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chrX",
+            136976985,
+            "C",
+            "CT"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.00641389"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        },
+        {
+          "allele": [
+            "chrX",
+            153351585,
+            "GA",
+            "G"
+          ],
+          "label": "NoConsensus",
+          "reason": "baseline_conflict_requires_review",
+          "causes": [
+            "common_population_af"
+          ],
+          "source_rescue_label": "Somatic",
+          "verification": null,
+          "population_af": {
+            "GNOMAD_AF": "0.037037"
+          },
+          "partitions": {
+            "ukb": [
+              "TP"
+            ],
+            "medexome": [
+              "representation_unresolved"
+            ]
+          }
+        }
+      ],
+      "all_baseline_records_accounted_for": true,
+      "regional_loss_causes": {
+        "ukb": {
+          "common_population_af+inherited_label_Reference:representation_unresolved": 1,
+          "common_population_af:representation_unresolved": 7,
+          "common_population_af:TP": 26,
+          "common_population_af+inherited_label_Artifact:TP": 2,
+          "common_population_af+inherited_label_Germline:TP": 3,
+          "common_population_af:FP": 5,
+          "inherited_label_Artifact:TP": 6,
+          "common_population_af+inherited_label_Germline:FP": 1,
+          "common_population_af+inherited_label_Reference:TP": 1
+        },
+        "medexome": {
+          "common_population_af+inherited_label_Reference:representation_unresolved": 2,
+          "common_population_af:representation_unresolved": 35,
+          "common_population_af+inherited_label_Artifact:representation_unresolved": 2,
+          "common_population_af+inherited_label_Germline:representation_unresolved": 4,
+          "common_population_af:TP": 2,
+          "inherited_label_Artifact:representation_unresolved": 6,
+          "common_population_af:FP": 1
+        }
+      }
+    }
+  },
+  "benchmarks": {
+    "ukb": {
+      "metrics": {
+        "snp": {
+          "tp": 411,
+          "fp": 15,
+          "fn": 13,
+          "precision": 0.9647887323943662,
+          "recall": 0.9693396226415094,
+          "f1": 0.9670588235294117
+        },
+        "indel": {
+          "tp": 89,
+          "fp": 2,
+          "fn": 137,
+          "precision": 0.978021978021978,
+          "recall": 0.3938053097345133,
+          "f1": 0.5615141955835963
+        },
+        "records": {
+          "tp": 500,
+          "fp": 17,
+          "fn": 150,
+          "precision": 0.9671179883945842,
+          "recall": 0.7692307692307693,
+          "f1": 0.8568980291345331
+        }
+      },
+      "baseline_parity": true
+    },
+    "medexome": {
+      "metrics": {
+        "snp": {
+          "tp": 136,
+          "fp": 3,
+          "fn": 17,
+          "precision": 0.9784172661870504,
+          "recall": 0.8888888888888888,
+          "f1": 0.9315068493150684
+        },
+        "indel": {
+          "tp": 17,
+          "fp": 0,
+          "fn": 41,
+          "precision": 1.0,
+          "recall": 0.29310344827586204,
+          "f1": 0.4533333333333333
+        },
+        "records": {
+          "tp": 153,
+          "fp": 3,
+          "fn": 58,
+          "precision": 0.9807692307692307,
+          "recall": 0.7251184834123223,
+          "f1": 0.8337874659400544
+        }
+      },
+      "baseline_parity": true
+    }
+  },
+  "commands": [
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/giab_benchmarks/smvar_v0.3/HG008-T_somatic_smvar_benchmark_v0.3_tumorvariants.vcf.gz",
+      "examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/Somatic.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/giab_benchmarks/smvar_v0.3/HG008-T_somatic_smvar_benchmark_v0.3_all.bed",
+      "-T",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/intervals/ukb.pad50.broad.pad50.union.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/rescue_loss_audit/ukb",
+      "--scratch-prefix",
+      "examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/rescue_loss_audit/ukb_scratch"
+    ],
+    [
+      "micromamba",
+      "run",
+      "-n",
+      "happy",
+      "som.py",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/giab_benchmarks/smvar_v0.3/HG008-T_somatic_smvar_benchmark_v0.3_tumorvariants.vcf.gz",
+      "examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/Somatic.query.vcf.gz",
+      "-R",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/giab_benchmarks/smvar_v0.3/HG008-T_somatic_smvar_benchmark_v0.3_all.bed",
+      "-T",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/data/SeqCap_EZ_MedExome_hg38_empirical_targets.authoritative.bed",
+      "-r",
+      "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "-N",
+      "-o",
+      "examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/rescue_loss_audit/medexome",
+      "--scratch-prefix",
+      "examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/rescue_loss_audit/medexome_scratch"
+    ]
+  ],
+  "code": {
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/scripts/audit_three_class_rescue_losses.py": "b8ef6e6c3c662c4338fc69997a48dd4716441a8d5ebd28d4bde9cc4cf11166c1",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/apply_refined_rescue.py": "db6e138041b33f21c73924582f6daa0a11d19d61815dc4f9b8c2c6761e29ac68",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/refined_rescue_policy.py": "04912a2b751fe0d9ed594f2c3a5ccf3dd861483e8af7c02947eba9598649fe45"
+  },
+  "sources_unchanged": true,
+  "code_unchanged": true
+}

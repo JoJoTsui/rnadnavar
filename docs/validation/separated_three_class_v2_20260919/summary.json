@@ -1,0 +1,968 @@
+{
+  "policy": "separated_three_class_v2",
+  "candidate_execution_checks_pass": true,
+  "biological_training_approved": false,
+  "cohort_executed": false,
+  "heavy_root": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919",
+  "datasets": {
+    "seqc2_wes_ll": {
+      "truth": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "reference": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "stages": {
+        "consensus": {
+          "class_counts": {
+            "NoConsensus": 132333,
+            "Reference": 39480,
+            "Germline": 14399,
+            "Somatic": 2504
+          },
+          "somatic_parity": true,
+          "somatic": {
+            "ukb": {
+              "snp": {
+                "tp": 1012,
+                "fp": 34,
+                "fn": 1193,
+                "precision": 0.9674952198852772,
+                "recall": 0.45895691609977324,
+                "f1": 0.6225776684097201
+              },
+              "indel": {
+                "tp": 40,
+                "fp": 1,
+                "fn": 55,
+                "precision": 0.975609756097561,
+                "recall": 0.42105263157894735,
+                "f1": 0.5882352941176471
+              },
+              "records": {
+                "tp": 1052,
+                "fp": 35,
+                "fn": 1248,
+                "precision": 0.9678012879484821,
+                "recall": 0.4573913043478261,
+                "f1": 0.6211987009152643
+              }
+            },
+            "medexome": {
+              "snp": {
+                "tp": 543,
+                "fp": 17,
+                "fn": 252,
+                "precision": 0.9696428571428571,
+                "recall": 0.6830188679245283,
+                "f1": 0.8014760147601475
+              },
+              "indel": {
+                "tp": 21,
+                "fp": 1,
+                "fn": 13,
+                "precision": 0.9545454545454546,
+                "recall": 0.6176470588235294,
+                "f1": 0.75
+              },
+              "records": {
+                "tp": 564,
+                "fp": 18,
+                "fn": 265,
+                "precision": 0.9690721649484536,
+                "recall": 0.6803377563329313,
+                "f1": 0.7994330262225372
+              }
+            }
+          },
+          "negative_evidence": {
+            "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 132333,
+            "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 39352,
+            "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 13302,
+            "Germline:WITHHELD:requires_haplotype_aware_validation": 971,
+            "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 2504,
+            "Reference:WITHHELD:observed_alt_not_zero": 114,
+            "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 34,
+            "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 14,
+            "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 57,
+            "Germline:WITHHELD:insufficient_paired_germline_evidence": 34,
+            "Germline:WITHHELD:other_allele_context_requires_review": 1
+          },
+          "pilot_yield": {
+            "Germline": {
+              "selected": 128,
+              "usable": 126,
+              "supported": 57
+            },
+            "Reference": {
+              "selected": 128,
+              "usable": 128,
+              "supported": 0
+            }
+          }
+        },
+        "first": {
+          "class_counts": {
+            "NoConsensus": 942705,
+            "Reference": 39477,
+            "Germline": 14399,
+            "Somatic": 2518
+          },
+          "somatic_parity": true,
+          "somatic": {
+            "ukb": {
+              "snp": {
+                "tp": 1021,
+                "fp": 37,
+                "fn": 1184,
+                "precision": 0.9650283553875236,
+                "recall": 0.46303854875283446,
+                "f1": 0.6258044744100522
+              },
+              "indel": {
+                "tp": 40,
+                "fp": 1,
+                "fn": 55,
+                "precision": 0.975609756097561,
+                "recall": 0.42105263157894735,
+                "f1": 0.5882352941176471
+              },
+              "records": {
+                "tp": 1061,
+                "fp": 38,
+                "fn": 1239,
+                "precision": 0.9654231119199272,
+                "recall": 0.461304347826087,
+                "f1": 0.6243012650779641
+              }
+            },
+            "medexome": {
+              "snp": {
+                "tp": 548,
+                "fp": 19,
+                "fn": 247,
+                "precision": 0.9664902998236331,
+                "recall": 0.6893081761006289,
+                "f1": 0.8046989720998531
+              },
+              "indel": {
+                "tp": 21,
+                "fp": 1,
+                "fn": 13,
+                "precision": 0.9545454545454546,
+                "recall": 0.6176470588235294,
+                "f1": 0.75
+              },
+              "records": {
+                "tp": 569,
+                "fp": 20,
+                "fn": 260,
+                "precision": 0.966044142614601,
+                "recall": 0.6863691194209891,
+                "f1": 0.8025387870239773
+              }
+            }
+          },
+          "negative_evidence": {
+            "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 942705,
+            "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 39349,
+            "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 13302,
+            "Germline:WITHHELD:requires_haplotype_aware_validation": 971,
+            "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 2518,
+            "Reference:WITHHELD:observed_alt_not_zero": 114,
+            "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 34,
+            "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 14,
+            "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 57,
+            "Germline:WITHHELD:insufficient_paired_germline_evidence": 34,
+            "Germline:WITHHELD:other_allele_context_requires_review": 1
+          },
+          "pilot_yield": {
+            "Germline": {
+              "selected": 128,
+              "usable": 126,
+              "supported": 57
+            },
+            "Reference": {
+              "selected": 128,
+              "usable": 128,
+              "supported": 0
+            }
+          }
+        },
+        "realignment": {
+          "class_counts": {
+            "NoConsensus": 385578,
+            "Reference": 39478,
+            "Germline": 14399,
+            "Somatic": 2518
+          },
+          "somatic_parity": true,
+          "somatic": {
+            "ukb": {
+              "snp": {
+                "tp": 1023,
+                "fp": 36,
+                "fn": 1182,
+                "precision": 0.9660056657223796,
+                "recall": 0.4639455782312925,
+                "f1": 0.6268382352941175
+              },
+              "indel": {
+                "tp": 40,
+                "fp": 1,
+                "fn": 55,
+                "precision": 0.975609756097561,
+                "recall": 0.42105263157894735,
+                "f1": 0.5882352941176471
+              },
+              "records": {
+                "tp": 1063,
+                "fp": 37,
+                "fn": 1237,
+                "precision": 0.9663636363636363,
+                "recall": 0.46217391304347827,
+                "f1": 0.6252941176470588
+              }
+            },
+            "medexome": {
+              "snp": {
+                "tp": 549,
+                "fp": 19,
+                "fn": 246,
+                "precision": 0.9665492957746479,
+                "recall": 0.690566037735849,
+                "f1": 0.805575935436537
+              },
+              "indel": {
+                "tp": 21,
+                "fp": 1,
+                "fn": 13,
+                "precision": 0.9545454545454546,
+                "recall": 0.6176470588235294,
+                "f1": 0.75
+              },
+              "records": {
+                "tp": 570,
+                "fp": 20,
+                "fn": 259,
+                "precision": 0.9661016949152542,
+                "recall": 0.6875753920386007,
+                "f1": 0.8033826638477801
+              }
+            }
+          },
+          "negative_evidence": {
+            "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 385578,
+            "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 39350,
+            "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 13302,
+            "Germline:WITHHELD:requires_haplotype_aware_validation": 971,
+            "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 2518,
+            "Reference:WITHHELD:observed_alt_not_zero": 114,
+            "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 34,
+            "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 14,
+            "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 57,
+            "Germline:WITHHELD:insufficient_paired_germline_evidence": 34,
+            "Germline:WITHHELD:other_allele_context_requires_review": 1
+          },
+          "pilot_yield": {
+            "Germline": {
+              "selected": 128,
+              "usable": 126,
+              "supported": 57
+            },
+            "Reference": {
+              "selected": 128,
+              "usable": 128,
+              "supported": 0
+            }
+          }
+        }
+      },
+      "negative_collision_coverage": {
+        "status": "rescue_negatives_subset_of_challenged_consensus_negatives",
+        "native_sha256": "d90354551fbd3f7b63e4de441959145901ce91f90cc85b33ef0f92c3380ff166",
+        "baseline_query_sha256": {
+          "consensus": "e822de6aec55ecec3236b62d3791dad52e9a7d218f7cb4c76231c590db36066d",
+          "first": "f55b67642d904f5fd3df79ddf556c946ecfeb060ea54b927e8a61a253758fde0",
+          "realignment": "1247d34549c5ec6f08eb8a039be60b8f4b6dc1ade86f5565607d54c7255b0b49"
+        },
+        "somatic_key_counts": {
+          "consensus": 2504,
+          "first": 2518,
+          "realignment": 2518
+        },
+        "scope": "Exact-allele known-Somatic challenge coverage; not negative-class accuracy"
+      }
+    },
+    "seqc2_wgs_il": {
+      "truth": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+      "reference": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "stages": {
+        "consensus": {
+          "class_counts": {
+            "NoConsensus": 253981,
+            "Reference": 167614,
+            "Germline": 39209,
+            "Somatic": 6074
+          },
+          "somatic_parity": true,
+          "somatic": {
+            "ukb": {
+              "snp": {
+                "tp": 2091,
+                "fp": 8,
+                "fn": 114,
+                "precision": 0.9961886612672701,
+                "recall": 0.9482993197278912,
+                "f1": 0.9716542750929368
+              },
+              "indel": {
+                "tp": 81,
+                "fp": 6,
+                "fn": 14,
+                "precision": 0.9310344827586207,
+                "recall": 0.8526315789473684,
+                "f1": 0.8901098901098902
+              },
+              "records": {
+                "tp": 2172,
+                "fp": 14,
+                "fn": 128,
+                "precision": 0.9935956084172004,
+                "recall": 0.9443478260869566,
+                "f1": 0.968345965225145
+              }
+            },
+            "medexome": {
+              "snp": {
+                "tp": 675,
+                "fp": 2,
+                "fn": 120,
+                "precision": 0.9970457902511078,
+                "recall": 0.8490566037735849,
+                "f1": 0.9171195652173914
+              },
+              "indel": {
+                "tp": 29,
+                "fp": 2,
+                "fn": 5,
+                "precision": 0.9354838709677419,
+                "recall": 0.8529411764705882,
+                "f1": 0.8923076923076922
+              },
+              "records": {
+                "tp": 704,
+                "fp": 4,
+                "fn": 125,
+                "precision": 0.9943502824858758,
+                "recall": 0.8492159227985525,
+                "f1": 0.9160702667534159
+              }
+            }
+          },
+          "negative_evidence": {
+            "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 253981,
+            "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 167486,
+            "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 35672,
+            "Germline:WITHHELD:requires_haplotype_aware_validation": 3411,
+            "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 6074,
+            "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 66,
+            "Reference:WITHHELD:observed_alt_not_zero": 46,
+            "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 80,
+            "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 51,
+            "Germline:WITHHELD:insufficient_paired_germline_evidence": 4,
+            "Germline:WITHHELD:other_allele_context_requires_review": 5,
+            "Reference:WITHHELD:other_allele_context_requires_review": 2
+          },
+          "pilot_yield": {
+            "Germline": {
+              "selected": 128,
+              "usable": 126,
+              "supported": 51
+            },
+            "Reference": {
+              "selected": 128,
+              "usable": 128,
+              "supported": 0
+            }
+          }
+        },
+        "first": {
+          "class_counts": {
+            "NoConsensus": 1000703,
+            "Reference": 167614,
+            "Germline": 39209,
+            "Somatic": 6076
+          },
+          "somatic_parity": true,
+          "somatic": {
+            "ukb": {
+              "snp": {
+                "tp": 2091,
+                "fp": 8,
+                "fn": 114,
+                "precision": 0.9961886612672701,
+                "recall": 0.9482993197278912,
+                "f1": 0.9716542750929368
+              },
+              "indel": {
+                "tp": 81,
+                "fp": 6,
+                "fn": 14,
+                "precision": 0.9310344827586207,
+                "recall": 0.8526315789473684,
+                "f1": 0.8901098901098902
+              },
+              "records": {
+                "tp": 2172,
+                "fp": 14,
+                "fn": 128,
+                "precision": 0.9935956084172004,
+                "recall": 0.9443478260869566,
+                "f1": 0.968345965225145
+              }
+            },
+            "medexome": {
+              "snp": {
+                "tp": 675,
+                "fp": 2,
+                "fn": 120,
+                "precision": 0.9970457902511078,
+                "recall": 0.8490566037735849,
+                "f1": 0.9171195652173914
+              },
+              "indel": {
+                "tp": 29,
+                "fp": 2,
+                "fn": 5,
+                "precision": 0.9354838709677419,
+                "recall": 0.8529411764705882,
+                "f1": 0.8923076923076922
+              },
+              "records": {
+                "tp": 704,
+                "fp": 4,
+                "fn": 125,
+                "precision": 0.9943502824858758,
+                "recall": 0.8492159227985525,
+                "f1": 0.9160702667534159
+              }
+            }
+          },
+          "negative_evidence": {
+            "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 1000703,
+            "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 167486,
+            "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 35672,
+            "Germline:WITHHELD:requires_haplotype_aware_validation": 3411,
+            "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 6076,
+            "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 66,
+            "Reference:WITHHELD:observed_alt_not_zero": 46,
+            "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 80,
+            "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 51,
+            "Germline:WITHHELD:insufficient_paired_germline_evidence": 4,
+            "Germline:WITHHELD:other_allele_context_requires_review": 5,
+            "Reference:WITHHELD:other_allele_context_requires_review": 2
+          },
+          "pilot_yield": {
+            "Germline": {
+              "selected": 128,
+              "usable": 126,
+              "supported": 51
+            },
+            "Reference": {
+              "selected": 128,
+              "usable": 128,
+              "supported": 0
+            }
+          }
+        },
+        "realignment": {
+          "class_counts": {
+            "NoConsensus": 447897,
+            "Reference": 167614,
+            "Germline": 39209,
+            "Somatic": 6079
+          },
+          "somatic_parity": true,
+          "somatic": {
+            "ukb": {
+              "snp": {
+                "tp": 2091,
+                "fp": 8,
+                "fn": 114,
+                "precision": 0.9961886612672701,
+                "recall": 0.9482993197278912,
+                "f1": 0.9716542750929368
+              },
+              "indel": {
+                "tp": 81,
+                "fp": 6,
+                "fn": 14,
+                "precision": 0.9310344827586207,
+                "recall": 0.8526315789473684,
+                "f1": 0.8901098901098902
+              },
+              "records": {
+                "tp": 2172,
+                "fp": 14,
+                "fn": 128,
+                "precision": 0.9935956084172004,
+                "recall": 0.9443478260869566,
+                "f1": 0.968345965225145
+              }
+            },
+            "medexome": {
+              "snp": {
+                "tp": 675,
+                "fp": 2,
+                "fn": 120,
+                "precision": 0.9970457902511078,
+                "recall": 0.8490566037735849,
+                "f1": 0.9171195652173914
+              },
+              "indel": {
+                "tp": 29,
+                "fp": 2,
+                "fn": 5,
+                "precision": 0.9354838709677419,
+                "recall": 0.8529411764705882,
+                "f1": 0.8923076923076922
+              },
+              "records": {
+                "tp": 704,
+                "fp": 4,
+                "fn": 125,
+                "precision": 0.9943502824858758,
+                "recall": 0.8492159227985525,
+                "f1": 0.9160702667534159
+              }
+            }
+          },
+          "negative_evidence": {
+            "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 447897,
+            "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 167486,
+            "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 35672,
+            "Germline:WITHHELD:requires_haplotype_aware_validation": 3411,
+            "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 6079,
+            "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 66,
+            "Reference:WITHHELD:observed_alt_not_zero": 46,
+            "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 80,
+            "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 51,
+            "Germline:WITHHELD:insufficient_paired_germline_evidence": 4,
+            "Germline:WITHHELD:other_allele_context_requires_review": 5,
+            "Reference:WITHHELD:other_allele_context_requires_review": 2
+          },
+          "pilot_yield": {
+            "Germline": {
+              "selected": 128,
+              "usable": 126,
+              "supported": 51
+            },
+            "Reference": {
+              "selected": 128,
+              "usable": 128,
+              "supported": 0
+            }
+          }
+        }
+      },
+      "negative_collision_coverage": {
+        "status": "rescue_negatives_subset_of_challenged_consensus_negatives",
+        "native_sha256": "946d478b4d00bce3642805fe28bb9a2c28aebc9d2a79539b39cd8448ecbc4f56",
+        "baseline_query_sha256": {
+          "consensus": "12da3e6ba8fa75655d9d3af21a96b9ab7387092e25ae86dc21add31d856d7b03",
+          "first": "cdec2fe7c24b95dd1aaefcc82fbc1a517dfd26f7c00d0e653480f18a50cc0c21",
+          "realignment": "65817b1584420af972e5d5a90381c8e21812f9e71cbbd26e2a39d0c7f86871c6"
+        },
+        "somatic_key_counts": {
+          "consensus": 6074,
+          "first": 6076,
+          "realignment": 6079
+        },
+        "scope": "Exact-allele known-Somatic challenge coverage; not negative-class accuracy"
+      }
+    },
+    "hg008_wgs": {
+      "truth": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/giab_benchmarks/smvar_v0.3/HG008-T_somatic_smvar_benchmark_v0.3_tumorvariants.vcf.gz",
+      "reference": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+      "stages": {
+        "consensus": {
+          "class_counts": {
+            "NoConsensus": 622078,
+            "Reference": 54932,
+            "Germline": 46770,
+            "Somatic": 604
+          },
+          "somatic_parity": true,
+          "somatic": {
+            "ukb": {
+              "snp": {
+                "tp": 411,
+                "fp": 15,
+                "fn": 13,
+                "precision": 0.9647887323943662,
+                "recall": 0.9693396226415094,
+                "f1": 0.9670588235294117
+              },
+              "indel": {
+                "tp": 92,
+                "fp": 2,
+                "fn": 134,
+                "precision": 0.9787234042553191,
+                "recall": 0.40707964601769914,
+                "f1": 0.575
+              },
+              "records": {
+                "tp": 503,
+                "fp": 17,
+                "fn": 147,
+                "precision": 0.9673076923076923,
+                "recall": 0.7738461538461539,
+                "f1": 0.8598290598290598
+              }
+            },
+            "medexome": {
+              "snp": {
+                "tp": 136,
+                "fp": 3,
+                "fn": 17,
+                "precision": 0.9784172661870504,
+                "recall": 0.8888888888888888,
+                "f1": 0.9315068493150684
+              },
+              "indel": {
+                "tp": 17,
+                "fp": 0,
+                "fn": 41,
+                "precision": 1.0,
+                "recall": 0.29310344827586204,
+                "f1": 0.4533333333333333
+              },
+              "records": {
+                "tp": 153,
+                "fp": 3,
+                "fn": 58,
+                "precision": 0.9807692307692307,
+                "recall": 0.7251184834123223,
+                "f1": 0.8337874659400544
+              }
+            }
+          },
+          "negative_evidence": {
+            "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 622078,
+            "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 54804,
+            "Germline:WITHHELD:requires_haplotype_aware_validation": 4649,
+            "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 41993,
+            "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 604,
+            "Reference:WITHHELD:observed_alt_not_zero": 32,
+            "Germline:WITHHELD:other_allele_context_requires_review": 4,
+            "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 52,
+            "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 91,
+            "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 71,
+            "Reference:WITHHELD:other_allele_context_requires_review": 5,
+            "Germline:WITHHELD:insufficient_paired_germline_evidence": 1
+          },
+          "pilot_yield": {
+            "Germline": {
+              "selected": 128,
+              "usable": 128,
+              "supported": 71
+            },
+            "Reference": {
+              "selected": 128,
+              "usable": 128,
+              "supported": 0
+            }
+          }
+        },
+        "first": {
+          "class_counts": {
+            "NoConsensus": 1974081,
+            "Reference": 54932,
+            "Germline": 46770,
+            "Somatic": 609
+          },
+          "somatic_parity": true,
+          "somatic": {
+            "ukb": {
+              "snp": {
+                "tp": 411,
+                "fp": 20,
+                "fn": 13,
+                "precision": 0.9535962877030162,
+                "recall": 0.9693396226415094,
+                "f1": 0.9614035087719298
+              },
+              "indel": {
+                "tp": 92,
+                "fp": 2,
+                "fn": 134,
+                "precision": 0.9787234042553191,
+                "recall": 0.40707964601769914,
+                "f1": 0.575
+              },
+              "records": {
+                "tp": 503,
+                "fp": 22,
+                "fn": 147,
+                "precision": 0.9580952380952381,
+                "recall": 0.7738461538461539,
+                "f1": 0.8561702127659574
+              }
+            },
+            "medexome": {
+              "snp": {
+                "tp": 136,
+                "fp": 4,
+                "fn": 17,
+                "precision": 0.9714285714285714,
+                "recall": 0.8888888888888888,
+                "f1": 0.9283276450511945
+              },
+              "indel": {
+                "tp": 17,
+                "fp": 0,
+                "fn": 41,
+                "precision": 1.0,
+                "recall": 0.29310344827586204,
+                "f1": 0.4533333333333333
+              },
+              "records": {
+                "tp": 153,
+                "fp": 4,
+                "fn": 58,
+                "precision": 0.9745222929936306,
+                "recall": 0.7251184834123223,
+                "f1": 0.8315217391304349
+              }
+            }
+          },
+          "negative_evidence": {
+            "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 1974081,
+            "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 54804,
+            "Germline:WITHHELD:requires_haplotype_aware_validation": 4649,
+            "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 41993,
+            "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 609,
+            "Reference:WITHHELD:observed_alt_not_zero": 32,
+            "Germline:WITHHELD:other_allele_context_requires_review": 4,
+            "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 52,
+            "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 91,
+            "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 71,
+            "Reference:WITHHELD:other_allele_context_requires_review": 5,
+            "Germline:WITHHELD:insufficient_paired_germline_evidence": 1
+          },
+          "pilot_yield": {
+            "Germline": {
+              "selected": 128,
+              "usable": 128,
+              "supported": 71
+            },
+            "Reference": {
+              "selected": 128,
+              "usable": 128,
+              "supported": 0
+            }
+          }
+        },
+        "realignment": {
+          "class_counts": {
+            "NoConsensus": 872298,
+            "Reference": 54932,
+            "Germline": 46770,
+            "Somatic": 609
+          },
+          "somatic_parity": true,
+          "somatic": {
+            "ukb": {
+              "snp": {
+                "tp": 411,
+                "fp": 18,
+                "fn": 13,
+                "precision": 0.958041958041958,
+                "recall": 0.9693396226415094,
+                "f1": 0.9636576787807737
+              },
+              "indel": {
+                "tp": 92,
+                "fp": 2,
+                "fn": 134,
+                "precision": 0.9787234042553191,
+                "recall": 0.40707964601769914,
+                "f1": 0.575
+              },
+              "records": {
+                "tp": 503,
+                "fp": 20,
+                "fn": 147,
+                "precision": 0.9617590822179732,
+                "recall": 0.7738461538461539,
+                "f1": 0.8576300085251493
+              }
+            },
+            "medexome": {
+              "snp": {
+                "tp": 136,
+                "fp": 3,
+                "fn": 17,
+                "precision": 0.9784172661870504,
+                "recall": 0.8888888888888888,
+                "f1": 0.9315068493150684
+              },
+              "indel": {
+                "tp": 17,
+                "fp": 0,
+                "fn": 41,
+                "precision": 1.0,
+                "recall": 0.29310344827586204,
+                "f1": 0.4533333333333333
+              },
+              "records": {
+                "tp": 153,
+                "fp": 3,
+                "fn": 58,
+                "precision": 0.9807692307692307,
+                "recall": 0.7251184834123223,
+                "f1": 0.8337874659400544
+              }
+            }
+          },
+          "negative_evidence": {
+            "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 872298,
+            "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 54804,
+            "Germline:WITHHELD:requires_haplotype_aware_validation": 4649,
+            "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 41993,
+            "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 609,
+            "Reference:WITHHELD:observed_alt_not_zero": 32,
+            "Germline:WITHHELD:other_allele_context_requires_review": 4,
+            "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 52,
+            "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 91,
+            "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 71,
+            "Reference:WITHHELD:other_allele_context_requires_review": 5,
+            "Germline:WITHHELD:insufficient_paired_germline_evidence": 1
+          },
+          "pilot_yield": {
+            "Germline": {
+              "selected": 128,
+              "usable": 128,
+              "supported": 71
+            },
+            "Reference": {
+              "selected": 128,
+              "usable": 128,
+              "supported": 0
+            }
+          }
+        }
+      },
+      "negative_collision_coverage": {
+        "status": "rescue_negatives_subset_of_challenged_consensus_negatives",
+        "native_sha256": "0e64f4bfbca3bdc08ff06cff8f4731184fd4e8c05eb64d2a1f0b59debf5011b0",
+        "baseline_query_sha256": {
+          "consensus": "966f31c7c98e84c6194252e0aecbe1e1eaa3288776620726492dbcfaf96ccc08",
+          "first": "31c5d6c2be28699121e26635838e20d47e154f81022111222fea41fb825d92f0",
+          "realignment": "25d3b6441c4ae991deff1fd435c85e2f209498f326e4723a1d0e7c424e74dc3e"
+        },
+        "somatic_key_counts": {
+          "consensus": 604,
+          "first": 609,
+          "realignment": 609
+        },
+        "scope": "Exact-allele known-Somatic challenge coverage; not negative-class accuracy"
+      }
+    }
+  },
+  "archived_sha256": {
+    "evidence/seqc2_wes_ll/native_validation.json": "d1b92469207e9cbc04758a8a410aa7b9840a1d25ef5247d5b13a393b244ecceb",
+    "evidence/seqc2_wes_ll/loss_attribution.json": "3b7d962cff9a3cd36a87a4619e0007497aaa8e6f3800e711e043b925b685936a",
+    "evidence/seqc2_wes_ll/validation.json": "6b7e182316fc57a305fffaa306fee61e8a817c068cc20a43ab2ae0aae08de345",
+    "evidence/seqc2_wes_ll/negative_collision_check.json": "0baa92f6a9c0e6441164fd38804842f58fe577cc69e8864b76e6946bb1dd12d8",
+    "evidence/seqc2_wes_ll/consensus/report.json": "d8564a2618c1fe1f8607130cf3a0b0d4a9a1c657b2de65b652538adffea6c63c",
+    "evidence/seqc2_wes_ll/consensus/structural.audit.json": "b764a1bc1f16895e54b427dc2a9641d13c114dd665930065fc21e05f9e665005",
+    "evidence/seqc2_wes_ll/consensus/bam_pilot.json": "7bb86ef909252bd88a345182852d4d6a2fb53f6f9690d851d6f86af6292277e4",
+    "evidence/seqc2_wes_ll/consensus/evidence_gate/report.json": "be0ed69e48560b70a978cba092c76b2977564bc8ca2ba313bcccd1a9ad0265ef",
+    "evidence/seqc2_wes_ll/first/report.json": "216b5ebd0cc89ab4d14859194c4f0b5222262a9ee2b1a947994524bd66f03e36",
+    "evidence/seqc2_wes_ll/first/structural.audit.json": "7e1d55671f1443868bafea5ad58d77406d16c768275e015bb2c50ea3935c7304",
+    "evidence/seqc2_wes_ll/first/bam_pilot.json": "7f029ea8006ff17bbb07f0a6dc455d32e5e6ea9b7cf086e9cec0a66d1fd9ed6d",
+    "evidence/seqc2_wes_ll/first/evidence_gate/report.json": "fc6d145d178de80a5a9ccab6cc30229ab3655ca89730f9842d7709780515062c",
+    "evidence/seqc2_wes_ll/realignment/report.json": "f7c67dd3ed5d7e3a5e75bcd77fdfa2ba1be83658e44dab7e1da9a25692ba9a2a",
+    "evidence/seqc2_wes_ll/realignment/structural.audit.json": "82fd123efc247ad3463d108a1deb4594020ca65e958388b07a6d6966c248ffd2",
+    "evidence/seqc2_wes_ll/realignment/bam_pilot.json": "ec4b81a35bc80204e70a4dd75f1602b6c8a34dd3619045cca3c3fc4cf0bba503",
+    "evidence/seqc2_wes_ll/realignment/evidence_gate/report.json": "240017372b9a5572aa00818883372b6eea159fea902e03b86662854132331316",
+    "evidence/seqc2_wgs_il/native_validation.json": "26090400316f61eb1d43b7653adc3e08c88d0e549e813fa6fc14b87f37e26387",
+    "evidence/seqc2_wgs_il/loss_attribution.json": "89122c07500f972cfb5d3daa377b801cfc10a0c09872755053d052ffb0d04793",
+    "evidence/seqc2_wgs_il/validation.json": "ea3199aefbcae0a3cea499bc9eb9491f8d78c1252c50c08ce40a80081153e8b8",
+    "evidence/seqc2_wgs_il/negative_collision_check.json": "d729f38f6c8474a143108cdd6ac69859095baceed379078e6b1627567fbb9890",
+    "evidence/seqc2_wgs_il/consensus/report.json": "3781e073612d428182e1d25f237baa9dc8fd12db8327a86806db302b054ad8a5",
+    "evidence/seqc2_wgs_il/consensus/structural.audit.json": "77b793d758f3a4cfdfd073d12c6a3e4f327fb63d017c63c4c8c87dcc4b177b55",
+    "evidence/seqc2_wgs_il/consensus/bam_pilot.json": "b5aef6d8b63b79a77db653adcea238f4888b30eb474fe2764f6a05845ab73bca",
+    "evidence/seqc2_wgs_il/consensus/evidence_gate/report.json": "e510c8be56f4d19e0f88fff15e07697f61ba63d6999e445fc5d088c15467b2b6",
+    "evidence/seqc2_wgs_il/first/report.json": "763adcbe4e781d2796473f12359ab94b3a7e89e0d1ac491c3a2c7b8ee1fdb037",
+    "evidence/seqc2_wgs_il/first/structural.audit.json": "5f1a204455872c1abd3a8ff266c4d4f8e3b132b9139265bf6da8d00ef1ac488e",
+    "evidence/seqc2_wgs_il/first/bam_pilot.json": "2147ddb208e316efdfa837d0ccd00e6c822ad00b7ea708f7df6f7d42f2033d0b",
+    "evidence/seqc2_wgs_il/first/evidence_gate/report.json": "a5dea0ced3204f237e8f68a7a67b25d6c7f4c8cd1701a5fa5117ad26f94a0621",
+    "evidence/seqc2_wgs_il/realignment/report.json": "9cad42ad0af5ede1f7bb086a1e97c574b6613589b31da9002368d08dcae98896",
+    "evidence/seqc2_wgs_il/realignment/structural.audit.json": "aa5bcab6b54bfefde69eef10546069db3fc538aab04c3727981b63961ab639e9",
+    "evidence/seqc2_wgs_il/realignment/bam_pilot.json": "756f9ddcfb0b035bd8225e28735c862913eb893cc4e2edb38999ee3e326fc340",
+    "evidence/seqc2_wgs_il/realignment/evidence_gate/report.json": "89172f28e36a4d05f9f806d8352119c1d293dfaa4b0e12cf983878db2e196a6c",
+    "evidence/hg008_wgs/native_validation.json": "663d3b0c976f4b12dbd6abe125687aab0d487351266e0dd87755870fb74cff79",
+    "evidence/hg008_wgs/loss_attribution.json": "5c5c9287d91ae2f5aef99392f3205629203bfb905a6ba2ca8b414094b5718f8c",
+    "evidence/hg008_wgs/validation.json": "a1b71bdea8b0aea4260420efd2f631b75cd126fba9471ce9dfe7d380bce721a9",
+    "evidence/hg008_wgs/negative_collision_check.json": "c2d4aac9e43df6133acece4b2ecc7d4ce9aad839f6b9d7879a79cfc0b2df7709",
+    "evidence/hg008_wgs/consensus/report.json": "aaaa32dc00d48b2b5da40ebd4be0b3940b7bd3e598694bfb8d3d37384dcb2579",
+    "evidence/hg008_wgs/consensus/structural.audit.json": "bb1f2a32f0878f0cc898f2c2731fa64903a0766dde291d5b8a364fb88fdf9e45",
+    "evidence/hg008_wgs/consensus/bam_pilot.json": "ce72347b5ab2ae2bb62be6e706b5e5f8846e73c84d048415f32d310962afba76",
+    "evidence/hg008_wgs/consensus/evidence_gate/report.json": "f7ac8fd4a4b3d0b0b297aada43080478d31fdc49dac9be7b02c3ef9b5b9cc24d",
+    "evidence/hg008_wgs/consensus/normal_gvcf.json": "a6d4468a984032c723d9724e6715ef895a659379949f12728b2367cc851e6079",
+    "evidence/hg008_wgs/first/report.json": "041fc683d8a71f2e9fa3068d0dc829fd5ed1092ed1aff2f14ec737cfc86ba846",
+    "evidence/hg008_wgs/first/structural.audit.json": "b0648cfaadc2a87fa7a6acc0e735a9f9079dafd37f9c543fc8980ea405d740db",
+    "evidence/hg008_wgs/first/bam_pilot.json": "6fb77b01ef48263513dd6fb5137c97ded5ce618d2d6a7baba51c2c12d5aa8281",
+    "evidence/hg008_wgs/first/evidence_gate/report.json": "ec5842728c305ee71bf2f514e76b051c3c7a4d6e1a2f1b321b2878993f2c0679",
+    "evidence/hg008_wgs/first/normal_gvcf.json": "33b3f704b19cd1ed7daef0960b919b1d98967422d5b1e771813c2bd2ad599bbc",
+    "evidence/hg008_wgs/realignment/report.json": "851445edb1fa7c1401360edd92f89efb5d6514e2de7640648538000c919d7e75",
+    "evidence/hg008_wgs/realignment/structural.audit.json": "b35cb01280a73607b714f789d850cfa842f3f12485d2da9cf320da09623bb84b",
+    "evidence/hg008_wgs/realignment/bam_pilot.json": "98e9b6c5b4b6c95655215dc62ff965a5540dfe33562ccba82815ce21cb61722b",
+    "evidence/hg008_wgs/realignment/evidence_gate/report.json": "b69a438102ad5449a778a58832385c7aee6f02f6e137702881ecd89c5632e5df",
+    "evidence/hg008_wgs/realignment/normal_gvcf.json": "e196b246703dcb367de619bda56d7dca20c9e735fe3a6108b030d48dca4a2438"
+  },
+  "validated_code": {
+    "examples/seqc2/scripts/validate_separated_three_class.py": "4d24d3af803cf73f541f4aaeba98a0f3202cb9760d1f684b420a96d8f0a62dfc",
+    "bin/apply_three_class_labels.py": "0d90d4407269bd952235b9a210ad9a3383e9e30db2054c6765997240f09be8a7",
+    "bin/assess_negative_label_evidence.py": "cf21ab98f98f2ca47b098d9fbedc56cf14688e3527e0b870085b60a35df1fa9f",
+    "examples/seqc2/scripts/pilot_three_class_bam_evidence.py": "df911d5e9e007f7146905f23c9d407098538b282b19d95e08e494d213430774f",
+    "bin/run_consensus_vcf.py": "2da511af738e4af19389c3cc7ced63583533526323b7e8421529d633a743b1ba",
+    "examples/seqc2/scripts/validate_three_class_policy.py": "8345239fd577387230217e5477425f7bab4dd04c139b5f9a0c2351ac9aacea36",
+    "bin/vcf_utils/__init__.py": "2dd8957845d83621b84f068fc5ba34974ee3877c5aa84e15b91a15dd464b28d9",
+    "bin/vcf_utils/aggregation.py": "66d2858aa7e4ce6d40905d7684dc6d749563e34c502050456ab54067016c7b77",
+    "bin/vcf_utils/annotation_utils.py": "19b6cff031d2f5708857e12ea38fe1a877cc34b8281f95bc9e9891aabc9c1b1e",
+    "bin/vcf_utils/bcftools_annotator.py": "21f7a46e949449ecbcc3d9d66515ff94bb06359574b93b5648ab0f78d998fc8e",
+    "bin/vcf_utils/caller_evidence.py": "a765520738016a00c970145a889ee61113e7a5711531db5dfd4c06119cf52d48",
+    "bin/vcf_utils/chromosome_utils.py": "01c1e8b9958deedf44be6e3598cde9b5ed17f45728c1179b78728d46d20ed742",
+    "bin/vcf_utils/classification.py": "e024c63af272746388f8c55dde925ec35151cac4820444f851e50b8bf725912e",
+    "bin/vcf_utils/classification_config.py": "ffea026b63f6fdc1cb8c240ea682abd18e14e956952aebd1a9a4d0ef8bfea5ae",
+    "bin/vcf_utils/cosmic_annotator.py": "8b7e72eec1578fc369720a3cb8d8db34c50c040a7650ffe516c624c4bcc309ef",
+    "bin/vcf_utils/error_handler.py": "90ef3314e3854f3880e9bfbadd03ec22b0ecf7c541377174c320fe5ca2aae18d",
+    "bin/vcf_utils/evidence_tiering.py": "19bfd259c669d18966d5a4aeb86cda979e3534dcf867b20df944a4a536ecb451",
+    "bin/vcf_utils/field_mapping.py": "3e0f9b12204079972b8dbe4e586a01bd54b47885aaf145690e4950a5269c6c4c",
+    "bin/vcf_utils/filter_updater.py": "4f07aa5a34ba6b61def4ad85015df62f7b4f819bc8672473b023b2c1f3bfa265",
+    "bin/vcf_utils/filters.py": "620bdc7ad49ae1499988c46940a15a044ed1eccf3842d024d5d3bf956030afa0",
+    "bin/vcf_utils/gnomad_annotator.py": "6a5bf0eacd2d02d89d5e53535c23362b458b6df5ebe533862f6635e503cc7b1a",
+    "bin/vcf_utils/io_utils.py": "b0b9c0fe5184057a6b0e968e90bd949a92306f33aa7f0a61832dddb1c76f99a5",
+    "bin/vcf_utils/logging_config.py": "4c8d60c0dbbe724311ee9f48088a8645b9edabad307b766970ee569de47c907c",
+    "bin/vcf_utils/performance_optimizer.py": "df2dacdbde215d505e991f253ca61181a969b8261d221b30da019f2defb9652a",
+    "bin/vcf_utils/rediportal_converter.py": "eb59ece7f223cf5a0c1251a88c8c042ffb1ef2657522412e4c25a8258038d477",
+    "bin/vcf_utils/refined_native_policy.py": "7d496336029698196d37d04a1941a6e857f2dd02e71d5f45935bde29dfb725c5",
+    "bin/vcf_utils/refined_rescue_policy.py": "04912a2b751fe0d9ed594f2c3a5ccf3dd861483e8af7c02947eba9598649fe45",
+    "bin/vcf_utils/rna_editing_core.py": "778d55a63285e001d5460acb3edffaf9119f83d2f03d8f7841c46e0da29825bb",
+    "bin/vcf_utils/stripped_writer.py": "e898830e4f1ea6b97d1ca162e834df3f44bab830cc0e52ce4e39264faceb4500",
+    "bin/vcf_utils/tagging.py": "98ab3f4bc0823d9eba357cead18d4cadd0d4a5e60c0fd282ed8eca83418d6df3",
+    "bin/vcf_utils/three_class_policy.py": "7dcb7c80c857f94c45f5adc3510842987566e78c34cae21da0f4291ae3d5a4a3",
+    "bin/vcf_utils/unified_filters.py": "98b3e109e710641fd9f4d5f6804b01dfe9e4459bf346d13d2daaf631cf6fce76",
+    "bin/vcf_utils/variant_classifier.py": "52e93c9673602efb85996973986f45564f4ea95eb3823616dcd6ba1327afd1a9",
+    "bin/vcf_utils/variant_classifier_unified.py": "c9823f5bd5425d790ccc257d336d6876e2cc33559e7f9ea24c99cca77b0d449b",
+    "bin/vcf_utils/variant_statistics.py": "0059a47e1d26fe3855ef1aa14b034d53865c8abb477edb0c7ab0aff8e072b572",
+    "bin/vcf_utils/vcf_escaping.py": "8fcba4055ca2318da2135d81a28c0c87cb0000db97966e45cad31cb7f7eb08dc",
+    "bin/common/__init__.py": "ee72e066e14c3d61453a02d5866952d343b4bd1701206034a9fc23f119a466b7",
+    "bin/common/category_matcher.py": "614f3dd4485a54afc461fc60c4c86b4aeebb70daf2af266973ccf23a43754c40",
+    "bin/common/database_checker.py": "f7245ec3030d33f933673189651c65bf7ccd3f2327df5bb9fd63a533a64e6c85",
+    "bin/common/tier_config.py": "8ced46cb3232623ba2603cd1beee1ba26e21918f313a816356636eeee49a33a5",
+    "bin/common/vcf_config.py": "842c9745fd97a19eb01512bb3444c2792c6e10b5745b39f5af586739abbf3c89",
+    "bin/apply_refined_rescue.py": "db6e138041b33f21c73924582f6daa0a11d19d61815dc4f9b8c2c6761e29ac68",
+    "examples/seqc2/scripts/audit_refined_label_contract.py": "7b311608e8d4c61dbf4b070662547586f439a7ee42f5ee5603cae8db5a5d5d3d"
+  }
+}

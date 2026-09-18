@@ -1,0 +1,5667 @@
+{
+  "scope": "Deterministic, truth-blind SNP candidate pilot; read evidence is not truth.\n\nIndels require allele/haplotype-aware validation and are explicitly not assessed\nby this SNP pileup screen. Never changes labels or invokes mapping/calling.\n",
+  "selection": "smallest sha256(CHROM:POS:REF:ALT), separately per class, no truth selection",
+  "vcf": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/realignment/candidates.vcf.gz",
+  "vcf_sha256": "2b09af921ee829e218a121f26dca44f460bd1915121e94c85441843a8e80c484",
+  "samplesheet": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/hybrid/csv/seqc2_wgs_il_hybrid.csv",
+  "reference": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
+  "thresholds": {
+    "MAPQ": 20,
+    "BQ": 20,
+    "BAQ": true,
+    "max_depth": 8000,
+    "flag_filter": 3844,
+    "ignore_overlaps": true,
+    "ignore_orphans": true
+  },
+  "bam_paths": {
+    "0": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/WGS/WGS_IL_N_1.bwa.dedup.bam",
+    "1": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/data/giab/data/seqc2/WGS/WGS_IL_T_1.bwa.dedup.bam"
+  },
+  "populations": {
+    "Reference:SNP": 167614,
+    "Germline:SNP": 35798,
+    "Germline:not_SNP": 3411
+  },
+  "results": [
+    {
+      "class": "Germline",
+      "site": [
+        "chr2",
+        46614722,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 73,
+        "ref": 47,
+        "alt": 26,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 106,
+        "ref": 73,
+        "alt": 33,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr11",
+        131771132,
+        "C",
+        "A"
+      ],
+      "normal": {
+        "depth": 49,
+        "ref": 28,
+        "alt": 21,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 31,
+        "ref": 0,
+        "alt": 31,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr18",
+        63970438,
+        "C",
+        "G"
+      ],
+      "normal": {
+        "depth": 44,
+        "ref": 26,
+        "alt": 18,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 23,
+        "ref": 1,
+        "alt": 22,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr16",
+        12573790,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 78,
+        "ref": 43,
+        "alt": 35,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 145,
+        "ref": 28,
+        "alt": 117,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr15",
+        90967052,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 55,
+        "ref": 35,
+        "alt": 20,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 71,
+        "ref": 55,
+        "alt": 16,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr17",
+        69549955,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 49,
+        "ref": 26,
+        "alt": 23,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 76,
+        "ref": 0,
+        "alt": 76,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr4",
+        47032609,
+        "C",
+        "G"
+      ],
+      "normal": {
+        "depth": 37,
+        "ref": 21,
+        "alt": 16,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 32,
+        "ref": 9,
+        "alt": 23,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr12",
+        52430518,
+        "C",
+        "A"
+      ],
+      "normal": {
+        "depth": 60,
+        "ref": 32,
+        "alt": 28,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 46,
+        "ref": 0,
+        "alt": 46,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr20",
+        50578078,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 50,
+        "ref": 28,
+        "alt": 22,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 71,
+        "ref": 32,
+        "alt": 39,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr8",
+        119590668,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 55,
+        "ref": 31,
+        "alt": 24,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 115,
+        "ref": 0,
+        "alt": 115,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr19",
+        44986934,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 44,
+        "ref": 24,
+        "alt": 20,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 24,
+        "ref": 0,
+        "alt": 24,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr11",
+        123194975,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 39,
+        "ref": 21,
+        "alt": 18,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 25,
+        "ref": 0,
+        "alt": 25,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr7",
+        87152107,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 46,
+        "ref": 24,
+        "alt": 22,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 91,
+        "ref": 66,
+        "alt": 25,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr8",
+        30996517,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 66,
+        "ref": 36,
+        "alt": 30,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 52,
+        "ref": 0,
+        "alt": 52,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr1",
+        4479251,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 42,
+        "ref": 27,
+        "alt": 15,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 58,
+        "ref": 0,
+        "alt": 58,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr20",
+        63520505,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 36,
+        "ref": 23,
+        "alt": 13,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 37,
+        "ref": 19,
+        "alt": 18,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr8",
+        17907400,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 45,
+        "ref": 25,
+        "alt": 20,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 48,
+        "ref": 0,
+        "alt": 48,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr5",
+        148321208,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 53,
+        "ref": 29,
+        "alt": 24,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 58,
+        "ref": 0,
+        "alt": 58,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr17",
+        18969024,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 43,
+        "ref": 26,
+        "alt": 17,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 53,
+        "ref": 0,
+        "alt": 53,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr4",
+        87673119,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 30,
+        "ref": 19,
+        "alt": 11,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 23,
+        "ref": 16,
+        "alt": 7,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr2",
+        176531543,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 55,
+        "ref": 33,
+        "alt": 22,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 75,
+        "ref": 55,
+        "alt": 20,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr16",
+        980002,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 37,
+        "ref": 20,
+        "alt": 17,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 69,
+        "ref": 18,
+        "alt": 51,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr14",
+        87251066,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 40,
+        "ref": 24,
+        "alt": 16,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 155,
+        "ref": 18,
+        "alt": 137,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr1",
+        225886863,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 56,
+        "ref": 32,
+        "alt": 24,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 64,
+        "ref": 28,
+        "alt": 36,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr17",
+        44749406,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 37,
+        "ref": 24,
+        "alt": 13,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 29,
+        "ref": 0,
+        "alt": 29,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr7",
+        78518160,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 76,
+        "ref": 44,
+        "alt": 32,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 131,
+        "ref": 43,
+        "alt": 88,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr19",
+        20962552,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 57,
+        "ref": 32,
+        "alt": 25,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 62,
+        "ref": 37,
+        "alt": 25,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr1",
+        150488379,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 57,
+        "ref": 29,
+        "alt": 28,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 57,
+        "ref": 43,
+        "alt": 14,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr15",
+        82958900,
+        "G",
+        "C"
+      ],
+      "normal": {
+        "depth": 61,
+        "ref": 34,
+        "alt": 27,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 83,
+        "ref": 21,
+        "alt": 62,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr14",
+        22897369,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 81,
+        "ref": 42,
+        "alt": 39,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 93,
+        "ref": 51,
+        "alt": 42,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr1",
+        205351341,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 52,
+        "ref": 27,
+        "alt": 25,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 38,
+        "ref": 25,
+        "alt": 13,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr12",
+        7717294,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 64,
+        "ref": 37,
+        "alt": 27,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 101,
+        "ref": 27,
+        "alt": 74,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr20",
+        279328,
+        "G",
+        "C"
+      ],
+      "normal": {
+        "depth": 28,
+        "ref": 15,
+        "alt": 13,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 33,
+        "ref": 16,
+        "alt": 17,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr9",
+        134055893,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 62,
+        "ref": 32,
+        "alt": 30,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 65,
+        "ref": 16,
+        "alt": 49,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr14",
+        22105548,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 38,
+        "ref": 38,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 32,
+        "ref": 32,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_normal_evidence"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr19",
+        10062273,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 56,
+        "ref": 27,
+        "alt": 28,
+        "other": 1
+      },
+      "tumor": {
+        "depth": 37,
+        "ref": 0,
+        "alt": 37,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr16",
+        11392177,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 47,
+        "ref": 27,
+        "alt": 20,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 89,
+        "ref": 73,
+        "alt": 16,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr22",
+        22162605,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 42,
+        "ref": 23,
+        "alt": 19,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 52,
+        "ref": 0,
+        "alt": 52,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr11",
+        5345761,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 53,
+        "ref": 33,
+        "alt": 20,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 35,
+        "ref": 0,
+        "alt": 35,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr5",
+        43379690,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 60,
+        "ref": 32,
+        "alt": 28,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 63,
+        "ref": 45,
+        "alt": 18,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr17",
+        81512443,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 36,
+        "ref": 21,
+        "alt": 15,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 78,
+        "ref": 0,
+        "alt": 78,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr10",
+        46550021,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 52,
+        "ref": 20,
+        "alt": 32,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 72,
+        "ref": 37,
+        "alt": 35,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr4",
+        186274219,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 54,
+        "ref": 30,
+        "alt": 24,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 34,
+        "ref": 0,
+        "alt": 34,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr8",
+        127340118,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 68,
+        "ref": 38,
+        "alt": 30,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 186,
+        "ref": 0,
+        "alt": 186,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr3",
+        75339092,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 48,
+        "ref": 27,
+        "alt": 21,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 80,
+        "ref": 33,
+        "alt": 47,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr2",
+        179443301,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 53,
+        "ref": 35,
+        "alt": 18,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 65,
+        "ref": 24,
+        "alt": 41,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr11",
+        118790223,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 47,
+        "ref": 25,
+        "alt": 22,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 43,
+        "ref": 0,
+        "alt": 43,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr19",
+        3753658,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 42,
+        "ref": 26,
+        "alt": 16,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 25,
+        "ref": 0,
+        "alt": 25,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr15",
+        55679539,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 72,
+        "ref": 44,
+        "alt": 28,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 115,
+        "ref": 57,
+        "alt": 58,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr1",
+        1401954,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 73,
+        "ref": 40,
+        "alt": 33,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 57,
+        "ref": 0,
+        "alt": 57,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr2",
+        178834117,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 56,
+        "ref": 35,
+        "alt": 21,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 91,
+        "ref": 31,
+        "alt": 60,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr11",
+        131771312,
+        "G",
+        "C"
+      ],
+      "normal": {
+        "depth": 69,
+        "ref": 37,
+        "alt": 32,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 42,
+        "ref": 0,
+        "alt": 42,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr15",
+        82995439,
+        "C",
+        "G"
+      ],
+      "normal": {
+        "depth": 53,
+        "ref": 29,
+        "alt": 24,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 86,
+        "ref": 17,
+        "alt": 69,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr7",
+        77287502,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 55,
+        "ref": 30,
+        "alt": 25,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 100,
+        "ref": 84,
+        "alt": 16,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr18",
+        12281491,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 30,
+        "ref": 19,
+        "alt": 11,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 34,
+        "ref": 23,
+        "alt": 11,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr9",
+        34224093,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 41,
+        "ref": 27,
+        "alt": 14,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 31,
+        "ref": 0,
+        "alt": 31,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr10",
+        71749708,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 33,
+        "ref": 21,
+        "alt": 12,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 32,
+        "ref": 0,
+        "alt": 32,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr4",
+        41633017,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 54,
+        "ref": 32,
+        "alt": 22,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 29,
+        "ref": 12,
+        "alt": 17,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr19",
+        36643835,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 58,
+        "ref": 33,
+        "alt": 25,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 72,
+        "ref": 40,
+        "alt": 32,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr7",
+        80915723,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 23,
+        "ref": 12,
+        "alt": 11,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 46,
+        "ref": 9,
+        "alt": 37,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr19",
+        51591184,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 50,
+        "ref": 30,
+        "alt": 20,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 44,
+        "ref": 0,
+        "alt": 44,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr19",
+        56221072,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 22,
+        "ref": 16,
+        "alt": 6,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 32,
+        "ref": 0,
+        "alt": 32,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr1",
+        208972494,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 62,
+        "ref": 32,
+        "alt": 30,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 46,
+        "ref": 28,
+        "alt": 18,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr2",
+        1496155,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 42,
+        "ref": 23,
+        "alt": 19,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 64,
+        "ref": 0,
+        "alt": 64,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr17",
+        44909907,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 49,
+        "ref": 28,
+        "alt": 21,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 41,
+        "ref": 0,
+        "alt": 41,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr19",
+        37324232,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 65,
+        "ref": 38,
+        "alt": 27,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 86,
+        "ref": 46,
+        "alt": 40,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr7",
+        55366191,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 39,
+        "ref": 22,
+        "alt": 17,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 49,
+        "ref": 23,
+        "alt": 26,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr1",
+        228280757,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 16,
+        "ref": 11,
+        "alt": 5,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 24,
+        "ref": 13,
+        "alt": 11,
+        "other": 0
+      },
+      "outcome": "inconclusive_normal_evidence"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr12",
+        55113037,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 65,
+        "ref": 34,
+        "alt": 31,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 54,
+        "ref": 0,
+        "alt": 54,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr17",
+        82615272,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 49,
+        "ref": 25,
+        "alt": 24,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 73,
+        "ref": 0,
+        "alt": 73,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr9",
+        62873643,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 121,
+        "ref": 99,
+        "alt": 22,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 132,
+        "ref": 97,
+        "alt": 35,
+        "other": 0
+      },
+      "outcome": "inconclusive_normal_evidence"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr17",
+        42440235,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 70,
+        "ref": 38,
+        "alt": 32,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 32,
+        "ref": 0,
+        "alt": 32,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr7",
+        107230659,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 59,
+        "ref": 32,
+        "alt": 27,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 118,
+        "ref": 23,
+        "alt": 95,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr14",
+        106009601,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 0,
+        "ref": 0,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 97,
+        "ref": 0,
+        "alt": 97,
+        "other": 0
+      },
+      "outcome": "inconclusive_normal_evidence"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr1",
+        207715394,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 56,
+        "ref": 32,
+        "alt": 24,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 39,
+        "ref": 21,
+        "alt": 18,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr2",
+        96297681,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 78,
+        "ref": 42,
+        "alt": 36,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 101,
+        "ref": 69,
+        "alt": 32,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr10",
+        127451650,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 41,
+        "ref": 25,
+        "alt": 16,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 55,
+        "ref": 0,
+        "alt": 55,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr13",
+        27665803,
+        "G",
+        "C"
+      ],
+      "normal": {
+        "depth": 44,
+        "ref": 26,
+        "alt": 18,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 70,
+        "ref": 44,
+        "alt": 26,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr18",
+        78139395,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 48,
+        "ref": 30,
+        "alt": 17,
+        "other": 1
+      },
+      "tumor": {
+        "depth": 42,
+        "ref": 22,
+        "alt": 20,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr14",
+        106141274,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 0,
+        "ref": 0,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 49,
+        "ref": 0,
+        "alt": 49,
+        "other": 0
+      },
+      "outcome": "inconclusive_normal_evidence"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr14",
+        22895288,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 56,
+        "ref": 39,
+        "alt": 17,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 53,
+        "ref": 33,
+        "alt": 20,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr10",
+        61407504,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 62,
+        "ref": 35,
+        "alt": 27,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 55,
+        "ref": 0,
+        "alt": 55,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr22",
+        16611798,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 42,
+        "ref": 22,
+        "alt": 20,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 28,
+        "ref": 0,
+        "alt": 28,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr8",
+        125433295,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 50,
+        "ref": 29,
+        "alt": 21,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 130,
+        "ref": 0,
+        "alt": 130,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr5",
+        52958516,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 64,
+        "ref": 32,
+        "alt": 32,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 45,
+        "ref": 0,
+        "alt": 45,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr3",
+        53812897,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 61,
+        "ref": 36,
+        "alt": 25,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 70,
+        "ref": 0,
+        "alt": 70,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr7",
+        66980308,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 52,
+        "ref": 27,
+        "alt": 25,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 56,
+        "ref": 15,
+        "alt": 41,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr1",
+        20111908,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 55,
+        "ref": 31,
+        "alt": 24,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 48,
+        "ref": 0,
+        "alt": 48,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr14",
+        77278850,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 53,
+        "ref": 28,
+        "alt": 25,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 68,
+        "ref": 0,
+        "alt": 68,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr12",
+        132672431,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 55,
+        "ref": 37,
+        "alt": 18,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 28,
+        "ref": 0,
+        "alt": 28,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr7",
+        129839682,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 41,
+        "ref": 26,
+        "alt": 15,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 61,
+        "ref": 19,
+        "alt": 42,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr7",
+        30699793,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 45,
+        "ref": 25,
+        "alt": 20,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 63,
+        "ref": 28,
+        "alt": 35,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr7",
+        34779511,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 83,
+        "ref": 46,
+        "alt": 37,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 67,
+        "ref": 43,
+        "alt": 24,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr3",
+        39068755,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 53,
+        "ref": 28,
+        "alt": 25,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 55,
+        "ref": 0,
+        "alt": 55,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr13",
+        45955427,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 72,
+        "ref": 35,
+        "alt": 36,
+        "other": 1
+      },
+      "tumor": {
+        "depth": 101,
+        "ref": 47,
+        "alt": 53,
+        "other": 1
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr16",
+        24554750,
+        "C",
+        "A"
+      ],
+      "normal": {
+        "depth": 34,
+        "ref": 18,
+        "alt": 16,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 41,
+        "ref": 28,
+        "alt": 13,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr6",
+        152126371,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 63,
+        "ref": 33,
+        "alt": 30,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 51,
+        "ref": 0,
+        "alt": 51,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr3",
+        154024360,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 80,
+        "ref": 58,
+        "alt": 22,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 102,
+        "ref": 0,
+        "alt": 102,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr4",
+        76184799,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 29,
+        "ref": 29,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 27,
+        "ref": 27,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_normal_evidence"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr8",
+        33436749,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 66,
+        "ref": 34,
+        "alt": 32,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 55,
+        "ref": 0,
+        "alt": 55,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr3",
+        107421316,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 62,
+        "ref": 31,
+        "alt": 31,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 45,
+        "ref": 0,
+        "alt": 45,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr11",
+        5710408,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 55,
+        "ref": 28,
+        "alt": 27,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 41,
+        "ref": 0,
+        "alt": 41,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr10",
+        127015117,
+        "G",
+        "C"
+      ],
+      "normal": {
+        "depth": 27,
+        "ref": 15,
+        "alt": 12,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 47,
+        "ref": 0,
+        "alt": 47,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr19",
+        37891688,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 52,
+        "ref": 28,
+        "alt": 24,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 81,
+        "ref": 33,
+        "alt": 48,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr2",
+        240552838,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 58,
+        "ref": 32,
+        "alt": 26,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 79,
+        "ref": 34,
+        "alt": 45,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr18",
+        56938688,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 65,
+        "ref": 39,
+        "alt": 26,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 157,
+        "ref": 59,
+        "alt": 98,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr7",
+        130945142,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 84,
+        "ref": 45,
+        "alt": 39,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 98,
+        "ref": 21,
+        "alt": 77,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr2",
+        19935522,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 55,
+        "ref": 34,
+        "alt": 21,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 40,
+        "ref": 0,
+        "alt": 40,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr11",
+        74285629,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 70,
+        "ref": 39,
+        "alt": 31,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 54,
+        "ref": 0,
+        "alt": 54,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr1",
+        204141532,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 58,
+        "ref": 30,
+        "alt": 28,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 50,
+        "ref": 27,
+        "alt": 23,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr4",
+        118194757,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 54,
+        "ref": 27,
+        "alt": 27,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 67,
+        "ref": 37,
+        "alt": 30,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr2",
+        55646250,
+        "C",
+        "G"
+      ],
+      "normal": {
+        "depth": 61,
+        "ref": 35,
+        "alt": 26,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 88,
+        "ref": 53,
+        "alt": 35,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr7",
+        136871415,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 37,
+        "ref": 21,
+        "alt": 16,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 57,
+        "ref": 44,
+        "alt": 13,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr22",
+        21756070,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 59,
+        "ref": 33,
+        "alt": 26,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 60,
+        "ref": 0,
+        "alt": 60,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr1",
+        156815825,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 40,
+        "ref": 22,
+        "alt": 18,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 45,
+        "ref": 32,
+        "alt": 13,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr4",
+        76192250,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 62,
+        "ref": 34,
+        "alt": 28,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 65,
+        "ref": 19,
+        "alt": 46,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr5",
+        44818079,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 70,
+        "ref": 42,
+        "alt": 27,
+        "other": 1
+      },
+      "tumor": {
+        "depth": 83,
+        "ref": 61,
+        "alt": 22,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr1",
+        155765221,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 68,
+        "ref": 36,
+        "alt": 32,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 73,
+        "ref": 49,
+        "alt": 24,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr17",
+        41016900,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 45,
+        "ref": 27,
+        "alt": 18,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 47,
+        "ref": 0,
+        "alt": 47,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr10",
+        70161183,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 78,
+        "ref": 50,
+        "alt": 28,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 58,
+        "ref": 0,
+        "alt": 58,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr12",
+        108480095,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 76,
+        "ref": 47,
+        "alt": 29,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 47,
+        "ref": 0,
+        "alt": 47,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr1",
+        240471851,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 36,
+        "ref": 22,
+        "alt": 14,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 29,
+        "ref": 11,
+        "alt": 18,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr5",
+        154051705,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 66,
+        "ref": 34,
+        "alt": 32,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 79,
+        "ref": 0,
+        "alt": 79,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr20",
+        5432523,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 48,
+        "ref": 25,
+        "alt": 23,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 63,
+        "ref": 39,
+        "alt": 24,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr2",
+        43680657,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 55,
+        "ref": 30,
+        "alt": 25,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 50,
+        "ref": 0,
+        "alt": 50,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr17",
+        10362353,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 63,
+        "ref": 32,
+        "alt": 31,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 57,
+        "ref": 0,
+        "alt": 57,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr19",
+        52384184,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 73,
+        "ref": 42,
+        "alt": 31,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 94,
+        "ref": 0,
+        "alt": 94,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Germline",
+      "site": [
+        "chr11",
+        70414492,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 28,
+        "ref": 19,
+        "alt": 8,
+        "other": 1
+      },
+      "tumor": {
+        "depth": 60,
+        "ref": 40,
+        "alt": 20,
+        "other": 0
+      },
+      "outcome": "normal_read_corroborated_not_truth"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr3",
+        52668649,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 49,
+        "ref": 49,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 56,
+        "ref": 56,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr15",
+        28830982,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 44,
+        "ref": 44,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 41,
+        "ref": 41,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr15",
+        43917794,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 73,
+        "ref": 73,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 51,
+        "ref": 51,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr1",
+        230843811,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 47,
+        "ref": 47,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 40,
+        "ref": 40,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr1",
+        212991481,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 74,
+        "ref": 74,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 63,
+        "ref": 63,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "paired_zero_alt_corroborated_not_truth"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr15",
+        75342097,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 46,
+        "ref": 46,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 52,
+        "ref": 52,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr11",
+        89400426,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 69,
+        "ref": 69,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 51,
+        "ref": 49,
+        "alt": 2,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr10",
+        44994762,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 32,
+        "ref": 32,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 58,
+        "ref": 58,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr19",
+        13832010,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 24,
+        "ref": 24,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 42,
+        "ref": 42,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr11",
+        44244926,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 74,
+        "ref": 73,
+        "alt": 1,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 61,
+        "ref": 60,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr21",
+        33969679,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 72,
+        "ref": 72,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 56,
+        "ref": 56,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr2",
+        47691233,
+        "C",
+        "A"
+      ],
+      "normal": {
+        "depth": 38,
+        "ref": 38,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 53,
+        "ref": 53,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr1",
+        13245242,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 50,
+        "ref": 50,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 60,
+        "ref": 59,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr1",
+        168576445,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 45,
+        "ref": 45,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 45,
+        "ref": 45,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr6",
+        17632643,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 13,
+        "ref": 13,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 40,
+        "ref": 40,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr10",
+        77816079,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 51,
+        "ref": 51,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 47,
+        "ref": 47,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr11",
+        118263121,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 70,
+        "ref": 70,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 49,
+        "ref": 49,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr5",
+        43014960,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 64,
+        "ref": 64,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 59,
+        "ref": 58,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr7",
+        44008851,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 34,
+        "ref": 33,
+        "alt": 1,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 39,
+        "ref": 38,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr16",
+        88720612,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 24,
+        "ref": 24,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 56,
+        "ref": 56,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr19",
+        54105714,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 31,
+        "ref": 31,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 44,
+        "ref": 44,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr11",
+        86910045,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 62,
+        "ref": 62,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 48,
+        "ref": 48,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr5",
+        79791009,
+        "C",
+        "A"
+      ],
+      "normal": {
+        "depth": 62,
+        "ref": 62,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 54,
+        "ref": 53,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr11",
+        34511867,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 45,
+        "ref": 45,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 50,
+        "ref": 50,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr2",
+        161977721,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 65,
+        "ref": 65,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 61,
+        "ref": 60,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr10",
+        131958523,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 16,
+        "ref": 16,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 17,
+        "ref": 17,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr5",
+        150061447,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 29,
+        "ref": 29,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 33,
+        "ref": 32,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr16",
+        1349085,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 45,
+        "ref": 45,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 53,
+        "ref": 53,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr10",
+        87818723,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 43,
+        "ref": 43,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 45,
+        "ref": 45,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr12",
+        8371427,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 42,
+        "ref": 42,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 61,
+        "ref": 61,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr10",
+        108040707,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 69,
+        "ref": 69,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 49,
+        "ref": 49,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr5",
+        55952397,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 68,
+        "ref": 68,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 53,
+        "ref": 52,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr12",
+        85962833,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 59,
+        "ref": 59,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 46,
+        "ref": 46,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr17",
+        64467962,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 53,
+        "ref": 53,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 34,
+        "ref": 34,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr8",
+        13026569,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 65,
+        "ref": 64,
+        "alt": 1,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 59,
+        "ref": 59,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr11",
+        121626446,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 52,
+        "ref": 52,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 39,
+        "ref": 39,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr21",
+        15696440,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 77,
+        "ref": 77,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 55,
+        "ref": 55,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr3",
+        51397661,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 48,
+        "ref": 47,
+        "alt": 1,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 54,
+        "ref": 53,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr19",
+        15800184,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 50,
+        "ref": 50,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 62,
+        "ref": 62,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr17",
+        18139422,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 37,
+        "ref": 37,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 40,
+        "ref": 40,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr1",
+        48584204,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 45,
+        "ref": 45,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 63,
+        "ref": 63,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr5",
+        103031081,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 84,
+        "ref": 84,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 43,
+        "ref": 43,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr19",
+        54228558,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 80,
+        "ref": 80,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 55,
+        "ref": 55,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr16",
+        1449886,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 62,
+        "ref": 62,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 57,
+        "ref": 57,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr11",
+        118655017,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 40,
+        "ref": 40,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 48,
+        "ref": 48,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr22",
+        22487500,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 63,
+        "ref": 63,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 58,
+        "ref": 58,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr12",
+        50932268,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 69,
+        "ref": 69,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 60,
+        "ref": 59,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr22",
+        38743485,
+        "G",
+        "C"
+      ],
+      "normal": {
+        "depth": 52,
+        "ref": 52,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 46,
+        "ref": 46,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr11",
+        57181804,
+        "C",
+        "A"
+      ],
+      "normal": {
+        "depth": 44,
+        "ref": 44,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 57,
+        "ref": 57,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr14",
+        59371088,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 33,
+        "ref": 33,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 40,
+        "ref": 40,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr16",
+        67542169,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 16,
+        "ref": 16,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 54,
+        "ref": 54,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr14",
+        101278142,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 52,
+        "ref": 52,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 63,
+        "ref": 61,
+        "alt": 2,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr5",
+        38608318,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 45,
+        "ref": 45,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 51,
+        "ref": 51,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr17",
+        9919673,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 43,
+        "ref": 43,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 47,
+        "ref": 47,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr16",
+        2981128,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 35,
+        "ref": 35,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 34,
+        "ref": 33,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr5",
+        122826132,
+        "C",
+        "A"
+      ],
+      "normal": {
+        "depth": 66,
+        "ref": 66,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 56,
+        "ref": 54,
+        "alt": 2,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr11",
+        66524276,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 31,
+        "ref": 31,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 40,
+        "ref": 40,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr17",
+        78106632,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 43,
+        "ref": 43,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 60,
+        "ref": 59,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr16",
+        71301607,
+        "C",
+        "A"
+      ],
+      "normal": {
+        "depth": 37,
+        "ref": 37,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 58,
+        "ref": 58,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr3",
+        59039544,
+        "C",
+        "A"
+      ],
+      "normal": {
+        "depth": 63,
+        "ref": 63,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 44,
+        "ref": 44,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr17",
+        7356410,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 54,
+        "ref": 54,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 51,
+        "ref": 51,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr9",
+        35450488,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 65,
+        "ref": 65,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 55,
+        "ref": 53,
+        "alt": 2,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr18",
+        49782516,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 31,
+        "ref": 31,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 55,
+        "ref": 55,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr2",
+        218546977,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 69,
+        "ref": 69,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 59,
+        "ref": 58,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr11",
+        100993765,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 75,
+        "ref": 74,
+        "alt": 1,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 63,
+        "ref": 62,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr7",
+        76267282,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 28,
+        "ref": 28,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 58,
+        "ref": 57,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr17",
+        16683529,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 46,
+        "ref": 46,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 64,
+        "ref": 63,
+        "alt": 0,
+        "other": 1
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr11",
+        2376359,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 50,
+        "ref": 50,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 58,
+        "ref": 57,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr1",
+        179922026,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 39,
+        "ref": 39,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 48,
+        "ref": 47,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr16",
+        58021349,
+        "C",
+        "G"
+      ],
+      "normal": {
+        "depth": 32,
+        "ref": 32,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 62,
+        "ref": 60,
+        "alt": 2,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr17",
+        35265923,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 73,
+        "ref": 73,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 66,
+        "ref": 65,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr15",
+        76379844,
+        "C",
+        "A"
+      ],
+      "normal": {
+        "depth": 38,
+        "ref": 38,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 51,
+        "ref": 49,
+        "alt": 2,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr19",
+        14531841,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 44,
+        "ref": 44,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 62,
+        "ref": 62,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr10",
+        13441311,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 51,
+        "ref": 51,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 39,
+        "ref": 38,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr19",
+        17542282,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 51,
+        "ref": 51,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 53,
+        "ref": 52,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr1",
+        228333088,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 34,
+        "ref": 34,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 48,
+        "ref": 47,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr6",
+        79916652,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 65,
+        "ref": 65,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 49,
+        "ref": 49,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr2",
+        30158727,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 54,
+        "ref": 54,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 59,
+        "ref": 59,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr17",
+        76274125,
+        "C",
+        "A"
+      ],
+      "normal": {
+        "depth": 35,
+        "ref": 35,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 60,
+        "ref": 60,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr5",
+        112891939,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 59,
+        "ref": 59,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 50,
+        "ref": 49,
+        "alt": 0,
+        "other": 1
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr16",
+        410672,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 41,
+        "ref": 41,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 54,
+        "ref": 52,
+        "alt": 2,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr17",
+        20716462,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 68,
+        "ref": 68,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 48,
+        "ref": 48,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr12",
+        40487767,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 53,
+        "ref": 53,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 41,
+        "ref": 41,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr2",
+        236126047,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 64,
+        "ref": 64,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 61,
+        "ref": 60,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr14",
+        104948364,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 54,
+        "ref": 54,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 37,
+        "ref": 37,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr2",
+        241815380,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 45,
+        "ref": 43,
+        "alt": 2,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 42,
+        "ref": 42,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr1",
+        194149776,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 32,
+        "ref": 32,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 44,
+        "ref": 44,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr12",
+        51357443,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 35,
+        "ref": 35,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 45,
+        "ref": 45,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr15",
+        82283926,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 59,
+        "ref": 59,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 51,
+        "ref": 51,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr5",
+        42695107,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 64,
+        "ref": 64,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 54,
+        "ref": 53,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr4",
+        10517474,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 61,
+        "ref": 61,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 57,
+        "ref": 57,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr16",
+        28486345,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 43,
+        "ref": 43,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 49,
+        "ref": 49,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr10",
+        73065222,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 67,
+        "ref": 67,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 42,
+        "ref": 42,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr6",
+        146841873,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 40,
+        "ref": 40,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 40,
+        "ref": 40,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr2",
+        22531030,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 79,
+        "ref": 79,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 50,
+        "ref": 50,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr9",
+        127264410,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 65,
+        "ref": 65,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 52,
+        "ref": 52,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr15",
+        53733213,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 83,
+        "ref": 83,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 45,
+        "ref": 45,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr4",
+        39908524,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 56,
+        "ref": 56,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 55,
+        "ref": 54,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr17",
+        49295552,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 58,
+        "ref": 58,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 54,
+        "ref": 54,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr2",
+        203211101,
+        "C",
+        "A"
+      ],
+      "normal": {
+        "depth": 55,
+        "ref": 53,
+        "alt": 2,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 62,
+        "ref": 61,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr2",
+        98695431,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 54,
+        "ref": 54,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 65,
+        "ref": 65,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr9",
+        123491842,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 48,
+        "ref": 48,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 49,
+        "ref": 49,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr19",
+        45735373,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 63,
+        "ref": 62,
+        "alt": 1,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 41,
+        "ref": 39,
+        "alt": 2,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr20",
+        20390077,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 50,
+        "ref": 50,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 61,
+        "ref": 61,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr4",
+        120055664,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 54,
+        "ref": 53,
+        "alt": 1,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 55,
+        "ref": 55,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr22",
+        20389556,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 59,
+        "ref": 59,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 62,
+        "ref": 62,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr1",
+        151426210,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 20,
+        "ref": 20,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 40,
+        "ref": 40,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr20",
+        19717567,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 57,
+        "ref": 57,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 60,
+        "ref": 60,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr8",
+        74853751,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 53,
+        "ref": 53,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 52,
+        "ref": 51,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chrX",
+        3608465,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 29,
+        "ref": 29,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 37,
+        "ref": 36,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr22",
+        37824776,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 36,
+        "ref": 36,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 66,
+        "ref": 66,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr2",
+        27329372,
+        "T",
+        "C"
+      ],
+      "normal": {
+        "depth": 60,
+        "ref": 60,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 51,
+        "ref": 51,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr8",
+        78698426,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 61,
+        "ref": 61,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 54,
+        "ref": 53,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr10",
+        97409839,
+        "A",
+        "G"
+      ],
+      "normal": {
+        "depth": 65,
+        "ref": 65,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 49,
+        "ref": 48,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr4",
+        52650940,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 19,
+        "ref": 19,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 41,
+        "ref": 40,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr21",
+        36108453,
+        "T",
+        "G"
+      ],
+      "normal": {
+        "depth": 65,
+        "ref": 65,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 47,
+        "ref": 47,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr7",
+        74233874,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 45,
+        "ref": 45,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 63,
+        "ref": 63,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr15",
+        45512434,
+        "A",
+        "C"
+      ],
+      "normal": {
+        "depth": 85,
+        "ref": 85,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 64,
+        "ref": 63,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr21",
+        46657235,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 44,
+        "ref": 44,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 40,
+        "ref": 38,
+        "alt": 2,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chrX",
+        149502120,
+        "C",
+        "A"
+      ],
+      "normal": {
+        "depth": 39,
+        "ref": 39,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 50,
+        "ref": 50,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr9",
+        131626437,
+        "G",
+        "T"
+      ],
+      "normal": {
+        "depth": 35,
+        "ref": 35,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 56,
+        "ref": 56,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr12",
+        112237116,
+        "G",
+        "A"
+      ],
+      "normal": {
+        "depth": 47,
+        "ref": 47,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 40,
+        "ref": 40,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr5",
+        156761075,
+        "C",
+        "T"
+      ],
+      "normal": {
+        "depth": 58,
+        "ref": 58,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 60,
+        "ref": 59,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr5",
+        97092025,
+        "T",
+        "A"
+      ],
+      "normal": {
+        "depth": 58,
+        "ref": 58,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 45,
+        "ref": 45,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr10",
+        12170617,
+        "C",
+        "A"
+      ],
+      "normal": {
+        "depth": 73,
+        "ref": 73,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 56,
+        "ref": 54,
+        "alt": 2,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr5",
+        43444449,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 46,
+        "ref": 46,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 53,
+        "ref": 52,
+        "alt": 1,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr18",
+        49043256,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 34,
+        "ref": 34,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 55,
+        "ref": 55,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "inconclusive_paired_evidence"
+    },
+    {
+      "class": "Reference",
+      "site": [
+        "chr10",
+        45170361,
+        "A",
+        "T"
+      ],
+      "normal": {
+        "depth": 63,
+        "ref": 63,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 61,
+        "ref": 61,
+        "alt": 0,
+        "other": 0
+      },
+      "outcome": "paired_zero_alt_corroborated_not_truth"
+    }
+  ],
+  "training_approved": false,
+  "outcomes": {
+    "Germline:normal_read_corroborated_not_truth": 122,
+    "Germline:inconclusive_normal_evidence": 6,
+    "Reference:inconclusive_paired_evidence": 126,
+    "Reference:paired_zero_alt_corroborated_not_truth": 2
+  }
+}

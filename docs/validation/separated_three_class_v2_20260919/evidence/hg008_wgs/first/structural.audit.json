@@ -1,0 +1,15 @@
+{
+  "status": "structural_pass_not_training_approval",
+  "source": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/hg008_wgs/first/candidates.vcf.gz",
+  "sha256": "3fc702d6b6a061f8b5177c83869a6a1238b170bd133c53148594aacb5e5e02ac",
+  "sources_unchanged": true,
+  "counts": {
+    "records": 2076392,
+    "NoConsensus": 1974081,
+    "Reference": 54932,
+    "Germline": 46770,
+    "Somatic": 609
+  },
+  "issues": {},
+  "examples": {}
+}

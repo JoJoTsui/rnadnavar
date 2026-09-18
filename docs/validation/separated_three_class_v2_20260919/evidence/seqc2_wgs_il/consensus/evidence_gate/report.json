@@ -1,0 +1,32 @@
+{
+  "policy": "negative_evidence_gate_v2",
+  "training_approved": false,
+  "sources": {
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/candidates.vcf.gz": "7a8b1ce100c2e9c2a49a07ff749119d5f06e81870db759ac780b5b59b6ba965d",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/bam_pilot.json": "b5aef6d8b63b79a77db653adcea238f4888b30eb474fe2764f6a05845ab73bca"
+  },
+  "parameters": {
+    "max_reference_af": 0.01,
+    "confidence": 0.95,
+    "required_zero_alt_depth_each_sample": 299
+  },
+  "scope": "Evidence-only gate for native negative candidates, never training approval.\n\nConsumes a hash-bound paired-BAM pilot report. Preserves every FILTER and source\nrecord. Indels/complex contexts abstain pending haplotype-aware adjudication.\nNo caller votes are summed and missing coverage is never interpreted as zero.\n",
+  "counts": {
+    "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 253981,
+    "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 167486,
+    "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 35672,
+    "Germline:WITHHELD:requires_haplotype_aware_validation": 3411,
+    "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 6074,
+    "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 66,
+    "Reference:WITHHELD:observed_alt_not_zero": 46,
+    "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 80,
+    "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 51,
+    "Germline:WITHHELD:insufficient_paired_germline_evidence": 4,
+    "Germline:WITHHELD:other_allele_context_requires_review": 5,
+    "Reference:WITHHELD:other_allele_context_requires_review": 2
+  },
+  "status": "complete_not_training_approved",
+  "sources_unchanged": true,
+  "output": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/separated_three_class_v2_20260919/seqc2_wgs_il/consensus/evidence_gate/candidate.evidence.vcf.gz",
+  "output_sha256": "9deb69e60de83985a01289b15f53223566ce986708f9bea30a6851c861d39fb4"
+}

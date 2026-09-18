@@ -3,6 +3,15 @@
 Frozen before revalidation on 2026-09-18. Opt-in; not a training-approved policy.
 Implementation: `bin/apply_three_class_labels.py` and negative-evidence gate v2.
 
+Completed execution validation (2026-09-19): all three datasets, consensus and
+both rescue rounds passed exact Somatic membership, UKB/MedExome SNP/indel/record
+metric parity, structural and recorded integrity checks. See the
+[full comparison and evidence archive](validation/separated_three_class_v2_20260919/README.md).
+The 128-SNP-per-class pilots supported 57/126 usable Germline sites in WES,
+51/126 in SEQC2 WGS and 71/128 in HG008, with zero supported Reference sites.
+These are evidence-retention counts, not negative-class accuracy. Candidate-only
+cohort preparation is permitted; biological training approval remains open.
+
 ## Diagnosis
 
 The first three-class experiment reused old rescue biological labels and
