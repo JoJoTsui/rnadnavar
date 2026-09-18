@@ -79,6 +79,10 @@ def argparser():
         help="SEQC2 development v2 SNP/indel policy; requires normalized DNA caller VCFs; not validated for production",
     )
     parser.add_argument(
+        "--experimental-three-class", action="store_true",
+        help="Opt-in separate native Germline/Reference rules with paired read corroboration; requires --experimental-refined-native; unvalidated",
+    )
+    parser.add_argument(
         "--output_format",
         choices=["vcf", "vcf.gz", "bcf"],
         default="vcf.gz",
@@ -123,6 +127,10 @@ def argparser():
 
 def main():
     args = argparser()
+    if args.experimental_three_class and (
+        not args.experimental_refined_native or args.exclude_refcall or args.exclude_germline
+    ):
+        raise SystemExit("Three-class mode requires refined-native and retaining RefCall/Germline inputs")
     if args.experimental_refined_native and args.preserve_baseline_callers:
         raise SystemExit("Experimental refined policy cannot be combined with baseline preservation")
     try:
@@ -294,6 +302,7 @@ def main():
                 include_non_canonical=args.include_non_canonical,
                 chrom=chrom,
                 refined_native=args.experimental_refined_native,
+                three_class=args.experimental_three_class,
             )
             n_records += len(variants)
             variant_collections.append((caller, variants, None))
@@ -309,6 +318,7 @@ def main():
             preserve_baseline_callers=preserve_baseline_callers,
             native_evidence_snv=args.native_evidence_snv,
             refined_native=args.experimental_refined_native,
+            three_class=args.experimental_three_class,
         )
 
         chunk_stats = compute_consensus_statistics(

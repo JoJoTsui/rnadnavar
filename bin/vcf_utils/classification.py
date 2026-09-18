@@ -482,6 +482,14 @@ def compute_unified_classification_consensus(
     if variant_data.get("refined_native_enabled"):
         branch = variant_data.get("refined_native_branch")
         allowed = not common_af and verification_status not in {"rejected", "inconclusive"}
+        if variant_data.get("three_class_enabled"):
+            from .three_class_policy import POLICY, classify
+            label, reason = classify(variant_data, bool(branch and allowed))
+            rationale = (
+                variant_data["refined_native_trace"]
+                + f"|three_class_policy:{POLICY}|decision:{reason}|class:{label}"
+            )
+            return (label, rationale) if with_rationale else label
         if branch and allowed:
             rationale = variant_data["refined_native_trace"] + "|class:Somatic"
             return ("Somatic", rationale) if with_rationale else "Somatic"

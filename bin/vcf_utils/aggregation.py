@@ -662,6 +662,7 @@ def read_variants_from_vcf(
     chrom=None,
     alignment_round="unknown",
     refined_native=False,
+    three_class=False,
 ):
     """
     Read variants from a single VCF file with biological classification.
@@ -863,12 +864,36 @@ def read_variants_from_vcf(
             for role, index in (("tumor", tumor_sample_idx), ("normal", normal_sample_idx)):
                 if index is None:
                     continue
-                for key in ("AD", "DP", "SB"):
+                for key in (("AD", "DP", "SB", "GQ", "PL") if three_class else ("AD", "DP", "SB")):
                     try:
                         field = variant.format(key)
                         if field is not None and index < len(field):
                             native_evidence[f"{role}_{key}"] = field[index].tolist()
                     except (AttributeError, IndexError, TypeError, ValueError, KeyError):
+                        pass
+                if three_class:
+                    if caller_name == "strelka" and len(variant.ALT or []) == 1:
+                        alt = variant.ALT[0]
+                        keys = None
+                        if len(variant.REF) == len(alt) == 1 and set(variant.REF + alt) <= set("ACGT"):
+                            keys = (variant.REF + "U", alt + "U")
+                        elif len(variant.REF) != len(alt) and set(variant.REF + alt) <= set("ACGT"):
+                            keys = ("TAR", "TIR")
+                        if keys:
+                            try:
+                                # Tier-1 reference/ALT reads; never sum tiers.
+                                native_evidence[f"{role}_AD"] = [
+                                    int(variant.format(key)[index][0]) for key in keys
+                                ]
+                            except (AttributeError, IndexError, TypeError, ValueError, KeyError):
+                                pass
+                    try:
+                        # cyvcf2 appends a phased boolean after genotype alleles.
+                        if "GT" in variant.FORMAT:
+                            genotype = variant.genotypes[index]
+                            if len(genotype) == 3:
+                                native_evidence[f"{role}_GT"] = list(genotype[:2])
+                    except (AttributeError, IndexError, TypeError, ValueError):
                         pass
 
         data = {
@@ -925,6 +950,7 @@ def read_variants_from_vcf(
 def aggregate_variants(
     variant_collections, snv_threshold=2, indel_threshold=2, min_alt_support=None,
     preserve_baseline_callers=None, native_evidence_snv=False, refined_native=False,
+    three_class=False,
 ):
     """
     Aggregate variants from multiple collections.
@@ -1156,6 +1182,8 @@ def aggregate_variants(
             data["refined_native_enabled"] = True
             data["refined_native_branch"] = branch
             data["refined_native_trace"] = trace(data, branch or "not_admitted")
+            if three_class:
+                data["three_class_enabled"] = True
 
         # Aggregate genotype information
         data["gt_aggregated"] = aggregate_genotypes(data["genotypes"], data["callers"])

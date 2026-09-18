@@ -46,7 +46,22 @@ def info_dict(raw):
             for part in raw.split(";") if part not in ("", ".")}
 
 
-def transition(dna_label, rescue_label, allowed, reason, verification):
+def transition(dna_label, rescue_label, allowed, reason, verification,
+               three_class=False, annotation_veto=None):
+    if three_class:
+        if dna_label == "Somatic":
+            if (annotation_veto or verification in {"rejected", "inconclusive"}
+                    or rescue_label in {"Germline", "Reference", "Artifact", "RNAedit"}):
+                return "NoConsensus", "baseline_conflict_requires_review"
+            return "Somatic", "retained_dna_baseline"
+        if dna_label in {"Germline", "Reference"}:
+            if rescue_label == "Somatic":
+                return "NoConsensus", "negative_somatic_conflict_requires_review"
+            return dna_label, "native_evidence_negative"
+        if (allowed and not annotation_veto and verification == "confirmed"
+                and dna_label not in {"Artifact", "RNAedit"}):
+            return "Somatic", reason
+        return "NoConsensus", "unvalidated_inherited_label"
     if dna_label == "Somatic":
         return "Somatic", "retained_dna_baseline"
     if rescue_label and rescue_label != "Somatic":
@@ -110,7 +125,7 @@ def scan_panel(db, inputs, modality):
         db.commit()
 
 
-def write_output(db, header, out, alignment_round):
+def write_output(db, header, out, alignment_round, three_class=False):
     definitions = {
         "GATE_POLICY": "Experimental policy identifier",
         "GATE_ALIGNMENT_ROUND": "RNA round supplied for this evaluation; not a second independent vote",
@@ -149,7 +164,20 @@ def write_output(db, header, out, alignment_round):
                 rescue_label = parts[6] if rescue_raw else None
                 dna_set, rna_set = set(dna_votes.split("|")) - {""}, set(rna_votes.split("|")) - {""}
                 allowed, reason = decide(ref, alt, rescue_label, dna_set, rna_set, info)
-                label, reason = transition(dna_label, rescue_label, allowed, reason, info.get("DNA_VERIFICATION"))
+                dna_info = info_dict(dna_raw.split("\t")[7]) if dna_raw else {}
+                if three_class and dna_raw and "three_class_policy:native_three_class_v1" not in dna_info.get("CLASSIFICATION_RATIONALE", "").split("|"):
+                    raise ValueError("Three-class rescue requires three-class DNA consensus")
+                verification = info.get("DNA_VERIFICATION")
+                annotation_veto = biological_veto(info)
+                if three_class:
+                    # A rescue source must not erase a veto present on DNA.
+                    if dna_info.get("DNA_VERIFICATION") in {"rejected", "inconclusive"}:
+                        verification = dna_info["DNA_VERIFICATION"]
+                    annotation_veto = annotation_veto or biological_veto(dna_info)
+                label, reason = transition(
+                    dna_label, rescue_label, allowed, reason, verification,
+                    three_class=three_class, annotation_veto=annotation_veto,
+                )
                 promoted = label == "Somatic" and dna_label != "Somatic"
                 if dna_label == "Somatic" and biological_veto(info):
                     counts["baseline_annotation_conflicts"] += 1
@@ -157,13 +185,14 @@ def write_output(db, header, out, alignment_round):
                     counts["baseline_somatic_without_rescue_record"] += 1
                 if dna_label == "Somatic" and rescue_label and rescue_label != "Somatic":
                     counts["baseline_vs_rescue_negative_conflicts"] += 1
-                info.update(GATE_POLICY="seqc2_refined_gate_v1", GATE_ALIGNMENT_ROUND=alignment_round,
+                policy = "native_three_class_gate_v1" if three_class else "seqc2_refined_gate_v1"
+                info.update(GATE_POLICY=policy, GATE_ALIGNMENT_ROUND=alignment_round,
                             GATE_DNA_NOMINATORS="|".join(sorted(dna_set)) or ".",
                             GATE_RNA_ELIGIBLE="|".join(sorted(rna_set)) or ".",
                             GATE_SOURCE_RECORD=quote(raw, safe=""), UNIFIED_FILTER=label,
                             UNIFIED_FILTER_DNA=dna_label or "NoConsensus",
-                            PASSES_CONSENSUS_DNA="YES" if dna_label == "Somatic" else "NO",
-                            CLASSIFICATION_RATIONALE=f"rule:seqc2_refined_gate_v1|branch:{reason}|class:{label}",
+                            PASSES_CONSENSUS_DNA="YES" if dna_label == "Somatic" and (not three_class or label == "Somatic") else "NO",
+                            CLASSIFICATION_RATIONALE=f"rule:{policy}|branch:{reason}|class:{label}",
                             RESCUE_PROMOTED="YES" if promoted else "NO",
                             RESCUED="YES" if label == "Somatic" and (promoted or info.get("PASSES_CONSENSUS_RNA") == "YES") else "NO")
                 if dna_raw and rescue_raw:
@@ -188,6 +217,8 @@ def main():
     ap.add_argument("--rna-vcf", action="append", required=True, help="caller=path")
     ap.add_argument("--alignment-round", choices=["first", "realignment"], required=True)
     ap.add_argument("--outdir", type=Path, required=True)
+    ap.add_argument("--experimental-three-class", action="store_true",
+                    help="Abstain on class conflicts and require independently nominated native-negative DNA candidates")
     args = ap.parse_args()
     dna, rna = panel(args.dna_vcf), panel(args.rna_vcf)
     sources = [args.dna_consensus.resolve(strict=True), args.annotated_rescue.resolve(strict=True), *dna.values(), *rna.values()]
@@ -213,7 +244,8 @@ def main():
             header.merge(rescue_header)
             scan_panel(db, dna, "DNA")
             scan_panel(db, rna, "RNA")
-            report["counts"] = write_output(db, header, args.outdir / "refined.rescue.vcf.gz", args.alignment_round)
+            report["counts"] = write_output(db, header, args.outdir / "refined.rescue.vcf.gz",
+                                           args.alignment_round, three_class=args.experimental_three_class)
         report["sources_unchanged"] = all(digest(Path(p)) == sha for p, sha in report["sources"].items())
         if not report["sources_unchanged"]:
             raise ValueError("Source integrity changed")
