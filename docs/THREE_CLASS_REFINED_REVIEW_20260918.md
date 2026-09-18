@@ -4,6 +4,11 @@ Status: candidate exports and opt-in development rules; biological training
 approval remains open. Neither the published SEQC2/HG008 performance claims nor
 the completed 66-sample VCFs are changed by these code additions.
 
+Follow-up: the [validation checkpoint](validation/three_class_20260918/README.md)
+records real-dataset negative-label collisions, paired-BAM/normal-gVCF pilots,
+and the independently fixed Somatic indel fallback regression. These results
+do not approve training use or the full 66-sample regeneration.
+
 ## Why DNA consensus and rescue have different negative-label counts
 
 The frozen 2026-09-16 rerun used seqc2_refined_v2 and seqc2_refined_gate_v1.

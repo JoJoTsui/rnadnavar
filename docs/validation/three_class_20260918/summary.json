@@ -1,0 +1,578 @@
+{
+  "status": "not_training_approved",
+  "cohort_rerun_started": false,
+  "scope": "Initial full screens are pre-indel-fallback-fix; corrected CLI replay is a separate regression check, not a full post-fix benchmark.",
+  "current_commit": "50705ab204e2446b3716d786cf383a66d3f098ba",
+  "heavy_root": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_validation_20260918",
+  "datasets": {
+    "seqc2_wes_ll": {
+      "pre_fix_class_counts": {
+        "NoConsensus": 132397,
+        "Reference": 39480,
+        "Germline": 14399,
+        "Somatic": 2440
+      },
+      "pre_fix_somatic_metrics": {
+        "ukb": {
+          "snp": {
+            "tp": 1012,
+            "fp": 34,
+            "fn": 1193,
+            "precision": 0.9674952198852772,
+            "recall": 0.45895691609977324,
+            "f1": 0.6225776684097201
+          },
+          "indel": {
+            "tp": 39,
+            "fp": 1,
+            "fn": 56,
+            "precision": 0.975,
+            "recall": 0.4105263157894737,
+            "f1": 0.5777777777777777
+          },
+          "records": {
+            "tp": 1051,
+            "fp": 35,
+            "fn": 1249,
+            "precision": 0.9677716390423573,
+            "recall": 0.45695652173913043,
+            "f1": 0.6207914943886592
+          }
+        },
+        "medexome": {
+          "snp": {
+            "tp": 543,
+            "fp": 17,
+            "fn": 252,
+            "precision": 0.9696428571428571,
+            "recall": 0.6830188679245283,
+            "f1": 0.8014760147601475
+          },
+          "indel": {
+            "tp": 20,
+            "fp": 1,
+            "fn": 14,
+            "precision": 0.9523809523809523,
+            "recall": 0.5882352941176471,
+            "f1": 0.7272727272727274
+          },
+          "records": {
+            "tp": 563,
+            "fp": 18,
+            "fn": 266,
+            "precision": 0.9690189328743546,
+            "recall": 0.6791314837153196,
+            "f1": 0.798581560283688
+          }
+        }
+      },
+      "somatic_truth_collision_counts": {
+        "Germline/ukb": {
+          "snp": 0,
+          "indel": 0,
+          "records": 0
+        },
+        "Germline/medexome": {
+          "snp": 0,
+          "indel": 0,
+          "records": 0
+        },
+        "Reference/ukb": {
+          "snp": 4,
+          "indel": 0,
+          "records": 4
+        },
+        "Reference/medexome": {
+          "snp": 3,
+          "indel": 0,
+          "records": 3
+        }
+      },
+      "bam_pilot": {
+        "Germline:normal_read_corroborated_not_truth": 30,
+        "Germline:inconclusive_normal_evidence": 2,
+        "Reference:inconclusive_paired_evidence": 32
+      },
+      "fallback_replay": {
+        "restored_somatic": 64,
+        "expected_losses": 64,
+        "missing": [],
+        "sources_unchanged": true
+      }
+    },
+    "seqc2_wgs_il": {
+      "pre_fix_class_counts": {
+        "NoConsensus": 254179,
+        "Reference": 167614,
+        "Germline": 39211,
+        "Somatic": 5874
+      },
+      "pre_fix_somatic_metrics": {
+        "ukb": {
+          "snp": {
+            "tp": 2091,
+            "fp": 8,
+            "fn": 114,
+            "precision": 0.9961886612672701,
+            "recall": 0.9482993197278912,
+            "f1": 0.9716542750929368
+          },
+          "indel": {
+            "tp": 77,
+            "fp": 5,
+            "fn": 18,
+            "precision": 0.9390243902439024,
+            "recall": 0.8105263157894737,
+            "f1": 0.8700564971751412
+          },
+          "records": {
+            "tp": 2168,
+            "fp": 13,
+            "fn": 132,
+            "precision": 0.9940394314534617,
+            "recall": 0.9426086956521739,
+            "f1": 0.9676411515286766
+          }
+        },
+        "medexome": {
+          "snp": {
+            "tp": 675,
+            "fp": 2,
+            "fn": 120,
+            "precision": 0.9970457902511078,
+            "recall": 0.8490566037735849,
+            "f1": 0.9171195652173914
+          },
+          "indel": {
+            "tp": 29,
+            "fp": 2,
+            "fn": 5,
+            "precision": 0.9354838709677419,
+            "recall": 0.8529411764705882,
+            "f1": 0.8923076923076922
+          },
+          "records": {
+            "tp": 704,
+            "fp": 4,
+            "fn": 125,
+            "precision": 0.9943502824858758,
+            "recall": 0.8492159227985525,
+            "f1": 0.9160702667534159
+          }
+        }
+      },
+      "somatic_truth_collision_counts": {
+        "Germline/ukb": {
+          "snp": 0,
+          "indel": 0,
+          "records": 0
+        },
+        "Germline/medexome": {
+          "snp": 0,
+          "indel": 0,
+          "records": 0
+        },
+        "Reference/ukb": {
+          "snp": 10,
+          "indel": 0,
+          "records": 10
+        },
+        "Reference/medexome": {
+          "snp": 3,
+          "indel": 0,
+          "records": 3
+        }
+      },
+      "bam_pilot": {
+        "Germline:normal_read_corroborated_not_truth": 32,
+        "Reference:inconclusive_paired_evidence": 31,
+        "Reference:paired_zero_alt_corroborated_not_truth": 1
+      },
+      "fallback_replay": {
+        "restored_somatic": 197,
+        "expected_losses": 200,
+        "missing": [],
+        "sources_unchanged": true
+      }
+    },
+    "hg008_wgs": {
+      "pre_fix_class_counts": {
+        "NoConsensus": 622111,
+        "Reference": 54932,
+        "Germline": 46770,
+        "Somatic": 571
+      },
+      "pre_fix_somatic_metrics": {
+        "ukb": {
+          "snp": {
+            "tp": 410,
+            "fp": 16,
+            "fn": 20,
+            "precision": 0.9624413145539906,
+            "recall": 0.9534883720930233,
+            "f1": 0.9579439252336449
+          },
+          "indel": {
+            "tp": 61,
+            "fp": 4,
+            "fn": 182,
+            "precision": 0.9384615384615385,
+            "recall": 0.25102880658436216,
+            "f1": 0.3961038961038961
+          },
+          "records": {
+            "tp": 471,
+            "fp": 20,
+            "fn": 198,
+            "precision": 0.9592668024439919,
+            "recall": 0.7040358744394619,
+            "f1": 0.8120689655172415
+          }
+        },
+        "medexome": {
+          "snp": {
+            "tp": 135,
+            "fp": 4,
+            "fn": 19,
+            "precision": 0.9712230215827338,
+            "recall": 0.8766233766233766,
+            "f1": 0.9215017064846416
+          },
+          "indel": {
+            "tp": 15,
+            "fp": 0,
+            "fn": 43,
+            "precision": 1.0,
+            "recall": 0.25862068965517243,
+            "f1": 0.4109589041095891
+          },
+          "records": {
+            "tp": 150,
+            "fp": 4,
+            "fn": 61,
+            "precision": 0.974025974025974,
+            "recall": 0.7109004739336493,
+            "f1": 0.821917808219178
+          }
+        }
+      },
+      "somatic_truth_collision_counts": {
+        "Germline/ukb": {
+          "snp": 0,
+          "indel": 1,
+          "records": 1
+        },
+        "Germline/medexome": {
+          "snp": 0,
+          "indel": 0,
+          "records": 0
+        },
+        "Reference/ukb": {
+          "snp": 0,
+          "indel": 0,
+          "records": 0
+        },
+        "Reference/medexome": {
+          "snp": 0,
+          "indel": 0,
+          "records": 0
+        }
+      },
+      "bam_pilot": {
+        "Germline:normal_read_corroborated_not_truth": 32,
+        "Reference:paired_zero_alt_corroborated_not_truth": 1,
+        "Reference:inconclusive_paired_evidence": 31
+      },
+      "fallback_replay": {
+        "restored_somatic": 30,
+        "expected_losses": 33,
+        "missing": [],
+        "sources_unchanged": true
+      },
+      "recommended_truth_metrics_pre_fix": {
+        "Somatic/ukb": {
+          "snp": {
+            "tp": 411,
+            "fp": 15,
+            "fn": 13,
+            "precision": 0.9647887323943662,
+            "recall": 0.9693396226415094,
+            "f1": 0.9670588235294117
+          },
+          "indel": {
+            "tp": 63,
+            "fp": 2,
+            "fn": 163,
+            "precision": 0.9692307692307692,
+            "recall": 0.27876106194690264,
+            "f1": 0.43298969072164945
+          },
+          "records": {
+            "tp": 474,
+            "fp": 17,
+            "fn": 176,
+            "precision": 0.9653767820773931,
+            "recall": 0.7292307692307692,
+            "f1": 0.8308501314636285
+          }
+        },
+        "Somatic/medexome": {
+          "snp": {
+            "tp": 136,
+            "fp": 3,
+            "fn": 17,
+            "precision": 0.9784172661870504,
+            "recall": 0.8888888888888888,
+            "f1": 0.9315068493150684
+          },
+          "indel": {
+            "tp": 15,
+            "fp": 0,
+            "fn": 43,
+            "precision": 1.0,
+            "recall": 0.25862068965517243,
+            "f1": 0.4109589041095891
+          },
+          "records": {
+            "tp": 151,
+            "fp": 3,
+            "fn": 60,
+            "precision": 0.9805194805194806,
+            "recall": 0.7156398104265402,
+            "f1": 0.8273972602739725
+          }
+        },
+        "Germline/ukb": {
+          "snp": {
+            "tp": 0,
+            "fp": 41530,
+            "fn": 424,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "indel": {
+            "tp": 1,
+            "fp": 4577,
+            "fn": 225,
+            "precision": 0.00021843599825251202,
+            "recall": 0.004424778761061947,
+            "f1": 0.0004163197335553705
+          },
+          "records": {
+            "tp": 1,
+            "fp": 46108,
+            "fn": 649,
+            "precision": 2.168773992062287e-05,
+            "recall": 0.0015384615384615385,
+            "f1": 4.277251438225796e-05
+          }
+        },
+        "Germline/medexome": {
+          "snp": {
+            "tp": 0,
+            "fp": 11638,
+            "fn": 153,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 763,
+            "fn": 58,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 0,
+            "fp": 12401,
+            "fn": 211,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          }
+        },
+        "Reference/ukb": {
+          "snp": {
+            "tp": 0,
+            "fp": 52668,
+            "fn": 424,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 226,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 0,
+            "fp": 52668,
+            "fn": 650,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          }
+        },
+        "Reference/medexome": {
+          "snp": {
+            "tp": 0,
+            "fp": 10498,
+            "fn": 153,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "indel": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 58,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          },
+          "records": {
+            "tp": 0,
+            "fp": 10498,
+            "fn": 211,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0
+          }
+        },
+        "refined_consensus/ukb": {
+          "snp": {
+            "tp": 411,
+            "fp": 15,
+            "fn": 13,
+            "precision": 0.9647887323943662,
+            "recall": 0.9693396226415094,
+            "f1": 0.9670588235294117
+          },
+          "indel": {
+            "tp": 92,
+            "fp": 2,
+            "fn": 134,
+            "precision": 0.9787234042553191,
+            "recall": 0.40707964601769914,
+            "f1": 0.575
+          },
+          "records": {
+            "tp": 503,
+            "fp": 17,
+            "fn": 147,
+            "precision": 0.9673076923076923,
+            "recall": 0.7738461538461539,
+            "f1": 0.8598290598290598
+          }
+        },
+        "refined_consensus/medexome": {
+          "snp": {
+            "tp": 136,
+            "fp": 3,
+            "fn": 17,
+            "precision": 0.9784172661870504,
+            "recall": 0.8888888888888888,
+            "f1": 0.9315068493150684
+          },
+          "indel": {
+            "tp": 17,
+            "fp": 0,
+            "fn": 41,
+            "precision": 1.0,
+            "recall": 0.29310344827586204,
+            "f1": 0.4533333333333333
+          },
+          "records": {
+            "tp": 153,
+            "fp": 3,
+            "fn": 58,
+            "precision": 0.9807692307692307,
+            "recall": 0.7251184834123223,
+            "f1": 0.8337874659400544
+          }
+        },
+        "deepsomatic/ukb": {
+          "snp": {
+            "tp": 409,
+            "fp": 14,
+            "fn": 15,
+            "precision": 0.966903073286052,
+            "recall": 0.964622641509434,
+            "f1": 0.9657615112160566
+          },
+          "indel": {
+            "tp": 69,
+            "fp": 4,
+            "fn": 157,
+            "precision": 0.9452054794520548,
+            "recall": 0.3053097345132743,
+            "f1": 0.4615384615384615
+          },
+          "records": {
+            "tp": 478,
+            "fp": 18,
+            "fn": 172,
+            "precision": 0.9637096774193549,
+            "recall": 0.7353846153846154,
+            "f1": 0.8342059336823735
+          }
+        },
+        "deepsomatic/medexome": {
+          "snp": {
+            "tp": 136,
+            "fp": 3,
+            "fn": 17,
+            "precision": 0.9784172661870504,
+            "recall": 0.8888888888888888,
+            "f1": 0.9315068493150684
+          },
+          "indel": {
+            "tp": 21,
+            "fp": 0,
+            "fn": 37,
+            "precision": 1.0,
+            "recall": 0.3620689655172414,
+            "f1": 0.5316455696202532
+          },
+          "records": {
+            "tp": 157,
+            "fp": 3,
+            "fn": 54,
+            "precision": 0.98125,
+            "recall": 0.7440758293838863,
+            "f1": 0.8463611859838275
+          }
+        }
+      },
+      "orthogonal_normal": {
+        "Germline:inconclusive": 1,
+        "Germline:normal_alt_corroboration": 31,
+        "Reference:normal_reference_evidence": 24,
+        "Reference:inconclusive": 8
+      }
+    }
+  },
+  "archive_sha256": {
+    "evidence/seqc2_wes_ll/validation.json": "c08133d3b39516e986c3be66e62bac515d894237fc495b7ff810ec07d5b7821e",
+    "evidence/seqc2_wes_ll/transitions.json": "8e810327ec634a7c3cf98bc74a16d9c10cb0673e7af67d641aa0b9fb142621cd",
+    "evidence/seqc2_wes_ll/bam_pilot.json": "96bd5697cce86fd200dac220199251003bbde99c6ddf6eb3b67270bd77ea0225",
+    "evidence/seqc2_wes_ll/fallback_fix_replay/replay.json": "130c6811efa17a9cdf11583485729f984196ddb15a4e2693c431b12683668ffe",
+    "evidence/seqc2_wgs_il/validation.json": "1e31321d5ab7236fee5182bd4433db20ba7a1df63c342b11ff2f71b138c647dc",
+    "evidence/seqc2_wgs_il/transitions.json": "9eefddc231548385e13f02003cf3ae60577970660c74f8cdd798f0d63bc223fc",
+    "evidence/seqc2_wgs_il/bam_pilot.json": "fcd1dbc7de05b72b09f03e8a05aae860093bb1fc6e19ef1e34dc03d2fa479df2",
+    "evidence/seqc2_wgs_il/fallback_fix_replay/replay.json": "fdf339e4f07b94f4eb9f2225189e5d7c3ad28a1a86afa456cb95f1474c19e97c",
+    "evidence/hg008_wgs/validation.json": "4265bcb77446510a3386563ff453e9df5853595413787458486b53aedbdf6f5e",
+    "evidence/hg008_wgs/transitions.json": "f00b371bd973fee6f018ffe280c9c3b2b4bff0f3b9f300d00c9f827791a8e17b",
+    "evidence/hg008_wgs/bam_pilot.json": "155c11338d3dfc56f9f1785a867fb2f8090fbf997425a0179dc5c73bf5943120",
+    "evidence/hg008_wgs/fallback_fix_replay/replay.json": "156541d4608d974449967b75afd0472d022ecb5d325e82e72ac266022d131174",
+    "evidence/hg008_wgs/recommended_truth/validation.json": "0512897af43c570fd98dbe4bad8373d4f8d467f0d5048500fe3169241b0b836d",
+    "evidence/hg008_wgs/orthogonal_normal.json": "96bee27790a430634b8e4c5306ef93707249fc97ec4a79e328145a88639e23f4"
+  }
+}

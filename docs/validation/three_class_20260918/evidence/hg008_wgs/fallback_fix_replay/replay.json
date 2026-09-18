@@ -1,0 +1,455 @@
+{
+  "scope": "Replay observed Somatic label losses through the actual CLI, without truth fitting.",
+  "sources": {
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.deepsomatic.vcf.gz": "550282587269874396b932f2b9552e944470ea887a41b7591b923822dcebeaf6",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.mutect2.vcf.gz": "2fd361123f4ef9150fdbec9e75aa953974c109f463eafc9eed5cbe69ed48f264",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.strelka.vcf.gz": "5c8e6981ea14bd5ede53eac3d1f0e3ca781755cd9690f25dac652d363bc23579"
+  },
+  "commands": [
+    [
+      "bcftools",
+      "view",
+      "-R",
+      "examples/seqc2/comparison/three_class_validation_20260918/hg008_wgs/fallback_fix_replay/losses.bed",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.deepsomatic.vcf.gz",
+      "-Oz",
+      "-o",
+      "examples/seqc2/comparison/three_class_validation_20260918/hg008_wgs/fallback_fix_replay/inputs/sample.deepsomatic.vcf.gz"
+    ],
+    [
+      "bcftools",
+      "view",
+      "-R",
+      "examples/seqc2/comparison/three_class_validation_20260918/hg008_wgs/fallback_fix_replay/losses.bed",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.mutect2.vcf.gz",
+      "-Oz",
+      "-o",
+      "examples/seqc2/comparison/three_class_validation_20260918/hg008_wgs/fallback_fix_replay/inputs/sample.mutect2.vcf.gz"
+    ],
+    [
+      "bcftools",
+      "view",
+      "-R",
+      "examples/seqc2/comparison/three_class_validation_20260918/hg008_wgs/fallback_fix_replay/losses.bed",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/current_native_audit_20260916_v2/hg008_frozen_full_domain_v1/dna_inputs/sample.strelka.vcf.gz",
+      "-Oz",
+      "-o",
+      "examples/seqc2/comparison/three_class_validation_20260918/hg008_wgs/fallback_fix_replay/inputs/sample.strelka.vcf.gz"
+    ],
+    [
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python",
+      "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/run_consensus_vcf.py",
+      "--input_dir",
+      "examples/seqc2/comparison/three_class_validation_20260918/hg008_wgs/fallback_fix_replay/inputs",
+      "--expected_callers",
+      "deepsomatic,mutect2,strelka",
+      "--experimental-refined-native",
+      "--experimental-three-class",
+      "--out_prefix",
+      "examples/seqc2/comparison/three_class_validation_20260918/hg008_wgs/fallback_fix_replay/replayed"
+    ]
+  ],
+  "results": [
+    {
+      "allele": [
+        "chr1",
+        43840030,
+        "C",
+        [
+          "CT"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:RefCall|deepsomatic_qual:0.0|deepsomatic_tumor_AD:0.0/64.0|deepsomatic_tumor_DP:66.0|deepsomatic_tumor_GQ:20.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:0.0/22.0/22.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:106.23999786376953|mutect2_normal_AD:85.0/0.0|mutect2_normal_DP:85.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:44.0/41.0/0.0/0.0|mutect2_tumor_AD:1.0/47.0|mutect2_tumor_DP:48.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:1.0/0.0/28.0/19.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr2",
+        224478413,
+        "ATAAT",
+        [
+          "A"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:PASS|deepsomatic_qual:20.399999618530273|deepsomatic_tumor_AD:39.0/65.0|deepsomatic_tumor_DP:104.0|deepsomatic_tumor_GQ:14.0|deepsomatic_tumor_GT:1.0/1.0|deepsomatic_tumor_PL:20.0/15.0/0.0|mutect2_filter:clustered_events+haplotype|mutect2_qual:.|mutect2_ECNT:3.0|mutect2_GERMQ:93.0|mutect2_TLOD:226.66000366210938|mutect2_normal_AD:136.0/0.0|mutect2_normal_DP:136.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:63.0/73.0/0.0/0.0|mutect2_tumor_AD:39.0/57.0|mutect2_tumor_DP:96.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:20.0/19.0/23.0/34.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr2",
+        230752247,
+        "C",
+        [
+          "CA"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:PASS|deepsomatic_qual:8.0|deepsomatic_tumor_AD:34.0/73.0|deepsomatic_tumor_DP:112.0|deepsomatic_tumor_GQ:6.0|deepsomatic_tumor_GT:1.0/1.0|deepsomatic_tumor_PL:6.0/8.0/0.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:115.43000030517578|mutect2_normal_AD:86.0/1.0|mutect2_normal_DP:87.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:54.0/32.0/0.0/1.0|mutect2_tumor_AD:32.0/55.0|mutect2_tumor_DP:87.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:19.0/13.0/32.0/23.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr2",
+        236072443,
+        "C",
+        [
+          "CA"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:RefCall|deepsomatic_qual:0.5|deepsomatic_tumor_AD:44.0/71.0|deepsomatic_tumor_DP:118.0|deepsomatic_tumor_GQ:9.0|deepsomatic_tumor_GT:-1.0/-1.0|deepsomatic_tumor_PL:0.0/15.0/9.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:115.20999908447266|mutect2_normal_AD:83.0/1.0|mutect2_normal_DP:84.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:35.0/48.0/1.0/0.0|mutect2_tumor_AD:41.0/55.0|mutect2_tumor_DP:96.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:21.0/20.0/28.0/27.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr3",
+        18476389,
+        "C",
+        [
+          "CA"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:PASS|deepsomatic_qual:13.399999618530273|deepsomatic_tumor_AD:0.0/85.0|deepsomatic_tumor_DP:87.0|deepsomatic_tumor_GQ:11.0|deepsomatic_tumor_GT:1.0/1.0|deepsomatic_tumor_PL:13.0/14.0/0.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:182.75|mutect2_normal_AD:119.0/1.0|mutect2_normal_DP:120.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:66.0/53.0/1.0/0.0|mutect2_tumor_AD:1.0/73.0|mutect2_tumor_DP:74.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:0.0/1.0/45.0/28.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr3",
+        66378719,
+        "A",
+        [
+          "AT"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:GERMLINE|deepsomatic_qual:28.100000381469727|deepsomatic_tumor_AD:4.0/91.0|deepsomatic_tumor_DP:98.0|deepsomatic_tumor_GQ:18.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:28.0/0.0/18.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:218.1199951171875|mutect2_normal_AD:120.0/0.0|mutect2_normal_DP:120.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:53.0/67.0/0.0/0.0|mutect2_tumor_AD:0.0/83.0|mutect2_tumor_DP:83.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:0.0/0.0/44.0/39.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr4",
+        85000666,
+        "G",
+        [
+          "GT"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:GERMLINE|deepsomatic_qual:5.199999809265137|deepsomatic_tumor_AD:1.0/104.0|deepsomatic_tumor_DP:107.0|deepsomatic_tumor_GQ:4.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:2.0/0.0/6.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:226.52000427246094|mutect2_normal_AD:134.0/1.0|mutect2_normal_DP:135.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:75.0/59.0/0.0/1.0|mutect2_tumor_AD:0.0/82.0|mutect2_tumor_DP:82.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:0.0/0.0/36.0/46.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr6",
+        126590237,
+        "G",
+        [
+          "GT"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:GERMLINE|deepsomatic_qual:12.5|deepsomatic_tumor_AD:0.0/79.0|deepsomatic_tumor_DP:80.0|deepsomatic_tumor_GQ:4.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:10.0/0.0/3.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:186.25999450683594|mutect2_normal_AD:104.0/0.0|mutect2_normal_DP:104.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:50.0/54.0/0.0/0.0|mutect2_tumor_AD:0.0/67.0|mutect2_tumor_DP:67.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:0.0/0.0/30.0/37.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr7",
+        6704315,
+        "T",
+        [
+          "TA"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:RefCall|deepsomatic_qual:0.0|deepsomatic_tumor_AD:153.0/103.0|deepsomatic_tumor_DP:261.0|deepsomatic_tumor_GQ:26.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:0.0/34.0/26.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:130.57000732421875|mutect2_normal_AD:92.0/0.0|mutect2_normal_DP:92.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:35.0/57.0/0.0/0.0|mutect2_tumor_AD:149.0/74.0|mutect2_tumor_DP:223.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:50.0/99.0/19.0/55.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr7",
+        76911089,
+        "TC",
+        [
+          "T"
+        ]
+      ],
+      "label": "NoConsensus",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:GERMLINE|deepsomatic_qual:31.200000762939453|deepsomatic_tumor_AD:1.0/80.0|deepsomatic_tumor_DP:81.0|deepsomatic_tumor_GQ:31.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:31.0/0.0/46.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:272.8900146484375|mutect2_normal_AD:94.0/0.0|mutect2_normal_DP:94.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:43.0/51.0/0.0/0.0|mutect2_tumor_AD:0.0/68.0|mutect2_tumor_DP:68.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:0.0/0.0/36.0/32.0|three_class_policy:native_three_class_v1|decision:conflicting_normal_reference_evidence:mutect2|class:NoConsensus"
+    },
+    {
+      "allele": [
+        "chr8",
+        29051918,
+        "AC",
+        [
+          "A"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:PASS|deepsomatic_qual:24.399999618530273|deepsomatic_tumor_AD:9.0/60.0|deepsomatic_tumor_DP:69.0|deepsomatic_tumor_GQ:19.0|deepsomatic_tumor_GT:1.0/1.0|deepsomatic_tumor_PL:24.0/20.0/0.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:151.6199951171875|mutect2_normal_AD:71.0/2.0|mutect2_normal_DP:73.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:43.0/28.0/2.0/0.0|mutect2_tumor_AD:5.0/47.0|mutect2_tumor_DP:52.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:3.0/2.0/36.0/11.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr8",
+        50751981,
+        "GT",
+        [
+          "G"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:PASS|deepsomatic_qual:30.899999618530273|deepsomatic_tumor_AD:60.0/74.0|deepsomatic_tumor_DP:136.0|deepsomatic_tumor_GQ:29.0|deepsomatic_tumor_GT:1.0/1.0|deepsomatic_tumor_PL:30.0/32.0/0.0|mutect2_filter:panel_of_normals|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:160.0399932861328|mutect2_normal_AD:116.0/0.0|mutect2_normal_DP:116.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:74.0/42.0/0.0/0.0|mutect2_tumor_AD:64.0/67.0|mutect2_tumor_DP:131.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:38.0/26.0/35.0/32.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr8",
+        57804921,
+        "C",
+        [
+          "CA"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:RefCall|deepsomatic_qual:0.5|deepsomatic_tumor_AD:62.0/86.0|deepsomatic_tumor_DP:152.0|deepsomatic_tumor_GQ:10.0|deepsomatic_tumor_GT:-1.0/-1.0|deepsomatic_tumor_PL:0.0/10.0/15.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:105.06999969482422|mutect2_normal_AD:68.0/1.0|mutect2_normal_DP:69.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:43.0/25.0/0.0/1.0|mutect2_tumor_AD:61.0/65.0|mutect2_tumor_DP:126.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:34.0/27.0/33.0/32.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr8",
+        122671403,
+        "GA",
+        [
+          "G"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:RefCall|deepsomatic_qual:0.0|deepsomatic_tumor_AD:56.0/90.0|deepsomatic_tumor_DP:153.0|deepsomatic_tumor_GQ:27.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:0.0/47.0/26.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:145.41000366210938|mutect2_normal_AD:92.0/0.0|mutect2_normal_DP:92.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:43.0/49.0/0.0/0.0|mutect2_tumor_AD:58.0/71.0|mutect2_tumor_DP:129.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:27.0/31.0/38.0/33.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr10",
+        42674368,
+        "G",
+        [
+          "GA"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:RefCall|deepsomatic_qual:0.0|deepsomatic_tumor_AD:44.0/44.0|deepsomatic_tumor_DP:92.0|deepsomatic_tumor_GQ:25.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:0.0/31.0/26.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:46.43000030517578|mutect2_normal_AD:87.0/0.0|mutect2_normal_DP:87.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:31.0/56.0/0.0/0.0|mutect2_tumor_AD:39.0/26.0|mutect2_tumor_DP:65.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:17.0/22.0/12.0/14.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr10",
+        76560198,
+        "T",
+        [
+          "TTG"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:GERMLINE|deepsomatic_qual:11.800000190734863|deepsomatic_tumor_AD:33.0/73.0|deepsomatic_tumor_DP:106.0|deepsomatic_tumor_GQ:7.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:10.0/0.0/8.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:169.5|mutect2_normal_AD:95.0/0.0|mutect2_normal_DP:95.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:43.0/52.0/0.0/0.0|mutect2_tumor_AD:29.0/58.0|mutect2_tumor_DP:87.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:9.0/20.0/14.0/44.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr10",
+        100494825,
+        "AT",
+        [
+          "A"
+        ]
+      ],
+      "label": "NoConsensus",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:RefCall|deepsomatic_qual:0.0|deepsomatic_tumor_AD:45.0/63.0|deepsomatic_tumor_DP:112.0|deepsomatic_tumor_GQ:46.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:0.0/51.0/47.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:39.970001220703125|mutect2_normal_AD:73.0/0.0|mutect2_normal_DP:73.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:40.0/33.0/0.0/0.0|mutect2_tumor_AD:38.0/32.0|mutect2_tumor_DP:70.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:20.0/18.0/16.0/16.0|three_class_policy:native_three_class_v1|decision:conflicting_native_reference_alt|class:NoConsensus"
+    },
+    {
+      "allele": [
+        "chr11",
+        5144191,
+        "TA",
+        [
+          "T"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:PASS|deepsomatic_qual:15.300000190734863|deepsomatic_tumor_AD:78.0/101.0|deepsomatic_tumor_DP:181.0|deepsomatic_tumor_GQ:15.0|deepsomatic_tumor_GT:1.0/1.0|deepsomatic_tumor_PL:15.0/24.0/0.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:196.5|mutect2_normal_AD:128.0/2.0|mutect2_normal_DP:130.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:83.0/45.0/0.0/2.0|mutect2_tumor_AD:73.0/87.0|mutect2_tumor_DP:160.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:46.0/27.0/45.0/42.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr11",
+        106264720,
+        "CA",
+        [
+          "C"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:RefCall|deepsomatic_qual:0.30000001192092896|deepsomatic_tumor_AD:2.0/55.0|deepsomatic_tumor_DP:63.0|deepsomatic_tumor_GQ:12.0|deepsomatic_tumor_GT:-1.0/-1.0|deepsomatic_tumor_PL:0.0/27.0/12.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:76.69999694824219|mutect2_normal_AD:61.0/1.0|mutect2_normal_DP:62.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:31.0/30.0/1.0/0.0|mutect2_tumor_AD:7.0/42.0|mutect2_tumor_DP:49.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:1.0/6.0/27.0/15.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr11",
+        107643368,
+        "GA",
+        [
+          "G"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:PASS|deepsomatic_qual:8.399999618530273|deepsomatic_tumor_AD:3.0/83.0|deepsomatic_tumor_DP:94.0|deepsomatic_tumor_GQ:8.0|deepsomatic_tumor_GT:1.0/1.0|deepsomatic_tumor_PL:7.0/22.0/0.0|mutect2_filter:panel_of_normals|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:151.49000549316406|mutect2_normal_AD:100.0/0.0|mutect2_normal_DP:100.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:42.0/58.0/0.0/0.0|mutect2_tumor_AD:1.0/68.0|mutect2_tumor_DP:69.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:0.0/1.0/30.0/38.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr11",
+        115176312,
+        "AT",
+        [
+          "A"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:PASS|deepsomatic_qual:9.5|deepsomatic_tumor_AD:0.0/75.0|deepsomatic_tumor_DP:76.0|deepsomatic_tumor_GQ:8.0|deepsomatic_tumor_GT:1.0/1.0|deepsomatic_tumor_PL:8.0/11.0/0.0|mutect2_filter:.|mutect2_qual:.|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr12",
+        100033534,
+        "C",
+        [
+          "CT"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:GERMLINE|deepsomatic_qual:3.299999952316284|deepsomatic_tumor_AD:1.0/82.0|deepsomatic_tumor_DP:88.0|deepsomatic_tumor_GQ:3.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:0.0/0.0/9.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:72.94000244140625|mutect2_normal_AD:65.0/1.0|mutect2_normal_DP:66.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:34.0/31.0/0.0/1.0|mutect2_tumor_AD:3.0/37.0|mutect2_tumor_DP:40.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:2.0/1.0/25.0/12.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr13",
+        34910529,
+        "AT",
+        [
+          "A"
+        ]
+      ],
+      "label": "NoConsensus",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:RefCall|deepsomatic_qual:0.0|deepsomatic_tumor_AD:93.0/84.0|deepsomatic_tumor_DP:179.0|deepsomatic_tumor_GQ:45.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:0.0/52.0/45.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:98.16999816894531|mutect2_normal_AD:87.0/1.0|mutect2_normal_DP:88.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:52.0/35.0/0.0/1.0|mutect2_tumor_AD:88.0/57.0|mutect2_tumor_DP:145.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:48.0/40.0/44.0/13.0|three_class_policy:native_three_class_v1|decision:conflicting_native_reference_alt|class:NoConsensus"
+    },
+    {
+      "allele": [
+        "chr16",
+        30012544,
+        "A",
+        [
+          "AT"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:GERMLINE|deepsomatic_qual:6.199999809265137|deepsomatic_tumor_AD:0.0/82.0|deepsomatic_tumor_DP:84.0|deepsomatic_tumor_GQ:3.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:2.0/0.0/1.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:192.1999969482422|mutect2_normal_AD:93.0/0.0|mutect2_normal_DP:93.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:55.0/38.0/0.0/0.0|mutect2_tumor_AD:0.0/75.0|mutect2_tumor_DP:75.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:0.0/0.0/42.0/33.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr17",
+        79936867,
+        "CAT",
+        [
+          "C"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:GERMLINE|deepsomatic_qual:14.0|deepsomatic_tumor_AD:0.0/188.0|deepsomatic_tumor_DP:189.0|deepsomatic_tumor_GQ:13.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:13.0/0.0/21.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:781.5499877929688|mutect2_normal_AD:144.0/0.0|mutect2_normal_DP:144.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:57.0/87.0/0.0/0.0|mutect2_tumor_AD:0.0/179.0|mutect2_tumor_DP:179.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:0.0/0.0/87.0/92.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr19",
+        14795739,
+        "C",
+        [
+          "CT"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:GERMLINE|deepsomatic_qual:8.199999809265137|deepsomatic_tumor_AD:2.0/91.0|deepsomatic_tumor_DP:96.0|deepsomatic_tumor_GQ:8.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:7.0/0.0/16.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:66.86000061035156|mutect2_normal_AD:69.0/0.0|mutect2_normal_DP:69.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:44.0/25.0/0.0/0.0|mutect2_tumor_AD:0.0/34.0|mutect2_tumor_DP:34.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:0.0/0.0/19.0/15.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr19",
+        53137807,
+        "A",
+        [
+          "AT"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:RefCall|deepsomatic_qual:1.0|deepsomatic_tumor_AD:109.0/86.0|deepsomatic_tumor_DP:195.0|deepsomatic_tumor_GQ:7.0|deepsomatic_tumor_GT:-1.0/-1.0|deepsomatic_tumor_PL:0.0/6.0/14.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:141.44000244140625|mutect2_normal_AD:89.0/1.0|mutect2_normal_DP:90.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:53.0/36.0/1.0/0.0|mutect2_tumor_AD:131.0/77.0|mutect2_tumor_DP:208.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:86.0/45.0/49.0/28.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr19",
+        54260821,
+        "CA",
+        [
+          "C"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:RefCall|deepsomatic_qual:0.0|deepsomatic_tumor_AD:58.0/87.0|deepsomatic_tumor_DP:159.0|deepsomatic_tumor_GQ:29.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:0.0/45.0/29.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:113.0199966430664|mutect2_normal_AD:85.0/0.0|mutect2_normal_DP:85.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:39.0/46.0/0.0/0.0|mutect2_tumor_AD:56.0/62.0|mutect2_tumor_DP:118.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:28.0/28.0/22.0/40.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr20",
+        45447232,
+        "C",
+        [
+          "CT"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:GERMLINE|deepsomatic_qual:9.199999809265137|deepsomatic_tumor_AD:56.0/143.0|deepsomatic_tumor_DP:201.0|deepsomatic_tumor_GQ:6.0|deepsomatic_tumor_GT:0.0/0.0|deepsomatic_tumor_PL:7.0/0.0/6.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:353.8699951171875|mutect2_normal_AD:96.0/0.0|mutect2_normal_DP:96.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:50.0/46.0/0.0/0.0|mutect2_tumor_AD:72.0/158.0|mutect2_tumor_DP:230.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:44.0/28.0/87.0/71.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chr22",
+        50669906,
+        "T",
+        [
+          "TA"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:PASS|deepsomatic_qual:5.5|deepsomatic_tumor_AD:0.0/85.0|deepsomatic_tumor_DP:86.0|deepsomatic_tumor_GQ:5.0|deepsomatic_tumor_GT:1.0/1.0|deepsomatic_tumor_PL:3.0/10.0/0.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:149.00999450683594|mutect2_normal_AD:77.0/1.0|mutect2_normal_DP:78.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:25.0/52.0/0.0/1.0|mutect2_tumor_AD:0.0/63.0|mutect2_tumor_DP:63.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:0.0/0.0/32.0/31.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chrX",
+        41558169,
+        "C",
+        [
+          "CT"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:RefCall|deepsomatic_qual:0.20000000298023224|deepsomatic_tumor_AD:68.0/80.0|deepsomatic_tumor_DP:152.0|deepsomatic_tumor_GQ:13.0|deepsomatic_tumor_GT:-1.0/-1.0|deepsomatic_tumor_PL:0.0/14.0/18.0|mutect2_filter:PASS|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:109.66999816894531|mutect2_normal_AD:87.0/2.0|mutect2_normal_DP:89.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:41.0/46.0/1.0/1.0|mutect2_tumor_AD:66.0/57.0|mutect2_tumor_DP:123.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:20.0/46.0/26.0/31.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chrX",
+        136209853,
+        "C",
+        [
+          "CT"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:PASS|deepsomatic_qual:14.0|deepsomatic_tumor_AD:59.0/90.0|deepsomatic_tumor_DP:151.0|deepsomatic_tumor_GQ:12.0|deepsomatic_tumor_GT:1.0/1.0|deepsomatic_tumor_PL:13.0/16.0/0.0|mutect2_filter:panel_of_normals|mutect2_qual:.|mutect2_ECNT:1.0|mutect2_GERMQ:93.0|mutect2_TLOD:169.08999633789062|mutect2_normal_AD:92.0/1.0|mutect2_normal_DP:93.0|mutect2_normal_GT:0.0/0.0|mutect2_normal_SB:52.0/40.0/0.0/1.0|mutect2_tumor_AD:56.0/75.0|mutect2_tumor_DP:131.0|mutect2_tumor_GT:0.0/1.0|mutect2_tumor_SB:34.0/22.0/42.0/33.0|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    },
+    {
+      "allele": [
+        "chrX",
+        136976985,
+        "C",
+        [
+          "CT"
+        ]
+      ],
+      "label": "Somatic",
+      "rationale": "rule:seqc2_refined_v2|branch:not_admitted|deepsomatic_filter:PASS|deepsomatic_qual:23.200000762939453|deepsomatic_tumor_AD:80.0/52.0|deepsomatic_tumor_DP:135.0|deepsomatic_tumor_GQ:16.0|deepsomatic_tumor_GT:1.0/1.0|deepsomatic_tumor_PL:23.0/16.0/0.0|mutect2_filter:.|mutect2_qual:.|three_class_policy:native_three_class_v1|decision:refined_somatic_admission|class:Somatic"
+    }
+  ],
+  "classification_sha256": "e024c63af272746388f8c55dde925ec35151cac4820444f851e50b8bf725912e",
+  "restored_somatic": 30,
+  "expected_losses": 33,
+  "missing": [],
+  "sources_unchanged": true
+}
