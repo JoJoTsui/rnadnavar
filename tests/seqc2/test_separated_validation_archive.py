@@ -34,3 +34,19 @@ def test_fail_closed_before_creating_archive(tmp_path, monkeypatch, failure):
     monkeypatch.setattr(sys, 'argv', ['record', '--root', str(source.parent), '--outdir', str(output)])
     with pytest.raises(ValueError): m.main()
     assert not output.exists()
+
+
+def test_report_separates_metrics_from_negative_evidence_and_approval():
+    metrics=dict(tp=10,fp=1,fn=2,precision=10/11,recall=10/12,f1=20/23)
+    stage=dict(somatic={d:{k:metrics for k in ('snp','indel','records')}
+                         for d in ('ukb','medexome')},
+               pilot_yield={label:dict(selected=128,usable=120,supported=0)
+                            for label in ('Germline','Reference')})
+    report=m.markdown(dict(heavy_root='/not/training',datasets={
+        'hg008_wgs':dict(truth='/truth/tumorvariants.vcf.gz',stages={'consensus':stage})}))
+    assert report.count('### ') == 6
+    assert '0 / 120 / 128' in report
+    assert 'biological training approval did not occur' in report
+    assert 'not Germline/Reference precision estimates' in report
+    assert 'TRAINING_ELIGIBLE=NO' in report
+    assert '--truth /truth/tumorvariants.vcf.gz' in report
