@@ -56,3 +56,15 @@ def test_reject_unnominated_negative_and_wrong_checksum(tmp_path):
 def test_evidence_must_attest_primary_independent_read_filters():
     report=dict(vcf_sha256='a',thresholds=dict(MAPQ=20,BQ=20,BAQ=True),results=[])
     with pytest.raises(ValueError,match='primary'):evidence_index(report,'a')
+
+
+def test_preserve_multiallelic_baseline_without_negative_nomination(tmp_path):
+    b,n=tmp_path/'b.vcf',tmp_path/'n.vcf'
+    vcf(b,[(1,'Somatic'),(2,'NoConsensus')]);vcf(n,[(1,'NoConsensus'),(2,'NoConsensus')],True)
+    for p in (b,n):
+        p.write_text(p.read_text().replace('\tA\tT\t','\tA\tT,AT\t'))
+    result=run(b,n,tmp_path/'out',digest(b),digest(n),'consensus')
+    with pysam.VariantFile(result['output']) as f:
+        rows=list(f)
+    assert [r.alts for r in rows]==[('T','AT'),('T','AT')]
+    assert [next(iter(r.filter)) for r in rows]==['Somatic','NoConsensus']

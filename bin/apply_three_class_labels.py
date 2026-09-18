@@ -35,14 +35,16 @@ def stage(db, path, column):
             raise ValueError('Require sampleless, non-recursively labelled input')
         for record in reader:
             labels = set(record.filter)
-            if len(labels) != 1 or not labels <= LABELS or len(record.alts or []) != 1:
-                raise ValueError('Require biallelic biological labels')
+            if len(labels) != 1 or not labels <= LABELS or not record.alts:
+                raise ValueError('Require biological labels and explicit ALT alleles')
             label = next(iter(labels))
             if column == 'native' and label in {'Germline', 'Reference'}:
+                if len(record.alts) != 1 or set(record.ref+record.alts[0])-set('ACGT'):
+                    raise ValueError('Unsupported native negative allele')
                 trace = record.info.get('CLASSIFICATION_RATIONALE', '')
                 if 'three_class_policy:native_three_class_v1' not in str(trace).split('|'):
                     raise ValueError('Negative nomination lacks native policy provenance')
-            key = (record.contig, record.pos, record.ref, record.alts[0])
+            key = (record.contig, record.pos, record.ref, ','.join(record.alts))
             if record.contig not in header.contigs:
                 raise ValueError('Undeclared contig')
             db.execute('INSERT OR IGNORE INTO variants(chrom,pos,ref,alt) VALUES (?,?,?,?)', key)
