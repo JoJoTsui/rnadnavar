@@ -11,6 +11,8 @@ The 128-SNP-per-class pilots supported 57/126 usable Germline sites in WES,
 51/126 in SEQC2 WGS and 71/128 in HG008, with zero supported Reference sites.
 These are evidence-retention counts, not negative-class accuracy. Candidate-only
 cohort preparation is permitted; biological training approval remains open.
+The [candidate-only cohort runbook](THREE_CLASS_COHORT_RERUN.md) describes the
+opt-in wrapper, shared paths and unchanged-source guarantees.
 
 ## Diagnosis
 

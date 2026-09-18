@@ -27,6 +27,7 @@ from vcf_utils.aggregation import resolve_tumor_sample_index, _normal_sample_fro
 CALLERS = ('deepsomatic', 'mutect2', 'strelka')
 GIB = 1024**3
 POLICY = 'seqc2_refined_v2+seqc2_refined_gate_v1'
+THREE_CLASS_POLICY = 'separated_three_class_v2'
 EOF = bytes.fromhex('1f8b08040000000000ff0600424302001b0003000000000000000000')
 
 
@@ -119,8 +120,52 @@ def inspect_vcf(path, reference, caller=None):
                     index_older_than_vcf=any(p.stat().st_mtime_ns < path.stat().st_mtime_ns for p in indices))
 
 
+def required_validation_code():
+    return {str(p.relative_to(REPO)) for p in (
+        REPO/'bin/run_consensus_vcf.py', REPO/'bin/apply_refined_rescue.py',
+        REPO/'bin/apply_three_class_labels.py', REPO/'bin/assess_negative_label_evidence.py',
+        *sorted((REPO/'bin/vcf_utils').glob('*.py')), *sorted((REPO/'bin/common').glob('*.py')))}
+
+
+def validation_gate(cfg):
+    """Allow candidate generation only, bound to completed checks and exact code."""
+    if cfg.get('candidate_only') is not True:
+        raise ValueError('Three-class policy requires candidate_only=true; no training approval')
+    path=Path(cfg['validation_summary'])
+    path=(path if path.is_absolute() else REPO/path).resolve(strict=True)
+    report=json.loads(path.read_text())
+    if (report.get('policy')!=THREE_CLASS_POLICY or report.get('candidate_execution_checks_pass') is not True
+            or report.get('biological_training_approved') is not False):
+        raise ValueError('Require completed candidate validation, not inferred biological approval')
+    datasets=report.get('datasets',{})
+    if set(datasets)!={'seqc2_wes_ll','seqc2_wgs_il','hg008_wgs'}:
+        raise ValueError('Incomplete validation dataset coverage')
+    for dataset in datasets.values():
+        stages=dataset.get('stages',{})
+        if (set(stages)!={'consensus','first','realignment'}
+                or any(stage.get('somatic_parity') is not True for stage in stages.values())
+                or dataset.get('negative_collision_coverage',{}).get('status')
+                    !='rescue_negatives_subset_of_challenged_consensus_negatives'):
+            raise ValueError('Incomplete Somatic/negative validation coverage')
+    code=report.get('validated_code',{})
+    if not required_validation_code() <= set(code):
+        raise ValueError('Incomplete validated policy code provenance')
+    for rel,expected in code.items():
+        source=(REPO/rel).resolve(strict=True)
+        if Path(rel).is_absolute() or not below(source,REPO) or digest(source)!=expected:
+            raise ValueError('Policy code differs from completed validation: '+rel)
+    if not report.get('archived_sha256'):
+        raise ValueError('Missing archived validation evidence')
+    for rel,expected in report['archived_sha256'].items():
+        source=(path.parent/rel).resolve(strict=True)
+        if Path(rel).is_absolute() or not below(source,path.parent) or digest(source)!=expected:
+            raise ValueError('Archived validation evidence changed: '+rel)
+    return dict(summary=str(path),sha256=digest(path),candidate_only=True,training_approved=False)
+
+
 def prepare(cfg):
-    if cfg.get('policy') != POLICY: raise ValueError('Unsupported policy')
+    if cfg.get('policy') not in (POLICY,THREE_CLASS_POLICY): raise ValueError('Unsupported policy')
+    gate=validation_gate(cfg) if cfg['policy']==THREE_CLASS_POLICY else None
     for key in ('manifest', 'output_root', 'work_root', 'fasta'):
         if not Path(cfg[key]).is_absolute(): raise ValueError(f'{key} must be absolute')
     manifest, fasta = Path(cfg['manifest']), Path(cfg['fasta'])
@@ -151,10 +196,14 @@ def prepare(cfg):
         checks, all_files = {}, set(paths.values())
         for key, value in paths.items():
             checks[key] = inspect_vcf(Path(value), reference, key.split('_')[1] if key != 'rescue' else None)
+            if gate and key=='dna_deepsomatic':
+                with pysam.VariantFile(value) as reader:
+                    if 'GQ' not in reader.header.formats:
+                        raise ValueError(f'{sid}: missing native DeepSomatic GQ schema')
             all_files.update(checks[key]['indices'])
         stats = {p: {'bytes': Path(p).stat().st_size, 'mtime_ns': Path(p).stat().st_mtime_ns} for p in sorted(all_files)}
         samples.append(dict(sample_id=sid, inputs=paths, files=stats, checks=checks))
-    return dict(status='preflight_pass_header_checks_only', policy=POLICY, samples=samples,
+    return dict(status='preflight_pass_header_checks_only', policy=cfg['policy'], samples=samples,validation_gate=gate,
                 manifest_sha256=digest(manifest), reference=str(fasta),
                 resources=resource_plan(cfg, sum(v['bytes'] for s in samples for v in s['files'].values())),
                 limitations=['Full-record parsing occurs at execution', 'No new VEP; inherited annotations only',
@@ -163,6 +212,7 @@ def prepare(cfg):
 
 def code_hashes():
     paths = [Path(__file__), REPO / 'bin/run_consensus_vcf.py', REPO / 'bin/apply_refined_rescue.py',
+             REPO / 'bin/apply_three_class_labels.py',
              REPO / 'examples/seqc2/scripts/audit_refined_label_contract.py',
              REPO / 'examples/seqc2/scripts/validate_refined_native_integration.py',
              *sorted((REPO / 'bin/vcf_utils').glob('*.py')), *sorted((REPO / 'bin/common').glob('*.py'))]
@@ -173,12 +223,21 @@ def completed(sample_root, identity, source_hashes):
     state = sample_root / 'state.json'
     if not state.exists(): return False
     d = json.loads(state.read_text())
+    if identity.get('policy')==THREE_CLASS_POLICY:
+        paths=d.get('final_artifacts',{})
+        dest=Path(d.get('output',''))
+        if (set(paths)!={'consensus','rescue'} or dest.resolve().parent!=sample_root.resolve()
+                or any(Path(paths[k])!=dest/f'three_class.{k}.vcf.gz'
+                       or paths[k] not in d.get('outputs',{}) for k in paths)):
+            return False
     return (d.get('status') == 'candidate_complete_not_training_approved' and d.get('identity') == identity
             and d.get('source_hashes') == source_hashes and bool(d.get('outputs'))
             and all(Path(p).is_file() and digest(p) == h for p, h in d['outputs'].items()))
 
 
 def run_sample(sample, cfg, identity):
+    if cfg['policy']==THREE_CLASS_POLICY and validation_gate(cfg)['sha256']!=identity.get('validation_gate'):
+        raise ValueError('Validation gate changed since preparation')
     sid = sample['sample_id']
     root = Path(cfg['output_root']) / sid
     root.mkdir(parents=True, exist_ok=True)
@@ -222,13 +281,42 @@ def run_sample(sample, cfg, identity):
         for suffix in ('', '.tbi'):
             shutil.copyfile(work/'rescue'/('refined.rescue.vcf.gz'+suffix), dest/('refined.rescue.vcf.gz'+suffix))
         shutil.copyfile(work/'rescue/report.json', dest/'rescue.report.json')
-        for name, path in [('consensus',baseline),('rescue',dest/'refined.rescue.vcf.gz')]:
+        final_paths=dict(consensus=baseline,rescue=dest/'refined.rescue.vcf.gz')
+        if cfg['policy']==THREE_CLASS_POLICY:
+            # The established Somatic algorithms above remain unchanged. The
+            # three-class experiment is used only for independent nominations.
+            run([sys.executable,REPO/'bin/run_consensus_vcf.py','--input_dir',inputs,
+                 '--expected_callers',','.join(CALLERS),'--experimental-refined-native',
+                 '--experimental-three-class','--out_prefix',dest/'native'], 'native_candidates')
+            native=dest/'native.vcf.gz'
+            run(['bcftools','index','-t',native], 'index_native')
+            for name,source in list(final_paths.items()):
+                folder=work/('three_class_'+name)
+                run([sys.executable,REPO/'bin/apply_three_class_labels.py','--somatic-baseline',source,
+                     '--native-candidates',native,'--expected-baseline-sha256',digest(source),
+                     '--expected-native-sha256',digest(native),'--stage',
+                     'consensus' if name=='consensus' else 'realignment','--outdir',folder], 'three_class_'+name)
+                outcome=json.loads((folder/'report.json').read_text())
+                if (outcome['status']!='candidate_complete_not_training_approved'
+                        or outcome['somatic_membership_mismatches'] or not outcome['sources_unchanged']):
+                    raise ValueError('Separated candidate contract failed')
+                target=dest/f'three_class.{name}.vcf.gz'
+                for suffix in ('','.tbi'):
+                    shutil.copyfile(str(folder/'candidates.vcf.gz')+suffix,str(target)+suffix)
+                if digest(target)!=outcome['output_sha256']:
+                    raise ValueError('Candidate publication checksum mismatch')
+                shutil.copyfile(folder/'report.json',dest/f'three_class.{name}.report.json')
+                final_paths[name]=target
+        state['final_artifacts']={k:str(v) for k,v in final_paths.items()}
+        for name, path in final_paths.items():
             run([sys.executable,REPO/'examples/seqc2/scripts/audit_refined_label_contract.py','--vcf',path,
                  '--report',dest/f'{name}.audit.json'], f'audit_{name}')
             audit = json.loads((dest/f'{name}.audit.json').read_text())
             if audit['issues'] or not audit['sources_unchanged']: raise ValueError('Output structural audit failed')
         if any(digest(p) != h for p,h in hashes.items()): raise ValueError('Source checksum changed')
         if code_hashes() != identity['code']: raise ValueError('Code changed during run')
+        if cfg['policy']==THREE_CLASS_POLICY and validation_gate(cfg)['sha256']!=identity['validation_gate']:
+            raise ValueError('Validation gate changed during execution')
         if (digest(cfg['manifest']) != identity['manifest'] or digest(cfg['fasta']) != identity['reference']
                 or digest(cfg['fasta']+'.fai') != identity['reference_fai']):
             raise ValueError('Manifest/reference changed during run')
@@ -249,15 +337,24 @@ def write_candidate_manifest(root, samples):
     temp = target.with_suffix('.tmp')
     with temp.open('w') as handle:
         writer = csv.writer(handle, delimiter='\t')
-        writer.writerow(['sample_id', 'status', 'dna_consensus', 'truth_vcf', 'completion_report'])
+        writer.writerow(['sample_id', 'status', 'dna_consensus', 'truth_vcf', 'completion_report',
+                         'candidate_vcf','training_label_vcf','policy'])
         for sample in samples:
             path = root / sample['sample_id'] / 'state.json'
             if not path.exists(): continue
             state = json.loads(path.read_text())
             if state.get('status') != 'candidate_complete_not_training_approved': continue
             dest = Path(state['output'])
-            writer.writerow([sample['sample_id'], state['status'], dest/'refined.vcf.gz',
-                             dest/'refined.rescue.vcf.gz', dest/'completion.json'])
+            paths=state.get('final_artifacts',dict(consensus=str(dest/'refined.vcf.gz'),rescue=str(dest/'refined.rescue.vcf.gz')))
+            policy=state['identity']['policy']
+            if policy==THREE_CLASS_POLICY and 'final_artifacts' not in state:
+                raise ValueError('Missing separated final artifacts')
+            if policy==THREE_CLASS_POLICY and (set(paths)!={'consensus','rescue'} or any(
+                    Path(paths[k])!=dest/f'three_class.{k}.vcf.gz' or paths[k] not in state['outputs'] for k in paths)):
+                raise ValueError('Invalid separated final artifacts')
+            writer.writerow([sample['sample_id'], state['status'], paths['consensus'],
+                             '' if policy==THREE_CLASS_POLICY else paths['rescue'],dest/'completion.json',
+                             paths['rescue'],'',policy])
     temp.replace(target)
 
 
@@ -273,7 +370,8 @@ def main():
     plan=prepare(cfg)
     if args.plan:
         with args.plan.open('x') as handle: json.dump(plan,handle,indent=2); handle.write('\n')
-    print(json.dumps({'status':plan['status'],'samples':len(plan['samples']),'resources':plan['resources']},indent=2),flush=True)
+    print(json.dumps({'status':plan['status'],'policy':plan['policy'],'training_approved':False,
+                      'samples':len(plan['samples']),'resources':plan['resources']},indent=2),flush=True)
     if not args.execute: return
     if not (args.pilot or args.all): raise ValueError('Choose --pilot or --all for execution')
     if not plan['resources']['disk_ready']: raise ValueError('Insufficient estimated disk headroom')
@@ -282,8 +380,10 @@ def main():
     root=Path(cfg['output_root']); root.mkdir(parents=True,exist_ok=True)
     with (root/'.cohort.lock').open('a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        identity={'policy':POLICY,'manifest':plan['manifest_sha256'],'reference':digest(cfg['fasta']),
+        identity={'policy':cfg['policy'],'manifest':plan['manifest_sha256'],'reference':digest(cfg['fasta']),
                   'reference_fai':digest(cfg['fasta']+'.fai'),'code':code_hashes()}
+        if plan['validation_gate']:
+            identity['validation_gate']=plan['validation_gate']['sha256']
         frozen=root/'run_identity.json'
         if frozen.exists() and json.loads(frozen.read_text()) != identity:
             raise ValueError('Changed code/input manifest/reference: use a new output namespace')

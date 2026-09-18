@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import shutil
 import sys
+import subprocess
 
 import pysam
 import pytest
@@ -31,6 +32,7 @@ def cohort(tmp_path):
               '##FORMAT=<ID=GT,Number=1,Type=String,Description="GT">\n'
               '##FORMAT=<ID=AD,Number=R,Type=Integer,Description="AD">\n'
               '##FORMAT=<ID=DP,Number=1,Type=Integer,Description="DP">\n')
+    header += '##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Native confidence">\n'
     header += ''.join(f'##FORMAT=<ID={b}U,Number=2,Type=Integer,Description="Counts">\n' for b in 'ACGT')
     columns = '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO'
     row = dict(sample_id='sample1', base_output_dir=str(source.parent))
@@ -110,3 +112,88 @@ def test_synthetic_execution_integrity_resume_and_manifest(cohort):
     assert 'refined.rescue.vcf.gz' in (root/'candidate_manifest.tsv').read_text()
     Path(next(iter(state['outputs']))).write_bytes(b'corrupt synthetic output')
     assert not m.completed(root/sid, identity, state['source_hashes'])
+
+
+@pytest.fixture
+def three_class_cohort(cohort):
+    folder=Path(cohort['manifest']).parent
+    evidence=folder/'synthetic_validation_evidence.json'
+    evidence.write_text('{}\n')
+    # Synthetic gate is for the one-record test only; never authorizes real data.
+    gate=dict(policy=m.THREE_CLASS_POLICY,candidate_execution_checks_pass=True,
+              biological_training_approved=False,
+              validated_code={p:m.digest(m.REPO/p) for p in m.required_validation_code()},
+              archived_sha256={evidence.name:m.digest(evidence)},datasets={})
+    for ds in ('seqc2_wes_ll','seqc2_wgs_il','hg008_wgs'):
+        gate['datasets'][ds]=dict(stages={s:{'somatic_parity':True} for s in ('consensus','first','realignment')},
+            negative_collision_coverage={'status':'rescue_negatives_subset_of_challenged_consensus_negatives'})
+    path=folder/'synthetic_validation.json'
+    path.write_text(json.dumps(gate))
+    cohort.update(policy=m.THREE_CLASS_POLICY,candidate_only=True,validation_summary=str(path))
+    return cohort
+
+
+@pytest.mark.parametrize('problem', ['approval','code','evidence','coverage','opt_in'])
+def test_three_class_gate_fails_closed(three_class_cohort, problem):
+    cfg=three_class_cohort
+    path=Path(cfg['validation_summary']); report=json.loads(path.read_text())
+    if problem=='approval':report['biological_training_approved']=True
+    if problem=='code':report['validated_code']['bin/apply_three_class_labels.py']='0'*64
+    if problem=='evidence':report['archived_sha256']['synthetic_validation_evidence.json']='0'*64
+    if problem=='coverage':report['datasets']['hg008_wgs']['stages']['realignment']['somatic_parity']=False
+    if problem=='opt_in':cfg['candidate_only']=False
+    path.write_text(json.dumps(report))
+    with pytest.raises(ValueError):m.prepare(cfg)
+    assert not Path(cfg['output_root']).exists()
+
+
+@pytest.mark.skipif(not shutil.which('bcftools') or not shutil.which('prlimit'), reason='Requires bcftools and prlimit')
+def test_three_class_synthetic_execution_and_no_baseline_fallback(three_class_cohort):
+    cfg=three_class_cohort
+    plan=m.prepare(cfg)
+    identity=dict(policy=cfg['policy'],manifest=plan['manifest_sha256'],reference=m.digest(cfg['fasta']),
+                  reference_fai=m.digest(cfg['fasta']+'.fai'),code=m.code_hashes(),
+                  validation_gate=plan['validation_gate']['sha256'])
+    sample=plan['samples'][0]
+    sid,status=m.run_sample(sample,cfg,identity)
+    assert status=='candidate_complete_not_training_approved'
+    root=Path(cfg['output_root']); state_path=root/sid/'state.json'
+    state=json.loads(state_path.read_text())
+    assert len([c for c in state['commands'] if '--experimental-three-class' in c])==1
+    assert not any('--experimental-three-class' in c for c in state['commands'] if any('apply_refined_rescue.py' in a for a in c))
+    assert not any('nextflow' in c for c in state['commands'])
+    for p in state['final_artifacts'].values():
+        with pysam.VariantFile(p) as reader:
+            rows=list(reader)
+            assert len(rows)==1 and set(rows[0].filter)=={'Somatic'}
+            assert rows[0].info['THREE_CLASS_POLICY']==m.THREE_CLASS_POLICY
+            assert rows[0].info['TRAINING_ELIGIBLE']=='NO'
+    assert m.run_sample(sample,cfg,identity)[1]=='cached_candidate_complete'
+    m.write_candidate_manifest(root,[sample])
+    with (root/'candidate_manifest.tsv').open() as handle: row=next(csv.DictReader(handle,delimiter='\t'))
+    assert row['truth_vcf']==row['training_label_vcf']==''
+    assert row['candidate_vcf'].endswith('three_class.rescue.vcf.gz')
+    state['final_artifacts']['rescue']=str(Path(state['output'])/'refined.rescue.vcf.gz')
+    state_path.write_text(json.dumps(state))
+    assert not m.completed(root/sid,identity,state['source_hashes'])
+    with pytest.raises(ValueError,match='Invalid separated'):m.write_candidate_manifest(root,[sample])
+
+
+@pytest.mark.parametrize('args', [['--execute'],['--pilot','--approve-pilot'],['--prepare','--pilot']])
+def test_three_class_wrapper_rejects_unsafe_phase_arguments(args):
+    result=subprocess.run(['bash',str(ROOT/'examples/seq2neo/run_three_class_cohort.sh'),*args],
+                          capture_output=True,text=True)
+    assert result.returncode==2
+    assert 'Log:' not in result.stdout  # Reject before creating shared logs/output.
+
+
+def test_three_class_config_uses_new_shared_namespaces():
+    cfg=json.loads((ROOT/'examples/seq2neo/config/separated_three_class_v2_cohort.json').read_text())
+    old=json.loads((ROOT/'examples/seq2neo/config/refined_native_v2_cohort.json').read_text())
+    shared='/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/'
+    assert cfg['output_root'].startswith(shared+'rnadnavar/examples/seq2neo/')
+    assert cfg['work_root'].startswith(shared+'nf_work/')
+    assert cfg['output_root']!=old['output_root'] and cfg['work_root']!=old['work_root']
+    assert cfg['manifest']==old['manifest'] and cfg['fasta']==old['fasta']
+    assert cfg['expected_samples']==66 and cfg['candidate_only'] is True
+    assert not Path(cfg['validation_summary']).is_absolute()
