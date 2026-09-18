@@ -68,3 +68,29 @@ def test_preserve_multiallelic_baseline_without_negative_nomination(tmp_path):
         rows=list(f)
     assert [r.alts for r in rows]==[('T','AT'),('T','AT')]
     assert [next(iter(r.filter)) for r in rows]==['Somatic','NoConsensus']
+
+
+@pytest.mark.parametrize('baseline',[None,'Somatic','Germline','Reference','Artifact','NoConsensus','RNAedit'])
+@pytest.mark.parametrize('native',[None,'Somatic','Germline','Reference','Artifact','NoConsensus','RNAedit'])
+def test_somatic_membership_invariant_for_every_class_combination(baseline,native):
+    label,reason=decide_label(baseline,native)
+    assert (label=='Somatic')==(baseline=='Somatic')
+    if label in {'Germline','Reference'}:
+        assert label==native
+
+
+def test_native_negative_multiallelic_is_not_certified(tmp_path):
+    b,n=tmp_path/'b.vcf',tmp_path/'n.vcf'
+    vcf(b,[(1,'NoConsensus')]);vcf(n,[(1,'Reference')],True)
+    n.write_text(n.read_text().replace('\tA\tT\t','\tA\tT,AT\t'))
+    with pytest.raises(ValueError,match='negative allele'):
+        run(b,n,tmp_path/'out',digest(b),digest(n),'consensus')
+
+
+def test_mismatched_reference_fails_without_publishing_output(tmp_path):
+    b,n=tmp_path/'b.vcf',tmp_path/'n.vcf'
+    vcf(b,[(1,'Somatic')]);vcf(n,[(1,'NoConsensus')],True)
+    n.write_text(n.read_text().replace('length=1000','length=2000'))
+    with pytest.raises(ValueError,match='dictionary'):
+        run(b,n,tmp_path/'out',digest(b),digest(n),'consensus')
+    assert not (tmp_path/'out/candidates.vcf.gz').exists()

@@ -54,6 +54,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--validation', required=True, type=Path)
     ap.add_argument('--outdir', required=True, type=Path)
+    ap.add_argument('--baseline-comparison', type=Path,
+                    help='Completed matching-truth sensitivity comparison, e.g. HG008 tumorvariants')
     args = ap.parse_args()
     source = json.loads(args.validation.read_text())
     if source['status'] != 'complete_not_training_approved' or not source['sources_unchanged']:
@@ -62,13 +64,21 @@ def main():
     consensus = json.loads(consensus_path.read_text())
     # Keep truth domains identical: HG008 sensitivity runs require their own
     # corresponding consensus comparison, not a silent historical substitution.
-    if source['truth'] != consensus['manifest']['truth']:
+    comparison = json.loads(args.baseline_comparison.read_text()) if args.baseline_comparison else None
+    if comparison and (comparison.get('status') != 'complete_not_training_approved'
+                       or not comparison.get('sources_unchanged')):
+        raise ValueError('Require completed matching-truth baseline comparison')
+    expected_truth = comparison['truth'] if comparison else consensus['manifest']['truth']
+    if source['truth'] != expected_truth:
         raise ValueError('Rescue/consensus truth differs; explicit matching baseline required')
     args.outdir.mkdir(parents=True, exist_ok=False)
     tracked = {str(p.resolve()):digest(p) for p in (args.validation, consensus_path)}
     # Include the actual truth, reference, intervals and caller sources from
     # the completed baseline run, not just its metadata file.
     tracked.update(consensus['sources'])
+    if comparison:
+        tracked[str(args.baseline_comparison.resolve())] = digest(args.baseline_comparison)
+        tracked.update(comparison['sources'])
     result = dict(scope=__doc__, status='running', training_approved=False,
                   validation=str(args.validation.resolve()), sources=tracked,
                   rounds={}, benchmarks={}, commands=[],
@@ -123,7 +133,8 @@ def main():
                                         all_baseline_records_accounted_for=len(observed)==len(positive))
         save()
         for region in consensus['manifest']['targets']:
-            original = next(c for c in consensus['commands'] if c[-1].endswith('/Somatic.'+region))
+            baseline_report = comparison or consensus
+            original = next(c for c in baseline_report['commands'] if c[-1].endswith('/Somatic.'+region))
             cmd = list(original)
             cmd[-1] = str(args.outdir/region)
             scratch = args.outdir/(region+'_scratch')
@@ -132,7 +143,10 @@ def main():
             with (args.outdir/(region+'.log')).open('x') as log:
                 subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, check=True)
             metrics = parse_metrics_json(args.outdir/(region+'.metrics.json'))
-            if metrics != consensus['metrics']['Somatic/'+region]['values']:
+            expected = baseline_report['metrics']['Somatic/'+region]
+            if not comparison:
+                expected = expected['values']
+            if metrics != expected:
                 raise ValueError('Baseline metric replay mismatch: '+region)
             partitions = {label:alleles(scratch/path) for label,path in {
                 'TP':'tpfn/0003.vcf.gz', 'FP':'fp.vcf.gz',
