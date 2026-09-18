@@ -67,3 +67,23 @@ def test_normal_gvcf_missing_evidence_is_not_reference(tmp_path):
         rows = list(f)
     assert outcome(("chr1",10,"A","T"),rows[:1])[0] == 'normal_alt_corroboration'
     assert outcome(("chr1",20,"A","T"),rows[1:])[0] == 'inconclusive'
+
+
+def test_rescue_plan_routes_both_rounds_and_never_calls_workflow(tmp_path):
+    from validate_three_class_rescue import plan
+    callers=('deepsomatic','mutect2','strelka')
+    v=dict(status='complete_somatic_truth_screen_not_training_approved',
+           sources_unchanged=True,code_unchanged=True,
+           commands=[['python','consensus','--out_prefix',str(tmp_path/'dna')]],
+           manifest=dict(truth='truth.vcf.gz',rescues=dict(first='first.vcf.gz',realignment='realign.vcf.gz'),
+                         dna={c:'dna/'+c for c in callers},rna_first={c:'first/'+c for c in callers},
+                         rna_realignment={c:'realign/'+c for c in callers}))
+    jobs,truth,dna=plan(v,tmp_path/'out',Path('recommended.vcf.gz'))
+    assert truth=='recommended.vcf.gz'
+    assert [j['alignment_round'] for j in jobs]==['first','realignment']
+    for job in jobs:
+        cmd=job['command']
+        assert '--experimental-three-class' in cmd
+        assert cmd.count('--dna-vcf')==3 and cmd.count('--rna-vcf')==3
+        assert 'nextflow' not in ' '.join(cmd)
+        assert cmd[cmd.index('--annotated-rescue')+1]==v['manifest']['rescues'][job['alignment_round']]

@@ -1,0 +1,31 @@
+{
+  "policy": "negative_evidence_gate_v1",
+  "training_approved": false,
+  "sources": {
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/three_class.vcf.gz": "0e64f4bfbca3bdc08ff06cff8f4731184fd4e8c05eb64d2a1f0b59debf5011b0",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/bam_pilot.json": "072ae7b4bd1af99fa7cb27dcdef11c57f7edb85556e83edcb9acb35e1629e5f0"
+  },
+  "parameters": {
+    "max_reference_af": 0.01,
+    "confidence": 0.95,
+    "required_zero_alt_depth_each_sample": 299
+  },
+  "scope": "Evidence-only gate for native negative candidates, never training approval.\n\nConsumes a hash-bound paired-BAM pilot report. Preserves every FILTER and source\nrecord. Indels/complex contexts abstain pending haplotype-aware adjudication.\nNo caller votes are summed and missing coverage is never interpreted as zero.\n",
+  "counts": {
+    "NoConsensus:NOT_APPLICABLE:not_a_negative_candidate": 622081,
+    "Reference:WITHHELD:missing_or_invalid_paired_read_evidence": 54900,
+    "Germline:WITHHELD:requires_haplotype_aware_validation": 4649,
+    "Germline:WITHHELD:missing_or_invalid_paired_read_evidence": 42089,
+    "Somatic:NOT_APPLICABLE:not_a_negative_candidate": 601,
+    "Germline:WITHHELD:other_allele_context_requires_review": 2,
+    "Germline:WITHHELD:allele_fraction_shift_requires_context_review": 13,
+    "Reference:WITHHELD:observed_alt_not_zero": 10,
+    "Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 17,
+    "Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 19,
+    "Reference:WITHHELD:other_allele_context_requires_review": 3
+  },
+  "status": "complete_not_training_approved",
+  "sources_unchanged": true,
+  "output": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/hg008_wgs/evidence_gate/candidate.evidence.vcf.gz",
+  "output_sha256": "63d7b030e8aebca09de1e84e42ba0cb9cfa176f161e4d97bfe16dfe5dceca0fb"
+}

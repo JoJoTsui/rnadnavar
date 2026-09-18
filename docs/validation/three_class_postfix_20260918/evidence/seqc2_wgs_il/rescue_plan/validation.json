@@ -1,0 +1,70 @@
+{
+  "status": "prepared_not_executed",
+  "scope": "Standalone first/realignment rescue validation from existing VCFs only.\n\nPreparation is the default; --execute runs the two adapters and benchmarks.\nNever launches Nextflow, alignment, variant calling or a cohort rerun.\n",
+  "jobs": [
+    {
+      "alignment_round": "first",
+      "command": [
+        "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python",
+        "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/apply_refined_rescue.py",
+        "--dna-consensus",
+        "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/seqc2_wgs_il/three_class.vcf.gz",
+        "--annotated-rescue",
+        "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/rescue/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_vs_WGS_IL_N_1.filtered.vcf.gz",
+        "--alignment-round",
+        "first",
+        "--experimental-three-class",
+        "--outdir",
+        "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/seqc2_wgs_il/rescue_plan/first",
+        "--dna-vcf",
+        "deepsomatic=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/deepsomatic/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.deepsomatic.vcf.gz",
+        "--dna-vcf",
+        "mutect2=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/mutect2/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz",
+        "--dna-vcf",
+        "strelka=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/strelka/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.strelka.variants.vcf.gz",
+        "--rna-vcf",
+        "deepsomatic=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/deepsomatic/WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_RT_1_vs_WGS_IL_N_1.deepsomatic.vcf.gz",
+        "--rna-vcf",
+        "mutect2=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/mutect2/WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_RT_1_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz",
+        "--rna-vcf",
+        "strelka=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/strelka/WGS_IL_RT_1_vs_WGS_IL_N_1/WGS_IL_RT_1_vs_WGS_IL_N_1.strelka.variants.vcf.gz"
+      ],
+      "outdir": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/seqc2_wgs_il/rescue_plan/first"
+    },
+    {
+      "alignment_round": "realignment",
+      "command": [
+        "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/.venv/bin/python",
+        "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/apply_refined_rescue.py",
+        "--dna-consensus",
+        "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/seqc2_wgs_il/three_class.vcf.gz",
+        "--annotated-rescue",
+        "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/rescue/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1_rescued_WGS_IL_RT_1_realign_vs_WGS_IL_N_1.rescue.filtered.stripped.vep.vcf.gz",
+        "--alignment-round",
+        "realignment",
+        "--experimental-three-class",
+        "--outdir",
+        "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/seqc2_wgs_il/rescue_plan/realignment",
+        "--dna-vcf",
+        "deepsomatic=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/deepsomatic/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.deepsomatic.vcf.gz",
+        "--dna-vcf",
+        "mutect2=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/mutect2/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz",
+        "--dna-vcf",
+        "strelka=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/variant_calling/strelka/WGS_IL_T_1_vs_WGS_IL_N_1/WGS_IL_T_1_vs_WGS_IL_N_1.strelka.variants.vcf.gz",
+        "--rna-vcf",
+        "deepsomatic=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/variant_calling/deepsomatic/WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_RT_1_realign_vs_WGS_IL_N_1.deepsomatic.vcf.gz",
+        "--rna-vcf",
+        "mutect2=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/variant_calling/mutect2/WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_RT_1_realign_vs_WGS_IL_N_1.mutect2.filtered.vcf.gz",
+        "--rna-vcf",
+        "strelka=/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seqc2/hybrid/output/seqc2.wgs.il.hybrid/vcf_realignment/variant_calling/strelka/WGS_IL_RT_1_realign_vs_WGS_IL_N_1/WGS_IL_RT_1_realign_vs_WGS_IL_N_1.strelka.variants.vcf.gz"
+      ],
+      "outdir": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/seqc2_wgs_il/rescue_plan/realignment"
+    }
+  ],
+  "truth": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/common_policy_20260914/wgs_il/ukb/benchmark_truth.vcf.gz",
+  "training_approved": false,
+  "sources": {},
+  "rounds": {},
+  "commands": [],
+  "consensus_validation": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seqc2/comparison/three_class_postfix_20260918/seqc2_wgs_il/validation.json"
+}
