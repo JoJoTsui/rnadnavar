@@ -5,6 +5,10 @@ The 2026-09-18 validation found Reference candidates overlapping low-VAF somatic
 truth and a HG008 indel with mixed germline/somatic context. Candidate nomination
 must therefore remain separate from biological training approval.
 
+Current evidence implementation: `negative_evidence_gate_v2`, compatible with
+[separated three-class v2](SEPARATED_THREE_CLASS_V2.md). The original combined
+v1 rescue remains a diagnostic experiment, not the recommended cohort policy.
+
 ## Approved Reference detection-limit requirement
 
 The user selected a 1% allele-fraction detection limit at 95% confidence.
@@ -15,8 +19,10 @@ With zero ALT observations, the idealized one-sided binomial upper bound is
 The gate requires zero target ALT and zero other-allele observations, and at
 least 299 usable observations in both normal and tumor. Depth is never summed
 between samples or callers. Evidence must have MAPQ/BQ >=20 and BAQ enabled.
-Duplicate/overlap filtering is performed by the BAM pilot's samtools-style
-pileup; nevertheless, read independence is an approximation. This statistical
+The BAM pilot explicitly excludes unmapped, secondary, QC-failed, duplicate
+and supplementary alignments (`flag_filter=0xF04`), suppresses overlapping mates
+and ignores orphan/improper pairs. Reports missing these settings are rejected.
+Nevertheless, read independence is an approximation. This statistical
 bound does not exclude mapping bias, systematic error, CNV or correlated reads.
 Confidence is per sample, not a claimed joint two-sample 95% guarantee.
 
@@ -71,10 +77,18 @@ Use new output directories; neither source VCFs nor BAMs are modified:
 
 Outputs are `candidate.evidence.vcf.gz` and `report.json`. Failed runs leave a
 clearly named partial VCF and failed report, not a published candidate output.
-Repeated gating/overwriting an existing eligibility header is rejected.
+Repeated evidence gating is rejected. An existing Number=1/String eligibility
+field is accepted only when every value is absent or NO; an existing positive
+eligibility decision is never overwritten or silently converted.
 
-Corrected consensus validation uses `validate_three_class_policy.py`.
-Both rescue rounds are handled explicitly by `validate_three_class_rescue.py`:
+Current separated-policy validation uses `validate_separated_three_class.py`
+for consensus and both rescue rounds, against each stage's established Somatic
+baseline. See its policy document for the frozen gates and fresh-output usage.
+
+The following commands reproduce the **historical v1 experiment**, which has
+known Somatic-retention failures. They must not be used as cohort approval.
+Native nomination validation uses `validate_three_class_policy.py`; the v1
+rescue experiment is handled by `validate_three_class_rescue.py`:
 
 ```bash
 .venv/bin/python examples/seqc2/scripts/validate_three_class_rescue.py --consensus-validation /absolute/path/completed_consensus/validation.json --outdir /absolute/path/new_rescue_validation --execute

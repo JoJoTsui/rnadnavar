@@ -1,5 +1,14 @@
 # Three-class rerun review and development policy (2026-09-18)
 
+Historical review: the combined v1 Somatic/negative conflict and rescue rules
+below caused measured Somatic losses. See the
+[completed diagnosis](validation/three_class_postfix_20260918/RESCUE_LOSS_DIAGNOSIS.md).
+For the corrective candidate policy, use [separated three-class v2](SEPARATED_THREE_CLASS_V2.md):
+v1 is retained for independent negative nomination and reproducible failure
+analysis, **not** as the recommended final Somatic/rescue policy. In particular,
+do not use `apply_refined_rescue.py --experimental-three-class` for the new cohort.
+This notice does not grant biological training approval or change old artifacts.
+
 Status: candidate exports and opt-in development rules; biological training
 approval remains open. Neither the published SEQC2/HG008 performance claims nor
 the completed 66-sample VCFs are changed by these code additions.
