@@ -1,0 +1,5452 @@
+{
+  "scope": "first records per DNA caller file; not random or exhaustive",
+  "limit": 200,
+  "totals": {
+    "mutect2": {
+      "files": 66,
+      "files_with_normal": 66,
+      "files_with_observed_normal_GQ": 0,
+      "counts": {
+        "records_scanned": 13200,
+        "normal_GT_present": 13200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 13200,
+        "normal_AD_present": 12454
+      }
+    },
+    "strelka": {
+      "files": 66,
+      "files_with_normal": 66,
+      "files_with_observed_normal_GQ": 0,
+      "counts": {
+        "records_scanned": 13200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 13200,
+        "normal_AD_present": 0
+      }
+    },
+    "deepsomatic": {
+      "files": 66,
+      "files_with_normal": 0,
+      "files_with_observed_normal_GQ": 0,
+      "counts": {
+        "records_scanned": 13200
+      }
+    }
+  },
+  "files": [
+    {
+      "sample_id": "PRJNA298376_3812",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_3812/normalized/mutect2/PRJNA298376_3812DT_vs_PRJNA298376_3812DN/PRJNA298376_3812DT_vs_PRJNA298376_3812DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_3812DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 112
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3812",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_3812/normalized/strelka/PRJNA298376_3812DT_vs_PRJNA298376_3812DN/PRJNA298376_3812DT_vs_PRJNA298376_3812DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3812",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_3812/normalized/deepsomatic/PRJNA298376_3812DT_vs_PRJNA298376_3812DN/PRJNA298376_3812DT_vs_PRJNA298376_3812DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3942",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_3942/normalized/mutect2/PRJNA298376_3942DT_vs_PRJNA298376_3942DN/PRJNA298376_3942DT_vs_PRJNA298376_3942DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_3942DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 196
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3942",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_3942/normalized/strelka/PRJNA298376_3942DT_vs_PRJNA298376_3942DN/PRJNA298376_3942DT_vs_PRJNA298376_3942DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3942",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_3942/normalized/deepsomatic/PRJNA298376_3942DT_vs_PRJNA298376_3942DN/PRJNA298376_3942DT_vs_PRJNA298376_3942DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3948",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_3948/normalized/mutect2/PRJNA298376_3948DT_vs_PRJNA298376_3948DN/PRJNA298376_3948DT_vs_PRJNA298376_3948DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_3948DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3948",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_3948/normalized/strelka/PRJNA298376_3948DT_vs_PRJNA298376_3948DN/PRJNA298376_3948DT_vs_PRJNA298376_3948DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3948",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_3948/normalized/deepsomatic/PRJNA298376_3948DT_vs_PRJNA298376_3948DN/PRJNA298376_3948DT_vs_PRJNA298376_3948DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3971",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_3971/normalized/mutect2/PRJNA298376_3971DT_vs_PRJNA298376_3971DN/PRJNA298376_3971DT_vs_PRJNA298376_3971DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_3971DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 196
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3971",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_3971/normalized/strelka/PRJNA298376_3971DT_vs_PRJNA298376_3971DN/PRJNA298376_3971DT_vs_PRJNA298376_3971DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3971",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_3971/normalized/deepsomatic/PRJNA298376_3971DT_vs_PRJNA298376_3971DN/PRJNA298376_3971DT_vs_PRJNA298376_3971DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3978",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_3978/normalized/mutect2/PRJNA298376_3978DT_vs_PRJNA298376_3978DN/PRJNA298376_3978DT_vs_PRJNA298376_3978DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_3978DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 142
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3978",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_3978/normalized/strelka/PRJNA298376_3978DT_vs_PRJNA298376_3978DN/PRJNA298376_3978DT_vs_PRJNA298376_3978DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3978",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_3978/normalized/deepsomatic/PRJNA298376_3978DT_vs_PRJNA298376_3978DN/PRJNA298376_3978DT_vs_PRJNA298376_3978DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3995",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_3995/normalized/mutect2/PRJNA298376_3995DT_vs_PRJNA298376_3995DN/PRJNA298376_3995DT_vs_PRJNA298376_3995DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_3995DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 100
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3995",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_3995/normalized/strelka/PRJNA298376_3995DT_vs_PRJNA298376_3995DN/PRJNA298376_3995DT_vs_PRJNA298376_3995DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_3995",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_3995/normalized/deepsomatic/PRJNA298376_3995DT_vs_PRJNA298376_3995DN/PRJNA298376_3995DT_vs_PRJNA298376_3995DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4007",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4007/normalized/mutect2/PRJNA298376_4007DT_vs_PRJNA298376_4007DN/PRJNA298376_4007DT_vs_PRJNA298376_4007DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4007DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 190
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4007",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4007/normalized/strelka/PRJNA298376_4007DT_vs_PRJNA298376_4007DN/PRJNA298376_4007DT_vs_PRJNA298376_4007DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4007",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4007/normalized/deepsomatic/PRJNA298376_4007DT_vs_PRJNA298376_4007DN/PRJNA298376_4007DT_vs_PRJNA298376_4007DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4060",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4060_rnadnavar/normalized/mutect2/4060DT_vs_4060DN/4060DT_vs_4060DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4060DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4060",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4060_rnadnavar/normalized/strelka/4060DT_vs_4060DN/4060DT_vs_4060DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4060",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4060_rnadnavar/normalized/deepsomatic/4060DT_vs_4060DN/4060DT_vs_4060DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4069",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4069/normalized/mutect2/PRJNA298376_4069DT_vs_PRJNA298376_4069DN/PRJNA298376_4069DT_vs_PRJNA298376_4069DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4069DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 194
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4069",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4069/normalized/strelka/PRJNA298376_4069DT_vs_PRJNA298376_4069DN/PRJNA298376_4069DT_vs_PRJNA298376_4069DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4069",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4069/normalized/deepsomatic/PRJNA298376_4069DT_vs_PRJNA298376_4069DN/PRJNA298376_4069DT_vs_PRJNA298376_4069DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4071",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4071/normalized/mutect2/PRJNA298376_4071DT_vs_PRJNA298376_4071DN/PRJNA298376_4071DT_vs_PRJNA298376_4071DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4071DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 198
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4071",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4071/normalized/strelka/PRJNA298376_4071DT_vs_PRJNA298376_4071DN/PRJNA298376_4071DT_vs_PRJNA298376_4071DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4071",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4071/normalized/deepsomatic/PRJNA298376_4071DT_vs_PRJNA298376_4071DN/PRJNA298376_4071DT_vs_PRJNA298376_4071DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4072",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4072_rnadnavar/normalized/mutect2/4072DT_vs_4072DN/4072DT_vs_4072DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4072DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 196
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4072",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4072_rnadnavar/normalized/strelka/4072DT_vs_4072DN/4072DT_vs_4072DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4072",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4072_rnadnavar/normalized/deepsomatic/4072DT_vs_4072DN/4072DT_vs_4072DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4077",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4077/normalized/mutect2/PRJNA298376_4077DT_vs_PRJNA298376_4077DN/PRJNA298376_4077DT_vs_PRJNA298376_4077DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4077DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 192
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4077",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4077/normalized/strelka/PRJNA298376_4077DT_vs_PRJNA298376_4077DN/PRJNA298376_4077DT_vs_PRJNA298376_4077DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4077",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4077/normalized/deepsomatic/PRJNA298376_4077DT_vs_PRJNA298376_4077DN/PRJNA298376_4077DT_vs_PRJNA298376_4077DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4081",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4081_rnadnavar/normalized/mutect2/4081DT_vs_4081DN/4081DT_vs_4081DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4081DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4081",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4081_rnadnavar/normalized/strelka/4081DT_vs_4081DN/4081DT_vs_4081DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4081",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4081_rnadnavar/normalized/deepsomatic/4081DT_vs_4081DN/4081DT_vs_4081DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4090",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4090/normalized/mutect2/PRJNA298376_4090DT_vs_PRJNA298376_4090DN/PRJNA298376_4090DT_vs_PRJNA298376_4090DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4090DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 198
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4090",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4090/normalized/strelka/PRJNA298376_4090DT_vs_PRJNA298376_4090DN/PRJNA298376_4090DT_vs_PRJNA298376_4090DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4090",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4090/normalized/deepsomatic/PRJNA298376_4090DT_vs_PRJNA298376_4090DN/PRJNA298376_4090DT_vs_PRJNA298376_4090DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4095",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4095_rnadnavar/normalized/mutect2/4095DT_vs_4095DN/4095DT_vs_4095DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4095DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 198
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4095",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4095_rnadnavar/normalized/strelka/4095DT_vs_4095DN/4095DT_vs_4095DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4095",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4095_rnadnavar/normalized/deepsomatic/4095DT_vs_4095DN/4095DT_vs_4095DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4110",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4110/normalized/mutect2/PRJNA298376_4110DT_vs_PRJNA298376_4110DN/PRJNA298376_4110DT_vs_PRJNA298376_4110DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4110DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 198
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4110",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4110/normalized/strelka/PRJNA298376_4110DT_vs_PRJNA298376_4110DN/PRJNA298376_4110DT_vs_PRJNA298376_4110DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4110",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4110/normalized/deepsomatic/PRJNA298376_4110DT_vs_PRJNA298376_4110DN/PRJNA298376_4110DT_vs_PRJNA298376_4110DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4112",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4112/normalized/mutect2/PRJNA298376_4112DT_vs_PRJNA298376_4112DN/PRJNA298376_4112DT_vs_PRJNA298376_4112DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4112DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 193
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4112",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4112/normalized/strelka/PRJNA298376_4112DT_vs_PRJNA298376_4112DN/PRJNA298376_4112DT_vs_PRJNA298376_4112DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4112",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4112/normalized/deepsomatic/PRJNA298376_4112DT_vs_PRJNA298376_4112DN/PRJNA298376_4112DT_vs_PRJNA298376_4112DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4115",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4115/normalized/mutect2/PRJNA298376_4115DT_vs_PRJNA298376_4115DN/PRJNA298376_4115DT_vs_PRJNA298376_4115DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4115DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 198
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4115",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4115/normalized/strelka/PRJNA298376_4115DT_vs_PRJNA298376_4115DN/PRJNA298376_4115DT_vs_PRJNA298376_4115DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4115",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4115/normalized/deepsomatic/PRJNA298376_4115DT_vs_PRJNA298376_4115DN/PRJNA298376_4115DT_vs_PRJNA298376_4115DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4145",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4145/normalized/mutect2/PRJNA298376_4145DT_vs_PRJNA298376_4145DN/PRJNA298376_4145DT_vs_PRJNA298376_4145DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4145DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4145",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4145/normalized/strelka/PRJNA298376_4145DT_vs_PRJNA298376_4145DN/PRJNA298376_4145DT_vs_PRJNA298376_4145DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4145",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4145/normalized/deepsomatic/PRJNA298376_4145DT_vs_PRJNA298376_4145DN/PRJNA298376_4145DT_vs_PRJNA298376_4145DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4151",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4151/normalized/mutect2/PRJNA298376_4151DT_vs_PRJNA298376_4151DN/PRJNA298376_4151DT_vs_PRJNA298376_4151DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4151DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 196
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4151",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4151/normalized/strelka/PRJNA298376_4151DT_vs_PRJNA298376_4151DN/PRJNA298376_4151DT_vs_PRJNA298376_4151DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4151",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4151/normalized/deepsomatic/PRJNA298376_4151DT_vs_PRJNA298376_4151DN/PRJNA298376_4151DT_vs_PRJNA298376_4151DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4160",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4160/normalized/mutect2/PRJNA298376_4160DT_vs_PRJNA298376_4160DN/PRJNA298376_4160DT_vs_PRJNA298376_4160DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4160DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4160",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4160/normalized/strelka/PRJNA298376_4160DT_vs_PRJNA298376_4160DN/PRJNA298376_4160DT_vs_PRJNA298376_4160DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4160",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4160/normalized/deepsomatic/PRJNA298376_4160DT_vs_PRJNA298376_4160DN/PRJNA298376_4160DT_vs_PRJNA298376_4160DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4166",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4166/normalized/mutect2/PRJNA298376_4166DT_vs_PRJNA298376_4166DN/PRJNA298376_4166DT_vs_PRJNA298376_4166DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4166DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 196
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4166",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4166/normalized/strelka/PRJNA298376_4166DT_vs_PRJNA298376_4166DN/PRJNA298376_4166DT_vs_PRJNA298376_4166DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4166",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4166/normalized/deepsomatic/PRJNA298376_4166DT_vs_PRJNA298376_4166DN/PRJNA298376_4166DT_vs_PRJNA298376_4166DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4196",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4196/normalized/mutect2/PRJNA298376_4196DT_vs_PRJNA298376_4196DN/PRJNA298376_4196DT_vs_PRJNA298376_4196DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4196DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 198
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4196",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4196/normalized/strelka/PRJNA298376_4196DT_vs_PRJNA298376_4196DN/PRJNA298376_4196DT_vs_PRJNA298376_4196DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4196",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4196/normalized/deepsomatic/PRJNA298376_4196DT_vs_PRJNA298376_4196DN/PRJNA298376_4196DT_vs_PRJNA298376_4196DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4200",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4200/normalized/mutect2/PRJNA298376_4200DT_vs_PRJNA298376_4200DN/PRJNA298376_4200DT_vs_PRJNA298376_4200DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4200DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 198
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4200",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4200/normalized/strelka/PRJNA298376_4200DT_vs_PRJNA298376_4200DN/PRJNA298376_4200DT_vs_PRJNA298376_4200DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4200",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4200/normalized/deepsomatic/PRJNA298376_4200DT_vs_PRJNA298376_4200DN/PRJNA298376_4200DT_vs_PRJNA298376_4200DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4203",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4203/normalized/mutect2/PRJNA298376_4203DT_vs_PRJNA298376_4203DN/PRJNA298376_4203DT_vs_PRJNA298376_4203DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4203DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 192
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4203",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4203/normalized/strelka/PRJNA298376_4203DT_vs_PRJNA298376_4203DN/PRJNA298376_4203DT_vs_PRJNA298376_4203DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4203",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4203/normalized/deepsomatic/PRJNA298376_4203DT_vs_PRJNA298376_4203DN/PRJNA298376_4203DT_vs_PRJNA298376_4203DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4207",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4207_rnadnavar/normalized/mutect2/4207DT_vs_4207DN/4207DT_vs_4207DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4207DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4207",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4207_rnadnavar/normalized/strelka/4207DT_vs_4207DN/4207DT_vs_4207DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4207",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4207_rnadnavar/normalized/deepsomatic/4207DT_vs_4207DN/4207DT_vs_4207DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4214",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4214/normalized/mutect2/PRJNA298376_4214DT_vs_PRJNA298376_4214DN/PRJNA298376_4214DT_vs_PRJNA298376_4214DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4214DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 196
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4214",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4214/normalized/strelka/PRJNA298376_4214DT_vs_PRJNA298376_4214DN/PRJNA298376_4214DT_vs_PRJNA298376_4214DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4214",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4214/normalized/deepsomatic/PRJNA298376_4214DT_vs_PRJNA298376_4214DN/PRJNA298376_4214DT_vs_PRJNA298376_4214DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4220",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4220/normalized/mutect2/PRJNA298376_4220DT_vs_PRJNA298376_4220DN/PRJNA298376_4220DT_vs_PRJNA298376_4220DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4220DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 198
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4220",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4220/normalized/strelka/PRJNA298376_4220DT_vs_PRJNA298376_4220DN/PRJNA298376_4220DT_vs_PRJNA298376_4220DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4220",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4220/normalized/deepsomatic/PRJNA298376_4220DT_vs_PRJNA298376_4220DN/PRJNA298376_4220DT_vs_PRJNA298376_4220DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4228",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4228/normalized/mutect2/PRJNA298376_4228DT_vs_PRJNA298376_4228DN/PRJNA298376_4228DT_vs_PRJNA298376_4228DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4228DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 194
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4228",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4228/normalized/strelka/PRJNA298376_4228DT_vs_PRJNA298376_4228DN/PRJNA298376_4228DT_vs_PRJNA298376_4228DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4228",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4228/normalized/deepsomatic/PRJNA298376_4228DT_vs_PRJNA298376_4228DN/PRJNA298376_4228DT_vs_PRJNA298376_4228DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4231",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4231/normalized/mutect2/PRJNA298376_4231DT_vs_PRJNA298376_4231DN/PRJNA298376_4231DT_vs_PRJNA298376_4231DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4231DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 199
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4231",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4231/normalized/strelka/PRJNA298376_4231DT_vs_PRJNA298376_4231DN/PRJNA298376_4231DT_vs_PRJNA298376_4231DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4231",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4231/normalized/deepsomatic/PRJNA298376_4231DT_vs_PRJNA298376_4231DN/PRJNA298376_4231DT_vs_PRJNA298376_4231DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4232",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4232_rnadnavar/normalized/mutect2/4232DT_vs_4232DN/4232DT_vs_4232DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4232DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 187
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4232",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4232_rnadnavar/normalized/strelka/4232DT_vs_4232DN/4232DT_vs_4232DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4232",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4232_rnadnavar/normalized/deepsomatic/4232DT_vs_4232DN/4232DT_vs_4232DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4236",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4236/normalized/mutect2/PRJNA298376_4236DT_vs_PRJNA298376_4236DN/PRJNA298376_4236DT_vs_PRJNA298376_4236DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4236DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4236",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4236/normalized/strelka/PRJNA298376_4236DT_vs_PRJNA298376_4236DN/PRJNA298376_4236DT_vs_PRJNA298376_4236DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4236",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4236/normalized/deepsomatic/PRJNA298376_4236DT_vs_PRJNA298376_4236DN/PRJNA298376_4236DT_vs_PRJNA298376_4236DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4239",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4239/normalized/mutect2/PRJNA298376_4239DT_vs_PRJNA298376_4239DN/PRJNA298376_4239DT_vs_PRJNA298376_4239DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4239DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 194
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4239",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4239/normalized/strelka/PRJNA298376_4239DT_vs_PRJNA298376_4239DN/PRJNA298376_4239DT_vs_PRJNA298376_4239DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4239",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4239/normalized/deepsomatic/PRJNA298376_4239DT_vs_PRJNA298376_4239DN/PRJNA298376_4239DT_vs_PRJNA298376_4239DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4242",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4242/normalized/mutect2/PRJNA298376_4242DT_vs_PRJNA298376_4242DN/PRJNA298376_4242DT_vs_PRJNA298376_4242DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4242DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 194
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4242",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4242/normalized/strelka/PRJNA298376_4242DT_vs_PRJNA298376_4242DN/PRJNA298376_4242DT_vs_PRJNA298376_4242DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4242",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4242/normalized/deepsomatic/PRJNA298376_4242DT_vs_PRJNA298376_4242DN/PRJNA298376_4242DT_vs_PRJNA298376_4242DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4245",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4245/normalized/mutect2/PRJNA298376_4245DT_vs_PRJNA298376_4245DN/PRJNA298376_4245DT_vs_PRJNA298376_4245DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4245DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 192
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4245",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4245/normalized/strelka/PRJNA298376_4245DT_vs_PRJNA298376_4245DN/PRJNA298376_4245DT_vs_PRJNA298376_4245DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4245",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4245/normalized/deepsomatic/PRJNA298376_4245DT_vs_PRJNA298376_4245DN/PRJNA298376_4245DT_vs_PRJNA298376_4245DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4246",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4246/normalized/mutect2/PRJNA298376_4246DT_vs_PRJNA298376_4246DN/PRJNA298376_4246DT_vs_PRJNA298376_4246DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4246DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 196
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4246",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4246/normalized/strelka/PRJNA298376_4246DT_vs_PRJNA298376_4246DN/PRJNA298376_4246DT_vs_PRJNA298376_4246DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4246",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4246/normalized/deepsomatic/PRJNA298376_4246DT_vs_PRJNA298376_4246DN/PRJNA298376_4246DT_vs_PRJNA298376_4246DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4247",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4247/normalized/mutect2/PRJNA298376_4247DT_vs_PRJNA298376_4247DN/PRJNA298376_4247DT_vs_PRJNA298376_4247DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4247DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 196
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4247",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4247/normalized/strelka/PRJNA298376_4247DT_vs_PRJNA298376_4247DN/PRJNA298376_4247DT_vs_PRJNA298376_4247DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4247",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4247/normalized/deepsomatic/PRJNA298376_4247DT_vs_PRJNA298376_4247DN/PRJNA298376_4247DT_vs_PRJNA298376_4247DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4252",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4252_rnadnavar/normalized/mutect2/4252DT_vs_4252DN/4252DT_vs_4252DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4252DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 198
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4252",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4252_rnadnavar/normalized/strelka/4252DT_vs_4252DN/4252DT_vs_4252DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4252",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4252_rnadnavar/normalized/deepsomatic/4252DT_vs_4252DN/4252DT_vs_4252DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4255",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4255_rnadnavar/normalized/mutect2/4255DT_vs_4255DN/4255DT_vs_4255DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4255DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 189
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4255",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4255_rnadnavar/normalized/strelka/4255DT_vs_4255DN/4255DT_vs_4255DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4255",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4255_rnadnavar/normalized/deepsomatic/4255DT_vs_4255DN/4255DT_vs_4255DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4257",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4257/normalized/mutect2/PRJNA298376_4257DT_vs_PRJNA298376_4257DN/PRJNA298376_4257DT_vs_PRJNA298376_4257DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4257DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 187
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4257",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4257/normalized/strelka/PRJNA298376_4257DT_vs_PRJNA298376_4257DN/PRJNA298376_4257DT_vs_PRJNA298376_4257DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4257",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4257/normalized/deepsomatic/PRJNA298376_4257DT_vs_PRJNA298376_4257DN/PRJNA298376_4257DT_vs_PRJNA298376_4257DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4259",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4259/normalized/mutect2/PRJNA298376_4259DT_vs_PRJNA298376_4259DN/PRJNA298376_4259DT_vs_PRJNA298376_4259DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4259DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 185
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4259",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4259/normalized/strelka/PRJNA298376_4259DT_vs_PRJNA298376_4259DN/PRJNA298376_4259DT_vs_PRJNA298376_4259DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4259",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4259/normalized/deepsomatic/PRJNA298376_4259DT_vs_PRJNA298376_4259DN/PRJNA298376_4259DT_vs_PRJNA298376_4259DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4262",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4262_rnadnavar/normalized/mutect2/4262DT_vs_4262DN/4262DT_vs_4262DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4262DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 194
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4262",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4262_rnadnavar/normalized/strelka/4262DT_vs_4262DN/4262DT_vs_4262DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4262",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4262_rnadnavar/normalized/deepsomatic/4262DT_vs_4262DN/4262DT_vs_4262DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4263",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4263/normalized/mutect2/PRJNA298376_4263DT_vs_PRJNA298376_4263DN/PRJNA298376_4263DT_vs_PRJNA298376_4263DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4263DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 196
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4263",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4263/normalized/strelka/PRJNA298376_4263DT_vs_PRJNA298376_4263DN/PRJNA298376_4263DT_vs_PRJNA298376_4263DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4263",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4263/normalized/deepsomatic/PRJNA298376_4263DT_vs_PRJNA298376_4263DN/PRJNA298376_4263DT_vs_PRJNA298376_4263DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4264",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4264/normalized/mutect2/PRJNA298376_4264DT_vs_PRJNA298376_4264DN/PRJNA298376_4264DT_vs_PRJNA298376_4264DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4264DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4264",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4264/normalized/strelka/PRJNA298376_4264DT_vs_PRJNA298376_4264DN/PRJNA298376_4264DT_vs_PRJNA298376_4264DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4264",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4264/normalized/deepsomatic/PRJNA298376_4264DT_vs_PRJNA298376_4264DN/PRJNA298376_4264DT_vs_PRJNA298376_4264DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4265",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4265/normalized/mutect2/PRJNA298376_4265DT_vs_PRJNA298376_4265DN/PRJNA298376_4265DT_vs_PRJNA298376_4265DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4265DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 192
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4265",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4265/normalized/strelka/PRJNA298376_4265DT_vs_PRJNA298376_4265DN/PRJNA298376_4265DT_vs_PRJNA298376_4265DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4265",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4265/normalized/deepsomatic/PRJNA298376_4265DT_vs_PRJNA298376_4265DN/PRJNA298376_4265DT_vs_PRJNA298376_4265DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4266",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4266/normalized/mutect2/PRJNA298376_4266DT_vs_PRJNA298376_4266DN/PRJNA298376_4266DT_vs_PRJNA298376_4266DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4266DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 190
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4266",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4266/normalized/strelka/PRJNA298376_4266DT_vs_PRJNA298376_4266DN/PRJNA298376_4266DT_vs_PRJNA298376_4266DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4266",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298376_4266/normalized/deepsomatic/PRJNA298376_4266DT_vs_PRJNA298376_4266DN/PRJNA298376_4266DT_vs_PRJNA298376_4266DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4268",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4268_rnadnavar/normalized/mutect2/4268DT_vs_4268DN/4268DT_vs_4268DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4268DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 198
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4268",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4268_rnadnavar/normalized/strelka/4268DT_vs_4268DN/4268DT_vs_4268DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4268",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4268_rnadnavar/normalized/deepsomatic/4268DT_vs_4268DN/4268DT_vs_4268DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4270",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4270/normalized/mutect2/PRJNA298376_4270DT_vs_PRJNA298376_4270DN/PRJNA298376_4270DT_vs_PRJNA298376_4270DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4270DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 198
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4270",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4270/normalized/strelka/PRJNA298376_4270DT_vs_PRJNA298376_4270DN/PRJNA298376_4270DT_vs_PRJNA298376_4270DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4270",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4270/normalized/deepsomatic/PRJNA298376_4270DT_vs_PRJNA298376_4270DN/PRJNA298376_4270DT_vs_PRJNA298376_4270DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4271",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4271_rnadnavar/normalized/mutect2/4271DT_vs_4271DN/4271DT_vs_4271DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4271DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4271",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4271_rnadnavar/normalized/strelka/4271DT_vs_4271DN/4271DT_vs_4271DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4271",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4271_rnadnavar/normalized/deepsomatic/4271DT_vs_4271DN/4271DT_vs_4271DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4272",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4272/normalized/mutect2/PRJNA298376_4272DT_vs_PRJNA298376_4272DN/PRJNA298376_4272DT_vs_PRJNA298376_4272DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4272DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 190
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4272",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4272/normalized/strelka/PRJNA298376_4272DT_vs_PRJNA298376_4272DN/PRJNA298376_4272DT_vs_PRJNA298376_4272DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4272",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4272/normalized/deepsomatic/PRJNA298376_4272DT_vs_PRJNA298376_4272DN/PRJNA298376_4272DT_vs_PRJNA298376_4272DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4273",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4273/normalized/mutect2/PRJNA298376_4273DT_vs_PRJNA298376_4273DN/PRJNA298376_4273DT_vs_PRJNA298376_4273DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4273DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 193
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4273",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4273/normalized/strelka/PRJNA298376_4273DT_vs_PRJNA298376_4273DN/PRJNA298376_4273DT_vs_PRJNA298376_4273DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4273",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4273/normalized/deepsomatic/PRJNA298376_4273DT_vs_PRJNA298376_4273DN/PRJNA298376_4273DT_vs_PRJNA298376_4273DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4274",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4274/normalized/mutect2/PRJNA298376_4274DT_vs_PRJNA298376_4274DN/PRJNA298376_4274DT_vs_PRJNA298376_4274DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4274DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4274",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4274/normalized/strelka/PRJNA298376_4274DT_vs_PRJNA298376_4274DN/PRJNA298376_4274DT_vs_PRJNA298376_4274DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4274",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4274/normalized/deepsomatic/PRJNA298376_4274DT_vs_PRJNA298376_4274DN/PRJNA298376_4274DT_vs_PRJNA298376_4274DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4275",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4275_rnadnavar/normalized/mutect2/4275DT_vs_4275DN/4275DT_vs_4275DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4275DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 196
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4275",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4275_rnadnavar/normalized/strelka/4275DT_vs_4275DN/4275DT_vs_4275DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4275",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4275_rnadnavar/normalized/deepsomatic/4275DT_vs_4275DN/4275DT_vs_4275DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4278",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4278_rnadnavar/normalized/mutect2/4278DT_vs_4278DN/4278DT_vs_4278DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4278DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 188
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4278",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4278_rnadnavar/normalized/strelka/4278DT_vs_4278DN/4278DT_vs_4278DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4278",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4278_rnadnavar/normalized/deepsomatic/4278DT_vs_4278DN/4278DT_vs_4278DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4283",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4283_rnadnavar/normalized/mutect2/4283DT_vs_4283DN/4283DT_vs_4283DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4283DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 190
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4283",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4283_rnadnavar/normalized/strelka/4283DT_vs_4283DN/4283DT_vs_4283DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4283",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4283_rnadnavar/normalized/deepsomatic/4283DT_vs_4283DN/4283DT_vs_4283DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4284",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4284_rnadnavar/normalized/mutect2/4284DT_vs_4284DN/4284DT_vs_4284DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "4284DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 189
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4284",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4284_rnadnavar/normalized/strelka/4284DT_vs_4284DN/4284DT_vs_4284DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4284",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/zhanlingmin/Rnadnavar/output/4284_rnadnavar/normalized/deepsomatic/4284DT_vs_4284DN/4284DT_vs_4284DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4285",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4285/normalized/mutect2/PRJNA298376_4285DT_vs_PRJNA298376_4285DN/PRJNA298376_4285DT_vs_PRJNA298376_4285DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298376_4285DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 198
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4285",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4285/normalized/strelka/PRJNA298376_4285DT_vs_PRJNA298376_4285DN/PRJNA298376_4285DT_vs_PRJNA298376_4285DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4285",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298376_4285/normalized/deepsomatic/PRJNA298376_4285DT_vs_PRJNA298376_4285DN/PRJNA298376_4285DT_vs_PRJNA298376_4285DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3812",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3812/normalized/mutect2/PRJNA298330_3812DT_vs_PRJNA298330_3812DN/PRJNA298330_3812DT_vs_PRJNA298330_3812DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298330_3812DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 162
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3812",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3812/normalized/strelka/PRJNA298330_3812DT_vs_PRJNA298330_3812DN/PRJNA298330_3812DT_vs_PRJNA298330_3812DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3812",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3812/normalized/deepsomatic/PRJNA298330_3812DT_vs_PRJNA298330_3812DN/PRJNA298330_3812DT_vs_PRJNA298330_3812DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3942",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3942/normalized/mutect2/PRJNA298330_3942DT_vs_PRJNA298330_3942DN/PRJNA298330_3942DT_vs_PRJNA298330_3942DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298330_3942DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 164
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3942",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3942/normalized/strelka/PRJNA298330_3942DT_vs_PRJNA298330_3942DN/PRJNA298330_3942DT_vs_PRJNA298330_3942DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3942",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3942/normalized/deepsomatic/PRJNA298330_3942DT_vs_PRJNA298330_3942DN/PRJNA298330_3942DT_vs_PRJNA298330_3942DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3948",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3948/normalized/mutect2/PRJNA298330_3948DT_vs_PRJNA298330_3948DN/PRJNA298330_3948DT_vs_PRJNA298330_3948DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298330_3948DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 197
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3948",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3948/normalized/strelka/PRJNA298330_3948DT_vs_PRJNA298330_3948DN/PRJNA298330_3948DT_vs_PRJNA298330_3948DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3948",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3948/normalized/deepsomatic/PRJNA298330_3948DT_vs_PRJNA298330_3948DN/PRJNA298330_3948DT_vs_PRJNA298330_3948DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3978",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3978/normalized/mutect2/PRJNA298330_3978DT_vs_PRJNA298330_3978DN/PRJNA298330_3978DT_vs_PRJNA298330_3978DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298330_3978DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 186
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3978",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3978/normalized/strelka/PRJNA298330_3978DT_vs_PRJNA298330_3978DN/PRJNA298330_3978DT_vs_PRJNA298330_3978DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3978",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_3978/normalized/deepsomatic/PRJNA298330_3978DT_vs_PRJNA298330_3978DN/PRJNA298330_3978DT_vs_PRJNA298330_3978DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3995",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298330_3995/normalized/mutect2/PRJNA298330_3995DT_vs_PRJNA298330_3995DN/PRJNA298330_3995DT_vs_PRJNA298330_3995DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298330_3995DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 157
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3995",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298330_3995/normalized/strelka/PRJNA298330_3995DT_vs_PRJNA298330_3995DN/PRJNA298330_3995DT_vs_PRJNA298330_3995DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_3995",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298330_3995/normalized/deepsomatic/PRJNA298330_3995DT_vs_PRJNA298330_3995DN/PRJNA298330_3995DT_vs_PRJNA298330_3995DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_4007",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298330_4007/normalized/mutect2/PRJNA298330_4007DT_vs_PRJNA298330_4007DN/PRJNA298330_4007DT_vs_PRJNA298330_4007DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298330_4007DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 174
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_4007",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298330_4007/normalized/strelka/PRJNA298330_4007DT_vs_PRJNA298330_4007DN/PRJNA298330_4007DT_vs_PRJNA298330_4007DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_4007",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298330_4007/normalized/deepsomatic/PRJNA298330_4007DT_vs_PRJNA298330_4007DN/PRJNA298330_4007DT_vs_PRJNA298330_4007DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_4032",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298330_4032/normalized/mutect2/PRJNA298330_4032DT_vs_PRJNA298330_4032DN/PRJNA298330_4032DT_vs_PRJNA298330_4032DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298330_4032DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 158
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_4032",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298330_4032/normalized/strelka/PRJNA298330_4032DT_vs_PRJNA298330_4032DN/PRJNA298330_4032DT_vs_PRJNA298330_4032DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_4032",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/work/seq2neo/output/PRJNA298330_4032/normalized/deepsomatic/PRJNA298330_4032DT_vs_PRJNA298330_4032DN/PRJNA298330_4032DT_vs_PRJNA298330_4032DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_4096",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_4096/normalized/mutect2/PRJNA298330_4096DT_vs_PRJNA298330_4096DN/PRJNA298330_4096DT_vs_PRJNA298330_4096DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298330_4096DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_4096",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_4096/normalized/strelka/PRJNA298330_4096DT_vs_PRJNA298330_4096DN/PRJNA298330_4096DT_vs_PRJNA298330_4096DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298330_4096",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298330_4096/normalized/deepsomatic/PRJNA298330_4096DT_vs_PRJNA298330_4096DN/PRJNA298330_4096DT_vs_PRJNA298330_4096DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    },
+    {
+      "sample_id": "PRJNA298310_3812",
+      "caller": "mutect2",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298310_3812/normalized/mutect2/PRJNA298310_3812DT_vs_PRJNA298310_3812DN/PRJNA298310_3812DT_vs_PRJNA298310_3812DN.mutect2.variants.dec.norm.vcf.gz",
+      "normal_sample": "PRJNA298310_3812DN",
+      "header_formats": [
+        "AD",
+        "AF",
+        "DP",
+        "F1R2",
+        "F2R1",
+        "FAD",
+        "GQ",
+        "GT",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 200,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 158
+      }
+    },
+    {
+      "sample_id": "PRJNA298310_3812",
+      "caller": "strelka",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298310_3812/normalized/strelka/PRJNA298310_3812DT_vs_PRJNA298310_3812DN/PRJNA298310_3812DT_vs_PRJNA298310_3812DN.strelka.variants.dec.norm.vcf.gz",
+      "normal_sample": "NORMAL",
+      "header_formats": [
+        "AU",
+        "BCN50",
+        "CU",
+        "DP",
+        "DP2",
+        "DP50",
+        "FDP",
+        "FDP50",
+        "GU",
+        "SDP",
+        "SUBDP",
+        "SUBDP50",
+        "TAR",
+        "TIR",
+        "TOR",
+        "TU"
+      ],
+      "counts": {
+        "records_scanned": 200,
+        "normal_GT_present": 0,
+        "normal_GQ_present": 0,
+        "normal_DP_present": 200,
+        "normal_AD_present": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298310_3812",
+      "caller": "deepsomatic",
+      "path": "/t9k/mnt/WorkSpace/data/ngs/liuxin/seq2neo/output_1/PRJNA298310_3812/normalized/deepsomatic/PRJNA298310_3812DT_vs_PRJNA298310_3812DN/PRJNA298310_3812DT_vs_PRJNA298310_3812DN.deepsomatic.variants.dec.norm.vcf.gz",
+      "normal_sample": null,
+      "header_formats": [
+        "GT",
+        "GQ",
+        "DP",
+        "MIN_DP",
+        "AD",
+        "VAF",
+        "PL",
+        "PS",
+        "MF",
+        "MD",
+        "MT",
+        "MED_DP"
+      ],
+      "counts": {
+        "records_scanned": 200
+      }
+    }
+  ]
+}
