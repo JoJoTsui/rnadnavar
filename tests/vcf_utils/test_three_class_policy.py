@@ -82,6 +82,18 @@ def test_opt_in_only():
     d["three_class_enabled"]=False
     assert compute_unified_classification_consensus(d,2,2) == "NoConsensus"
 
+
+def test_three_class_preserves_existing_somatic_indel_fallback():
+    d = dict(REF="AC", ALT="A", is_snv=False,
+             callers=["deepsomatic", "strelka"], filters_original=["PASS", "PASS"],
+             filters_normalized=["Somatic", "Somatic"], native_evidence={},
+             support_callers={"deepsomatic", "strelka"}, passes_consensus=True,
+             refined_native_enabled=True, refined_native_branch=None,
+             refined_native_trace="rule:seqc2_refined_v2|branch:not_admitted")
+    assert compute_unified_classification_consensus(d, 2, 2) == "Somatic"
+    d["three_class_enabled"] = True
+    assert compute_unified_classification_consensus(d, 2, 2) == "Somatic"
+
 def test_rescue_conflicts_and_inheritance():
     assert rescue.transition("Somatic","Germline",False,"none",None)[0]=="Somatic"
     assert rescue.transition("Somatic","Germline",False,"none",None,True)[0]=="NoConsensus"

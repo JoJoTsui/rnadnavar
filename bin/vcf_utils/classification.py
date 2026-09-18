@@ -484,7 +484,14 @@ def compute_unified_classification_consensus(
         allowed = not common_af and verification_status not in {"rejected", "inconclusive"}
         if variant_data.get("three_class_enabled"):
             from .three_class_policy import POLICY, classify
-            label, reason = classify(variant_data, bool(branch and allowed))
+            # Preserve the complete existing Somatic admission, including the
+            # threshold fallback for indels not admitted by the native branch.
+            # Its negative labels do not nominate Germline/Reference here.
+            baseline_data = dict(variant_data, three_class_enabled=False)
+            baseline_label = compute_unified_classification_consensus(
+                baseline_data, snv_threshold, indel_threshold
+            )
+            label, reason = classify(variant_data, baseline_label == "Somatic" and allowed)
             rationale = (
                 variant_data["refined_native_trace"]
                 + f"|three_class_policy:{POLICY}|decision:{reason}|class:{label}"
