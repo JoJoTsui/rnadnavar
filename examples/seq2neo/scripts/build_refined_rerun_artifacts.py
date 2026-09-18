@@ -32,6 +32,8 @@ INFO_FIELDS = (
     "GATE_RNA_ELIGIBLE", "GATE_ALIGNMENT_ROUND", "UNIFIED_FILTER_DNA",
     "PASSES_CONSENSUS_DNA", "DNA_VERIFICATION", "REDI_ACCESSION",
     "REDI_CANONICAL", "N_DNA_CALLERS_SOMATIC",
+    "NEGATIVE_EVIDENCE_POLICY", "NEGATIVE_EVIDENCE_STATUS", "NEGATIVE_EVIDENCE_REASON",
+    "NEGATIVE_NORMAL_COUNTS", "NEGATIVE_TUMOR_COUNTS",
 )
 NUMERIC_FIELDS = ("DP_DNA_MEAN", "DP_RNA_MEAN", "VAF_DNA_MEAN", "VAF_RNA_MEAN")
 SCHEMA = pa.schema(
@@ -63,6 +65,10 @@ def review_reason(label, info):
     if label == "Somatic" and info.get("DNA_VERIFICATION") in {"rejected", "inconclusive"}:
         return "dna_verification_conflict"
     if label in {"Germline", "Reference"}:
+        if info.get("NEGATIVE_EVIDENCE_STATUS") == "SUPPORTED":
+            return "negative_read_supported_biological_approval_pending"
+        if info.get("NEGATIVE_EVIDENCE_STATUS") in {"WITHHELD", "CONFLICT"}:
+            return "negative_evidence_withheld:" + (info.get("NEGATIVE_EVIDENCE_REASON") or "unspecified")
         return "inherited_or_legacy_negative_requires_paired_validation"
     return "somatic_candidate_requires_label_qc"
 
