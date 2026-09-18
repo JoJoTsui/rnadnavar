@@ -1,25 +1,46 @@
 #!/usr/bin/env python3
-"""Build lightweight provenance and a Somatic-candidate variant Parquet.
+"""Export all three candidate label classes, without asserting training approval.
 
-Original cohort inputs remain read-only. The output Parquet is intentionally
-written outside Git; this script commits only TSV/JSON path and summary metadata.
+Streams batches into Parquet. Preserves source INFO rather than filling evidence
+columns with blanks. Completed audit counts are reused only after hash checks.
 """
 import argparse
+from collections import Counter
 import csv
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
-from collections import Counter
-import tempfile
+import sys
 
-import polars as pl
-import pysam
+import pyarrow as pa
+import pyarrow.parquet as pq
 
-# Keep the committed/ignored variant table compact and training-label focused.
-# Full FILTER distributions (including Germline/Reference) remain in summary.json.
-FILTERS = {"Somatic"}
+REPO = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO / "bin"))
+from vcf_utils.refined_rescue_policy import biological_veto
 
+LABELS = ("Somatic", "Germline", "Reference")
+STATUS = "candidate_not_training_approved"
+SHARED = Path("/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo")
+INFO_FIELDS = (
+    "RESCUED", "RESCUE_PROMOTED", "N_DNA_CALLERS_SUPPORT", "N_RNA_CALLERS_SUPPORT",
+    "GNOMAD_AF", "GT_BY_CALLER", "DP_BY_CALLER", "AD_BY_CALLER", "VAF_BY_CALLER",
+    "NORMAL_GT_BY_CALLER", "NORMAL_DP_BY_CALLER", "NORMAL_AD_BY_CALLER",
+    "NORMAL_VAF_BY_CALLER", "CLASSIFICATION_RATIONALE", "GATE_DNA_NOMINATORS",
+    "GATE_RNA_ELIGIBLE", "GATE_ALIGNMENT_ROUND", "UNIFIED_FILTER_DNA",
+    "PASSES_CONSENSUS_DNA", "DNA_VERIFICATION", "REDI_ACCESSION",
+    "REDI_CANONICAL", "N_DNA_CALLERS_SOMATIC",
+)
+NUMERIC_FIELDS = ("DP_DNA_MEAN", "DP_RNA_MEAN", "VAF_DNA_MEAN", "VAF_RNA_MEAN")
+SCHEMA = pa.schema(
+    [(k, pa.string()) for k in ("sample_id", "CHROM", "REF", "ALT", "FILTER", "variant_type",
+                               "candidate_status", "label_confidence", "review_reason")]
+    + [("POS", pa.int64()), ("training_eligible", pa.bool_())]
+    + [(k, pa.string()) for k in INFO_FIELDS]
+    + [(k, pa.float64()) for k in NUMERIC_FIELDS]
+)
 
 def sha(path):
     h = hashlib.sha256()
@@ -28,120 +49,151 @@ def sha(path):
             h.update(chunk)
     return h.hexdigest()
 
-
-def info_value(record, key):
-    value = record.info.get(key)
-    if isinstance(value, tuple):
-        return ",".join(str(x) for x in value)
-    return "" if value in (None, ".") else str(value)
-
-
 def variant_type(ref, alt):
-    if len(ref) == 1 and len(alt) == 1:
+    if "," in alt or set(ref + alt) - set("ACGTN"):
+        return "OTHER"
+    if len(ref) == len(alt) == 1:
         return "SNP"
-    if len(ref) == len(alt):
-        return "MNP"
-    return "INDEL"
+    return "MNP" if len(ref) == len(alt) else "INDEL"
 
+def review_reason(label, info):
+    veto = biological_veto(info)
+    if label == "Somatic" and veto:
+        return "annotation_conflict:" + veto
+    if label == "Somatic" and info.get("DNA_VERIFICATION") in {"rejected", "inconclusive"}:
+        return "dna_verification_conflict"
+    if label in {"Germline", "Reference"}:
+        return "inherited_or_legacy_negative_requires_paired_validation"
+    return "somatic_candidate_requires_label_qc"
 
-def scan_vcf(path, collect_rows=False, sample_id="", row_writer=None):
-    counts, rows = {}, []
-    with pysam.VariantFile(str(path)) as reader:
-        for record in reader:
-            filters = list(record.filter)
-            label = filters[0] if filters else "PASS"
-            counts[label] = counts.get(label, 0) + 1
-            if collect_rows and label in FILTERS:
-                alt = str(record.alts[0]) if record.alts else ""
-                row = {"sample_id": sample_id, "CHROM": record.contig,
-                    "POS": int(record.pos), "REF": str(record.ref), "ALT": alt,
-                    "FILTER": label, "variant_type": variant_type(str(record.ref), alt),
-                    "RESCUED": info_value(record, "RESCUED"),
-                    "RESCUE_PROMOTED": info_value(record, "RESCUE_PROMOTED"),
-                    "N_DNA_CALLERS_SUPPORT": info_value(record, "N_DNA_CALLERS_SUPPORT"),
-                    "N_RNA_CALLERS_SUPPORT": info_value(record, "N_RNA_CALLERS_SUPPORT"),
-                    "GNOMAD_AF": info_value(record, "GNOMAD_AF"),
-                    "candidate_status": "candidate_not_training_approved"}
-                if row_writer is None:
-                    rows.append(row)
-                else:
-                    row_writer.writerow(row)
-    return counts, rows
+def stream_rows(path, sid, writer, batch_size=50000):
+    """One record per VCF row; retain full ALT, including multi-allelic values."""
+    fields = INFO_FIELDS + NUMERIC_FIELDS
+    fmt = "%CHROM\\t%POS\\t%REF\\t%ALT\\t%FILTER" + "".join(
+        "\\t%INFO/" + name for name in fields
+    ) + "\\n"
+    expr = 'FILTER="Somatic" || FILTER="Germline" || FILTER="Reference"'
+    proc = subprocess.Popen(["bcftools", "query", "-u", "-i", expr, "-f", fmt, str(path)],
+                            stdout=subprocess.PIPE, text=True)
+    counts, types, reasons = Counter(), Counter(), Counter()
+    batch = []
+    try:
+        for line in proc.stdout:
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) != 5 + len(fields):
+                raise ValueError(f"Unexpected query columns: {sid}")
+            chrom, pos, ref, alt, label = parts[:5]
+            if label not in LABELS:
+                raise ValueError(f"Ambiguous FILTER: {label}")
+            info = {k: None if v == "." else v for k, v in zip(fields, parts[5:])}
+            reason = review_reason(label, info)
+            row = dict(sample_id=sid, CHROM=chrom, POS=int(pos), REF=ref, ALT=alt,
+                       FILTER=label, variant_type=variant_type(ref, alt),
+                       candidate_status=STATUS, label_confidence="unvalidated",
+                       training_eligible=False, review_reason=reason,
+                       **{k: info[k] for k in INFO_FIELDS})
+            for key in NUMERIC_FIELDS:
+                value = info[key]
+                row[key] = float(value) if value is not None else None
+            batch.append(row)
+            counts[label] += 1
+            types[label + ":" + row["variant_type"]] += 1
+            reasons[reason] += 1
+            if len(batch) >= batch_size:
+                writer.write_table(pa.Table.from_pylist(batch, schema=SCHEMA))
+                batch.clear()
+        if proc.wait() != 0:
+            raise RuntimeError(f"bcftools query failed: {path}")
+        if batch:
+            writer.write_table(pa.Table.from_pylist(batch, schema=SCHEMA))
+    finally:
+        proc.stdout.close()
+        if proc.poll() is None:
+            proc.terminate()
+            proc.wait()
+    return dict(counts), dict(types), dict(reasons)
 
-
-def count_filters_fast(path):
-    proc = subprocess.Popen(["bcftools", "query", "-f", "%FILTER\\n", str(path)], stdout=subprocess.PIPE, text=True)
-    counts = Counter()
-    assert proc.stdout is not None
-    for line in proc.stdout:
-        counts[line.strip() or "PASS"] += 1
-    if proc.wait() != 0:
-        raise RuntimeError(f"bcftools query failed: {path}")
-    return dict(counts)
-
-
-def stream_somatic_rows(path, sample_id, row_writer):
-    proc = subprocess.Popen(
-        ["bcftools", "query", "-i", 'FILTER="Somatic"', "-f", "%CHROM\\t%POS\\t%REF\\t%FIRST_ALT\\t%FILTER\\n", str(path)],
-        stdout=subprocess.PIPE, text=True,
-    )
-    assert proc.stdout is not None
-    count = 0
-    for line in proc.stdout:
-        chrom, pos, ref, alt, filt = line.rstrip("\n").split("\t")
-        row_writer.writerow({"sample_id": sample_id, "CHROM": chrom, "POS": int(pos),
-            "REF": ref, "ALT": alt, "FILTER": filt, "variant_type": variant_type(ref, alt),
-            "RESCUED": "", "RESCUE_PROMOTED": "", "N_DNA_CALLERS_SUPPORT": "",
-            "N_RNA_CALLERS_SUPPORT": "", "GNOMAD_AF": "", "candidate_status": "candidate_not_training_approved"})
-        count += 1
-    if proc.wait() != 0:
-        raise RuntimeError(f"bcftools Somatic query failed: {path}")
-    return count
-
+def checked_audit(state, path, name):
+    expected = state["outputs"][str(path)]
+    if sha(path) != expected:
+        raise ValueError(f"Changed VCF: {path}")
+    audit_path = path.parent / (name + ".audit.json")
+    if sha(audit_path) != state["outputs"][str(audit_path)]:
+        raise ValueError(f"Changed audit: {audit_path}")
+    audit = json.loads(audit_path.read_text())
+    if audit["issues"] or not audit["sources_unchanged"] or audit["sha256"] != expected:
+        raise ValueError(f"Failed audit: {audit_path}")
+    return {k: v for k, v in audit["counts"].items() if k != "records"}
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--source-manifest", type=Path, default=Path("examples/seq2neo/data/processed/sample_manifest.tsv"))
-    ap.add_argument("--output-root", type=Path, default=Path("/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916"))
-    ap.add_argument("--outdir", type=Path, default=Path("examples/seq2neo/data/processed/refined_native_v2_20260917"))
-    ap.add_argument("--parquet", type=Path, default=Path("/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_refined_native_v2_20260916/variant_parquet/refined_candidates.parquet"))
-    args = ap.parse_args(); args.outdir.mkdir(parents=True, exist_ok=True)
-    with args.source_manifest.open() as handle: source_rows = list(csv.DictReader(handle, delimiter="\t"))
-    summaries = []
-    schema = {"sample_id": pl.Utf8, "CHROM": pl.Utf8, "POS": pl.Int64, "REF": pl.Utf8, "ALT": pl.Utf8, "FILTER": pl.Utf8, "variant_type": pl.Utf8, "RESCUED": pl.Utf8, "RESCUE_PROMOTED": pl.Utf8, "N_DNA_CALLERS_SUPPORT": pl.Utf8, "N_RNA_CALLERS_SUPPORT": pl.Utf8, "GNOMAD_AF": pl.Utf8, "candidate_status": pl.Utf8}
-    row_fields = list(schema)
-    candidate_rows = 0
-    temp = tempfile.NamedTemporaryFile("w", suffix=".tsv", prefix="refined_candidates_", delete=False, newline="")
-    temp_path = Path(temp.name)
-    row_writer = csv.DictWriter(temp, fieldnames=row_fields, delimiter="\t")
-    row_writer.writeheader()
-    for source in source_rows:
-        sid = source["sample_id"]; state_path = args.output_root / sid / "state.json"
-        if not state_path.is_file(): raise SystemExit(f"missing completed state: {sid}")
-        state = json.loads(state_path.read_text())
-        if state.get("status") != "candidate_complete_not_training_approved": raise SystemExit(f"sample not complete: {sid}")
-        new_consensus = Path(state["output"]) / "refined.vcf.gz"; new_rescue = Path(state["output"]) / "refined.rescue.vcf.gz"; original = Path(source["rescue_vcf_path"])
-        if not original.is_file(): raise SystemExit(f"missing original rescue: {sid}: {original}")
-        old_counts = count_filters_fast(original); consensus_counts = count_filters_fast(new_consensus); new_counts = count_filters_fast(new_rescue)
-        candidate_rows += stream_somatic_rows(new_rescue, sid, row_writer)
-        source_hashes = state.get("source_hashes", {})
-        output_hashes = state.get("outputs", {})
-        original_hash = source_hashes.get(str(original)) or sha(original)
-        consensus_hash = output_hashes.get(str(new_consensus)) or sha(new_consensus)
-        rescue_hash = output_hashes.get(str(new_rescue)) or sha(new_rescue)
-        summaries.append({"sample_id": sid, "status": state["status"], "original_rescue": str(original), "new_consensus": str(new_consensus), "new_rescue": str(new_rescue), "original_sha256": original_hash, "new_consensus_sha256": consensus_hash, "new_rescue_sha256": rescue_hash, "original_counts": old_counts, "consensus_counts": consensus_counts, "new_rescue_counts": new_counts, "original_records": sum(old_counts.values()), "new_rescue_records": sum(new_counts.values()), "comparison_note": "Exact allele overlap omitted from lightweight scan; use VCFs for allele-level comparison"})
-    temp.close()
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--source-manifest", type=Path, default=REPO/"examples/seq2neo/data/processed/sample_manifest.tsv")
+    ap.add_argument("--prior-summary", type=Path, default=REPO/"examples/seq2neo/data/processed/refined_native_v2_20260917/summary.json")
+    ap.add_argument("--output-root", type=Path, default=SHARED/"output_refined_native_v2_20260916")
+    ap.add_argument("--outdir", type=Path, default=REPO/"examples/seq2neo/data/processed/refined_three_class_20260918")
+    ap.add_argument("--parquet", type=Path, default=SHARED/"output_refined_native_v2_20260916/variant_parquet/refined_three_class_candidates.parquet")
+    args = ap.parse_args()
+    if args.parquet.exists() or args.outdir.exists():
+        raise ValueError("Use fresh destinations; existing exports are never overwritten")
+    with args.source_manifest.open() as handle:
+        sources = list(csv.DictReader(handle, delimiter="\t"))
+    if len({s["sample_id"] for s in sources}) != len(sources):
+        raise ValueError("Duplicate sample IDs")
+    prior = {x["sample_id"]: x for x in json.loads(args.prior_summary.read_text())["samples_detail"]}
     args.parquet.parent.mkdir(parents=True, exist_ok=True)
-    pl.scan_csv(temp_path, separator="\t", schema_overrides=schema).sink_parquet(args.parquet, compression="zstd")
-    temp_path.unlink(missing_ok=True)
-    manifest = args.outdir / "manifest.tsv"
-    fields = ["sample_id", "original_rescue", "new_consensus", "new_rescue", "new_rescue_sha256", "candidate_status"]
-    with manifest.open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t"); writer.writeheader()
-        for item in summaries: writer.writerow({**{k: item[k] for k in fields if k != "candidate_status"}, "candidate_status": "candidate_not_training_approved"})
-    summary = {"schema_version": 1, "samples": len(summaries), "candidate_rows": candidate_rows, "parquet": str(args.parquet), "manifest": str(manifest), "variant_filter": "Somatic", "status": "candidate_not_training_approved", "source_manifest": str(args.source_manifest), "samples_detail": summaries}
-    (args.outdir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
-    print(json.dumps({"samples": len(summaries), "candidate_rows": candidate_rows, "parquet": str(args.parquet), "manifest": str(manifest)}, indent=2))
+    tmp = args.parquet.with_name(args.parquet.name + f".{os.getpid()}.partial")
+    summaries, manifests = [], []
+    totals, type_totals, reason_totals = Counter(), Counter(), Counter()
+    try:
+        with pq.ParquetWriter(tmp, SCHEMA, compression="zstd") as writer:
+            for i, src in enumerate(sources, 1):
+                sid = src["sample_id"]
+                state = json.loads((args.output_root/sid/"state.json").read_text())
+                if state["status"] != "candidate_complete_not_training_approved":
+                    raise ValueError(f"Incomplete sample: {sid}")
+                folder = Path(state["output"])
+                rescue, consensus = folder/"refined.rescue.vcf.gz", folder/"refined.vcf.gz"
+                rc = checked_audit(state, rescue, "rescue")
+                cc = checked_audit(state, consensus, "consensus")
+                counts, types, reasons = stream_rows(rescue, sid, writer)
+                if any(counts.get(k, 0) != rc.get(k, 0) for k in LABELS):
+                    raise ValueError(f"Export/audit class-count mismatch: {sid}")
+                if sha(rescue) != state["outputs"][str(rescue)]:
+                    raise ValueError(f"Rescue changed during export: {sid}")
+                old = prior[sid]
+                if old["original_rescue"] != src["rescue_vcf_path"]:
+                    raise ValueError(f"Original path changed: {sid}")
+                item = dict(old, consensus_counts=cc, new_rescue_counts=rc,
+                            exported_counts=counts, exported_types=types, review_reasons=reasons)
+                summaries.append(item)
+                manifests.append(dict(src, original_rescue_vcf_path=src["rescue_vcf_path"],
+                    rescue_vcf_path=str(rescue), consensus_vcf_path=str(consensus),
+                    variant_parquet_path=str(args.parquet), candidate_status=STATUS,
+                    label_qc_verdict="NOT_APPROVED", training_label_vcf="",
+                    new_rescue_sha256=state["outputs"][str(rescue)]))
+                totals.update(counts); type_totals.update(types); reason_totals.update(reasons)
+                print(f"[{i}/{len(sources)}] {sid}: {counts}", flush=True)
+        if pq.ParquetFile(tmp).metadata.num_rows != sum(totals.values()):
+            raise ValueError("Parquet row count mismatch")
+        args.outdir.mkdir(parents=True)
+        manifest = args.outdir/"manifest.tsv"
+        with manifest.open("w", newline="") as handle:
+            w = csv.DictWriter(handle, fieldnames=list(manifests[0]), delimiter="\t", lineterminator="\n")
+            w.writeheader(); w.writerows(manifests)
+        # Small sample Parquet is kept next to the heavy variant Parquet, outside Git.
+        pq.write_table(pa.Table.from_pylist(manifests), args.parquet.parent/"refined_three_class_manifest.parquet", compression="zstd")
+        tmp.rename(args.parquet)
+        summary = dict(schema_version=2, samples=len(sources), candidate_rows=sum(totals.values()),
+                       class_counts=dict(totals), class_type_counts=dict(type_totals),
+                       review_reasons=dict(reason_totals), variant_filters=list(LABELS),
+                       parquet=str(args.parquet), parquet_sha256=sha(args.parquet),
+                       status=STATUS, prior_summary=str(args.prior_summary),
+                       original_counts_provenance="Recorded prior summary; not freshly rescanned",
+                       samples_detail=summaries)
+        (args.outdir/"summary.json").write_text(json.dumps(summary, indent=2)+"\n")
+        print(json.dumps({k: v for k, v in summary.items() if k != "samples_detail"}, indent=2))
+    finally:
+        tmp.unlink(missing_ok=True)
 
-
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()
