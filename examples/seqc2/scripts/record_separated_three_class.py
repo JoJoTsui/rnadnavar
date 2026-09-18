@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Archive completed candidate validations; never turn them into training approval."""
 import argparse
+import gzip
 import json
 from pathlib import Path
 import shutil
@@ -13,12 +14,40 @@ sys.path.insert(0,str(ROOT/'bin'))
 from assess_negative_label_evidence import valid_counts
 
 
+def negative_subset_proof(folder, report):
+    """Same native negatives minus a larger Somatic set cannot add negatives."""
+    native=str((Path(report['native_validation']).parent/'three_class.vcf.gz').resolve())
+    expected=report['stages']['consensus']['adapter']['sources'][native]
+    sets,hashes={},{}
+    for stage,row in report['stages'].items():
+        if row['adapter']['sources'].get(native)!=expected:
+            raise ValueError('Different native nominations across stages')
+        query=folder/stage/'baseline.query.vcf.gz'
+        keys=set()
+        with gzip.open(query,'rt') as handle:
+            for line in handle:
+                if line.startswith('#'):continue
+                r=line.rstrip('\n').split('\t')
+                if len(r)!=8 or r[6]!='PASS':raise ValueError('Invalid baseline query')
+                keys.add((r[0],r[1],r[3],r[4]))
+        sets[stage]=keys
+        hashes[stage]=digest(query)
+    if any(sets['consensus']-keys for keys in sets.values()):
+        raise ValueError('Rescue negative subset proof failed; run stage-specific collision challenges')
+    return dict(status='rescue_negatives_subset_of_challenged_consensus_negatives',
+                native_sha256=expected,baseline_query_sha256=hashes,
+                somatic_key_counts={s:len(v) for s,v in sets.items()},
+                scope='Exact-allele known-Somatic challenge coverage; not negative-class accuracy')
+
+
 def markdown(summary):
     lines=['# Separated three-class v2: completed candidate validation', '',
            '**Execution checks passed; biological training approval did not occur.**', '',
            'All nine stage outputs preserve their declared established Somatic allele sets exactly.',
            'SNP, indel and aggregate metrics match the corresponding baseline in both regions.',
-           'Original inputs and validated source code passed integrity checks. No cohort was executed.', '',
+           'Consumed VCF/reference/benchmark inputs and validated code passed the recorded hash checks.',
+           'BAM pilots record source paths and read filters, not newly computed whole-BAM checksums.',
+           'No cohort was executed.', '',
            'See [policy](../../SEPARATED_THREE_CLASS_V2.md) and',
            '[loss diagnosis](../three_class_postfix_20260918/RESCUE_LOSS_DIAGNOSIS.md).', '',
            '## Somatic results', '',
@@ -51,6 +80,8 @@ def markdown(summary):
               'Stages reuse many sites and must not be pooled as independent samples. Unassessed',
               'records remain withheld; negative indels require haplotype-aware validation.',
               'No supported negative in the targeted exact-allele challenge overlapped known Somatic truth.',
+              'Rescue stages use the same native nominations and retain every DNA Somatic baseline allele;',
+              'their negative sets are therefore subsets of the challenged consensus negatives.',
               'This bounded challenge is not a genome-wide guarantee or a haplotype-equivalence test.', '',
               'Reference uses zero ALT/other alleles and at least 299 observations in each DNA sample',
               '(1% detection limit, 95% confidence per sample under the idealized independence model).',
@@ -72,7 +103,17 @@ def markdown(summary):
                      f'--native-validation examples/seqc2/comparison/three_class_postfix_20260918/{dataset}/validation.json '
                      f'--samplesheet examples/seqc2/hybrid/csv/{dataset}_hybrid.csv '
                      f'--outdir /path/to/fresh_validation/{dataset}{extra}')
-    lines += ['```', '', 'The validation reports also record exact benchmark and evidence-assessment commands.',
+    for dataset,result in summary['datasets'].items():
+        lines.append(f'.venv/bin/python examples/seqc2/scripts/check_negative_truth_collisions.py '
+                     f'--vcf /path/to/fresh_validation/{dataset}/consensus/candidates.vcf.gz '
+                     f'--truth {result["truth"]} --samplesheet examples/seqc2/hybrid/csv/{dataset}_hybrid.csv '
+                     f'--fasta {result["reference"]} --out /path/to/fresh_validation/{dataset}/negative_collision_check.json')
+    lines += ['```', '', 'HG008 orthogonal normal corroboration (repeat for each stage):', '', '```bash',
+              '.venv/bin/python examples/seqc2/scripts/check_three_class_normal_gvcf.py --pilot /path/to/fresh_validation/hg008_wgs/consensus/bam_pilot.json --normal-gvcf /path/to/HG008-N-P.GRCh38.deepvariant.g.vcf.gz --out /path/to/fresh_validation/hg008_wgs/consensus/normal_gvcf.json',
+              '.venv/bin/python examples/seqc2/scripts/record_separated_three_class.py --root /path/to/fresh_validation --outdir /path/to/fresh_lightweight_archive',
+              '```', '', 'The normal gVCF source path and SHA256 are in the archived `normal_gvcf.json` files.',
+              'Reproduction requires the retained heavy inputs; they are not bundled into Git.',
+              'The validation reports also record exact benchmark and evidence-assessment commands.',
               'The cohort wrapper is a separate, candidate-only preparation step; biological approval',
               'and a reviewed cohort pilot remain necessary before any model-training use.', '']
     return '\n'.join(lines)
@@ -84,6 +125,7 @@ def main():
     ap.add_argument('--outdir',type=Path,required=True)
     args=ap.parse_args()
     reports={}
+    coverage={}
     for dataset in ('seqc2_wes_ll','seqc2_wgs_il','hg008_wgs'):
         report=json.loads((args.root/dataset/'validation.json').read_text())
         if (report['status']!='complete_candidate_validation_not_training_approved'
@@ -99,6 +141,12 @@ def main():
         collision=json.loads((args.root/dataset/'negative_collision_check.json').read_text())
         if collision['status']!='pass_targeted_screen_not_accuracy' or collision['supported_known_somatic_collisions']:
             raise ValueError('Known Somatic collision acquired negative evidence support')
+        adapter=report['stages']['consensus']['adapter']
+        if (not collision['sources_unchanged']
+                or collision['sources'].get(adapter['output'])!=adapter['output_sha256']
+                or collision['sources'].get(report['truth'])!=report['sources'][report['truth']]):
+            raise ValueError('Collision challenge provenance mismatch')
+        coverage[dataset]=negative_subset_proof(args.root/dataset,report)
         reports[dataset]=report
     args.outdir.mkdir(parents=True,exist_ok=False)
     summary=dict(policy='separated_three_class_v2',candidate_execution_checks_pass=True,
@@ -125,7 +173,8 @@ def main():
         if any(digest(ROOT/p)!=sha for p,sha in code.items()):
             raise ValueError('Code changed since validation')
         summary['validated_code']=code
-        summary['datasets'][dataset]=dict(truth=report['truth'],stages={})
+        summary['datasets'][dataset]=dict(truth=report['truth'],reference=native['manifest']['fasta'],
+                                         stages={},negative_collision_coverage=coverage[dataset])
         for stage,result in report['stages'].items():
             pilot=json.loads((args.root/dataset/stage/'bam_pilot.json').read_text())
             yields={label:dict(selected=sum(r['class']==label for r in pilot['results']),

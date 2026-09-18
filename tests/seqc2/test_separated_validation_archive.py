@@ -1,5 +1,6 @@
 """The archived execution gate must never mistake partial results for approval."""
 import importlib.util
+import gzip
 import json
 from pathlib import Path
 import sys
@@ -43,10 +44,31 @@ def test_report_separates_metrics_from_negative_evidence_and_approval():
                pilot_yield={label:dict(selected=128,usable=120,supported=0)
                             for label in ('Germline','Reference')})
     report=m.markdown(dict(heavy_root='/not/training',datasets={
-        'hg008_wgs':dict(truth='/truth/tumorvariants.vcf.gz',stages={'consensus':stage})}))
+        'hg008_wgs':dict(truth='/truth/tumorvariants.vcf.gz',reference='/reference.fa',stages={'consensus':stage})}))
     assert report.count('### ') == 6
     assert '0 / 120 / 128' in report
     assert 'biological training approval did not occur' in report
     assert 'not Germline/Reference precision estimates' in report
     assert 'TRAINING_ELIGIBLE=NO' in report
     assert '--truth /truth/tumorvariants.vcf.gz' in report
+
+
+@pytest.mark.parametrize('failure', [None, 'lost_somatic', 'different_native'])
+def test_rescue_collision_coverage_requires_subset_proof(tmp_path, failure):
+    native=str(tmp_path/'three_class.vcf.gz')
+    report=dict(native_validation=str(tmp_path/'validation.json'),stages={})
+    for stage,positions in [('consensus',[10]),('first',[10,20]),('realignment',[10,30])]:
+        report['stages'][stage]={'adapter':{'sources':{native:'same-native-sha'}}}
+        if failure=='lost_somatic' and stage=='first': positions=[20]
+        if failure=='different_native' and stage=='first':
+            report['stages'][stage]['adapter']['sources'][native]='other-sha'
+        folder=tmp_path/stage
+        folder.mkdir()
+        with gzip.open(folder/'baseline.query.vcf.gz','wt') as handle:
+            handle.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n')
+            for pos in positions:handle.write(f'chr1\t{pos}\t.\tA\tG\t.\tPASS\t.\n')
+    if failure:
+        with pytest.raises(ValueError):m.negative_subset_proof(tmp_path,report)
+    else:
+        proof=m.negative_subset_proof(tmp_path,report)
+        assert proof['somatic_key_counts']=={'consensus':1,'first':2,'realignment':2}
