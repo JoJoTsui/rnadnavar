@@ -34,6 +34,9 @@ INFO_FIELDS = (
     "REDI_CANONICAL", "N_DNA_CALLERS_SOMATIC",
     "NEGATIVE_EVIDENCE_POLICY", "NEGATIVE_EVIDENCE_STATUS", "NEGATIVE_EVIDENCE_REASON",
     "NEGATIVE_NORMAL_COUNTS", "NEGATIVE_TUMOR_COUNTS",
+    "THREE_CLASS_POLICY", "THREE_CLASS_BASELINE_FILTER", "THREE_CLASS_NATIVE_FILTER",
+    "THREE_CLASS_BASELINE_RATIONALE", "THREE_CLASS_NATIVE_RATIONALE",
+    "THREE_CLASS_REVIEW_REASON", "TRAINING_ELIGIBLE",
 )
 NUMERIC_FIELDS = ("DP_DNA_MEAN", "DP_RNA_MEAN", "VAF_DNA_MEAN", "VAF_RNA_MEAN")
 SCHEMA = pa.schema(
@@ -64,11 +67,15 @@ def review_reason(label, info):
         return "annotation_conflict:" + veto
     if label == "Somatic" and info.get("DNA_VERIFICATION") in {"rejected", "inconclusive"}:
         return "dna_verification_conflict"
+    if label == "Somatic" and info.get("THREE_CLASS_REVIEW_REASON") not in (None,"none"):
+        return "three_class_review:" + info["THREE_CLASS_REVIEW_REASON"]
     if label in {"Germline", "Reference"}:
         if info.get("NEGATIVE_EVIDENCE_STATUS") == "SUPPORTED":
             return "negative_read_supported_biological_approval_pending"
         if info.get("NEGATIVE_EVIDENCE_STATUS") in {"WITHHELD", "CONFLICT"}:
             return "negative_evidence_withheld:" + (info.get("NEGATIVE_EVIDENCE_REASON") or "unspecified")
+        if info.get("THREE_CLASS_POLICY") == "separated_three_class_v2":
+            return "native_negative_requires_paired_validation"
         return "inherited_or_legacy_negative_requires_paired_validation"
     return "somatic_candidate_requires_label_qc"
 
@@ -131,6 +138,37 @@ def checked_audit(state, path, name):
         raise ValueError(f"Failed audit: {audit_path}")
     return {k: v for k, v in audit["counts"].items() if k != "records"}
 
+
+def candidate_paths(state):
+    folder=Path(state['output'])
+    paths=state.get('final_artifacts')
+    if state.get('identity',{}).get('policy')=='separated_three_class_v2' and not paths:
+        raise ValueError('Missing separated-policy final artifacts; refuse baseline fallback')
+    if paths is None:
+        return folder/'refined.rescue.vcf.gz',folder/'refined.vcf.gz'
+    if set(paths)!={'consensus','rescue'}:
+        raise ValueError('Incomplete final candidate paths')
+    selected=[Path(paths[name]) for name in ('rescue','consensus')]
+    if any(p.resolve().parent!=folder.resolve() for p in selected):
+        raise ValueError('Final artifact outside recorded output directory')
+    if state.get('identity',{}).get('policy')=='separated_three_class_v2' and any(
+            Path(paths[k])!=folder/f'three_class.{k}.vcf.gz' for k in paths):
+        raise ValueError('Separated policy cannot export an old baseline as final')
+    return tuple(selected)
+
+
+def sample_summary(old,state,consensus,rescue,cc,rc,counts,types,reasons):
+    """Keep original provenance, but never pair new counts with old result paths."""
+    return dict(old,new_consensus=str(consensus),new_rescue=str(rescue),
+                new_consensus_sha256=state['outputs'][str(consensus)],
+                new_rescue_sha256=state['outputs'][str(rescue)],new_rescue_records=sum(rc.values()),
+                consensus_counts=cc,new_rescue_counts=rc,exported_counts=counts,
+                exported_types=types,review_reasons=reasons,status=STATUS,
+                candidate_policy=state.get('identity',{}).get('policy','unrecorded'),
+                prior_comparison_note=old.get('comparison_note'),
+                comparison_note='Original counts are a prior snapshot; current candidates are not approved truth')
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--source-manifest", type=Path, default=REPO/"examples/seq2neo/data/processed/sample_manifest.tsv")
@@ -158,7 +196,7 @@ def main():
                 if state["status"] != "candidate_complete_not_training_approved":
                     raise ValueError(f"Incomplete sample: {sid}")
                 folder = Path(state["output"])
-                rescue, consensus = folder/"refined.rescue.vcf.gz", folder/"refined.vcf.gz"
+                rescue, consensus = candidate_paths(state)
                 rc = checked_audit(state, rescue, "rescue")
                 cc = checked_audit(state, consensus, "consensus")
                 counts, types, reasons = stream_rows(rescue, sid, writer)
@@ -169,12 +207,12 @@ def main():
                 old = prior[sid]
                 if old["original_rescue"] != src["rescue_vcf_path"]:
                     raise ValueError(f"Original path changed: {sid}")
-                item = dict(old, consensus_counts=cc, new_rescue_counts=rc,
-                            exported_counts=counts, exported_types=types, review_reasons=reasons)
+                item = sample_summary(old,state,consensus,rescue,cc,rc,counts,types,reasons)
                 summaries.append(item)
                 manifests.append(dict(src, original_rescue_vcf_path=src["rescue_vcf_path"],
                     rescue_vcf_path=str(rescue), consensus_vcf_path=str(consensus),
                     variant_parquet_path=str(args.parquet), candidate_status=STATUS,
+                    candidate_policy=item['candidate_policy'],
                     label_qc_verdict="NOT_APPROVED", training_label_vcf="",
                     new_rescue_sha256=state["outputs"][str(rescue)]))
                 totals.update(counts); type_totals.update(types); reason_totals.update(reasons)
@@ -189,7 +227,7 @@ def main():
         # Small sample Parquet is kept next to the heavy variant Parquet, outside Git.
         pq.write_table(pa.Table.from_pylist(manifests), args.parquet.parent/"refined_three_class_manifest.parquet", compression="zstd")
         tmp.rename(args.parquet)
-        summary = dict(schema_version=2, samples=len(sources), candidate_rows=sum(totals.values()),
+        summary = dict(schema_version=3, samples=len(sources), candidate_rows=sum(totals.values()),
                        class_counts=dict(totals), class_type_counts=dict(type_totals),
                        review_reasons=dict(reason_totals), variant_filters=list(LABELS),
                        parquet=str(args.parquet), parquet_sha256=sha(args.parquet),
