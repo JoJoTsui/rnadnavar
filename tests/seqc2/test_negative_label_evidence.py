@@ -47,7 +47,7 @@ def test_bad_detection_limit(value):
 
 
 def test_evidence_binding_and_duplicates():
-    r=dict(vcf_sha256='abc',thresholds=dict(MAPQ=20,BQ=20,BAQ=True),results=[])
+    r=dict(vcf_sha256='abc',thresholds=dict(MAPQ=20,BQ=20,BAQ=True,flag_filter=0xF04,ignore_overlaps=True,ignore_orphans=True),results=[])
     with pytest.raises(ValueError):gate.evidence_index(r,'other')
     r['results']=[dict(site=['chr1',1,'A','T'])]*2
     with pytest.raises(ValueError):gate.evidence_index(r,'abc')
@@ -63,7 +63,7 @@ def test_cli_preserves_labels_but_never_grants_training_approval(tmp_path):
         'chr1\t20\t.\tA\tT\t.\tReference\tCLASSIFICATION_RATIONALE=three_class_policy:native_three_class_v1\n')
     before=gate.digest(vcf)
     evidence=tmp_path/'evidence.json'
-    evidence.write_text(json.dumps(dict(vcf_sha256=before,thresholds=dict(MAPQ=20,BQ=20,BAQ=True),results=[
+    evidence.write_text(json.dumps(dict(vcf_sha256=before,thresholds=dict(MAPQ=20,BQ=20,BAQ=True,flag_filter=0xF04,ignore_overlaps=True,ignore_orphans=True),results=[
         dict(site=['chr1',10,'A','T'],**{'class':'Reference'},normal=reads(299),tumor=reads(299))])))
     cmd=[sys.executable,str(ROOT/'bin/assess_negative_label_evidence.py'),'--vcf',str(vcf),
          '--bam-evidence',str(evidence),'--outdir',str(tmp_path/'out')]

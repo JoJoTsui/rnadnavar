@@ -49,10 +49,6 @@ def test_overlapping_pair_is_one_observation(tmp_path):
     assert collect(tmp_path, reads) == dict(depth=1,ref=1,alt=0,other=0)
 
 
-def test_characterize_supplementary_alignment_independence_gap(tmp_path):
-    # The current default filter does not exclude supplementary alignments.
-    # Repeated sequence from one molecule can therefore contribute twice.
-    # This passing characterization is a documented safety finding, NOT proof
-    # that two such observations satisfy the binomial independence assumption.
+def test_supplementary_alignment_does_not_double_count_molecule(tmp_path):
     reads=[('one_molecule',0,60,40,100,0), ('one_molecule',2048,60,40,100,0)]
-    assert collect(tmp_path, reads) == dict(depth=2,ref=2,alt=0,other=0)
+    assert collect(tmp_path, reads) == dict(depth=1,ref=1,alt=0,other=0)

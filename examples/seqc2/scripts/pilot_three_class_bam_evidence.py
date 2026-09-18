@@ -15,6 +15,8 @@ from pathlib import Path
 import pysam
 from validate_refined_native_integration import digest
 
+FLAG_FILTER = 0xF04  # unmapped, secondary, QC-fail, duplicate, supplementary
+
 
 def select_sites(path, limit):
     groups = {label: [] for label in ("Germline", "Reference")}
@@ -51,7 +53,7 @@ def evidence(bam, fasta, site):
     for col in bam.pileup(chrom, pos-1, pos, truncate=True, stepper="samtools",
                          fastafile=fasta, min_mapping_quality=20, min_base_quality=20,
                          ignore_overlaps=True, ignore_orphans=True, max_depth=8000,
-                         compute_baq=True):
+                         compute_baq=True, flag_filter=FLAG_FILTER):
         if col.reference_pos != pos-1:
             continue
         if col.nsegments >= 8000:
@@ -101,7 +103,8 @@ def main():
     report = {"scope": __doc__, "selection": "smallest sha256(CHROM:POS:REF:ALT), separately per class, no truth selection",
               "vcf": str(args.vcf.resolve()), "vcf_sha256": digest(args.vcf),
               "samplesheet": str(args.samplesheet.resolve()), "reference": args.fasta,
-              "thresholds": {"MAPQ":20,"BQ":20,"BAQ":True,"max_depth":8000},
+              "thresholds": {"MAPQ":20,"BQ":20,"BAQ":True,"max_depth":8000,
+                             "flag_filter":FLAG_FILTER,"ignore_overlaps":True,"ignore_orphans":True},
               "bam_paths": {s:r["bam"] for s,r in pair.items()}, "populations": populations,
               "results": [], "training_approved":False}
     with pysam.AlignmentFile(pair["0"]["bam"], index_filename=pair["0"]["bai"]) as normal, \

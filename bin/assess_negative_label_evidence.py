@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pysam
 
-POLICY = "negative_evidence_gate_v1"
+POLICY = "negative_evidence_gate_v2"
 BIOLOGICAL_LABELS = {'Somatic','Germline','Reference','Artifact','NoConsensus','RNAedit'}
 
 
@@ -82,6 +82,11 @@ def evidence_index(report, vcf_sha):
     if (thresholds.get('MAPQ', 0) < 20 or thresholds.get('BQ', 0) < 20
             or thresholds.get('BAQ') is not True):
         raise ValueError('Require MAPQ/BQ >=20 and BAQ-enabled BAM evidence')
+    flag_filter = thresholds.get('flag_filter')
+    if (type(flag_filter) is not int or flag_filter & 0xF04 != 0xF04
+            or thresholds.get('ignore_overlaps') is not True
+            or thresholds.get('ignore_orphans') is not True):
+        raise ValueError('Require explicit primary/nonduplicate reads and overlapping-mate filtering')
     result = {}
     for row in report['results']:
         key = tuple(row['site'])
@@ -92,11 +97,14 @@ def evidence_index(report, vcf_sha):
 
 
 def native_nomination(info):
+    info = dict(info)  # pysam .get raises for an undeclared INFO key
     trace = info.get('CLASSIFICATION_RATIONALE', '')
     if isinstance(trace, tuple):
         trace = '|'.join(trace)
     return ('three_class_policy:native_three_class_v1' in trace.split('|')
-            or info.get('GATE_POLICY') == 'native_three_class_gate_v1')
+            or info.get('GATE_POLICY') == 'native_three_class_gate_v1'
+            or (info.get('THREE_CLASS_POLICY') == 'separated_three_class_v2'
+                and info.get('THREE_CLASS_NATIVE_FILTER') in {'Germline','Reference'}))
 
 
 def main():
@@ -132,10 +140,14 @@ def main():
             header = reader.header.copy()
             for name, description in definitions.items():
                 if name in header.info:
+                    if name == 'TRAINING_ELIGIBLE' and (header.info[name].number,header.info[name].type)==(1,'String'):
+                        continue
                     raise ValueError('Refuse recursive evidence gating or overwritten eligibility: '+name)
                 header.info.add(name, 1, 'String', description)
             with pysam.VariantFile(str(partial), 'wz', header=header) as writer:
                 for record in reader:
+                    if dict(record.info).get('TRAINING_ELIGIBLE') not in (None,'NO'):
+                        raise ValueError('Refuse to overwrite an existing eligibility decision')
                     if len(record.filter) != 1 or not set(record.filter) <= BIOLOGICAL_LABELS:
                         raise ValueError('Require a single biological candidate FILTER, not a raw caller VCF')
                     label = next(iter(record.filter), '')
