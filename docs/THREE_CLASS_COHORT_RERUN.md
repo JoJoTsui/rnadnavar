@@ -1,7 +1,8 @@
 # Candidate-only three-class cohort rerun
 
 Prepared after the [completed three-dataset validation](validation/separated_three_class_v2_20260919/README.md).
-**No real cohort or real cohort pilot was executed during this preparation.**
+The three-sample pilot completed on 2026-09-19; the full cohort has not been
+launched by this preparation/review. See the [pilot review](validation/three_class_pilot_review_20260919/README.md).
 The new policy is `separated_three_class_v2`; the old cohort configuration and
 production workflow defaults remain unchanged.
 
@@ -63,8 +64,14 @@ Code may run from the current repo or its rsynced shared copy. In both cases:
 - Logs: output root's `logs/prepare.*.log`, `logs/pilot.*.log`, or `logs/execute.*.log`.
 
 The wrapper prints the exact log path before redirecting stdout/stderr.
-Two workers have a 16 GiB address-space limit each, with 8 GiB reserved in the
-cgroup resource check. The larger disk estimate accounts for separate baselines,
+After the completed two-worker pilot, the execution configuration uses **three
+workers**, each with a 16 GiB address-space limit, with 8 GiB reserved in the
+cgroup resource check (56 GiB budget total). The old two-class config remains
+unchanged. This scheduling-only change preserves the completed pilot identity;
+validated policy code, output paths, source hashes and approval gates do not
+change. It does not increase a single sample's speed, and a 1.5x throughput gain
+is only an ideal upper bound before I/O contention and scheduling imbalance.
+The larger disk estimate accounts for separate baselines,
 native candidates and disk-backed unions; filesystem free space is not a quota
 guarantee. Outputs and work are disjoint from all original sources.
 

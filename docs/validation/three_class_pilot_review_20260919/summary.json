@@ -1,0 +1,250 @@
+{
+  "status": "candidate_execution_review_pass",
+  "training_approved": false,
+  "policy": "separated_three_class_v2",
+  "root": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919",
+  "identity": {
+    "policy": "separated_three_class_v2",
+    "manifest": "1672f3ebb727bf0f1f743304ffd6af7fc61881cfab7b67c80fedf6a3430afd7f",
+    "reference": "93157a161863464c9435062fd67c173fdaf99cb8b32f1455018361387ffa5564",
+    "reference_fai": "edefd93c489dc1baefad312f40388089f8db5cf6dcc3ba0955669ead274e8b6b",
+    "code": {
+      "examples/seq2neo/scripts/run_refined_cohort.py": "4b3603a195c66d127fcc72345c5b407795f753e9c021cad0c6c448ce8e7bbaa7",
+      "bin/run_consensus_vcf.py": "2da511af738e4af19389c3cc7ced63583533526323b7e8421529d633a743b1ba",
+      "bin/apply_refined_rescue.py": "db6e138041b33f21c73924582f6daa0a11d19d61815dc4f9b8c2c6761e29ac68",
+      "bin/apply_three_class_labels.py": "0d90d4407269bd952235b9a210ad9a3383e9e30db2054c6765997240f09be8a7",
+      "examples/seqc2/scripts/audit_refined_label_contract.py": "7b311608e8d4c61dbf4b070662547586f439a7ee42f5ee5603cae8db5a5d5d3d",
+      "examples/seqc2/scripts/validate_refined_native_integration.py": "f97fe0bae36d0d2d62bf5b7ea6ab37035e08fa41fe47ce3609022b51dfc99364",
+      "bin/vcf_utils/__init__.py": "2dd8957845d83621b84f068fc5ba34974ee3877c5aa84e15b91a15dd464b28d9",
+      "bin/vcf_utils/aggregation.py": "66d2858aa7e4ce6d40905d7684dc6d749563e34c502050456ab54067016c7b77",
+      "bin/vcf_utils/annotation_utils.py": "19b6cff031d2f5708857e12ea38fe1a877cc34b8281f95bc9e9891aabc9c1b1e",
+      "bin/vcf_utils/bcftools_annotator.py": "21f7a46e949449ecbcc3d9d66515ff94bb06359574b93b5648ab0f78d998fc8e",
+      "bin/vcf_utils/caller_evidence.py": "a765520738016a00c970145a889ee61113e7a5711531db5dfd4c06119cf52d48",
+      "bin/vcf_utils/chromosome_utils.py": "01c1e8b9958deedf44be6e3598cde9b5ed17f45728c1179b78728d46d20ed742",
+      "bin/vcf_utils/classification.py": "e024c63af272746388f8c55dde925ec35151cac4820444f851e50b8bf725912e",
+      "bin/vcf_utils/classification_config.py": "ffea026b63f6fdc1cb8c240ea682abd18e14e956952aebd1a9a4d0ef8bfea5ae",
+      "bin/vcf_utils/cosmic_annotator.py": "8b7e72eec1578fc369720a3cb8d8db34c50c040a7650ffe516c624c4bcc309ef",
+      "bin/vcf_utils/error_handler.py": "90ef3314e3854f3880e9bfbadd03ec22b0ecf7c541377174c320fe5ca2aae18d",
+      "bin/vcf_utils/evidence_tiering.py": "19bfd259c669d18966d5a4aeb86cda979e3534dcf867b20df944a4a536ecb451",
+      "bin/vcf_utils/field_mapping.py": "3e0f9b12204079972b8dbe4e586a01bd54b47885aaf145690e4950a5269c6c4c",
+      "bin/vcf_utils/filter_updater.py": "4f07aa5a34ba6b61def4ad85015df62f7b4f819bc8672473b023b2c1f3bfa265",
+      "bin/vcf_utils/filters.py": "620bdc7ad49ae1499988c46940a15a044ed1eccf3842d024d5d3bf956030afa0",
+      "bin/vcf_utils/gnomad_annotator.py": "6a5bf0eacd2d02d89d5e53535c23362b458b6df5ebe533862f6635e503cc7b1a",
+      "bin/vcf_utils/io_utils.py": "b0b9c0fe5184057a6b0e968e90bd949a92306f33aa7f0a61832dddb1c76f99a5",
+      "bin/vcf_utils/logging_config.py": "4c8d60c0dbbe724311ee9f48088a8645b9edabad307b766970ee569de47c907c",
+      "bin/vcf_utils/performance_optimizer.py": "df2dacdbde215d505e991f253ca61181a969b8261d221b30da019f2defb9652a",
+      "bin/vcf_utils/rediportal_converter.py": "eb59ece7f223cf5a0c1251a88c8c042ffb1ef2657522412e4c25a8258038d477",
+      "bin/vcf_utils/refined_native_policy.py": "7d496336029698196d37d04a1941a6e857f2dd02e71d5f45935bde29dfb725c5",
+      "bin/vcf_utils/refined_rescue_policy.py": "04912a2b751fe0d9ed594f2c3a5ccf3dd861483e8af7c02947eba9598649fe45",
+      "bin/vcf_utils/rna_editing_core.py": "778d55a63285e001d5460acb3edffaf9119f83d2f03d8f7841c46e0da29825bb",
+      "bin/vcf_utils/stripped_writer.py": "e898830e4f1ea6b97d1ca162e834df3f44bab830cc0e52ce4e39264faceb4500",
+      "bin/vcf_utils/tagging.py": "98ab3f4bc0823d9eba357cead18d4cadd0d4a5e60c0fd282ed8eca83418d6df3",
+      "bin/vcf_utils/three_class_policy.py": "7dcb7c80c857f94c45f5adc3510842987566e78c34cae21da0f4291ae3d5a4a3",
+      "bin/vcf_utils/unified_filters.py": "98b3e109e710641fd9f4d5f6804b01dfe9e4459bf346d13d2daaf631cf6fce76",
+      "bin/vcf_utils/variant_classifier.py": "52e93c9673602efb85996973986f45564f4ea95eb3823616dcd6ba1327afd1a9",
+      "bin/vcf_utils/variant_classifier_unified.py": "c9823f5bd5425d790ccc257d336d6876e2cc33559e7f9ea24c99cca77b0d449b",
+      "bin/vcf_utils/variant_statistics.py": "0059a47e1d26fe3855ef1aa14b034d53865c8abb477edb0c7ab0aff8e072b572",
+      "bin/vcf_utils/vcf_escaping.py": "8fcba4055ca2318da2135d81a28c0c87cb0000db97966e45cad31cb7f7eb08dc",
+      "bin/common/__init__.py": "ee72e066e14c3d61453a02d5866952d343b4bd1701206034a9fc23f119a466b7",
+      "bin/common/category_matcher.py": "614f3dd4485a54afc461fc60c4c86b4aeebb70daf2af266973ccf23a43754c40",
+      "bin/common/database_checker.py": "f7245ec3030d33f933673189651c65bf7ccd3f2327df5bb9fd63a533a64e6c85",
+      "bin/common/tier_config.py": "8ced46cb3232623ba2603cd1beee1ba26e21918f313a816356636eeee49a33a5",
+      "bin/common/vcf_config.py": "842c9745fd97a19eb01512bb3444c2792c6e10b5745b39f5af586739abbf3c89"
+    },
+    "validation_gate": "e3acf1bf3611b9b6d435ab963578f29a2a11a68c8c62d1c7dee872227061ee12"
+  },
+  "samples": {
+    "PRJNA298330_4032": {
+      "completion": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/PRJNA298330_4032/attempt001/completion.json",
+      "completion_sha256": "b885d67738fb1855e7500a76f276cb4eb000183558e3fbfc18194f88eca092c9",
+      "timing": {
+        "status": "estimated_from_local_artifact_mtimes",
+        "minutes": {
+          "normalization": 0.046,
+          "baseline_consensus": 5.944,
+          "baseline_rescue": 4.808,
+          "native_nomination": 5.84,
+          "three_class_consensus": 2.176,
+          "three_class_rescue": 4.714,
+          "audit_and_integrity": 1.277
+        },
+        "total_minutes": 24.80348622004191
+      },
+      "stages": {
+        "consensus": {
+          "status": "exact_all_class_union_pass",
+          "counts": {
+            "NoConsensus": 320317,
+            "Reference": 68009,
+            "Germline": 19194,
+            "Somatic": 397
+          },
+          "records": 407917,
+          "final": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/PRJNA298330_4032/attempt001/three_class.consensus.vcf.gz",
+          "sha256": "b8b991d3dedb18cfd16095055433b1882e87bd18449320f716399d8ba26e30f6",
+          "report_sha256": "2065ee229b613d04a5be1d66eb9395752440edcad308815339bc23be60241414",
+          "audit_sha256": "86a9a93335eb9a40dab86c934bdfdc3f74b92eb4ef22c01ae2238652600dbda1"
+        },
+        "rescue": {
+          "status": "exact_all_class_union_pass",
+          "counts": {
+            "NoConsensus": 631640,
+            "Reference": 68009,
+            "Germline": 19194,
+            "Somatic": 397
+          },
+          "records": 719240,
+          "final": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/PRJNA298330_4032/attempt001/three_class.rescue.vcf.gz",
+          "sha256": "b8858747b8a3a835be54105b663737a38e969864654052cd1a08b303651dae49",
+          "report_sha256": "1a39124bc4a9387e31b63cad8368e6cdf22c2fdc2f421b55e8e91359c44e00ba",
+          "audit_sha256": "2f9f0e23cad149a94b244e0b863927b95e2908e21fc3787abaa52e542608403e"
+        }
+      }
+    },
+    "PRJNA298376_4278": {
+      "completion": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/PRJNA298376_4278/attempt001/completion.json",
+      "completion_sha256": "4c74b84df02fec876dbbdea6c402c5785ea7b8c9dc416c935f96265e927063c7",
+      "timing": {
+        "status": "estimated_from_local_artifact_mtimes",
+        "minutes": {
+          "normalization": 0.167,
+          "baseline_consensus": 23.32,
+          "baseline_rescue": 14.488,
+          "native_nomination": 23.733,
+          "three_class_consensus": 7.833,
+          "three_class_rescue": 13.574,
+          "audit_and_integrity": 3.484
+        },
+        "total_minutes": 86.59894951581956
+      },
+      "stages": {
+        "consensus": {
+          "status": "exact_all_class_union_pass",
+          "counts": {
+            "NoConsensus": 1373733,
+            "Reference": 136125,
+            "Germline": 26137,
+            "Somatic": 523
+          },
+          "records": 1536518,
+          "final": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/PRJNA298376_4278/attempt001/three_class.consensus.vcf.gz",
+          "sha256": "6eec0f3b783914d0b11524bca726c1ef411f5a4b86d2de4dad67b6a0905bdbd4",
+          "report_sha256": "84861dab5717466d82d3a11e13345724f7d3281c486c59f56e4aa748d5c472a3",
+          "audit_sha256": "ddc5c43d75ec3540e84b99486faf8df497d82326dbaffc5246e867d18a3481f2"
+        },
+        "rescue": {
+          "status": "exact_all_class_union_pass",
+          "counts": {
+            "NoConsensus": 1720803,
+            "Reference": 136125,
+            "Germline": 26137,
+            "Somatic": 528
+          },
+          "records": 1883593,
+          "final": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/PRJNA298376_4278/attempt001/three_class.rescue.vcf.gz",
+          "sha256": "b4abd02beb5d6e226f38ad07fb5c5f8dbf6f2a374a9197166745f38887a33005",
+          "report_sha256": "30302fe39b468b40b2a15c51906a657098518ab668b1971ebe5fcf2407e8816c",
+          "audit_sha256": "e68379669228fb676329e5956a45146d4ba34b7d1cf14d632705616e5420f0e6"
+        }
+      }
+    },
+    "PRJNA298376_4255": {
+      "completion": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/PRJNA298376_4255/attempt001/completion.json",
+      "completion_sha256": "9a26b46bb990054c90e83235fb03f97b8a196e2d7d29bbed68703a07d1e5c0cc",
+      "timing": {
+        "status": "estimated_from_local_artifact_mtimes",
+        "minutes": {
+          "normalization": 0.134,
+          "baseline_consensus": 19.393,
+          "baseline_rescue": 10.431,
+          "native_nomination": 19.186,
+          "three_class_consensus": 5.969,
+          "three_class_rescue": 9.341,
+          "audit_and_integrity": 2.596
+        },
+        "total_minutes": 67.0500847140948
+      },
+      "stages": {
+        "consensus": {
+          "status": "exact_all_class_union_pass",
+          "counts": {
+            "NoConsensus": 1003117,
+            "Reference": 86440,
+            "Germline": 25656,
+            "Somatic": 541
+          },
+          "records": 1115754,
+          "final": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/PRJNA298376_4255/attempt001/three_class.consensus.vcf.gz",
+          "sha256": "52081a5387c9619365f00f1670bab96c121d47fecb97668e4c7a773cb8290501",
+          "report_sha256": "b911aea9be1b013eccf2eb87eb0c068e085fd7ea2be338614b62b6ae7d4a5393",
+          "audit_sha256": "0abf994e671f33a4fd0ae50a8a53f1e09ca0aa5fa5ccb98231b6c81b51fb5bd4"
+        },
+        "rescue": {
+          "status": "exact_all_class_union_pass",
+          "counts": {
+            "NoConsensus": 1200928,
+            "Reference": 86440,
+            "Germline": 25656,
+            "Somatic": 545
+          },
+          "records": 1313569,
+          "final": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/PRJNA298376_4255/attempt001/three_class.rescue.vcf.gz",
+          "sha256": "8fba3960a13e2a3a4bc0d3f220eaa6d8e0f3a842ba9a082fd6ca22d8820bcc70",
+          "report_sha256": "4d75496d393d4fc6c34360f4fa17b1d15d2c9ee88d2c9626b22a3efb4e6e3c6f",
+          "audit_sha256": "230ba703a63c02745510862561c4a63411dac05bf176729f800549e49e5e5622"
+        }
+      }
+    }
+  },
+  "started": 1789790051.2538855,
+  "completed": 1789790613.8229256,
+  "review_report": "examples/seqc2/comparison/three_class_pilot_review_20260919/review.json",
+  "review_report_sha256": "b12cec6057114545061d64fd8fdedd6dea0d6fa7b30a3dcc5d143aa6b4ee7d48",
+  "preflight": {
+    "status": "preflight_pass_header_checks_only",
+    "sample_count": 66,
+    "resources": {
+      "workers": 3,
+      "memory_gib_per_worker": 16,
+      "cpu_threads_per_job": 1,
+      "cgroup_memory_bytes": 83751862272,
+      "cpu_quota": 46,
+      "estimated_required_free_bytes": 662851262912,
+      "free_bytes": {
+        "output_root": 1380286860361728,
+        "work_root": 1380286860361728
+      },
+      "disk_ready": true
+    },
+    "manifest_sha256": "1672f3ebb727bf0f1f743304ffd6af7fc61881cfab7b67c80fedf6a3430afd7f",
+    "validation_gate": {
+      "summary": "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/docs/validation/separated_three_class_v2_20260919/summary.json",
+      "sha256": "e3acf1bf3611b9b6d435ab963578f29a2a11a68c8c62d1c7dee872227061ee12",
+      "candidate_only": true,
+      "training_approved": false
+    },
+    "report": "examples/seqc2/comparison/three_class_pilot_review_20260919/three_worker_preflight.json",
+    "sha256": "180567caf50d1410bc992bce88bcad745b53f620b0d40b85d8bc3990905cf963"
+  },
+  "reviewer_sha256": "c3211b053ee64b8dceef17d9b41115c4de184b9eb865125f4d4fad4028e4aeb8",
+  "configuration_sha256": "6d23692c15de293c98a5a970f83ef4fc17357556949a9f5e83e015d217e135e6",
+  "tests": {
+    "passed": 87,
+    "failed": 0
+  },
+  "optimization": {
+    "kind": "scheduling_only",
+    "old_workers": 2,
+    "new_workers": 3,
+    "memory_gib_per_worker": 16,
+    "reserve_memory_gib": 8,
+    "validated_policy_code_changed": false,
+    "full_cohort_launched": false
+  },
+  "limitations": [
+    "Execution/structural review is not biological training approval.",
+    "All records remain TRAINING_ELIGIBLE=NO.",
+    "Per-stage timings are estimates from local artifact mtimes.",
+    "Compression microbenchmark not promoted to production."
+  ]
+}
