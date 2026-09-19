@@ -168,6 +168,9 @@ def test_three_class_synthetic_execution_and_no_baseline_fallback(three_class_co
             assert len(rows)==1 and set(rows[0].filter)=={'Somatic'}
             assert rows[0].info['THREE_CLASS_POLICY']==m.THREE_CLASS_POLICY
             assert rows[0].info['TRAINING_ELIGIBLE']=='NO'
+    # Scheduling-only tuning must reuse byte-verified pilot results rather than
+    # recompute native nominations or change the validated policy identity.
+    cfg['workers'] = 3
     assert m.run_sample(sample,cfg,identity)[1]=='cached_candidate_complete'
     m.write_candidate_manifest(root,[sample])
     with (root/'candidate_manifest.tsv').open() as handle: row=next(csv.DictReader(handle,delimiter='\t'))

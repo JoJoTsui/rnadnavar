@@ -8,7 +8,7 @@
   "fasta": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/bio_db/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta",
   "expected_samples": 66,
   "pilot_samples": ["PRJNA298330_4032", "PRJNA298376_4278", "PRJNA298376_4255"],
-  "workers": 2,
+  "workers": 3,
   "memory_gib_per_worker": 16,
   "reserve_memory_gib": 8,
   "minimum_free_gib": 200,
