@@ -79,3 +79,8 @@ examples/seq2neo/runs/label_qc_manifest*.tsv
 /docs/manuscript/**/*.bam*
 /docs/manuscript/**/*.cram*
 /docs/manuscript/**/*.sqlite*
+
+# Shared-data snapshots and benchmark launcher logs copied back locally
+/examples/seq2neo/output_three_class_v2_20260919/
+/examples/seqc2/hybrid/hg008_wgs_benchmark.nohup.log
+/examples/seqc2/hybrid/wgs_il_benchmark.nohup.log
