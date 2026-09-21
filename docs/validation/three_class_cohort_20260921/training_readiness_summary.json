@@ -1,0 +1,116 @@
+{
+  "status": "pilot_complete_not_training_approved",
+  "training_approved": false,
+  "selection": "smallest sha256(CHROM:POS:REF:ALT) per pilot/class; all native conflicts separately",
+  "parameters": {
+    "per_class": 32,
+    "MAPQ": 20,
+    "BQ": 20,
+    "BAQ": true,
+    "max_depth": 8000,
+    "flag_filter": 3844,
+    "ignore_overlaps": true,
+    "ignore_orphans": true,
+    "reference_max_af": 0.01,
+    "confidence": 0.95,
+    "required_depth_each_dna": 299
+  },
+  "limitations": [
+    "Pilot support is not class accuracy or training approval",
+    "BAMs and reference are stat-bound, not whole-file rehashed",
+    "RNA counts are exploratory using the same quality and pairing filters",
+    "No haplotype-aware indel validation or model ablation is performed",
+    "Biological context is not independently adjudicated"
+  ],
+  "outcomes": {
+    "negative_pilot:Germline:SUPPORTED:paired_germline_read_corroboration_not_truth": 52,
+    "negative_pilot:Germline:WITHHELD:insufficient_paired_germline_evidence": 8,
+    "negative_pilot:Germline:WITHHELD:allele_fraction_shift_requires_context_review": 7,
+    "negative_pilot:Reference:WITHHELD:insufficient_depth_for_reference_detection_limit": 39,
+    "negative_pilot:Reference:WITHHELD:observed_alt_not_zero": 56,
+    "targeted_conflict:Germline:WITHHELD:insufficient_paired_germline_evidence": 1,
+    "targeted_conflict:Reference:WITHHELD:observed_alt_not_zero": 1,
+    "negative_pilot:Germline:WITHHELD:other_allele_context_requires_review": 29,
+    "negative_pilot:Reference:WITHHELD:other_allele_context_requires_review": 1
+  },
+  "class_counts": {
+    "Germline": 1585619,
+    "Reference": 14244341,
+    "Somatic": 32933
+  },
+  "review_reasons": {
+    "native_negative_requires_paired_validation": 15829960,
+    "somatic_candidate_requires_label_qc": 29324,
+    "annotation_conflict:common_population_af": 3607,
+    "three_class_review:native_negative_conflict": 2
+  },
+  "conflicts": [
+    {
+      "sample_id": "PRJNA298376_4112",
+      "site": [
+        "chr6",
+        158621604,
+        "G",
+        "A"
+      ],
+      "final_class": "Somatic",
+      "native_class": "Germline",
+      "group": "targeted_conflict",
+      "provisional_status": "WITHHELD",
+      "reason": "insufficient_paired_germline_evidence",
+      "normal": {
+        "depth": 9,
+        "ref": 8,
+        "alt": 1,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 24,
+        "ref": 6,
+        "alt": 18,
+        "other": 0
+      },
+      "rna": {
+        "depth": 18,
+        "ref": 2,
+        "alt": 16,
+        "other": 0
+      }
+    },
+    {
+      "sample_id": "PRJNA298376_4252",
+      "site": [
+        "chrX",
+        13379221,
+        "T",
+        "G"
+      ],
+      "final_class": "Somatic",
+      "native_class": "Reference",
+      "group": "targeted_conflict",
+      "provisional_status": "WITHHELD",
+      "reason": "observed_alt_not_zero",
+      "normal": {
+        "depth": 29,
+        "ref": 29,
+        "alt": 0,
+        "other": 0
+      },
+      "tumor": {
+        "depth": 41,
+        "ref": 40,
+        "alt": 1,
+        "other": 0
+      },
+      "rna": {
+        "depth": 289,
+        "ref": 0,
+        "alt": 289,
+        "other": 0
+      }
+    }
+  ],
+  "report": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/training_readiness_20260921/report.json",
+  "index_warning": "Existing indexes older than BAM: PRJNA298330_4032 DN/DT; PRJNA298376_4112 DN/DT/RT. Not repaired; evidence remains provisional.",
+  "report_sha256": "9e713580305f0e66eaa1d21022a3755872bc043fd490f7e7b8a5c6ec32e52809"
+}
