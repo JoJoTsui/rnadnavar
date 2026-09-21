@@ -1,0 +1,19 @@
+{
+  "date": "2026-09-21",
+  "execution_scope": "exporter host accessing shared paths; user accepted this check without destination repetition",
+  "status": "shared_data_preflight_passed_not_training_approved",
+  "training_approved": false,
+  "report_sha256": "eb6f11ef47e8c7c2e9c32853de2843894c98fa68d640f6dbb8d4b96a3cb554b8",
+  "checker_sha256": "a77f082c0f83bda7c8280a40d36713d80eedf638c9aad2dca1093988945bdf45",
+  "sample_count": 63,
+  "pool_counts": {"train_pool": 58, "reserved": 5},
+  "class_counts": {"Somatic": 28241, "Germline": 1522528, "Reference": 12791828},
+  "total_records": 14342597,
+  "alignment_paths_checked": 189,
+  "tests_passed": 11,
+  "limitations": [
+    "Alignment accessibility/size only, not full BAM integrity or sample identity",
+    "Actual destination loader, reference and feature cache not validated",
+    "Weak-label selection approval remains separate"
+  ]
+}
