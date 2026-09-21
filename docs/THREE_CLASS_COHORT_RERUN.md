@@ -1,8 +1,11 @@
 # Candidate-only three-class cohort rerun
 
 Prepared after the [completed three-dataset validation](validation/separated_three_class_v2_20260919/README.md).
-The three-sample pilot completed on 2026-09-19; the full cohort has not been
-launched by this preparation/review. See the [pilot review](validation/three_class_pilot_review_20260919/README.md).
+The three-sample pilot completed on 2026-09-19. The full 66-sample candidate
+cohort finished on 2026-09-21 with no failed samples. See the
+[cohort/export review](validation/three_class_cohort_20260921/README.md) for
+verification status and output paths, and the
+[pilot review](validation/three_class_pilot_review_20260919/README.md) for pilot evidence.
 The new policy is `separated_three_class_v2`; the old cohort configuration and
 production workflow defaults remain unchanged.
 

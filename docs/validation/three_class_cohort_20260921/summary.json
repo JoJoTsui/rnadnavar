@@ -1,0 +1,33 @@
+{
+  "status": "all_parquet_rows_verified",
+  "training_approved": false,
+  "samples": 66,
+  "rows": 15862893,
+  "class_counts": {
+    "Germline": 1585619,
+    "Reference": 14244341,
+    "Somatic": 32933
+  },
+  "class_type_counts": {
+    "Germline:SNP": 1479633,
+    "Germline:INDEL": 105986,
+    "Reference:SNP": 14244341,
+    "Somatic:SNP": 31571,
+    "Somatic:INDEL": 1362
+  },
+  "parquet": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/variant_parquet/three_class_candidates.parquet",
+  "parquet_sha256": "070fe262ce650d4c515c9a6ceea2bed67e222bbadc7a99ea6b6b5166df0464fd",
+  "summary": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/exports/summary.json",
+  "summary_sha256": "12d5a2d51a34fc18da84efc721d9f003e4ef634f4837dfb404804ef82c440cd4",
+  "manifest": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/exports/manifest.tsv",
+  "manifest_sha256": "db74818537ed8707e2da02f211390c19cf3c973e4a7601e7a889a6f7084cfc31",
+  "verifier_sha256": "79f4d5810f5dc2c947f3c192d8c2a10018ab955e243e530e96e1ddf0f6ed21e6",
+  "exact_somatic_comparison": {
+    "status": "exact_somatic_membership_parity_pass",
+    "samples": 66,
+    "stage_pairs": 132,
+    "added": 0,
+    "removed": 0,
+    "report": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/review_20260921/somatic_membership.retry16g.json"
+  }
+}
