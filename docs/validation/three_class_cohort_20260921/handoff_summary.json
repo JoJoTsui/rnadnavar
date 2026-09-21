@@ -1,0 +1,55 @@
+{
+  "status": "review_ready_not_training_approved",
+  "training_approved": false,
+  "policy": "separated_three_class_v2",
+  "excluded_samples": [
+    "PRJNA298330_4032",
+    "PRJNA298376_4081",
+    "PRJNA298376_4255"
+  ],
+  "three_sample_stage": [
+    "PRJNA298376_4007",
+    "PRJNA298376_4060",
+    "PRJNA298376_4072"
+  ],
+  "single_sample_stage_skipped": true,
+  "sources": {
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/exports/summary.json": "12d5a2d51a34fc18da84efc721d9f003e4ef634f4837dfb404804ef82c440cd4",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/exports/manifest.tsv": "db74818537ed8707e2da02f211390c19cf3c973e4a7601e7a889a6f7084cfc31",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/review_20260921/parquet_verification.json": "b8f02ed0f37c26f853beeb45eccf946995b0232785bf6c53e712f664b06b3829",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/variant_parquet/three_class_candidates.parquet": "070fe262ce650d4c515c9a6ceea2bed67e222bbadc7a99ea6b6b5166df0464fd",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/examples/seq2neo/scripts/prepare_v2_training_handoff.py": "b404246a29f953831e4ba1deb01795ebd35fe7619f23619e76e349977032aa08",
+    "/t9k/mnt/hdd/work/Vax/pipeline/rnadnavar/bin/vcf_utils/three_class_policy.py": "7dcb7c80c857f94c45f5adc3510842987566e78c34cae21da0f4291ae3d5a4a3"
+  },
+  "outputs": {
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/handoff_review_20260921/three_samples.review.parquet": "9ca67fcd3d053ee4eeef10457aa38120ced354388cd569872ceb8c04d9b5237f",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/handoff_review_20260921/cohort63.review.tsv": "05602cf063e96e15d9c4c9485a854446c79d0d8d39c8fc68e9e7bf3664ac4cdc",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/handoff_review_20260921/three_samples.review.tsv": "98400641ba6ca4fc42842df80be8c9cf261075536fcd6d8171671b75f72e34f5",
+    "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/handoff_review_20260921/cohort63.review.parquet": "8e61c3c73b51cbca095b0da26e34f76b5adfe80c594723acaaedf4d740662a6d"
+  },
+  "three_sample_counts": {
+    "PRJNA298376_4007|Germline": 21855,
+    "PRJNA298376_4007|Reference": 50534,
+    "PRJNA298376_4007|Somatic": 569,
+    "PRJNA298376_4060|Reference": 278568,
+    "PRJNA298376_4060|Germline": 19759,
+    "PRJNA298376_4060|Somatic": 213,
+    "PRJNA298376_4072|Reference": 583208,
+    "PRJNA298376_4072|Germline": 21736,
+    "PRJNA298376_4072|Somatic": 235
+  },
+  "native_evidence_check_count": 48,
+  "limitations": [
+    "Weak workflow supervision, not independent truth",
+    "Negative native-caller spot checks are bounded, not class accuracy",
+    "Full original BAM/sample biological identity not certified",
+    "No 299-read or zero-ALT training gate imposed",
+    "No global training split or approval assigned"
+  ],
+  "audit_path": "/t9k/mnt/WorkSpace/data/ngs/xuzhenyu/pipeline/rnadnavar/examples/seq2neo/output_three_class_v2_20260919/handoff_review_20260921/audit.json",
+  "selected_counts": {
+    "Somatic": 28241,
+    "Germline": 1522528,
+    "Reference": 12791828
+  }
+}
