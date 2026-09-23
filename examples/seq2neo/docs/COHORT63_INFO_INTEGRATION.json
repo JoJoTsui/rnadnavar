@@ -1,0 +1,33 @@
+{
+  "release_id": "seq2neo_separated_three_class_v2_cohort63_20260921",
+  "approved_report": {
+    "path": "examples/seq2neo/output_three_class_v2_20260919/cohort63_model_review_20260921/report.json",
+    "sha256": "eb6f11ef47e8c7c2e9c32853de2843894c98fa68d640f6dbb8d4b96a3cb554b8",
+    "status": "review_bridge_verified_not_training_approved",
+    "training_approved": false
+  },
+  "approval_sidecar": {
+    "path": "examples/seq2neo/output_three_class_v2_20260919/cohort63_handoff_tools_20260921/RELEASE_APPROVAL.json",
+    "sha256": "ce21605f5bbc24f2166b36010637c6fdbbf83be7c900b60facb5b6dbf6ad6f80"
+  },
+  "evidence": {
+    "path": "examples/seq2neo/info_v1_20260922",
+    "revision": "3d20646a2b7c9a536a71ffa2c2d4f605ee58d238",
+    "full_release_complete": true,
+    "verification": "PASS: full-key/FILTER, pool, split, output hashes, numerical invariants",
+    "rows": 14342597,
+    "samples": 63,
+    "pool_counts": {"train_pool": 58, "reserved": 5},
+    "class_counts": {"Reference": 12791828, "Germline": 1522528, "Somatic": 28241},
+    "split_counts": {"train": 11722395, "val": 525937, "test": 1288502, "reserved": 805763},
+    "export_runtime_seconds": 88550.42572569847,
+    "verification_runtime_seconds": 401.74913811683655,
+    "report_sha256": {
+      "manifest.json": "55ce30aee1b122266b120127e79eb797800825d6af7b71d272de7acd5469dbbb",
+      "schema.json": "808e3988d01a64a6b39f138da6a5b860246f644957af8abbe4438af183f5679c",
+      "qc.json": "4198273141736a29ecc81ea794a44a34082c259460219c5b8ca5ad7329221ccd",
+      "verification.json": "1caadb08084f42322923c41c4efebdc32d2db98ac9f2fb2be11a5c3b779b97ae",
+      "verification.md": "9a19b371bca9b2d3794de30c266e5ef95f97863b079cd0b910ff3aa3c82d683e"
+    }
+  }
+}
